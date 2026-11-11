@@ -73,6 +73,11 @@ export function suggestLength(d: number, usual?: number | null): { minutes: numb
   return null;
 }
 
+/**
+ * Checks the time and length. Returns true when the time itself looks like a
+ * mistake (runs overnight or far too long), so callers can hold back clash
+ * warnings worked out from that wrong time until it's fixed.
+ */
 export function checkTiming(
   flags: Flags,
   zone: TZ,
@@ -93,6 +98,7 @@ export function checkTiming(
 
   const overnight = end.toISODate() !== start.toISODate() && !(end.hour === 0 && end.minute === 0 && d <= FLAG_LIMITS.longClassMinutes);
   const endBeforeStart = end.hour * 60 + end.minute < start.hour * 60 + start.minute;
+  const looksWrong = overnight || d > FLAG_LIMITS.longClassMinutes;
   if (overnight) {
     const message = endBeforeStart
       ? `This class ends at ${clock(end)}, which is before its ${clock(start)} start, so it would run overnight for ${hoursText(d)}.${fixText}`
@@ -123,7 +129,11 @@ export function checkTiming(
   if (s.startsAt.getTime() - s.now.getTime() > FLAG_LIMITS.farFutureDays * 24 * HOUR) {
     flags.confirm({ code: "far_future", message: `This class is on ${start.toFormat("d LLL yyyy")}, over a year away. Is the year right?`, ...ref });
   }
+  return looksWrong;
 }
+
+/** Clash warnings that depend on the class's time. */
+export const CLASH_CODES = ["instructor_double_booked", "room_double_booked", "possible_duplicate"] as const;
 
 export function checkCapacity(flags: Flags, s: { sessionId?: string; capacity: number; room?: { name: string; capacity: number | null } | null }) {
   if (s.room?.capacity != null && s.capacity > s.room.capacity) {

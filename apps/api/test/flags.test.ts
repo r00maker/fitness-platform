@@ -33,6 +33,14 @@ describe("catching likely mistakes", () => {
     expect(new Date(fixed.body.endsAt).getTime() - new Date(fixed.body.startsAt).getTime()).toBe(60 * 60_000);
   });
 
+  it("holds back clash warnings worked out from a time that is itself probably wrong", async () => {
+    const { s, base } = await setup();
+    await s.owner.call("POST", "/sessions", { ...base, date: dayOffset(4), startTime: "09:00", instructorId: s.ana.id });
+    const { durationMinutes: _, ...noLength } = base;
+    const res = await s.owner.call("POST", "/sessions", { ...noLength, startTime: "11:00", endTime: "10:00", instructorId: s.ana.id });
+    expect(res.body.error.flags.map((f: { code: string }) => f.code)).toEqual(["ends_after_midnight"]);
+  });
+
   it("flags 9am–9pm as unusually long with an AM/PM fix", async () => {
     const { s, base } = await setup();
     const res = await s.owner.call("POST", "/sessions", { ...base, durationMinutes: 12 * 60 + 60, startTime: "09:00", instructorId: s.ana.id });

@@ -27,6 +27,7 @@ import {
   checkShortNotice,
   checkSlot,
   checkTiming,
+  CLASH_CODES,
   usualDuration,
 } from "../checks/session-checks.js";
 import { notify } from "../notifications/outbox.js";
@@ -132,7 +133,8 @@ async function checkNewClass(db: DbOrTx, orgId: string, flags: Flags, f: Resolve
   const zone = await locationZone(db, orgId, f.locationId);
   const endsAt = addMinutes(startsAt, f.durationMinutes);
   await checkSlot(db, orgId, flags, zone, { sessionId, instructorId: f.instructorId, roomId: f.roomId, classTypeId: f.classTypeId, locationId: f.locationId, startsAt, endsAt });
-  checkTiming(flags, zone, { sessionId, startsAt, durationMinutes: f.durationMinutes, ...(await usualDuration(db, f.classTypeId, f.templateId)), isNew: true, now });
+  // A time that is itself probably wrong would produce misleading clashes, so hold those back until it's fixed.
+  if (checkTiming(flags, zone, { sessionId, startsAt, durationMinutes: f.durationMinutes, ...(await usualDuration(db, f.classTypeId, f.templateId)), isNew: true, now })) flags.drop(CLASH_CODES, sessionId);
   checkCapacity(flags, { sessionId, capacity: f.capacity, room: f.room });
   checkInstructor(flags, { sessionId, instructorId: f.instructorId });
   await checkInstructorListed(db, flags, { sessionId, classTypeId: f.classTypeId, instructorId: f.instructorId });
@@ -198,7 +200,7 @@ export async function createSeries(
   if (created.length === 0) throw badRequest("no_dates", "Those settings don't produce any classes. Check the days and dates.");
 
   // Time, length and capacity are the same for every class, so check them once.
-  checkTiming(flags, zone, { startsAt: created[0]!.startsAt, durationMinutes: f.durationMinutes, ...(await usualDuration(tx, f.classTypeId, f.templateId)), isNew: true, now });
+  if (checkTiming(flags, zone, { startsAt: created[0]!.startsAt, durationMinutes: f.durationMinutes, ...(await usualDuration(tx, f.classTypeId, f.templateId)), isNew: true, now })) flags.drop(CLASH_CODES);
   checkCapacity(flags, { capacity: f.capacity, room: f.room });
   checkInstructor(flags, { instructorId: f.instructorId });
 
@@ -296,7 +298,7 @@ async function applyChanges(
     await checkSlot(tx, auth.orgId, flags, zone, { ...ref, instructorId, roomId, classTypeId, locationId: s.locationId, startsAt, endsAt, excludeIds: [s.id] });
   }
   if (timeChanged) {
-    checkTiming(flags, zone, { ...ref, startsAt, durationMinutes: duration, ...(await usualDuration(tx, classTypeId, s.templateId)), isNew: false, now });
+    if (checkTiming(flags, zone, { ...ref, startsAt, durationMinutes: duration, ...(await usualDuration(tx, classTypeId, s.templateId)), isNew: false, now })) flags.drop(CLASH_CODES, s.id);
     if (booked > 0) {
       flags.confirm({ code: "clients_affected", ...ref, message: `${booked} booked ${booked === 1 ? "client" : "clients"} will ${opts.notifyClients ? "be told about" : "NOT be told about"} the new time.` });
     }
