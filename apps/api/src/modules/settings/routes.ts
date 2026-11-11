@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { FIELDS, FLAG_TITLES, OPTION_LABELS, can, schemas } from "@studio/shared";
 import { memberships, organizations, pushTokens, users } from "../../db/schema.js";
 import { parse } from "../../lib/validate.js";
@@ -15,6 +15,17 @@ export async function settingsRoutes(app: FastifyInstance) {
   app.get("/me", async (req) => {
     const [u] = await app.db.select().from(users).where(eq(users.id, req.auth.userId));
     return { ...u, role: req.auth.role, orgId: req.auth.orgId };
+  });
+
+  /** Clients choose whether other members see them on class lists. */
+  app.patch("/me/privacy", async (req) => {
+    const input = parse(schemas.updatePrivacy, req.body);
+    const [m] = await app.db
+      .update(memberships)
+      .set(input)
+      .where(and(eq(memberships.orgId, req.auth.orgId), eq(memberships.userId, req.auth.userId)))
+      .returning({ showInAttendeeList: memberships.showInAttendeeList });
+    return m;
   });
 
   app.post("/me/push-tokens", async (req, reply) => {

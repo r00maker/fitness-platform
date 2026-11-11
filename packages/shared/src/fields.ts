@@ -78,6 +78,12 @@ export const FIELDS = {
   noShowFee: { label: "No-show fee", help: "The amount charged when a client doesn't turn up." },
   currency: { label: "Currency", help: "The currency your fees and prices are shown in, e.g. SGD." },
   feeWaiveReason: { label: "Reason for waiving", help: "Kept on the client's history so your team knows why the fee was removed." },
+  clientTags: { label: "Tags", help: "Your own labels for clients, e.g. “Injury: lower back” or “VIP”. Staff see them on class lists." },
+  tagName: { label: "Tag name", help: "Keep it short so it fits on the class list, e.g. “Prenatal”." },
+  tagColor: { label: "Tag colour", help: "Helps the tag stand out on the class list." },
+  spot: { label: "Spot", help: "The reformer, bike or mat the client will use. Clients pick theirs when booking." },
+  spotLabels: { label: "Spots in this room", help: "Name each spot, e.g. “Reformer 1”. Clients choose one when they book. Leave empty if clients don't pick a spot." },
+  showInAttendeeList: { label: "Show me on class lists", help: "Other studio members can see your first name, initial and photo on the classes you've booked. Turn off to stay hidden." },
   role: { label: "Access level", help: "Admin: sees and changes everything. Front of House: sees the full schedule and can take attendance. Instructor: sees and takes attendance for their own classes only." },
   acknowledge: { label: "Go ahead anyway", help: "You've seen the warnings and want to continue." },
 } as const satisfies Record<string, FieldText>;
@@ -107,6 +113,7 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   outside_booking_window: "Outside the booking window",
   over_weekly_limit: "Over the weekly limit",
   late_cancel: "Late cancellation",
+  no_free_cancel: "No free cancellation",
   late_move: "Late change",
   fee_applies: "Fee applies",
   already_refunded: "Already refunded",
@@ -135,6 +142,7 @@ export const OPTION_LABELS = {
   role: { owner: "Owner", admin: "Admin", front_desk: "Front of House", instructor: "Instructor", client: "Client" },
   feeType: { late_cancel: "Late-cancellation fee", no_show: "No-show fee" },
   feeStatus: { pending: "To be collected", waived: "Waived", charged: "Paid" },
+  memberSource: { direct: "Studio member", classpass: "ClassPass" },
   bookingWindow: { not_open_yet: "Booking not open yet", open: "Open for booking", closed: "Booking closed" },
   timeOfDay: { morning: "Morning (before 12pm)", afternoon: "Afternoon (12–5pm)", evening: "Evening (after 5pm)" },
 } as const;

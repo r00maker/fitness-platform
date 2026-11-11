@@ -45,11 +45,18 @@ Example: `curl "localhost:3000/v1/calendar?view=week&date=2026-11-11" -H "Author
 | Role | Sees | Can change |
 |---|---|---|
 | **Admin** (and Owner) | Everything, including client contact details, history, fees and (later) payments | Everything |
-| **Front of House** | The whole schedule and every class's client list (names only) | Attendance only |
-| **Instructor** | Only their own classes (plus a class they've been asked to cover, without its client list) | Attendance on their own classes; asking for and accepting cover |
+| **Front of House** | The whole schedule and every class's client list, including contact details | Attendance and client tags |
+| **Instructor** | Only their own classes, including contact details for those clients (plus a class they've been asked to cover, without its client list) | Attendance on their own classes; asking for and accepting cover |
 | **Client** | The public schedule and their own bookings | Their own bookings, within the studio's rules |
 
 Defined once in `PERMISSIONS` (`packages/shared/src/enums.ts`).
+
+## Class lists, spots and privacy
+
+- **Class lists** show each client's photo, spot, tags, classes attended and a first-visit marker. The package used is added once the payments module exists.
+- **Spot selection:** rooms can have named spots (`spotLabels`, e.g. "Reformer 1"). Clients pick one when booking. Admin bookings, waitlist auto-enrolment and moves get the next free spot. Two people can't hold the same spot.
+- **Who's attending:** studio members (not ClassPass) can see other members on the spot picker as "Sarah L.". Any client can hide themselves with `PATCH /me/privacy`.
+- **No accidental late bookings:** a client booking inside the late-cancellation window is asked to confirm first, because they won't be able to cancel for free.
 
 ## Booking rules (per studio, in `/settings`)
 
@@ -82,6 +89,9 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Attendance (one / whole class) | `PUT /bookings/:id/attendance`, `POST /sessions/:id/attendance/mark-all` | admin, Front of House, the class's instructor |
 | Waitlist | `POST /waitlist`, `POST /waitlist/:id/claim\|decline`, `DELETE /waitlist/:id` | client (self), admin |
 | Clients and fees | `GET /clients`, `GET /clients/:id`, `GET /fees`, `POST /fees/:id/waive` | admin |
+| Client tags | `GET/POST /client-tags`, `PATCH/DELETE /client-tags/:id`, `PUT /clients/:id/tags` | read: staff · change: admin, Front of House |
+| Who's attending / spots | `GET /sessions/:id/attendees` | studio members see first name + initial; ClassPass clients and hidden members aren't named |
+| Privacy | `PATCH /me/privacy` (`showInAttendeeList`) | the client |
 | Cover requests | `/substitute-requests` (+ `/:id/accept\|decline\|approve\|assign\|cancel`) | instructors (own classes), admins (any) |
 | Studio policies | `GET/PATCH /settings` | owner, admin |
 | My stuff | `GET /me`, `/me/bookings`, `/me/waitlist`, `/me/teaching`, `POST /me/push-tokens` | signed-in user |

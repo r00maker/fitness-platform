@@ -23,12 +23,12 @@ describe("access levels", () => {
     const { s, foh, mk } = await setup({ bookingClosesMinutesBefore: 0 });
     const anaClass = await mk(minutesFromNow(30));
     const benClass = await mk({ date: dayOffset(3), startTime: "09:00" }, { instructorId: s.ben.id });
-    const booking = await s.c1.call("POST", "/bookings", { sessionId: anaClass });
+    const booking = await s.c1.call("POST", "/bookings", { sessionId: anaClass, acknowledge: ["no_free_cancel"] });
 
     expect((await foh.call("GET", `/calendar?view=month&date=${dayOffset(3)}`)).body.sessions.map((x: { id: string }) => x.id)).toContain(benClass);
     const detail = await foh.call("GET", `/sessions/${anaClass}`);
     expect(detail.body.roster[0].firstName).toBe("Chloe");
-    expect(detail.body.roster[0].email).toBeUndefined(); // contact details are admin-only
+    expect(detail.body.roster[0].email).toMatch(/@example.com/); // so they can reach a client about an issue
     expect((await foh.call("PUT", `/bookings/${booking.body.id}/attendance`, { attendance: "present" })).status).toBe(200);
 
     expect((await foh.call("POST", "/bookings", { sessionId: benClass, clientId: s.c2.id })).status).toBe(403);
@@ -99,7 +99,7 @@ describe("booking window", () => {
   it("follows the studio's own settings", async () => {
     const { s, mk } = await setup({ bookingOpensDaysBefore: 30, bookingClosesMinutesBefore: 0 });
     expect((await s.c1.call("POST", "/bookings", { sessionId: await mk({ date: dayOffset(20), startTime: "09:00" }) })).status).toBe(201);
-    expect((await s.c1.call("POST", "/bookings", { sessionId: await mk(minutesFromNow(30)) })).status).toBe(201);
+    expect((await s.c1.call("POST", "/bookings", { sessionId: await mk(minutesFromNow(30)), acknowledge: ["no_free_cancel"] })).status).toBe(201);
   });
 });
 
@@ -108,7 +108,7 @@ describe("moving a booking", () => {
     const { s, mk } = await setup({ bookingClosesMinutesBefore: 0 });
     const soon = await mk(minutesFromNow(180));
     const later = await mk({ date: dayOffset(3), startTime: "09:00" });
-    const b = await s.c1.call("POST", "/bookings", { sessionId: soon });
+    const b = await s.c1.call("POST", "/bookings", { sessionId: soon, acknowledge: ["no_free_cancel"] });
     const res = await s.c1.call("POST", `/bookings/${b.body.id}/move`, { targetSessionId: later });
     expect(res.body.error).toMatchObject({ code: "late_move", message: "Your class starts in less than 12 hours, so it can't be moved. Please contact the studio if you need help." });
     const admin = await s.owner.call("POST", `/bookings/${b.body.id}/move`, { targetSessionId: later });
@@ -151,7 +151,7 @@ describe("fees", () => {
 
   it("warns the client about the late-cancellation fee, then records it", async () => {
     const { s, mk } = await setup({ lateCancelFeeEnabled: true, lateCancelFeeCents: 1500, bookingClosesMinutesBefore: 0 });
-    const b = await s.c1.call("POST", "/bookings", { sessionId: await mk(minutesFromNow(120)) });
+    const b = await s.c1.call("POST", "/bookings", { sessionId: await mk(minutesFromNow(120)), acknowledge: ["no_free_cancel"] });
     const check = await s.c1.call("POST", `/bookings/${b.body.id}/cancel`, {});
     expect(check.body.error.message).toBe("This class starts in less than 12 hours, so you won't get your class credit back, and a late-cancellation fee of SGD 15.00 applies. Cancel anyway?");
     const res = await s.c1.call("POST", `/bookings/${b.body.id}/cancel`, { acknowledge: ["late_cancel"] });
@@ -163,8 +163,8 @@ describe("fees", () => {
   it("adds a no-show fee, removes it if attendance is corrected, and admins can waive", async () => {
     const { s, mk } = await setup({ noShowFeeEnabled: true, noShowFeeCents: 2000, bookingClosesMinutesBefore: 0 });
     const c = await mk(minutesFromNow(30));
-    const b1 = await s.c1.call("POST", "/bookings", { sessionId: c });
-    const b2 = await s.c2.call("POST", "/bookings", { sessionId: c });
+    const b1 = await s.c1.call("POST", "/bookings", { sessionId: c, acknowledge: ["no_free_cancel"] });
+    const b2 = await s.c2.call("POST", "/bookings", { sessionId: c, acknowledge: ["no_free_cancel"] });
 
     const marked = await s.ana.call("PUT", `/bookings/${b1.body.id}/attendance`, { attendance: "no_show" });
     expect(marked.body.flags[0].message).toBe("A no-show fee of SGD 20.00 has been added for this client. Admins can waive it.");

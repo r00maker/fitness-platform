@@ -38,8 +38,10 @@ export async function catalogRoutes(app: FastifyInstance) {
       const input = parse(schemas.createRoom, req.body);
       const [loc] = await db.select().from(locations).where(and(eq(locations.id, input.locationId), eq(locations.orgId, req.auth.orgId)));
       if (!loc) throw notFound("location");
+      // A room with named spots holds as many people as it has spots, unless told otherwise.
+      const capacity = input.capacity ?? input.spotLabels?.length;
       reply.code(201);
-      return (await db.insert(rooms).values({ ...input, orgId: req.auth.orgId }).returning())[0];
+      return (await db.insert(rooms).values({ ...input, capacity, orgId: req.auth.orgId }).returning())[0];
     });
 
     admin.post("/class-types", async (req, reply) => {

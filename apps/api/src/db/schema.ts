@@ -25,6 +25,7 @@ import {
   ATTENDANCE,
   FEE_STATUSES,
   FEE_TYPES,
+  MEMBER_SOURCES,
   BOOKING_SOURCES,
   BOOKING_STATUSES,
   NOTIFICATION_CHANNELS,
@@ -48,6 +49,7 @@ export const subApprovalEnum = pgEnum("sub_approval_mode", SUB_APPROVAL_MODES);
 export const subStatusEnum = pgEnum("sub_request_status", SUB_REQUEST_STATUSES);
 export const refundMethodEnum = pgEnum("refund_method", REFUND_METHODS);
 export const channelEnum = pgEnum("notification_channel", NOTIFICATION_CHANNELS);
+export const memberSourceEnum = pgEnum("member_source", MEMBER_SOURCES);
 export const feeTypeEnum = pgEnum("fee_type", FEE_TYPES);
 export const feeStatusEnum = pgEnum("fee_status", FEE_STATUSES);
 export const notificationStatusEnum = pgEnum("notification_status", ["pending", "sent", "failed"]);
@@ -102,6 +104,8 @@ export const users = pgTable(
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
     phone: text("phone"),
+    /** Profile photo, stored in private file storage and served through short-lived links. */
+    photoUrl: text("photo_url"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -116,6 +120,10 @@ export const memberships = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     role: roleEnum("role").notNull(),
     active: boolean("active").notNull().default(true),
+    /** Clients only: direct studio member, or booked in through ClassPass (integration to come). */
+    source: memberSourceEnum("source").notNull().default("direct"),
+    /** Clients only: whether other members can see them on class lists. */
+    showInAttendeeList: boolean("show_in_attendee_list").notNull().default(true),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("memberships_org_user_uq").on(t.orgId, t.userId)],
@@ -152,6 +160,8 @@ export const rooms = pgTable("rooms", {
   locationId: uuid("location_id").notNull().references(() => locations.id),
   name: text("name").notNull(),
   capacity: integer("capacity"),
+  /** Named spots ("Reformer 1", "Bike 12"…). When set, clients pick a spot when booking. */
+  spotLabels: text("spot_labels").array(),
   archivedAt: ts("archived_at"),
   createdAt: createdAt(),
 });
@@ -261,6 +271,8 @@ export const bookings = pgTable(
     status: bookingStatusEnum("status").notNull().default("confirmed"),
     attendance: attendanceEnum("attendance").notNull().default("unmarked"),
     source: bookingSourceEnum("source").notNull(),
+    /** 1-based spot number in rooms with spot selection. */
+    spot: integer("spot"),
     bookedBy: uuid("booked_by").references(() => users.id),
     cancelledAt: ts("cancelled_at"),
     attendanceMarkedAt: ts("attendance_marked_at"),
@@ -273,6 +285,9 @@ export const bookings = pgTable(
     uniqueIndex("bookings_one_active_per_client")
       .on(t.sessionId, t.clientId)
       .where(sql`${t.status} = 'confirmed'`),
+    uniqueIndex("bookings_one_client_per_spot")
+      .on(t.sessionId, t.spot)
+      .where(sql`${t.status} = 'confirmed' and ${t.spot} is not null`),
     index("bookings_session_idx").on(t.sessionId),
     index("bookings_client_idx").on(t.clientId),
   ],
@@ -290,6 +305,30 @@ export const refunds = pgTable("refunds", {
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: createdAt(),
 });
+
+/** The studio's own client labels, e.g. "Injury: lower back", "VIP", "Prenatal". */
+export const clientTags = pgTable(
+  "client_tags",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color").notNull().default("#64748b"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("client_tags_name_uq").on(t.orgId, sql`lower(${t.name})`)],
+);
+
+export const clientTagAssignments = pgTable(
+  "client_tag_assignments",
+  {
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id").notNull().references(() => clientTags.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("client_tag_assignment_uq").on(t.clientId, t.tagId), index("client_tag_assignment_org_idx").on(t.orgId, t.clientId)],
+);
 
 /**
  * Late-cancellation and no-show fees. Recorded as "pending" now and collected

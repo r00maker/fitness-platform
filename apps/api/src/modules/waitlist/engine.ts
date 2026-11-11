@@ -14,6 +14,7 @@ import type { Db, DbOrTx } from "../../db/client.js";
 import { bookings, classSessions, waitlistEntries } from "../../db/schema.js";
 import { notify } from "../notifications/outbox.js";
 import { bookingWindow, weeklyBookings } from "../bookings/rules.js";
+import { pickSpot } from "../bookings/spots.js";
 import { confirmedCount, describeSession, getOrg, heldOfferCount, locationZone, lockSession } from "../sessions/context.js";
 
 export async function fillOpenSpots(tx: DbOrTx, orgId: string, sessionId: string, now = new Date()): Promise<void> {
@@ -44,7 +45,7 @@ export async function fillOpenSpots(tx: DbOrTx, orgId: string, sessionId: string
     if (entry.mode === "automatic") {
       const [b] = await tx
         .insert(bookings)
-        .values({ orgId, sessionId, clientId: entry.clientId, source: "waitlist_automatic" })
+        .values({ orgId, sessionId, clientId: entry.clientId, source: "waitlist_automatic", spot: await pickSpot(tx, session) })
         .returning({ id: bookings.id });
       await tx.update(waitlistEntries).set({ status: "enrolled", bookingId: b!.id }).where(eq(waitlistEntries.id, entry.id));
       await notify(tx, { orgId, userIds: [entry.clientId], template: "waitlist.enrolled", data: { ...info, bookingId: b!.id } });
