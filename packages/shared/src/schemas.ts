@@ -8,6 +8,7 @@ import {
   FLAG_CODES,
   HEALTH_CATEGORIES,
   HEALTH_NOTE_MAX_LENGTH,
+  THEMES,
   CALENDAR_VIEWS,
   EDIT_SCOPES,
   REFUND_METHODS,
@@ -270,6 +271,8 @@ export const createClientTag = z.object({
 export const updateClientTag = createClientTag.partial();
 export const setClientTags = z.object({ tagIds: z.array(id).max(50) });
 export const updatePrivacy = z.object({ showInAttendeeList: z.boolean() });
+/** Personal settings that follow the person to every device. */
+export const updatePreferences = z.object({ theme: z.enum(THEMES) });
 export const clientSearch = z.object({ q: z.string().trim().max(100).optional() });
 export const markAllAttendance = z.object({
   attendance: z.enum(ATTENDANCE).exclude(["unmarked"]).default("present"),

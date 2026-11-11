@@ -43,6 +43,13 @@
       "when": 1794416471883,
       "tag": "0005_waivers_health_notes_spot_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794418377280,
+      "tag": "0006_user_theme_preference",
+      "breakpoints": true
     }
   ]
 }

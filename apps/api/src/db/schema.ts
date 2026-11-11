@@ -27,6 +27,7 @@ import {
   FEE_TYPES,
   HEALTH_CATEGORIES,
   HEALTH_NOTE_STATUSES,
+  THEMES,
   WAIVER_METHODS,
   MEMBER_SOURCES,
   BOOKING_SOURCES,
@@ -58,6 +59,7 @@ export const feeStatusEnum = pgEnum("fee_status", FEE_STATUSES);
 export const waiverMethodEnum = pgEnum("waiver_method", WAIVER_METHODS);
 export const healthCategoryEnum = pgEnum("health_category", HEALTH_CATEGORIES);
 export const healthNoteStatusEnum = pgEnum("health_note_status", HEALTH_NOTE_STATUSES);
+export const themeEnum = pgEnum("theme", THEMES);
 export const notificationStatusEnum = pgEnum("notification_status", ["pending", "sent", "failed"]);
 
 const pk = () => uuid("id").primaryKey().defaultRandom();
@@ -120,6 +122,8 @@ export const users = pgTable(
     phone: text("phone"),
     /** Profile photo, stored in private file storage and served through short-lived links. */
     photoUrl: text("photo_url"),
+    /** Light/dark colours, kept on the account so web and mobile match. */
+    theme: themeEnum("theme").notNull().default("system"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

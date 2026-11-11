@@ -105,6 +105,10 @@ export type HealthNoteStatus = (typeof HEALTH_NOTE_STATUSES)[number];
 export const HEALTH_NOTE_REVIEW_DAYS = 30;
 export const HEALTH_NOTE_MAX_LENGTH = 280;
 
+/** Light or dark colours. "system" follows the phone or computer's own setting. */
+export const THEMES = ["system", "light", "dark"] as const;
+export type Theme = (typeof THEMES)[number];
+
 export const FEE_TYPES = ["late_cancel", "no_show"] as const;
 export type FeeType = (typeof FEE_TYPES)[number];
 /** pending = recorded, to be collected once payments are connected. */

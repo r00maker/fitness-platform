@@ -27,6 +27,13 @@ export async function settingsRoutes(app: FastifyInstance) {
     };
   });
 
+  /** Personal preferences (any role). */
+  app.patch("/me/preferences", async (req) => {
+    const input = parse(schemas.updatePreferences, req.body);
+    const [u] = await app.db.update(users).set(input).where(eq(users.id, req.auth.userId)).returning({ theme: users.theme });
+    return u;
+  });
+
   /** Clients choose whether other members see them on class lists. */
   app.patch("/me/privacy", async (req) => {
     const input = parse(schemas.updatePrivacy, req.body);

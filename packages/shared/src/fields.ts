@@ -113,6 +113,7 @@ export const FIELDS = {
   showInAttendeeList: { label: "Show me on class lists", help: "Other studio members can see your first name, initial and photo on the classes you've booked. Turn off to stay hidden." },
   role: { label: "Access level", help: "Admin: sees and changes everything. Front of House: sees the full schedule and can take attendance. Instructor: sees and takes attendance for their own classes only." },
   acknowledge: { label: "Go ahead anyway", help: "You've seen the warnings and want to continue." },
+  theme: { label: "Appearance", help: "Light or dark colours. “Match my device” follows your phone or computer's own setting. Saved to your account, so it's the same on every device." },
 } as const satisfies Record<string, FieldText>;
 
 /** Short titles for the "please check" warnings. The full message comes with each warning. */
@@ -184,6 +185,7 @@ export const OPTION_LABELS = {
     other: "Other",
   },
   bookingWindow: { not_open_yet: "Booking not open yet", open: "Open for booking", closed: "Booking closed" },
+  theme: { system: "Match my device", light: "Light", dark: "Dark" },
   timeOfDay: { morning: "Morning (before 12pm)", afternoon: "Afternoon (12–5pm)", evening: "Evening (after 5pm)" },
 } as const;
 
@@ -232,5 +234,6 @@ export const NAV_ITEMS = [
   { id: "locations", label: "Locations & rooms", group: "Setup", roles: ["owner", "admin"], help: "Your studios, their rooms and the spots in each room." },
   { id: "policies", label: "Studio rules", group: "Setup", roles: ["owner", "admin"], help: "Booking window, cancellations, fees, waivers, spot booking, waitlist and cover settings." },
   { id: "health", label: "Injuries & conditions", group: "Account", roles: ["client"], help: "Let your instructors know about an injury, pregnancy or condition, and mark it resolved when you're better." },
+  { id: "preferences", label: "Preferences", group: "Account", roles: ["owner", "admin", "front_desk", "instructor", "client"], help: "Appearance (light or dark) and other personal settings." },
   { id: "profile", label: "Profile & privacy", group: "Account", roles: ["client"], help: "Your details, your waiver and who can see you on class lists." },
 ] as const;

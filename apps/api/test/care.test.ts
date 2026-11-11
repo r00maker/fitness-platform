@@ -265,3 +265,14 @@ describe("favourite instructor filter", () => {
   });
 });
 
+
+describe("preferences", () => {
+  it("saves light/dark on the account for every role", async () => {
+    const { s, foh } = await setup({ waiverRequired: false });
+    expect((await s.c1.call("GET", "/me")).body.theme).toBe("system");
+    for (const who of [s.c1, s.ana, foh, s.owner]) expect((await who.call("PATCH", "/me/preferences", { theme: "dark" })).body).toEqual({ theme: "dark" });
+    expect((await s.ana.call("GET", "/me")).body.theme).toBe("dark");
+    expect((await s.c2.call("GET", "/me")).body.theme).toBe("system"); // only your own
+    expect((await s.c1.call("PATCH", "/me/preferences", { theme: "purple" })).status).toBe(400);
+  });
+});
