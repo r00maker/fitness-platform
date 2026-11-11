@@ -23,9 +23,11 @@ import {
   checkCancellation,
   checkCapacity,
   checkInstructor,
+  checkInstructorListed,
   checkShortNotice,
   checkSlot,
   checkTiming,
+  CLASH_CODES,
   usualDuration,
 } from "../checks/session-checks.js";
 import { notify } from "../notifications/outbox.js";
@@ -131,9 +133,11 @@ async function checkNewClass(db: DbOrTx, orgId: string, flags: Flags, f: Resolve
   const zone = await locationZone(db, orgId, f.locationId);
   const endsAt = addMinutes(startsAt, f.durationMinutes);
   await checkSlot(db, orgId, flags, zone, { sessionId, instructorId: f.instructorId, roomId: f.roomId, classTypeId: f.classTypeId, locationId: f.locationId, startsAt, endsAt });
-  checkTiming(flags, zone, { sessionId, startsAt, durationMinutes: f.durationMinutes, ...(await usualDuration(db, f.classTypeId)), isNew: true, now });
+  // A time that is itself probably wrong would produce misleading clashes, so hold those back until it's fixed.
+  if (checkTiming(flags, zone, { sessionId, startsAt, durationMinutes: f.durationMinutes, ...(await usualDuration(db, f.classTypeId, f.templateId)), isNew: true, now })) flags.drop(CLASH_CODES, sessionId);
   checkCapacity(flags, { sessionId, capacity: f.capacity, room: f.room });
   checkInstructor(flags, { sessionId, instructorId: f.instructorId });
+  await checkInstructorListed(db, flags, { sessionId, classTypeId: f.classTypeId, instructorId: f.instructorId });
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +200,7 @@ export async function createSeries(
   if (created.length === 0) throw badRequest("no_dates", "Those settings don't produce any classes. Check the days and dates.");
 
   // Time, length and capacity are the same for every class, so check them once.
-  checkTiming(flags, zone, { startsAt: created[0]!.startsAt, durationMinutes: f.durationMinutes, ...(await usualDuration(tx, f.classTypeId)), isNew: true, now });
+  if (checkTiming(flags, zone, { startsAt: created[0]!.startsAt, durationMinutes: f.durationMinutes, ...(await usualDuration(tx, f.classTypeId, f.templateId)), isNew: true, now })) flags.drop(CLASH_CODES);
   checkCapacity(flags, { capacity: f.capacity, room: f.room });
   checkInstructor(flags, { instructorId: f.instructorId });
 
@@ -260,7 +264,7 @@ async function applyChanges(
   auth: AuthContext,
   current: SessionRow,
   changes: SessionChanges,
-  opts: { notifyClients: boolean; detach: boolean; now: Date; flags: Flags },
+  opts: { notifyClients: boolean; detach: boolean; now: Date; flags: Flags; asCover?: boolean },
 ): Promise<SessionRow> {
   if (current.status !== "scheduled") throw conflict("class_cancelled", "Cancelled classes can't be edited.");
   const { flags, now } = opts;
@@ -294,15 +298,21 @@ async function applyChanges(
     await checkSlot(tx, auth.orgId, flags, zone, { ...ref, instructorId, roomId, classTypeId, locationId: s.locationId, startsAt, endsAt, excludeIds: [s.id] });
   }
   if (timeChanged) {
-    checkTiming(flags, zone, { ...ref, startsAt, durationMinutes: duration, ...(await usualDuration(tx, classTypeId)), isNew: false, now });
+    if (checkTiming(flags, zone, { ...ref, startsAt, durationMinutes: duration, ...(await usualDuration(tx, classTypeId, s.templateId)), isNew: false, now })) flags.drop(CLASH_CODES, s.id);
     if (booked > 0) {
       flags.confirm({ code: "clients_affected", ...ref, message: `${booked} booked ${booked === 1 ? "client" : "clients"} will ${opts.notifyClients ? "be told about" : "NOT be told about"} the new time.` });
     }
     checkShortNotice(flags, { ...ref, startsAt: s.startsAt, now, what: "Clients may already have planned around the current time.", severity: "confirm" });
   }
+  // Cover: remember who usually teaches, so the calendar can show "covering for…".
+  let coverFor = s.coverForInstructorId;
+  if (opts.asCover && !instructorId) throw badRequest("cover_needs_instructor", "Choose who is covering this class.");
   if (instructorId !== s.instructorId) {
     checkShortNotice(flags, { ...ref, startsAt: s.startsAt, now, what: "Make sure the new instructor knows.", severity: "info" });
     if (!instructorId) checkInstructor(flags, { ...ref, instructorId });
+    await checkInstructorListed(tx, flags, { ...ref, classTypeId, instructorId });
+    coverFor = opts.asCover ? (s.coverForInstructorId ?? s.instructorId) : null;
+    if (instructorId === s.coverForInstructorId) coverFor = null; // back with the usual instructor
   }
   if (changes.capacity !== undefined || changes.roomId !== undefined) checkCapacity(flags, { ...ref, capacity, room });
 
@@ -319,6 +329,7 @@ async function applyChanges(
     .set({
       classTypeId,
       instructorId,
+      coverForInstructorId: coverFor,
       roomId,
       capacity,
       startsAt,
@@ -395,14 +406,15 @@ export async function updateSession(
   tx: DbOrTx,
   auth: AuthContext,
   sessionId: string,
-  input: { changes: SessionChanges; scope: EditScope; notifyClients: boolean },
+  input: { changes: SessionChanges; scope: EditScope; notifyClients: boolean; asCover?: boolean },
   flags: Flags,
   now = new Date(),
 ) {
   const s = await getSession(tx, auth.orgId, sessionId);
   if (input.scope === "this" || !s.seriesId) {
-    return { updated: [await applyChanges(tx, auth, s, input.changes, { notifyClients: input.notifyClients, detach: true, now, flags })] };
+    return { updated: [await applyChanges(tx, auth, s, input.changes, { notifyClients: input.notifyClients, detach: true, now, flags, asCover: input.asCover })] };
   }
+  if (input.asCover) throw badRequest("cover_one_class", "Cover is set one class at a time. Choose “This class only”, or select the classes and use bulk edit.");
   if (input.changes.date) throw badRequest("date_in_series", "To move a whole series to another day, change its days instead. Dates can only be changed one class at a time.");
 
   let seriesId = s.seriesId;
@@ -455,7 +467,7 @@ async function splitSeries(tx: DbOrTx, s: SessionRow): Promise<string> {
 export async function bulkUpdateSessions(
   tx: DbOrTx,
   auth: AuthContext,
-  input: { sessionIds: string[]; changes: SessionChanges; notifyClients: boolean },
+  input: { sessionIds: string[]; changes: SessionChanges; notifyClients: boolean; asCover?: boolean },
   flags: Flags,
   now = new Date(),
 ) {
@@ -467,7 +479,7 @@ export async function bulkUpdateSessions(
   if (sessions.length !== new Set(input.sessionIds).size) throw notFound("class");
   checkBulk(flags, sessions.length, "change");
   const updated = [];
-  for (const s of sessions) updated.push(await applyChanges(tx, auth, s, input.changes, { notifyClients: input.notifyClients, detach: true, now, flags }));
+  for (const s of sessions) updated.push(await applyChanges(tx, auth, s, input.changes, { notifyClients: input.notifyClients, detach: true, now, flags, asCover: input.asCover }));
   return { updated };
 }
 

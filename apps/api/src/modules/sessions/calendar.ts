@@ -6,6 +6,7 @@ import { classSessions, classTypes, locations, rooms, users } from "../../db/sch
 import { calendarRange, utcToLocal, zoneFor, type TZ } from "../../lib/time.js";
 import type { AuthContext } from "../../plugins/auth.js";
 import { getOrg } from "./context.js";
+import { instructorHistory } from "./people.js";
 import { bookingWindow, windowStatus } from "../bookings/rules.js";
 
 export interface CalendarQuery {
@@ -21,6 +22,7 @@ export interface CalendarQuery {
 }
 
 const instructor = alias(users, "instructor");
+const coverFor = alias(users, "cover_for");
 
 /**
  * One query returns everything a calendar cell needs (name, colour, instructor,
@@ -72,6 +74,11 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
       instructorId: classSessions.instructorId,
       instructorFirst: instructor.firstName,
       instructorLast: instructor.lastName,
+      instructorPhoto: instructor.photoUrl,
+      roomId: classSessions.roomId,
+      coverForId: classSessions.coverForInstructorId,
+      coverForFirst: coverFor.firstName,
+      coverForLast: coverFor.lastName,
       booked,
       waiting,
       instructorClash: overlapping("instructor_id"),
@@ -82,6 +89,7 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
     .innerJoin(locations, eq(locations.id, classSessions.locationId))
     .leftJoin(rooms, eq(rooms.id, classSessions.roomId))
     .leftJoin(instructor, eq(instructor.id, classSessions.instructorId))
+    .leftJoin(coverFor, eq(coverFor.id, classSessions.coverForInstructorId))
     .where(
       and(
         eq(classSessions.orgId, auth.orgId),
@@ -103,6 +111,9 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
     )
     .orderBy(asc(classSessions.startsAt))
     .limit(2000);
+
+  // Clients see a star on classes taught by their favourite instructor.
+  const favourite = isClient ? (await instructorHistory(db, auth.orgId, [auth.userId])).favourite.get(auth.userId) : undefined;
 
   // Time of day is judged in each class's own local time (so it respects the daylight-saving setting).
   const visible = q.timeOfDay
@@ -141,8 +152,12 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
         classType: r.classType,
         color: r.classType.color,
         location: r.location,
+        roomId: r.roomId,
         roomName: r.roomName,
-        instructor: r.instructorId ? { id: r.instructorId, name: `${r.instructorFirst} ${r.instructorLast}` } : null,
+        instructor: r.instructorId ? { id: r.instructorId, name: `${r.instructorFirst} ${r.instructorLast}`, photoUrl: r.instructorPhoto } : null,
+        /** Set when the instructor is covering: shown as "Ben Tan (cover for Ana Lim)". */
+        cover: r.coverForId ? { forInstructor: { id: r.coverForId, name: `${r.coverForFirst} ${r.coverForLast}` } } : null,
+        ...(isClient ? { favouriteInstructor: !!favourite && favourite.instructorId === r.instructorId } : {}),
         capacity: r.capacity,
         booked: r.booked,
         spotsLeft: Math.max(0, r.capacity - r.booked),

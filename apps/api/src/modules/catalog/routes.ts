@@ -3,7 +3,8 @@ import type { FastifyInstance } from "fastify";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { schemas } from "@studio/shared";
 import { z } from "zod";
-import { classTemplates, classTypes, locations, rooms } from "../../db/schema.js";
+import { classTemplates, classTypeInstructors, classTypes, locations, rooms } from "../../db/schema.js";
+import { staffIds } from "../sessions/context.js";
 import { badRequest, notFound } from "../../lib/errors.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
@@ -21,9 +22,13 @@ export async function catalogRoutes(app: FastifyInstance) {
   app.get("/rooms", async (req) =>
     db.select().from(rooms).where(and(eq(rooms.orgId, req.auth.orgId), isNull(rooms.archivedAt))).orderBy(asc(rooms.name)),
   );
-  app.get("/class-types", async (req) =>
-    db.select().from(classTypes).where(and(eq(classTypes.orgId, req.auth.orgId), isNull(classTypes.archivedAt))).orderBy(asc(classTypes.name)),
-  );
+  app.get("/class-types", async (req) => {
+    const types = await db.select().from(classTypes).where(and(eq(classTypes.orgId, req.auth.orgId), isNull(classTypes.archivedAt))).orderBy(asc(classTypes.name));
+    if (req.auth.role === "client") return types;
+    const lists = await db.select().from(classTypeInstructors).where(eq(classTypeInstructors.orgId, req.auth.orgId));
+    // instructorIds: who teaches and covers this class type (empty = anyone).
+    return types.map((t) => ({ ...t, instructorIds: lists.filter((l) => l.classTypeId === t.id).map((l) => l.instructorId) }));
+  });
 
   app.register(async (admin) => {
     admin.addHook("preHandler", async (req) => requirePermission(req, "editSchedule"));
@@ -38,8 +43,10 @@ export async function catalogRoutes(app: FastifyInstance) {
       const input = parse(schemas.createRoom, req.body);
       const [loc] = await db.select().from(locations).where(and(eq(locations.id, input.locationId), eq(locations.orgId, req.auth.orgId)));
       if (!loc) throw notFound("location");
+      // A room with named spots holds as many people as it has spots, unless told otherwise.
+      const capacity = input.capacity ?? input.spotLabels?.length;
       reply.code(201);
-      return (await db.insert(rooms).values({ ...input, orgId: req.auth.orgId }).returning())[0];
+      return (await db.insert(rooms).values({ ...input, capacity, orgId: req.auth.orgId }).returning())[0];
     });
 
     admin.post("/class-types", async (req, reply) => {
@@ -54,6 +61,22 @@ export async function catalogRoutes(app: FastifyInstance) {
       const [row] = await db.update(classTypes).set(input).where(and(eq(classTypes.id, id), eq(classTypes.orgId, req.auth.orgId))).returning();
       if (!row) throw notFound("class type");
       return row;
+    });
+
+    /** Set who teaches (and covers) this class type. An empty list means anyone who teaches. */
+    admin.put("/class-types/:id/instructors", async (req) => {
+      const { id } = parse(idParam, req.params);
+      const { instructorIds } = parse(schemas.setClassTypeInstructors, req.body);
+      const [type] = await db.select().from(classTypes).where(and(eq(classTypes.id, id), eq(classTypes.orgId, req.auth.orgId)));
+      if (!type) throw notFound("class type");
+      const teachers = new Set(await staffIds(db, req.auth.orgId, ["owner", "admin", "instructor"]));
+      const unique = [...new Set(instructorIds)];
+      if (unique.some((i) => !teachers.has(i))) throw notFound("instructor");
+      await db.transaction(async (tx) => {
+        await tx.delete(classTypeInstructors).where(eq(classTypeInstructors.classTypeId, id));
+        if (unique.length) await tx.insert(classTypeInstructors).values(unique.map((instructorId) => ({ orgId: req.auth.orgId, classTypeId: id, instructorId })));
+      });
+      return { classTypeId: id, instructorIds: unique };
     });
 
     /** Archive rather than delete, so past classes keep their name and colour. */

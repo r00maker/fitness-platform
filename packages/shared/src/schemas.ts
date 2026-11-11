@@ -61,7 +61,13 @@ const acknowledge = z.array(z.enum(FLAG_CODES)).max(50).default([]);
 
 // ---- Locations, rooms, class types ----------------------------------------
 export const createLocation = z.object({ name, timezone, address: z.string().max(500).optional() });
-export const createRoom = z.object({ locationId: id, name, capacity: capacity.optional() });
+export const createRoom = z.object({
+  locationId: id,
+  name,
+  capacity: capacity.optional(),
+  /** Named spots (e.g. "Reformer 1"); clients choose one when booking. */
+  spotLabels: z.array(z.string().trim().min(1).max(40)).min(1).max(200).nullish(),
+});
 export const createClassType = z.object({
   name,
   color: hexColor,
@@ -69,6 +75,7 @@ export const createClassType = z.object({
   defaultDurationMinutes: duration.optional(),
 });
 export const updateClassType = createClassType.partial();
+export const setClassTypeInstructors = z.object({ instructorIds: z.array(id).max(200) });
 
 // ---- Templates --------------------------------------------------------------
 export const createTemplate = z.object({
@@ -129,6 +136,8 @@ export const updateSession = z.object({
   changes: sessionChanges,
   scope: z.enum(EDIT_SCOPES).default("this"),
   notifyClients: z.boolean().default(true),
+  /** The new instructor is covering for the usual one (one class at a time). */
+  asCover: z.boolean().default(false),
   acknowledge,
 });
 
@@ -136,11 +145,13 @@ export const bulkUpdateSessions = z.object({
   sessionIds: z.array(id).min(1).max(500),
   changes: sessionChanges.refine((c) => c.date === undefined, "Dates can't be bulk-edited. Use duplicate instead."),
   notifyClients: z.boolean().default(true),
+  asCover: z.boolean().default(false),
   acknowledge,
 });
 
 export const cancelSession = z.object({
-  reason: z.string().max(500).optional(),
+  /** Shared with booked clients in the cancellation email and push. */
+  reason: z.string().max(1000, "Keep the message under 1,000 characters.").optional(),
   refund: z.enum(REFUND_METHODS).default("credit"),
   notifyClients: z.boolean().default(true),
   scope: z.enum(EDIT_SCOPES).default("this"),
@@ -195,7 +206,13 @@ export const calendarQuery = z.object({
 });
 
 // ---- Bookings & attendance -------------------------------------------------
-export const createBooking = z.object({ sessionId: id, clientId: id.optional(), acknowledge });
+export const createBooking = z.object({
+  sessionId: id,
+  clientId: id.optional(),
+  /** Spot number (1-based) in rooms with spot selection. Left out = the next free spot. */
+  spot: z.number().int().min(1).max(500).optional(),
+  acknowledge,
+});
 export const cancelBooking = z.object({
   refund: z.enum(REFUND_METHODS).optional(),
   reason: z.string().max(500).optional(),
@@ -210,6 +227,10 @@ export const refundBooking = z.object({
   acknowledge,
 });
 export const markAttendance = z.object({ attendance: z.enum(ATTENDANCE) });
+export const createClientTag = z.object({ name: z.string().trim().min(1, "Give the tag a name.").max(40), color: hexColor.optional() });
+export const updateClientTag = createClientTag.partial();
+export const setClientTags = z.object({ tagIds: z.array(id).max(50) });
+export const updatePrivacy = z.object({ showInAttendeeList: z.boolean() });
 export const clientSearch = z.object({ q: z.string().trim().max(100).optional() });
 export const markAllAttendance = z.object({
   attendance: z.enum(ATTENDANCE).exclude(["unmarked"]).default("present"),

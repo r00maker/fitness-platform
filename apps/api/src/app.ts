@@ -9,6 +9,7 @@ import auth from "./plugins/auth.js";
 import { bookingRoutes } from "./modules/bookings/routes.js";
 import { catalogRoutes } from "./modules/catalog/routes.js";
 import { clientRoutes } from "./modules/clients/routes.js";
+import { clientTagRoutes } from "./modules/clients/tags.js";
 import { sessionRoutes } from "./modules/sessions/routes.js";
 import { settingsRoutes } from "./modules/settings/routes.js";
 import { substituteRoutes } from "./modules/substitutes/routes.js";
@@ -71,6 +72,7 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(waitlistRoutes);
       await v1.register(substituteRoutes);
       await v1.register(clientRoutes);
+      await v1.register(clientTagRoutes);
     },
     { prefix: "/v1" },
   );

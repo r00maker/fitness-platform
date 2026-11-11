@@ -78,6 +78,15 @@ export const FIELDS = {
   noShowFee: { label: "No-show fee", help: "The amount charged when a client doesn't turn up." },
   currency: { label: "Currency", help: "The currency your fees and prices are shown in, e.g. SGD." },
   feeWaiveReason: { label: "Reason for waiving", help: "Kept on the client's history so your team knows why the fee was removed." },
+  asCover: { label: "Covering this class", help: "Tick if this instructor is standing in for the usual instructor. The calendar shows them as cover, and the usual instructor stays on future classes." },
+  coverList: { label: "Who can teach this class", help: "The instructors who teach or cover this class type. Cover requests go to them first, and you'll be warned if someone else is assigned." },
+  favouriteInstructor: { label: "Favourite instructor", help: "The instructor a client has taken the most classes with (at least 3)." },
+  clientTags: { label: "Tags", help: "Your own labels for clients, e.g. “Injury: lower back” or “VIP”. Staff see them on class lists." },
+  tagName: { label: "Tag name", help: "Keep it short so it fits on the class list, e.g. “Prenatal”." },
+  tagColor: { label: "Tag colour", help: "Helps the tag stand out on the class list." },
+  spot: { label: "Spot", help: "The reformer, bike or mat the client will use. Clients pick theirs when booking." },
+  spotLabels: { label: "Spots in this room", help: "Name each spot, e.g. “Reformer 1”. Clients choose one when they book. Leave empty if clients don't pick a spot." },
+  showInAttendeeList: { label: "Show me on class lists", help: "Other studio members can see your first name, initial and photo on the classes you've booked. Turn off to stay hidden." },
   role: { label: "Access level", help: "Admin: sees and changes everything. Front of House: sees the full schedule and can take attendance. Instructor: sees and takes attendance for their own classes only." },
   acknowledge: { label: "Go ahead anyway", help: "You've seen the warnings and want to continue." },
 } as const satisfies Record<string, FieldText>;
@@ -103,10 +112,12 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   already_happened: "Class has already happened",
   many_classes: "Lots of classes at once",
   no_instructor: "No instructor yet",
+  instructor_not_listed: "Not on this class's teaching list",
   late_booking: "Class has already started",
   outside_booking_window: "Outside the booking window",
   over_weekly_limit: "Over the weekly limit",
   late_cancel: "Late cancellation",
+  no_free_cancel: "No free cancellation",
   late_move: "Late change",
   fee_applies: "Fee applies",
   already_refunded: "Already refunded",
@@ -135,6 +146,46 @@ export const OPTION_LABELS = {
   role: { owner: "Owner", admin: "Admin", front_desk: "Front of House", instructor: "Instructor", client: "Client" },
   feeType: { late_cancel: "Late-cancellation fee", no_show: "No-show fee" },
   feeStatus: { pending: "To be collected", waived: "Waived", charged: "Paid" },
+  memberSource: { direct: "Studio member", classpass: "ClassPass" },
   bookingWindow: { not_open_yet: "Booking not open yet", open: "Open for booking", closed: "Booking closed" },
   timeOfDay: { morning: "Morning (before 12pm)", afternoon: "Afternoon (12–5pm)", evening: "Evening (after 5pm)" },
 } as const;
+
+/** How long the pointer must rest on something before its help note appears (desktop only). */
+export const HELP_TIP_DELAY_MS = 1500;
+
+/** Hover help for buttons and menu items, in the same plain-English voice as FIELDS. */
+export const ACTION_HELP = {
+  newClass: "Add a one-off class, or start from a template so most details are filled in for you.",
+  selectClasses: "Pick several classes on the calendar, then change or cancel them all in one go.",
+  editClass: "Change the time, instructor, room or spots. For a repeating class you can change just this one or the rest of the series.",
+  duplicateClass: "Copy this class to the same time next week. You'll be warned if it clashes with anything.",
+  askForCover: "Ask other instructors to cover this class. They're told by email and push.",
+  cancelClass: "Cancel this class. Booked clients are told and given the refund you choose.",
+  markAllPresent: "Mark everyone not yet marked as attended. People already marked as a no-show stay that way.",
+  attended: "Mark this client as attended.",
+  noShow: "Mark this client as a no-show. A no-show fee is added if your studio charges one.",
+  chooseSpot: "Pick where you'll be in the room. You'll check the details before anything is booked.",
+  joinWaitlist: "Queue for a spot. We'll book you in or ask you first, depending on what you choose.",
+  cancelBooking: "Cancel your place. You'll see whether you get your credit back before you confirm.",
+  editTags: "Add or remove your studio's own labels for this client.",
+  waiveFee: "Remove this fee. The reason is kept on the client's history.",
+  today: "Jump back to today.",
+  dayView: "One day, hour by hour.",
+  weekView: "Monday to Sunday, hour by hour.",
+  monthView: "The whole month at a glance. Tap a day to open it.",
+} as const satisfies Record<string, string>;
+
+/** The left-hand menu. Each item shows only to the roles listed. */
+export const NAV_ITEMS = [
+  { id: "schedule", label: "Schedule", group: "Studio", roles: ["owner", "admin", "front_desk", "instructor", "client"], help: "The class calendar." },
+  { id: "my-bookings", label: "My bookings", group: "Studio", roles: ["client"], help: "Classes you're booked into or waiting for." },
+  { id: "cover", label: "Cover requests", group: "Studio", roles: ["owner", "admin", "instructor"], help: "Classes that need another instructor, and requests waiting for you." },
+  { id: "clients", label: "Clients", group: "Studio", roles: ["owner", "admin"], help: "Everyone who books with you: contact details, history, tags and fees." },
+  { id: "fees", label: "Fees", group: "Studio", roles: ["owner", "admin"], help: "Late-cancellation and no-show fees to collect or waive." },
+  { id: "class-types", label: "Class types", group: "Setup", roles: ["owner", "admin"], help: "Your classes, their calendar colours and who can teach them." },
+  { id: "templates", label: "Templates", group: "Setup", roles: ["owner", "admin"], help: "Saved class details so new classes take a couple of clicks." },
+  { id: "locations", label: "Locations & rooms", group: "Setup", roles: ["owner", "admin"], help: "Your studios, their rooms and the spots in each room." },
+  { id: "policies", label: "Studio rules", group: "Setup", roles: ["owner", "admin"], help: "Booking window, cancellations, fees, waitlist and cover settings." },
+  { id: "profile", label: "Profile & privacy", group: "Account", roles: ["client"], help: "Your details and who can see you on class lists." },
+] as const;

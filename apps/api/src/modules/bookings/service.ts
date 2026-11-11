@@ -11,6 +11,7 @@ import { notify } from "../notifications/outbox.js";
 import { assertMemberWithRole, confirmedCount, describeSession, getOrg, getSession, heldOfferCount, locationZone, lockSession, type SessionRow } from "../sessions/context.js";
 import { fillOpenSpots } from "../waitlist/engine.js";
 import { applyFee, bookingWindow, feeFor, waivePendingFees, weeklyBookings, windowMessage, windowStatus } from "./rules.js";
+import { pickSpot } from "./spots.js";
 
 export type BookingRow = typeof bookings.$inferSelect;
 /** Admins (and owners) can book, cancel, move and refund for clients, and go outside booking rules. */
@@ -58,7 +59,7 @@ const hoursUntil = (s: SessionRow, now: Date) => (s.startsAt.getTime() - now.get
 export async function createBooking(
   tx: DbOrTx,
   auth: AuthContext,
-  input: { sessionId: string; clientId?: string },
+  input: { sessionId: string; clientId?: string; spot?: number },
   flags?: Flags,
   now = new Date(),
   opts: { ignoreSessionId?: string } = {},
@@ -105,6 +106,15 @@ export async function createBooking(
   if (flags) {
     await checkClientOverlap(tx, flags, zone, { clientId, sessionId: session.id, startsAt: session.startsAt, endsAt: session.endsAt, self: isClient, ignoreSessionId: opts.ignoreSessionId });
     if (now >= session.startsAt) flags.info({ code: "late_booking", sessionId: session.id, message: `This class started at ${clock(session.startsAt, zone)}. The client is being added as a walk-in.` });
+    // Booking inside the late-cancellation window means it can't be cancelled for free, so make sure clients know first.
+    if (isClient && hoursUntil(session, now) < org.lateCancelWindowHours) {
+      const fee = feeFor(org, "late_cancel");
+      flags.confirm({
+        code: "no_free_cancel",
+        sessionId: session.id,
+        message: `This class starts in less than ${org.lateCancelWindowHours} hours. If you book and then cancel, you won't get your class credit back${fee ? `, and a late-cancellation fee of ${fee.text} applies` : ""}.`,
+      });
+    }
   }
 
   if (!holdingOffer) {
@@ -116,12 +126,14 @@ export async function createBooking(
     }
   }
 
+  const spot = await pickSpot(tx, session, input.spot);
   const [booking] = await tx
     .insert(bookings)
     .values({
       orgId: auth.orgId,
       sessionId: session.id,
       clientId,
+      spot,
       source: holdingOffer ? "waitlist_claimed" : isClient ? "client" : "staff",
       bookedBy: auth.userId,
     })

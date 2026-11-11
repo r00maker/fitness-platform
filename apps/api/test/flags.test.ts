@@ -24,13 +24,21 @@ describe("catching likely mistakes", () => {
     expect(res.status).toBe(409);
     const [flag] = res.body.error.flags as FlagBody[];
     expect(flag!.code).toBe("ends_after_midnight");
-    expect(flag!.message).toBe("This class runs from 11:00am to 12:00am (midnight) the next day (13 hours). Did you mean 11:00am to 12:00pm (noon)?");
+    expect(flag!.message).toBe("This class ends at 12:00am (midnight), which is before its 11:00am start, so it would run overnight for 13 hours. Did you mean 11:00am to 12:00pm (noon)?");
     expect(flag!.suggestion).toEqual({ durationMinutes: 60, endTime: "12:00" });
 
     // Applying the suggestion goes straight through.
     const fixed = await s.owner.call("POST", "/sessions", { ...noLength, instructorId: s.ana.id, startTime: "11:00", endTime: flag!.suggestion!.endTime });
     expect(fixed.status).toBe(201);
     expect(new Date(fixed.body.endsAt).getTime() - new Date(fixed.body.startsAt).getTime()).toBe(60 * 60_000);
+  });
+
+  it("holds back clash warnings worked out from a time that is itself probably wrong", async () => {
+    const { s, base } = await setup();
+    await s.owner.call("POST", "/sessions", { ...base, date: dayOffset(4), startTime: "09:00", instructorId: s.ana.id });
+    const { durationMinutes: _, ...noLength } = base;
+    const res = await s.owner.call("POST", "/sessions", { ...noLength, startTime: "11:00", endTime: "10:00", instructorId: s.ana.id });
+    expect(res.body.error.flags.map((f: { code: string }) => f.code)).toEqual(["ends_after_midnight"]);
   });
 
   it("flags 9am–9pm as unusually long with an AM/PM fix", async () => {

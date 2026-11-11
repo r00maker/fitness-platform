@@ -8,13 +8,14 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { can } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
-import { classSessions, substituteRequests, substituteResponses } from "../../db/schema.js";
+import { classSessions, classTypeInstructors, substituteRequests, substituteResponses, users } from "../../db/schema.js";
 import { audit } from "../../lib/audit.js";
 import { badRequest, conflict, forbidden, notFound } from "../../lib/errors.js";
 import type { AuthContext } from "../../plugins/auth.js";
 import { notify } from "../notifications/outbox.js";
 import type { Flags } from "../../lib/flags.js";
-import { checkSlot } from "../checks/session-checks.js";
+import { checkInstructorListed, checkSlot } from "../checks/session-checks.js";
+import { findOverlaps } from "../sessions/context.js";
 import { describeSession, getOrg, getSession, locationZone, lockSession, staffIds, userName, type SessionRow } from "../sessions/context.js";
 import { notifyInstructorChange } from "../sessions/service.js";
 
@@ -46,6 +47,8 @@ export async function createSubRequest(tx: DbOrTx, auth: AuthContext, input: { s
   const org = await getOrg(tx, auth.orgId);
   const instructors = new Set(await staffIds(tx, auth.orgId, ["owner", "admin", "instructor"]));
   for (const id of input.invitedInstructorIds ?? []) if (!instructors.has(id)) throw notFound("instructor");
+  // No one chosen: ask the class type's teaching list if the studio keeps one, otherwise every instructor.
+  const invited = input.invitedInstructorIds?.length ? input.invitedInstructorIds : (await teachingList(tx, s.classTypeId)).filter((id) => id !== s.instructorId);
 
   const [r] = await tx
     .insert(substituteRequests)
@@ -56,7 +59,7 @@ export async function createSubRequest(tx: DbOrTx, auth: AuthContext, input: { s
       originalInstructorId: s.instructorId,
       reason: input.reason ?? null,
       approvalMode: org.substituteApproval,
-      invitedInstructorIds: input.invitedInstructorIds ?? [],
+      invitedInstructorIds: invited,
     })
     .onConflictDoNothing()
     .returning();
@@ -83,7 +86,14 @@ async function checkCover(tx: DbOrTx, orgId: string, flags: Flags, s: SessionRow
 async function fill(tx: DbOrTx, auth: AuthContext, r: RequestRow, instructorId: string, flags: Flags, now: Date) {
   const s = await lockSession(tx, auth.orgId, r.sessionId);
   await checkCover(tx, auth.orgId, flags, s, instructorId);
-  const [updated] = await tx.update(classSessions).set({ instructorId }).where(eq(classSessions.id, s.id)).returning();
+  await checkInstructorListed(tx, flags, { sessionId: s.id, classTypeId: s.classTypeId, instructorId });
+  // Whoever covers is shown as cover for the usual instructor (unless the usual instructor takes it back).
+  const usual = s.coverForInstructorId ?? s.instructorId;
+  const [updated] = await tx
+    .update(classSessions)
+    .set({ instructorId, coverForInstructorId: instructorId === usual ? null : usual })
+    .where(eq(classSessions.id, s.id))
+    .returning();
   const [filled] = await tx
     .update(substituteRequests)
     .set({ status: "filled", filledBy: instructorId, resolvedAt: now })
@@ -162,6 +172,31 @@ export async function cancelSubRequest(tx: DbOrTx, auth: AuthContext, requestId:
   const info = { ...(await describeSession(tx, await getSession(tx, auth.orgId, r.sessionId))), requestId: r.id };
   await notify(tx, { orgId: auth.orgId, userIds: await invitees(tx, r), template: "sub.no_longer_needed", data: info });
   return updated!;
+}
+
+export async function teachingList(db: DbOrTx, classTypeId: string): Promise<string[]> {
+  const rows = await db.select({ id: classTypeInstructors.instructorId }).from(classTypeInstructors).where(eq(classTypeInstructors.classTypeId, classTypeId));
+  return rows.map((r) => r.id);
+}
+
+/**
+ * Who could cover a class, for the "Ask for cover" screen: every other instructor,
+ * marked if they're on the class's teaching list and if they're busy at that time.
+ * `suggested` is the default selection (listed and free, or everyone free if there's no list).
+ */
+export async function coverOptions(db: DbOrTx, auth: AuthContext, sessionId: string) {
+  const s = await getSession(db, auth.orgId, sessionId);
+  if (!isManager(auth) && !(auth.role === "instructor" && s.instructorId === auth.userId)) throw forbidden("You can only ask for cover on classes you teach.");
+  const ids = (await staffIds(db, auth.orgId, ["instructor"])).filter((id) => id !== s.instructorId);
+  const list = new Set(await teachingList(db, s.classTypeId));
+  const options = [];
+  for (const id of ids) {
+    const [u] = await db.select({ f: users.firstName, l: users.lastName, photoUrl: users.photoUrl }).from(users).where(eq(users.id, id));
+    const busy = (await findOverlaps(db, auth.orgId, { instructorId: id, startsAt: s.startsAt, endsAt: s.endsAt, excludeIds: [s.id] })).length > 0;
+    options.push({ id, name: `${u?.f} ${u?.l}`, photoUrl: u?.photoUrl ?? null, onTeachingList: list.has(id), busy });
+  }
+  const suggested = options.filter((o) => !o.busy && (list.size === 0 || o.onTeachingList)).map((o) => o.id);
+  return { hasTeachingList: list.size > 0, options, suggested };
 }
 
 export async function listSubRequests(db: DbOrTx, auth: AuthContext, statuses: RequestRow["status"][]) {

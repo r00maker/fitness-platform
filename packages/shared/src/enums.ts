@@ -13,8 +13,10 @@ export type Role = (typeof ROLES)[number];
  * | Role            | Sees                          | Can change                      |
  * |-----------------|-------------------------------|---------------------------------|
  * | Admin / Owner   | everything, incl. client info | everything                      |
- * | Front of House  | the whole schedule + rosters  | attendance only                 |
- * | Instructor      | their own classes only        | attendance on their own classes |
+ * | Front of House  | the whole schedule + rosters, | attendance and client tags      |
+ * |                 | incl. client contact details  |                                 |
+ * | Instructor      | their own classes only, incl. | attendance on their own classes |
+ * |                 | contact details for them      |                                 |
  * | Client          | the public schedule, own data | their own bookings              |
  */
 export const PERMISSIONS = {
@@ -28,8 +30,12 @@ export const PERMISSIONS = {
   editSchedule: ["owner", "admin"],
   /** Book, cancel, move, waitlist and refund on a client's behalf, and override booking rules. */
   manageBookings: ["owner", "admin"],
-  /** Client contact details, history and fees. */
+  /** Phone and email on class lists, so staff can reach a client about an issue. Instructors also get this for their own classes. */
+  viewClientContacts: ["owner", "admin", "front_desk"],
+  /** The client directory, full history and fees. */
   viewClientDetails: ["owner", "admin"],
+  /** Create client tags and add them to clients. */
+  manageClientTags: ["owner", "admin", "front_desk"],
   /** Payment details (when the payments module is built). */
   viewPayments: ["owner", "admin"],
   /** Studio policies and settings. */
@@ -73,6 +79,10 @@ export type SubApprovalMode = (typeof SUB_APPROVAL_MODES)[number];
 
 export const SUB_REQUEST_STATUSES = ["open", "awaiting_approval", "filled", "cancelled"] as const;
 export type SubRequestStatus = (typeof SUB_REQUEST_STATUSES)[number];
+
+/** How a client came to the studio. Only direct members see who else is booked in. */
+export const MEMBER_SOURCES = ["direct", "classpass"] as const;
+export type MemberSource = (typeof MEMBER_SOURCES)[number];
 
 export const FEE_TYPES = ["late_cancel", "no_show"] as const;
 export type FeeType = (typeof FEE_TYPES)[number];
@@ -129,11 +139,13 @@ export const FLAG_CODES = [
   "already_happened",
   "many_classes",
   "no_instructor",
+  "instructor_not_listed",
   // Bookings, refunds and attendance
   "late_booking",
   "outside_booking_window",
   "over_weekly_limit",
   "late_cancel",
+  "no_free_cancel",
   "late_move",
   "fee_applies",
   "already_refunded",
@@ -142,6 +154,9 @@ export const FLAG_CODES = [
 ] as const;
 export type FlagCode = (typeof FLAG_CODES)[number];
 export type FlagSeverity = "confirm" | "info";
+
+/** A client's favourite instructor: the one they've attended most, with at least this many classes. */
+export const FAVOURITE_INSTRUCTOR_MIN_CLASSES = 3;
 
 /** Thresholds for the checks, kept together so they're easy to tune. */
 export const FLAG_LIMITS = {

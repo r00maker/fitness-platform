@@ -43,6 +43,14 @@ export class Flags {
     if (!this.list.some((x) => x.code === f.code && x.sessionId === f.sessionId && x.message === f.message)) this.list.push(f);
   }
 
+  /** Remove warnings, e.g. clashes worked out from a time that is itself probably a mistake. */
+  drop(codes: readonly string[], sessionId?: string) {
+    for (let i = this.list.length - 1; i >= 0; i--) {
+      const f = this.list[i]!;
+      if (codes.includes(f.code) && f.sessionId === sessionId) this.list.splice(i, 1);
+    }
+  }
+
   /** Throw (rolling back the transaction) if anything still needs the user's OK. */
   enforce(): void {
     const pending = this.list.filter((f) => f.severity === "confirm" && !this.acknowledged.has(f.code));

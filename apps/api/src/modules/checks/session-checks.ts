@@ -7,7 +7,7 @@ import { and, eq, gt, lt, ne } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { FLAG_LIMITS, OPTION_LABELS, type RefundMethod } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
-import { bookings, classSessions, classTypes, rooms, users } from "../../db/schema.js";
+import { bookings, classSessions, classTemplates, classTypeInstructors, classTypes, rooms, users } from "../../db/schema.js";
 import type { Flags } from "../../lib/flags.js";
 import { utcToLocal, type TZ } from "../../lib/time.js";
 import { findOverlaps } from "../sessions/context.js";
@@ -58,37 +58,68 @@ export async function checkSlot(
 // ---------------------------------------------------------------------------
 // Times and lengths
 // ---------------------------------------------------------------------------
+/** A length that looks like a real class (15 minutes to 3 hours). Suggestions must land in this range. */
+const plausible = (mins: number) => mins >= FLAG_LIMITS.shortClassMinutes && mins <= FLAG_LIMITS.longClassMinutes;
+
+/**
+ * The most likely intended end time, or nothing if no fix makes sense:
+ *  1. An AM/PM slip adds exactly 12 hours (11am–12am meant 11am–12pm), so try 12 hours shorter.
+ *  2. Otherwise, the class type's usual length.
+ * A suggestion is only offered if it gives a believable class length.
+ */
+export function suggestLength(d: number, usual?: number | null): { minutes: number; why: "ampm" | "usual" } | null {
+  if (d > 12 * 60 && plausible(d - 12 * 60)) return { minutes: d - 12 * 60, why: "ampm" };
+  if (usual && plausible(usual) && usual !== d) return { minutes: usual, why: "usual" };
+  return null;
+}
+
+/**
+ * Checks the time and length. Returns true when the time itself looks like a
+ * mistake (runs overnight or far too long), so callers can hold back clash
+ * warnings worked out from that wrong time until it's fixed.
+ */
 export function checkTiming(
   flags: Flags,
   zone: TZ,
-  s: { sessionId?: string; startsAt: Date; durationMinutes: number; usualMinutes?: number | null; className?: string; isNew: boolean; now: Date },
+  s: { sessionId?: string; startsAt: Date; durationMinutes: number; usualMinutes?: number | null; className?: string; templateName?: string | null; isNew: boolean; now: Date },
 ) {
   const start = DateTime.fromJSDate(s.startsAt, { zone });
   const end = start.plus({ minutes: s.durationMinutes });
   const d = s.durationMinutes;
   const ref = { sessionId: s.sessionId };
-  // An AM/PM slip adds exactly 12 hours, so offer the 12-hours-shorter version as a fix.
-  const ampmFix = d > 12 * 60 && d - 12 * 60 >= FLAG_LIMITS.shortClassMinutes
-    ? { durationMinutes: d - 12 * 60, endTime: start.plus({ minutes: d - 12 * 60 }).toFormat("HH:mm") }
-    : undefined;
-  const fixText = ampmFix ? ` Did you mean ${clock(start)} to ${clock(start.plus({ minutes: ampmFix.durationMinutes }))}?` : "";
+  const fix = suggestLength(d, s.usualMinutes);
+  const fixEnd = fix ? start.plus({ minutes: fix.minutes }) : null;
+  const suggestion = fix && fixEnd ? { durationMinutes: fix.minutes, endTime: fixEnd.toFormat("HH:mm") } : undefined;
+  const fixText = !fix || !fixEnd
+    ? ""
+    : fix.why === "ampm"
+      ? ` Did you mean ${clock(start)} to ${clock(fixEnd)}?`
+      : ` ${s.templateName ? `The “${s.templateName}” template runs` : `${s.className ?? "This class"} usually runs`} ${fix.minutes} minutes. Did you mean to end at ${clock(fixEnd)}?`;
 
-  if (end.toISODate() !== start.toISODate() && !(end.hour === 0 && end.minute === 0 && d <= FLAG_LIMITS.longClassMinutes)) {
-    flags.confirm({ code: "ends_after_midnight", message: `This class runs from ${clock(start)} to ${clock(end)} the next day (${hoursText(d)}).${fixText}`, suggestion: ampmFix, ...ref });
+  const overnight = end.toISODate() !== start.toISODate() && !(end.hour === 0 && end.minute === 0 && d <= FLAG_LIMITS.longClassMinutes);
+  const endBeforeStart = end.hour * 60 + end.minute < start.hour * 60 + start.minute;
+  const looksWrong = overnight || d > FLAG_LIMITS.longClassMinutes;
+  if (overnight) {
+    const message = endBeforeStart
+      ? `This class ends at ${clock(end)}, which is before its ${clock(start)} start, so it would run overnight for ${hoursText(d)}.${fixText}`
+      : `This class runs from ${clock(start)} to ${clock(end)} the next day (${hoursText(d)}).${fixText}`;
+    flags.confirm({ code: "ends_after_midnight", message, suggestion, ...ref });
   } else if (d > FLAG_LIMITS.longClassMinutes) {
-    flags.confirm({ code: "unusually_long", message: `This class is ${hoursText(d)} long (${clock(start)} to ${clock(end)}).${fixText}`, suggestion: ampmFix, ...ref });
+    flags.confirm({ code: "unusually_long", message: `This class is ${hoursText(d)} long (${clock(start)} to ${clock(end)}).${fixText}`, suggestion, ...ref });
   } else if (d < FLAG_LIMITS.shortClassMinutes) {
-    flags.confirm({ code: "unusually_short", message: `This class is only ${plural(d, "minute")} long. Is that right?`, ...ref });
+    flags.confirm({ code: "unusually_short", message: `This class is only ${plural(d, "minute")} long. Is that right?${fixText}`, suggestion, ...ref });
   } else if (s.usualMinutes && (Math.abs(d - s.usualMinutes) / s.usualMinutes) * 100 > FLAG_LIMITS.durationDifferencePct) {
-    flags.info({ code: "duration_differs_from_usual", message: `${s.className ?? "This class"} is usually ${s.usualMinutes} minutes; this one is ${d}.`, suggestion: { durationMinutes: s.usualMinutes }, ...ref });
+    flags.info({ code: "duration_differs_from_usual", message: s.templateName ? `The “${s.templateName}” template runs ${s.usualMinutes} minutes; this class is ${d}.` : `${s.className ?? "This class"} is usually ${s.usualMinutes} minutes; this one is ${d}.`, suggestion: { durationMinutes: s.usualMinutes }, ...ref });
   }
 
   if (start.hour < FLAG_LIMITS.earliestNormalHour || start.hour >= FLAG_LIMITS.latestNormalHour) {
+    // Only suggest the AM/PM flip if the flipped time is itself a normal class time.
     const flipped = start.plus({ hours: start.hour < 12 ? 12 : -12 });
+    const sensible = flipped.hour >= FLAG_LIMITS.earliestNormalHour && flipped.hour < FLAG_LIMITS.latestNormalHour;
     flags.confirm({
       code: "unusual_start_time",
-      message: `This class starts at ${clock(start)}. Did you mean ${clock(flipped)}?`,
-      suggestion: { startTime: flipped.toFormat("HH:mm") },
+      message: `This class starts at ${clock(start)}.${sensible ? ` Did you mean ${clock(flipped)}?` : " Is that right?"}`,
+      suggestion: sensible ? { startTime: flipped.toFormat("HH:mm") } : undefined,
       ...ref,
     });
   }
@@ -98,7 +129,11 @@ export function checkTiming(
   if (s.startsAt.getTime() - s.now.getTime() > FLAG_LIMITS.farFutureDays * 24 * HOUR) {
     flags.confirm({ code: "far_future", message: `This class is on ${start.toFormat("d LLL yyyy")}, over a year away. Is the year right?`, ...ref });
   }
+  return looksWrong;
 }
+
+/** Clash warnings that depend on the class's time. */
+export const CLASH_CODES = ["instructor_double_booked", "room_double_booked", "possible_duplicate"] as const;
 
 export function checkCapacity(flags: Flags, s: { sessionId?: string; capacity: number; room?: { name: string; capacity: number | null } | null }) {
   if (s.room?.capacity != null && s.capacity > s.room.capacity) {
@@ -115,9 +150,29 @@ export function checkInstructor(flags: Flags, s: { sessionId?: string; instructo
   if (!s.instructorId) flags.info({ code: "no_instructor", message: "No instructor is assigned yet. It will show as “TBC” to clients.", sessionId: s.sessionId });
 }
 
-export async function usualDuration(db: DbOrTx, classTypeId: string) {
+/** Warn if a studio keeps a teaching list for this class type and the instructor isn't on it. */
+export async function checkInstructorListed(db: DbOrTx, flags: Flags, s: { sessionId?: string; classTypeId: string; instructorId: string | null }) {
+  if (!s.instructorId) return;
+  const list = await db.select({ id: classTypeInstructors.instructorId }).from(classTypeInstructors).where(eq(classTypeInstructors.classTypeId, s.classTypeId));
+  if (!list.length || list.some((x) => x.id === s.instructorId)) return;
+  const [[who], [type]] = await Promise.all([
+    db.select({ f: users.firstName, l: users.lastName }).from(users).where(eq(users.id, s.instructorId)),
+    db.select({ name: classTypes.name }).from(classTypes).where(eq(classTypes.id, s.classTypeId)),
+  ]);
+  flags.confirm({ code: "instructor_not_listed", sessionId: s.sessionId, message: `${who ? `${who.f} ${who.l}` : "This instructor"} isn't on the list of instructors who teach ${type?.name ?? "this class"}.` });
+}
+
+/**
+ * The length a class is expected to be: its template's length if it came from one,
+ * otherwise the class type's default.
+ */
+export async function usualDuration(db: DbOrTx, classTypeId: string, templateId?: string | null) {
   const [t] = await db.select({ name: classTypes.name, mins: classTypes.defaultDurationMinutes }).from(classTypes).where(eq(classTypes.id, classTypeId));
-  return { className: t?.name, usualMinutes: t?.mins ?? null };
+  if (templateId) {
+    const [tpl] = await db.select({ name: classTemplates.name, mins: classTemplates.durationMinutes }).from(classTemplates).where(eq(classTemplates.id, templateId));
+    if (tpl) return { className: t?.name, usualMinutes: tpl.mins, templateName: tpl.name };
+  }
+  return { className: t?.name, usualMinutes: t?.mins ?? null, templateName: null };
 }
 
 // ---------------------------------------------------------------------------

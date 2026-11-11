@@ -10,6 +10,7 @@ import { inTx } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { money } from "../bookings/rules.js";
+import { tagsFor } from "../sessions/people.js";
 
 const idParam = z.object({ id: schemas.id });
 const feeQuery = z.object({ status: z.enum(FEE_STATUSES).optional() });
@@ -39,7 +40,7 @@ export async function clientRoutes(app: FastifyInstance) {
   app.get("/clients/:id", async (req) => {
     const { id } = parse(idParam, req.params);
     const [client] = await db
-      .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, phone: users.phone })
+      .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, phone: users.phone, photoUrl: users.photoUrl, source: memberships.source, showInAttendeeList: memberships.showInAttendeeList })
       .from(memberships)
       .innerJoin(users, eq(users.id, memberships.userId))
       .where(and(eq(memberships.orgId, req.auth.orgId), eq(memberships.userId, id), eq(memberships.role, "client")));
@@ -56,6 +57,7 @@ export async function clientRoutes(app: FastifyInstance) {
     const attended = history.filter((h) => h.attendance === "present").length;
     return {
       ...client,
+      tags: (await tagsFor(db, req.auth.orgId, [id])).get(id) ?? [],
       summary: {
         attended,
         noShows: history.filter((h) => h.attendance === "no_show").length,

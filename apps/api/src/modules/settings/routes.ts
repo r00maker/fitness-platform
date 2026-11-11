@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
-import { FIELDS, FLAG_TITLES, OPTION_LABELS, can, schemas } from "@studio/shared";
+import { and, eq } from "drizzle-orm";
+import { ACTION_HELP, FIELDS, FLAG_TITLES, HELP_TIP_DELAY_MS, NAV_ITEMS, OPTION_LABELS, can, schemas } from "@studio/shared";
 import { memberships, organizations, pushTokens, users } from "../../db/schema.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission, requireRole } from "../../plugins/auth.js";
@@ -10,11 +10,22 @@ import { getOrg } from "../sessions/context.js";
 
 export async function settingsRoutes(app: FastifyInstance) {
   /** Labels and tooltips, so the apps can update wording without a new app release. */
-  app.get("/meta/fields", { config: { public: true } }, async () => ({ fields: FIELDS, options: OPTION_LABELS, flags: FLAG_TITLES }));
+  app.get("/meta/fields", { config: { public: true } }, async () => ({ fields: FIELDS, options: OPTION_LABELS, flags: FLAG_TITLES, actions: ACTION_HELP, nav: NAV_ITEMS, helpTipDelayMs: HELP_TIP_DELAY_MS }));
 
   app.get("/me", async (req) => {
     const [u] = await app.db.select().from(users).where(eq(users.id, req.auth.userId));
     return { ...u, role: req.auth.role, orgId: req.auth.orgId };
+  });
+
+  /** Clients choose whether other members see them on class lists. */
+  app.patch("/me/privacy", async (req) => {
+    const input = parse(schemas.updatePrivacy, req.body);
+    const [m] = await app.db
+      .update(memberships)
+      .set(input)
+      .where(and(eq(memberships.orgId, req.auth.orgId), eq(memberships.userId, req.auth.userId)))
+      .returning({ showInAttendeeList: memberships.showInAttendeeList });
+    return m;
   });
 
   app.post("/me/push-tokens", async (req, reply) => {
