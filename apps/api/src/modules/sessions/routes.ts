@@ -81,8 +81,8 @@ export async function sessionRoutes(app: FastifyInstance) {
       waiverStatuses(app.db, org, staffIds),
       activeHealthNotes(app.db, orgId, staffIds),
     ]);
-    // Staff can mark ClassPass clients' waivers done; studio members sign their own (admins can mark either).
-    const canMarkWaiver = (source: string | null) => can(role, "confirmWaivers") && (source !== "direct" || can(role, "reverseWaivers"));
+    // Anyone shown without a waiver gets a "Mark waiver done" button for staff (studio members can't be booked without one).
+    const canMarkWaiver = can(role, "confirmWaivers");
     const person = async (uid: string | null) => {
       if (!uid) return null;
       const [u] = await app.db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, photoUrl: users.photoUrl }).from(users).where(eq(users.id, uid));
@@ -127,7 +127,7 @@ export async function sessionRoutes(app: FastifyInstance) {
                 ],
                 moreTags: Math.max(0, pinned.length - MAX_UP_FRONT_TAGS) + clientTags.filter((t) => !t.pinned).length,
                 waiver: waiver
-                  ? { ...waiver, canMarkDone: waiver.status === "missing" && canMarkWaiver(r.source), canUndo: waiver.status === "complete" && can(role, "reverseWaivers") }
+                  ? { ...waiver, canMarkDone: waiver.status === "missing" && canMarkWaiver, canUndo: waiver.status === "complete" && can(role, "reverseWaivers") }
                   : null,
                 healthNotes: notes,
                 attendedCount: n,

@@ -47,16 +47,36 @@ describe("waivers", () => {
   it("also needs the waiver to join a waitlist, since they may be booked in automatically", async () => {
     const { s, mk } = await setup();
     const c = await mk({ capacity: 1 });
-    await s.owner.call("POST", "/bookings", { sessionId: c, clientId: s.c2.id, acknowledge: ["waiver_missing"] });
+    await s.c2.call("POST", "/bookings", { sessionId: c, waiver: { agree: true, signedName: "Dev Tan" } });
     expect((await s.c1.call("POST", "/waitlist", { sessionId: c, mode: "automatic" })).body.error.code).toBe("waiver_required");
     expect((await s.c1.call("POST", "/waitlist", { sessionId: c, mode: "automatic", waiver: { agree: true, signedName: "Chloe Tan" } })).status).toBe(201);
   });
 
-  it("reminds staff (without stopping them) when they book in someone without a waiver", async () => {
-    const { s, mk } = await setup();
-    const res = await s.owner.call("POST", "/bookings", { sessionId: await mk(), clientId: s.c1.id });
-    expect(res.status).toBe(201);
-    expect(res.body.flags[0]).toMatchObject({ code: "waiver_missing", severity: "info", message: expect.stringMatching(/asked to sign it in the app next time they book/) });
+  it("stops staff booking or waitlisting a studio member who hasn't signed, so they never show without one", async () => {
+    const { s, mk, classPass } = await setup();
+    const c = await mk({ capacity: 1 });
+    const res = await s.owner.call("POST", "/bookings", { sessionId: c, clientId: s.c1.id });
+    expect(res.body.error).toMatchObject({ code: "waiver_required", message: expect.stringMatching(/^Chloe T\d+ hasn't signed the waiver yet, so they can't be booked in\. Ask them to sign it in the app/) });
+    // A paper copy marked done by an admin unblocks them.
+    await s.owner.call("POST", `/clients/${s.c1.id}/waiver/mark-done`, { acknowledge: ["confirm_waiver_complete"] });
+    expect((await s.owner.call("POST", "/bookings", { sessionId: c, clientId: s.c1.id })).status).toBe(201);
+    expect((await s.owner.call("POST", "/waitlist", { sessionId: c, clientId: s.c2.id, mode: "automatic" })).body.error.code).toBe("waiver_required");
+
+    // ClassPass clients are checked at the studio: staff just get a reminder.
+    await classPass(s.c3.id);
+    const cp = await s.owner.call("POST", "/bookings", { sessionId: await mk(), clientId: s.c3.id });
+    expect(cp.status).toBe(201);
+    expect(cp.body.flags[0]).toMatchObject({ code: "waiver_missing", severity: "info", message: expect.stringMatching(/Check it at the studio/) });
+  });
+
+  it("anyone still shown without a waiver (e.g. after an undo) gets the button", async () => {
+    const { s, foh, mk, rosterRow } = await setup();
+    const c = await mk();
+    await s.c1.call("POST", "/bookings", { sessionId: c, waiver: { agree: true, signedName: "Chloe Tan" } });
+    expect((await rosterRow(foh, c, s.c1.id)).waiver).toMatchObject({ status: "complete" });
+    await s.owner.call("POST", `/clients/${s.c1.id}/waiver/undo`, { reason: "Signed the wrong name" });
+    expect((await rosterRow(foh, c, s.c1.id)).waiver).toMatchObject({ status: "missing", canMarkDone: true });
+    expect((await rosterRow(s.ana, c, s.c1.id)).waiver).toMatchObject({ status: "missing", canMarkDone: true });
   });
 
   it("lets staff mark a ClassPass client's waiver done after checking, and only admins can undo it", async () => {
@@ -87,7 +107,7 @@ describe("waivers", () => {
     expect(profile.body.waiver).toMatchObject({ status: "missing", history: [{ method: "confirmed_by_staff", revokeReason: "Marked by mistake" }] });
   });
 
-  it("instructors can mark waivers only for clients in their own classes; studio members sign their own", async () => {
+  it("instructors can mark waivers only for clients in their own classes", async () => {
     const { s, foh, mk, classPass } = await setup();
     await classPass(s.c1.id);
     await classPass(s.c2.id);
@@ -98,9 +118,8 @@ describe("waivers", () => {
     expect((await s.ana.call("POST", `/clients/${s.c1.id}/waiver/mark-done`, ack)).status).toBe(201);
     expect((await s.ana.call("POST", `/clients/${s.c1.id}/waiver/mark-done`, ack)).body.error.code).toBe("waiver_already_done");
 
-    // Chloe's now done; Eve is a studio member who signed on paper: only an admin can mark that.
-    expect((await foh.call("POST", `/clients/${s.c3.id}/waiver/mark-done`, ack)).body.error.message).toMatch(/sign the waiver themselves in the app/);
-    expect((await s.owner.call("POST", `/clients/${s.c3.id}/waiver/mark-done`, ack)).status).toBe(201);
+    // Eve is a studio member who signed a paper copy at the desk.
+    expect((await foh.call("POST", `/clients/${s.c3.id}/waiver/mark-done`, ack)).status).toBe(201);
     expect((await s.c1.call("POST", `/clients/${s.c2.id}/waiver/mark-done`, ack)).status).toBe(403);
   });
 

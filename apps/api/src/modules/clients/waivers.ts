@@ -1,8 +1,11 @@
 /**
  * Waivers.
  *  - Studio members sign the waiver in the app the first time they book (or any time from their profile).
+ *    No one, staff included, can book or waitlist a studio member who hasn't, so they never
+ *    turn up on a class list without one.
  *  - ClassPass clients sign at the studio; staff then mark it done from the class list,
- *    after a "have you checked?" confirmation.
+ *    after a "have you checked?" confirmation. The same button appears for anyone else
+ *    still missing one (e.g. after an admin undoes a waiver, or waivers were just switched on).
  *  - Once done, only an admin can undo it, so a mis-tap can't quietly remove it.
  *  - Studios that don't use waivers switch them off in settings.
  */
@@ -88,15 +91,21 @@ export async function signWaiver(tx: DbOrTx, org: Org, clientId: string, input: 
 }
 
 /**
- * Called when booking or joining a waitlist. Studio members booking themselves must
- * sign first (they can sign in the same step by sending `waiver`). Staff booking
- * someone in just get a reminder. ClassPass clients are checked at the studio.
+ * Called when booking or joining a waitlist. Studio members must have signed first,
+ * whoever is booking: they can sign in the same step by sending `waiver`, and staff
+ * are told to ask them to sign (or mark a paper copy done). ClassPass clients book
+ * through ClassPass and are checked at the studio, so staff just get a reminder.
  */
 export async function requireWaiver(tx: DbOrTx, auth: AuthContext, org: Org, clientId: string, waiver: { signedName: string } | undefined, flags?: Flags, sessionId?: string) {
   if (!org.waiverRequired || (await activeWaiver(tx, org.id, clientId))) return;
   const { source } = await clientMembership(tx, org.id, clientId);
-  if (auth.role === "client") {
-    if (source !== "direct") return;
+  if (source === "direct") {
+    if (auth.role !== "client") {
+      throw conflict(
+        "waiver_required",
+        `${await userName(tx, clientId)} hasn't signed the waiver yet, so they can't be booked in. Ask them to sign it in the app, or if they've signed a paper copy, mark it done on their profile first.`,
+      );
+    }
     if (waiver) {
       await signWaiver(tx, org, clientId, waiver);
       return;
@@ -105,13 +114,8 @@ export async function requireWaiver(tx: DbOrTx, auth: AuthContext, org: Org, cli
       waiver: { text: waiverText(org), version: org.waiverVersion },
     });
   }
-  flags?.info({
-    code: "waiver_missing",
-    sessionId,
-    message: `${await userName(tx, clientId)} hasn't completed the waiver yet. ${
-      source === "direct" ? "They'll be asked to sign it in the app next time they book." : "Check it at the studio and mark it done on the class list."
-    }`,
-  });
+  if (auth.role === "client") return;
+  flags?.info({ code: "waiver_missing", sessionId, message: `${await userName(tx, clientId)} hasn't completed the waiver yet. Check it at the studio and mark it done on the class list.` });
 }
 
 /** Instructors can only mark waivers for people booked into a class they teach. */
@@ -130,11 +134,8 @@ export async function markWaiverDone(tx: DbOrTx, auth: AuthContext, clientId: st
   if (!can(auth.role, "confirmWaivers")) throw forbidden();
   const org = await getOrg(tx, auth.orgId);
   if (!org.waiverRequired) throw badRequest("waivers_off", "Your studio doesn't use waivers. An admin can switch them on in Studio rules.");
-  const { source } = await clientMembership(tx, auth.orgId, clientId);
+  await clientMembership(tx, auth.orgId, clientId);
   if (auth.role === "instructor" && !(await isInInstructorsClass(tx, auth.orgId, auth.userId, clientId))) throw notFound("client");
-  if (source === "direct" && !can(auth.role, "reverseWaivers")) {
-    throw forbidden("Studio members sign the waiver themselves in the app. If they signed a paper copy, an admin can mark it done.");
-  }
   if (await activeWaiver(tx, auth.orgId, clientId)) throw conflict("waiver_already_done", "This client's waiver is already marked as done.");
 
   const name = await userName(tx, clientId);
