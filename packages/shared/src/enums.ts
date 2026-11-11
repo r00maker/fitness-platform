@@ -13,11 +13,13 @@ export type Role = (typeof ROLES)[number];
  * | Role            | Sees                          | Can change                      |
  * |-----------------|-------------------------------|---------------------------------|
  * | Admin / Owner   | everything, incl. client info | everything                      |
- * | Front of House  | the whole schedule + rosters, | attendance and client tags      |
- * |                 | incl. client contact details  |                                 |
- * | Instructor      | their own classes only, incl. | attendance on their own classes |
- * |                 | contact details for them      |                                 |
- * | Client          | the public schedule, own data | their own bookings              |
+ * | Front of House  | the whole schedule + rosters, | attendance, client tags, health |
+ * |                 | incl. client contact details  | notes, marking waivers complete |
+ * | Instructor      | their own classes only, incl. | attendance and marking waivers  |
+ * |                 | contact details for them      | complete on their own classes;  |
+ * |                 |                               | asking for cover (not choosing) |
+ * | Client          | the public schedule, own data | their own bookings, waiver and  |
+ * |                 |                               | health notes                    |
  */
 export const PERMISSIONS = {
   /** See every class on the calendar (instructors see only their own). */
@@ -40,8 +42,14 @@ export const PERMISSIONS = {
   viewPayments: ["owner", "admin"],
   /** Studio policies and settings. */
   manageSettings: ["owner", "admin"],
-  /** Approve or assign cover for any class. */
+  /** Choose who is asked to cover, approve offers and assign cover. Instructors can only ask for cover. */
   manageCover: ["owner", "admin"],
+  /** Mark a client's waiver as complete (e.g. a ClassPass client who signed at the desk). Instructors: clients in their own classes. */
+  confirmWaivers: ["owner", "admin", "front_desk", "instructor"],
+  /** Undo a waiver marked complete. Admin only, so a mis-tap can't be undone by accident either way. */
+  reverseWaivers: ["owner", "admin"],
+  /** Add or resolve a health note on a client's behalf (clients manage their own). */
+  manageHealthNotes: ["owner", "admin", "front_desk"],
 } as const satisfies Record<string, readonly Role[]>;
 export type Permission = keyof typeof PERMISSIONS;
 export const can = (role: Role, permission: Permission): boolean => (PERMISSIONS[permission] as readonly Role[]).includes(role);
@@ -83,6 +91,19 @@ export type SubRequestStatus = (typeof SUB_REQUEST_STATUSES)[number];
 /** How a client came to the studio. Only direct members see who else is booked in. */
 export const MEMBER_SOURCES = ["direct", "classpass"] as const;
 export type MemberSource = (typeof MEMBER_SOURCES)[number];
+
+/** How a waiver was completed: signed in the app by the client, or checked and marked by staff. */
+export const WAIVER_METHODS = ["signed_by_client", "confirmed_by_staff"] as const;
+export type WaiverMethod = (typeof WAIVER_METHODS)[number];
+
+/** Injuries and conditions clients tell the studio about. The client picks one; we suggest it from what they type. */
+export const HEALTH_CATEGORIES = ["injury", "pregnancy", "postnatal", "recent_surgery", "medical_condition", "other"] as const;
+export type HealthCategory = (typeof HEALTH_CATEGORIES)[number];
+export const HEALTH_NOTE_STATUSES = ["active", "resolved"] as const;
+export type HealthNoteStatus = (typeof HEALTH_NOTE_STATUSES)[number];
+/** A note is checked with the client ("still current?") when they book, once it's this many days since they last confirmed it. */
+export const HEALTH_NOTE_REVIEW_DAYS = 30;
+export const HEALTH_NOTE_MAX_LENGTH = 280;
 
 export const FEE_TYPES = ["late_cancel", "no_show"] as const;
 export type FeeType = (typeof FEE_TYPES)[number];
@@ -151,6 +172,9 @@ export const FLAG_CODES = [
   "already_refunded",
   "refund_after_attending",
   "class_not_started",
+  // Waivers
+  "waiver_missing",
+  "confirm_waiver_complete",
 ] as const;
 export type FlagCode = (typeof FLAG_CODES)[number];
 export type FlagSeverity = "confirm" | "info";

@@ -9,11 +9,12 @@ import { bookingWindow, weeklyBookings, windowMessage, windowStatus } from "../b
 import { createBooking } from "../bookings/service.js";
 import { assertMemberWithRole, confirmedCount, getOrg, heldOfferCount, locationZone, lockSession } from "../sessions/context.js";
 import { fillOpenSpots } from "./engine.js";
+import { requireWaiver } from "../clients/waivers.js";
 
 export async function joinWaitlist(
   tx: DbOrTx,
   auth: AuthContext,
-  input: { sessionId: string; clientId?: string; mode: WaitlistMode; expiresHoursBeforeStart: number | null },
+  input: { sessionId: string; clientId?: string; mode: WaitlistMode; expiresHoursBeforeStart: number | null; waiver?: { signedName: string } },
   flags: Flags,
   now = new Date(),
 ) {
@@ -50,6 +51,9 @@ export async function joinWaitlist(
   }
   const open = session.capacity - (await confirmedCount(tx, session.id)) - (await heldOfferCount(tx, session.id));
   if (open > 0) throw conflict("spots_available", "There's still space in this class – you can book it directly.");
+
+  // They may be booked in automatically later, so the waiver is needed now.
+  await requireWaiver(tx, auth, org, clientId, input.waiver, flags, session.id);
 
   const hours = input.expiresHoursBeforeStart;
   if (hours !== null && !org.waitlistExpiryOptionsHours.includes(hours)) {

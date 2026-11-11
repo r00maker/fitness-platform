@@ -12,6 +12,7 @@ import { assertMemberWithRole, confirmedCount, describeSession, getOrg, getSessi
 import { fillOpenSpots } from "../waitlist/engine.js";
 import { applyFee, bookingWindow, feeFor, waivePendingFees, weeklyBookings, windowMessage, windowStatus } from "./rules.js";
 import { pickSpot } from "./spots.js";
+import { requireWaiver } from "../clients/waivers.js";
 
 export type BookingRow = typeof bookings.$inferSelect;
 /** Admins (and owners) can book, cancel, move and refund for clients, and go outside booking rules. */
@@ -59,7 +60,7 @@ const hoursUntil = (s: SessionRow, now: Date) => (s.startsAt.getTime() - now.get
 export async function createBooking(
   tx: DbOrTx,
   auth: AuthContext,
-  input: { sessionId: string; clientId?: string; spot?: number },
+  input: { sessionId: string; clientId?: string; spot?: number; waiver?: { signedName: string } },
   flags?: Flags,
   now = new Date(),
   opts: { ignoreSessionId?: string } = {},
@@ -125,6 +126,9 @@ export async function createBooking(
       });
     }
   }
+
+  // First booking: studio members sign the waiver (in the same step if they've sent it).
+  await requireWaiver(tx, auth, org, clientId, input.waiver, flags, session.id);
 
   const spot = await pickSpot(tx, session, input.spot);
   const [booking] = await tx

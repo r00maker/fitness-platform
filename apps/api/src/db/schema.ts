@@ -25,6 +25,9 @@ import {
   ATTENDANCE,
   FEE_STATUSES,
   FEE_TYPES,
+  HEALTH_CATEGORIES,
+  HEALTH_NOTE_STATUSES,
+  WAIVER_METHODS,
   MEMBER_SOURCES,
   BOOKING_SOURCES,
   BOOKING_STATUSES,
@@ -52,6 +55,9 @@ export const channelEnum = pgEnum("notification_channel", NOTIFICATION_CHANNELS)
 export const memberSourceEnum = pgEnum("member_source", MEMBER_SOURCES);
 export const feeTypeEnum = pgEnum("fee_type", FEE_TYPES);
 export const feeStatusEnum = pgEnum("fee_status", FEE_STATUSES);
+export const waiverMethodEnum = pgEnum("waiver_method", WAIVER_METHODS);
+export const healthCategoryEnum = pgEnum("health_category", HEALTH_CATEGORIES);
+export const healthNoteStatusEnum = pgEnum("health_note_status", HEALTH_NOTE_STATUSES);
 export const notificationStatusEnum = pgEnum("notification_status", ["pending", "sent", "failed"]);
 
 const pk = () => uuid("id").primaryKey().defaultRandom();
@@ -91,6 +97,14 @@ export const organizations = pgTable("organizations", {
   lateCancelFeeCents: integer("late_cancel_fee_cents").notNull().default(0),
   noShowFeeEnabled: boolean("no_show_fee_enabled").notNull().default(false),
   noShowFeeCents: integer("no_show_fee_cents").notNull().default(0),
+  // Waivers
+  waiverRequired: boolean("waiver_required").notNull().default(true),
+  /** The studio's own wording. Null = a short standard waiver is shown until the studio adds theirs. */
+  waiverText: text("waiver_text"),
+  /** Goes up by one each time the wording changes, so each signature records which version was signed. */
+  waiverVersion: integer("waiver_version").notNull().default(1),
+  /** Studio-wide switch for choosing a spot when booking (rooms also need named spots). */
+  spotBookingEnabled: boolean("spot_booking_enabled").notNull().default(true),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -328,6 +342,8 @@ export const clientTags = pgTable(
     orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     color: text("color").notNull().default("#64748b"),
+    /** Shown straight under the client's name on class lists; other tags sit under "More". */
+    pinned: boolean("pinned").notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("client_tags_name_uq").on(t.orgId, sql`lower(${t.name})`)],
@@ -342,6 +358,54 @@ export const clientTagAssignments = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("client_tag_assignment_uq").on(t.clientId, t.tagId), index("client_tag_assignment_org_idx").on(t.orgId, t.clientId)],
+);
+
+/**
+ * Completed waivers. Rows are never deleted: undoing one (admins only) sets
+ * `revokedAt`, so there's always a record of who signed or marked what, and when.
+ */
+export const clientWaivers = pgTable(
+  "client_waivers",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    method: waiverMethodEnum("method").notNull(),
+    /** Signed in the app: the name the client typed, and the waiver version they agreed to. */
+    signedName: text("signed_name"),
+    waiverVersion: integer("waiver_version"),
+    recordedBy: uuid("recorded_by").notNull().references(() => users.id),
+    recordedAt: ts("recorded_at").notNull().defaultNow(),
+    revokedAt: ts("revoked_at"),
+    revokedBy: uuid("revoked_by").references(() => users.id),
+    revokeReason: text("revoke_reason"),
+  },
+  (t) => [uniqueIndex("client_waivers_one_active").on(t.orgId, t.clientId).where(sql`${t.revokedAt} is null`)],
+);
+
+/**
+ * Injuries and conditions a client has told the studio about. Visible to the
+ * client, studio staff and the instructors of classes they're booked into.
+ * Resolved notes are hidden from instructors; clients can delete theirs entirely.
+ */
+export const clientHealthNotes = pgTable(
+  "client_health_notes",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    category: healthCategoryEnum("category").notNull(),
+    description: text("description").notNull(),
+    status: healthNoteStatusEnum("status").notNull().default("active"),
+    createdBy: uuid("created_by").notNull().references(() => users.id),
+    /** When the client last said it's still current (or added/changed it). */
+    reviewedAt: ts("reviewed_at").notNull().defaultNow(),
+    resolvedAt: ts("resolved_at"),
+    resolvedBy: uuid("resolved_by").references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("health_notes_client_idx").on(t.orgId, t.clientId, t.status)],
 );
 
 /**

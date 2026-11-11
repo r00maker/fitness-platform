@@ -58,7 +58,7 @@ export const FIELDS = {
 
   // Substitutes
   subReason: { label: "Reason", help: "Optional. Shared with instructors you're asking to cover." },
-  subInvitees: { label: "Ask", help: "Instructors who'll be asked to cover. Leave empty to ask everyone who can teach." },
+  subInvitees: { label: "Ask", help: "Admins only. Instructors who'll be asked to cover. Leave empty to ask the class's teaching list (or everyone who teaches)." },
   subApprovalMode: { label: "Approving cover", help: "“Automatic” gives the class to the first instructor who accepts. “Manual” lets an admin choose from everyone who accepted." },
 
   // Studio policies
@@ -81,10 +81,34 @@ export const FIELDS = {
   asCover: { label: "Covering this class", help: "Tick if this instructor is standing in for the usual instructor. The calendar shows them as cover, and the usual instructor stays on future classes." },
   coverList: { label: "Who can teach this class", help: "The instructors who teach or cover this class type. Cover requests go to them first, and you'll be warned if someone else is assigned." },
   favouriteInstructor: { label: "Favourite instructor", help: "The instructor a client has taken the most classes with (at least 3)." },
-  clientTags: { label: "Tags", help: "Your own labels for clients, e.g. “Injury: lower back” or “VIP”. Staff see them on class lists." },
-  tagName: { label: "Tag name", help: "Keep it short so it fits on the class list, e.g. “Prenatal”." },
+  clientTags: { label: "Tags", help: "Your own labels for clients, e.g. “VIP” or “Teacher training”. Staff see them on class lists. Injuries and pregnancy go in health notes instead." },
+  tagName: { label: "Tag name", help: "Keep it short so it fits on the class list, e.g. “VIP”." },
   tagColor: { label: "Tag colour", help: "Helps the tag stand out on the class list." },
+  tagPinned: { label: "Show up front", help: "Shows this tag straight under the client's name on class lists. Other tags are tucked under “More” so the list stays easy to read." },
   spot: { label: "Spot", help: "The reformer, bike or mat the client will use. Clients pick theirs when booking." },
+  spotBookingEnabled: {
+    label: "Clients choose a spot",
+    help: "Clients pick their reformer, bike or mat when they book. Turn off if people just take any spot: they'll still see who's coming and confirm before booking.",
+  },
+
+  // Waivers
+  waiverRequired: {
+    label: "Clients must sign a waiver",
+    help: "Studio members sign your waiver in the app when they book their first class. Staff mark ClassPass clients' waivers as done. Turn off if you don't use waivers.",
+  },
+  waiverText: { label: "Your waiver", help: "The wording clients agree to. If you change it, existing signatures stay valid and new clients sign the new version." },
+  waiverStatus: { label: "Waiver", help: "Whether this client has completed the studio's waiver. Clients without one are shown in red on class lists." },
+  waiverSignedName: { label: "Type your full name", help: "Typing your name counts as your signature on the waiver." },
+  waiverReverseReason: { label: "Why undo it?", help: "Kept on the client's record, e.g. “Marked by mistake – not signed yet”." },
+
+  // Health notes
+  healthNotes: {
+    label: "Injuries & conditions",
+    help: "Anything your instructor should know, like an injury or pregnancy. It stays on your profile until you mark it as resolved, so you don't need to add it every time you book.",
+  },
+  healthCategory: { label: "Type", help: "We suggest one from what you write. Change it if it's not right." },
+  healthDescription: { label: "In a few words", help: "e.g. “Sore left knee, avoiding deep lunges” or “18 weeks pregnant”. Only your instructors and studio staff can see this." },
+
   spotLabels: { label: "Spots in this room", help: "Name each spot, e.g. “Reformer 1”. Clients choose one when they book. Leave empty if clients don't pick a spot." },
   showInAttendeeList: { label: "Show me on class lists", help: "Other studio members can see your first name, initial and photo on the classes you've booked. Turn off to stay hidden." },
   role: { label: "Access level", help: "Admin: sees and changes everything. Front of House: sees the full schedule and can take attendance. Instructor: sees and takes attendance for their own classes only." },
@@ -123,6 +147,8 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   already_refunded: "Already refunded",
   refund_after_attending: "Client attended",
   class_not_started: "Class hasn't started yet",
+  waiver_missing: "Waiver not signed",
+  confirm_waiver_complete: "Check the waiver first",
 };
 
 /** Friendly wording for option values shown in dropdowns and badges. */
@@ -147,6 +173,16 @@ export const OPTION_LABELS = {
   feeType: { late_cancel: "Late-cancellation fee", no_show: "No-show fee" },
   feeStatus: { pending: "To be collected", waived: "Waived", charged: "Paid" },
   memberSource: { direct: "Studio member", classpass: "ClassPass" },
+  waiverStatus: { complete: "Waiver done", missing: "No waiver", not_required: "No waiver needed" },
+  waiverMethod: { signed_by_client: "Signed in the app", confirmed_by_staff: "Marked done by staff" },
+  healthCategory: {
+    injury: "Injury",
+    pregnancy: "Pregnancy",
+    postnatal: "Postnatal",
+    recent_surgery: "Recent surgery",
+    medical_condition: "Medical condition",
+    other: "Other",
+  },
   bookingWindow: { not_open_yet: "Booking not open yet", open: "Open for booking", closed: "Booking closed" },
   timeOfDay: { morning: "Morning (before 12pm)", afternoon: "Afternoon (12–5pm)", evening: "Evening (after 5pm)" },
 } as const;
@@ -160,7 +196,8 @@ export const ACTION_HELP = {
   selectClasses: "Pick several classes on the calendar, then change or cancel them all in one go.",
   editClass: "Change the time, instructor, room or spots. For a repeating class you can change just this one or the rest of the series.",
   duplicateClass: "Copy this class to the same time next week. You'll be warned if it clashes with anything.",
-  askForCover: "Ask other instructors to cover this class. They're told by email and push.",
+  askForCover: "Ask for this class to be covered. Your studio's admin arranges who covers it, and you'll be told once it's sorted.",
+  chooseCover: "Choose who is asked to cover, or assign someone directly.",
   cancelClass: "Cancel this class. Booked clients are told and given the refund you choose.",
   markAllPresent: "Mark everyone not yet marked as attended. People already marked as a no-show stay that way.",
   attended: "Mark this client as attended.",
@@ -170,6 +207,13 @@ export const ACTION_HELP = {
   cancelBooking: "Cancel your place. You'll see whether you get your credit back before you confirm.",
   editTags: "Add or remove your studio's own labels for this client.",
   waiveFee: "Remove this fee. The reason is kept on the client's history.",
+  markWaiverDone: "Mark that this client has completed the waiver, e.g. a ClassPass client who signed at the desk. You'll be asked to check first, and only an admin can undo it.",
+  undoWaiver: "Admins only. Undo a waiver that was marked done by mistake.",
+  signWaiver: "Read and sign the studio's waiver. You only need to do this once.",
+  addHealthNote: "Tell your instructors about an injury, pregnancy or condition. It stays on your profile until you mark it resolved.",
+  healthStillCurrent: "Still the same? One tap keeps it on your profile.",
+  resolveHealthNote: "All better? Instructors stop seeing it straight away.",
+  favouriteFilter: "Show only classes with your favourite instructor. Tap again to see everything.",
   today: "Jump back to today.",
   dayView: "One day, hour by hour.",
   weekView: "Monday to Sunday, hour by hour.",
@@ -186,6 +230,7 @@ export const NAV_ITEMS = [
   { id: "class-types", label: "Class types", group: "Setup", roles: ["owner", "admin"], help: "Your classes, their calendar colours and who can teach them." },
   { id: "templates", label: "Templates", group: "Setup", roles: ["owner", "admin"], help: "Saved class details so new classes take a couple of clicks." },
   { id: "locations", label: "Locations & rooms", group: "Setup", roles: ["owner", "admin"], help: "Your studios, their rooms and the spots in each room." },
-  { id: "policies", label: "Studio rules", group: "Setup", roles: ["owner", "admin"], help: "Booking window, cancellations, fees, waitlist and cover settings." },
-  { id: "profile", label: "Profile & privacy", group: "Account", roles: ["client"], help: "Your details and who can see you on class lists." },
+  { id: "policies", label: "Studio rules", group: "Setup", roles: ["owner", "admin"], help: "Booking window, cancellations, fees, waivers, spot booking, waitlist and cover settings." },
+  { id: "health", label: "Injuries & conditions", group: "Account", roles: ["client"], help: "Let your instructors know about an injury, pregnancy or condition, and mark it resolved when you're better." },
+  { id: "profile", label: "Profile & privacy", group: "Account", roles: ["client"], help: "Your details, your waiver and who can see you on class lists." },
 ] as const;

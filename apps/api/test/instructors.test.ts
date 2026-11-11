@@ -88,14 +88,16 @@ describe("cover (substitute) instructors", () => {
 });
 
 describe("teaching lists (who can cover)", () => {
-  it("sends cover requests to the class type's list, and offers it as the default", async () => {
+  it("sends cover requests to the class type's list, and offers it to admins as the default", async () => {
     const { s, mk } = await setup();
     const priya = await person(s.orgId, "instructor", "Priya");
     expect((await s.owner.call("PUT", `/class-types/${s.classTypeId}/instructors`, { instructorIds: [s.ana.id, s.ben.id] })).status).toBe(200);
     expect((await s.ana.call("GET", "/class-types")).body[0].instructorIds.sort()).toEqual([s.ana.id, s.ben.id].sort());
 
     const c = await mk(s.ana.id);
-    const opts = await s.ana.call("GET", `/sessions/${c}/cover-options`);
+    // Choosing who covers is the admin's job.
+    expect((await s.ana.call("GET", `/sessions/${c}/cover-options`)).status).toBe(403);
+    const opts = await s.owner.call("GET", `/sessions/${c}/cover-options`);
     expect(opts.body.hasTeachingList).toBe(true);
     expect(opts.body.suggested).toEqual([s.ben.id]);
     expect(opts.body.options.find((o: { id: string }) => o.id === priya.id)).toMatchObject({ onTeachingList: false, busy: false });

@@ -11,6 +11,9 @@ import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { money } from "../bookings/rules.js";
 import { tagsFor } from "../sessions/people.js";
+import { getOrg } from "../sessions/context.js";
+import { notesFor } from "./health.js";
+import { waiverHistory, waiverStatuses } from "./waivers.js";
 
 const idParam = z.object({ id: schemas.id });
 const feeQuery = z.object({ status: z.enum(FEE_STATUSES).optional() });
@@ -55,9 +58,12 @@ export async function clientRoutes(app: FastifyInstance) {
       .limit(100);
     const clientFees = await db.select().from(fees).where(and(eq(fees.orgId, req.auth.orgId), eq(fees.clientId, id))).orderBy(desc(fees.createdAt));
     const attended = history.filter((h) => h.attendance === "present").length;
+    const org = await getOrg(db, req.auth.orgId);
     return {
       ...client,
       tags: (await tagsFor(db, req.auth.orgId, [id])).get(id) ?? [],
+      waiver: { ...(await waiverStatuses(db, org, [id])).get(id)!, history: await waiverHistory(db, req.auth.orgId, id) },
+      healthNotes: await notesFor(db, req.auth.orgId, id),
       summary: {
         attended,
         noShows: history.filter((h) => h.attendance === "no_show").length,

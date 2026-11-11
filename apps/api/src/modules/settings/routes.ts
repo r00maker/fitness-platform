@@ -7,6 +7,7 @@ import { requirePermission, requireRole } from "../../plugins/auth.js";
 import { badRequest } from "../../lib/errors.js";
 import { money } from "../bookings/rules.js";
 import { getOrg } from "../sessions/context.js";
+import { instructorHistory } from "../sessions/people.js";
 
 export async function settingsRoutes(app: FastifyInstance) {
   /** Labels and tooltips, so the apps can update wording without a new app release. */
@@ -14,7 +15,16 @@ export async function settingsRoutes(app: FastifyInstance) {
 
   app.get("/me", async (req) => {
     const [u] = await app.db.select().from(users).where(eq(users.id, req.auth.userId));
-    return { ...u, role: req.auth.role, orgId: req.auth.orgId };
+    if (req.auth.role !== "client") return { ...u, role: req.auth.role, orgId: req.auth.orgId };
+    // Clients: their favourite instructor, for the one-tap "Classes with …" filter.
+    const fav = (await instructorHistory(app.db, req.auth.orgId, [req.auth.userId])).favourite.get(req.auth.userId);
+    const [i] = fav ? await app.db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, photoUrl: users.photoUrl }).from(users).where(eq(users.id, fav.instructorId)) : [];
+    return {
+      ...u,
+      role: req.auth.role,
+      orgId: req.auth.orgId,
+      favouriteInstructor: i ? { id: i.id, name: `${i.firstName} ${i.lastName}`, firstName: i.firstName, photoUrl: i.photoUrl, classes: fav!.classes } : null,
+    };
   });
 
   /** Clients choose whether other members see them on class lists. */
@@ -49,6 +59,8 @@ export async function settingsRoutes(app: FastifyInstance) {
       weeklyBookingLimit: org.weeklyBookingLimit,
       lateCancelFee: org.lateCancelFeeEnabled ? money(org.lateCancelFeeCents, org.currency) : null,
       noShowFee: org.noShowFeeEnabled ? money(org.noShowFeeCents, org.currency) : null,
+      waiverRequired: org.waiverRequired,
+      spotBookingEnabled: org.spotBookingEnabled,
     };
   });
 
@@ -61,7 +73,9 @@ export async function settingsRoutes(app: FastifyInstance) {
     if (next.lateCancelFeeEnabled && next.lateCancelFeeCents <= 0) fields.lateCancelFeeCents = "Set the fee amount, or switch the fee off.";
     if (next.noShowFeeEnabled && next.noShowFeeCents <= 0) fields.noShowFeeCents = "Set the fee amount, or switch the fee off.";
     if (Object.keys(fields).length) throw badRequest("invalid_input", "Some details need fixing.", { fields });
-    const [org] = await app.db.update(organizations).set(input).where(eq(organizations.id, req.auth.orgId)).returning();
+    // New wording = new version; earlier signatures stay valid and record the version they signed.
+    const waiverVersion = input.waiverText !== undefined && input.waiverText !== current.waiverText ? current.waiverVersion + 1 : current.waiverVersion;
+    const [org] = await app.db.update(organizations).set({ ...input, waiverVersion }).where(eq(organizations.id, req.auth.orgId)).returning();
     return org;
   });
 

@@ -5,14 +5,22 @@
  */
 import { and, eq, isNotNull } from "drizzle-orm";
 import type { DbOrTx } from "../../db/client.js";
-import { bookings, rooms } from "../../db/schema.js";
+import { bookings, organizations, rooms } from "../../db/schema.js";
 import { badRequest, conflict } from "../../lib/errors.js";
 import type { SessionRow } from "../sessions/context.js";
 
-export async function spotLabels(db: DbOrTx, roomId: string | null): Promise<string[] | null> {
-  if (!roomId) return null;
-  const [r] = await db.select({ labels: rooms.spotLabels }).from(rooms).where(eq(rooms.id, roomId));
-  return r?.labels?.length ? r.labels : null;
+/**
+ * The room's spot names, or null when clients don't pick a spot: the room has no
+ * named spots, or the studio has switched spot booking off in its settings.
+ */
+export async function spotLabels(db: DbOrTx, session: Pick<SessionRow, "orgId" | "roomId">): Promise<string[] | null> {
+  if (!session.roomId) return null;
+  const [r] = await db
+    .select({ labels: rooms.spotLabels, enabled: organizations.spotBookingEnabled })
+    .from(rooms)
+    .innerJoin(organizations, eq(organizations.id, rooms.orgId))
+    .where(and(eq(rooms.id, session.roomId), eq(rooms.orgId, session.orgId)));
+  return r?.enabled && r.labels?.length ? r.labels : null;
 }
 
 /** Spot number → client, for confirmed bookings in this class. */
@@ -25,8 +33,8 @@ export async function takenSpots(db: DbOrTx, sessionId: string): Promise<Map<num
 }
 
 /** The spot to give this booking, or null if the room doesn't use spots (or they're all taken). */
-export async function pickSpot(tx: DbOrTx, session: Pick<SessionRow, "id" | "roomId">, requested?: number): Promise<number | null> {
-  const labels = await spotLabels(tx, session.roomId);
+export async function pickSpot(tx: DbOrTx, session: Pick<SessionRow, "id" | "orgId" | "roomId">, requested?: number): Promise<number | null> {
+  const labels = await spotLabels(tx, session);
   if (!labels) {
     if (requested !== undefined) throw badRequest("no_spots", "This class doesn't have spot selection.");
     return null;
