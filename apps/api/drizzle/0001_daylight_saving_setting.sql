@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "observes_daylight_saving" boolean DEFAULT false NOT NULL;

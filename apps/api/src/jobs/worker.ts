@@ -1,0 +1,43 @@
+/**
+ * Background worker: a separate process from the API so slow email/push
+ * providers never slow down the app. Run one or more copies.
+ */
+import { loadConfig } from "../config.js";
+import { createDb } from "../db/client.js";
+import { deliverPending } from "../modules/notifications/deliver.js";
+import { providersFromConfig } from "../modules/notifications/providers.js";
+import { processWaitlistTimers } from "../modules/waitlist/engine.js";
+import { extendSeries } from "./series.js";
+
+const config = loadConfig();
+const { db, pool } = createDb(config.DATABASE_URL);
+const providers = providersFromConfig(config);
+let running = true;
+
+function every(ms: number, name: string, fn: () => Promise<unknown>) {
+  const tick = async () => {
+    if (!running) return;
+    try {
+      await fn();
+    } catch (err) {
+      console.error(`[worker] ${name} failed`, err);
+    }
+    if (running) setTimeout(tick, ms);
+  };
+  void tick();
+}
+
+every(2_000, "notifications", async () => {
+  while ((await deliverPending(db, providers)) > 0) {}
+});
+every(30_000, "waitlist", () => processWaitlistTimers(db));
+every(60 * 60_000, "series", () => extendSeries(db, config.SERIES_HORIZON_DAYS));
+
+const stop = async () => {
+  running = false;
+  await pool.end();
+  process.exit(0);
+};
+process.on("SIGTERM", stop);
+process.on("SIGINT", stop);
+console.log("[worker] started");

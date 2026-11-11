@@ -1,0 +1,39 @@
+# Runs on every pull request and every push to main.
+# Nothing reaches production unless all of this passes.
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: studio
+          POSTGRES_PASSWORD: studio
+          POSTGRES_DB: studio_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U studio" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+        env:
+          TEST_DATABASE_URL: postgres://studio:studio@localhost:5432/studio_test
+      - run: pnpm build
+      # Fail the build if a dependency has a known high-severity vulnerability.
+      - run: pnpm audit --prod --audit-level high
