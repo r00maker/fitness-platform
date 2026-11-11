@@ -139,6 +139,7 @@ export const FLAG_CODES = [
   "already_happened",
   "many_classes",
   "no_instructor",
+  "instructor_not_listed",
   // Bookings, refunds and attendance
   "late_booking",
   "outside_booking_window",
@@ -153,6 +154,9 @@ export const FLAG_CODES = [
 ] as const;
 export type FlagCode = (typeof FLAG_CODES)[number];
 export type FlagSeverity = "confirm" | "info";
+
+/** A client's favourite instructor: the one they've attended most, with at least this many classes. */
+export const FAVOURITE_INSTRUCTOR_MIN_CLASSES = 3;
 
 /** Thresholds for the checks, kept together so they're easy to tune. */
 export const FLAG_LIMITS = {

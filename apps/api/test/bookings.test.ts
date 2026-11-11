@@ -17,7 +17,7 @@ async function fullClass(capacity = 1, opts: { date?: string; startTime?: string
   const session = await s.owner.call("POST", "/sessions", {
     classTypeId: s.classTypeId, locationId: s.locationId, instructorId: s.ana.id, capacity, durationMinutes: 50,
     date: opts.date ?? dayOffset(2), startTime: opts.startTime ?? "07:00",
-    acknowledge: ["unusual_start_time"], // tests that start "soon" may run late at night
+    acknowledge: ["unusual_start_time", "ends_after_midnight"], // tests that start "soon" may run late at night
   });
   const b1 = await s.c1.call("POST", "/bookings", { sessionId: session.body.id, acknowledge: ["no_free_cancel"] });
   return { s, sessionId: session.body.id as string, b1 };

@@ -12,6 +12,11 @@ const listQuery = z.object({ status: z.enum(SUB_REQUEST_STATUSES).optional() });
 export async function substituteRoutes(app: FastifyInstance) {
   app.addHook("preHandler", async (req) => requireRole(req, ["owner", "admin", "instructor"]));
 
+  app.get("/sessions/:id/cover-options", async (req) => {
+    const { id } = parse(idParam, req.params);
+    return svc.coverOptions(app.db, req.auth, id);
+  });
+
   app.get("/substitute-requests", async (req) => {
     const { status } = parse(listQuery, req.query);
     return svc.listSubRequests(app.db, req.auth, status ? [status] : ["open", "awaiting_approval"]);

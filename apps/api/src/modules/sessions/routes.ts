@@ -4,7 +4,7 @@ import { can, schemas } from "@studio/shared";
 import { z } from "zod";
 import { bookings, classSessions, memberships, substituteRequests, users, waitlistEntries } from "../../db/schema.js";
 import { spotLabels } from "../bookings/spots.js";
-import { attendedCounts, publicName, tagsFor } from "./people.js";
+import { attendedCounts, instructorHistory, publicName, tagsFor } from "./people.js";
 import { forbidden, notFound } from "../../lib/errors.js";
 import { withFlags } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
@@ -69,7 +69,14 @@ export async function sessionRoutes(app: FastifyInstance) {
           .orderBy(asc(bookings.spot), asc(users.firstName))
       : [];
     const ids = rows.map((r) => r.clientId);
-    const [attended, tags] = fullRoster ? await Promise.all([attendedCounts(app.db, orgId, ids), tagsFor(app.db, orgId, ids)]) : [new Map(), new Map()];
+    const [attended, tags, history] = fullRoster
+      ? await Promise.all([attendedCounts(app.db, orgId, ids), tagsFor(app.db, orgId, ids), instructorHistory(app.db, orgId, ids)])
+      : [new Map(), new Map(), { withInstructor: new Map(), favourite: new Map() }];
+    const person = async (uid: string | null) => {
+      if (!uid) return null;
+      const [u] = await app.db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, photoUrl: users.photoUrl }).from(users).where(eq(users.id, uid));
+      return u ? { id: u.id, name: `${u.firstName} ${u.lastName}`, photoUrl: u.photoUrl } : null;
+    };
     const waitlist = isClient || fullRoster
       ? await app.db
           .select({ id: waitlistEntries.id, clientId: waitlistEntries.clientId, firstName: users.firstName, lastName: users.lastName, mode: waitlistEntries.mode, status: waitlistEntries.status, expiresAt: waitlistEntries.expiresAt, offerExpiresAt: waitlistEntries.offerExpiresAt })
@@ -84,6 +91,8 @@ export async function sessionRoutes(app: FastifyInstance) {
       ...info,
       notes: isClient ? undefined : s.notes,
       spotSelection: !!labels,
+      instructor: await person(s.instructorId),
+      cover: s.coverForInstructorId ? { forInstructor: await person(s.coverForInstructorId) } : null,
       booked: fullRoster ? rows.filter((r) => r.status === "confirmed").length : undefined,
       roster: rows.map(({ email, phone, ...r }) => {
         const n = attended.get(r.clientId) ?? 0;
@@ -91,7 +100,17 @@ export async function sessionRoutes(app: FastifyInstance) {
           ...r,
           spotLabel: r.spot && labels ? labels[r.spot - 1] : null,
           ...(contacts ? { email, phone } : {}),
-          ...(fullRoster ? { attendedCount: n, firstVisit: n === 0, tags: tags.get(r.clientId) ?? [], packageName: null /* filled in by the payments module */ } : {}),
+          ...(fullRoster
+            ? {
+                attendedCount: n,
+                firstVisit: n === 0,
+                tags: tags.get(r.clientId) ?? [],
+                packageName: null /* filled in by the payments module */,
+                // For the instructor: how often this client comes to their classes, and whether they're the favourite.
+                classesWithInstructor: s.instructorId ? (history.withInstructor.get(r.clientId)?.get(s.instructorId) ?? 0) : 0,
+                favouriteInstructor: !!s.instructorId && history.favourite.get(r.clientId)?.instructorId === s.instructorId,
+              }
+            : {}),
         };
       }),
       waitlist: waitlist.map((w, i) => ({ ...w, position: i + 1 })),

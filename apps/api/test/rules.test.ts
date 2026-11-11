@@ -14,7 +14,7 @@ async function setup(settings: Partial<typeof organizations.$inferInsert> = {}) 
   if (Object.keys(settings).length) await db.update(organizations).set(settings).where(eq(organizations.id, s.orgId));
   const foh = await person(s.orgId, "front_desk", "Fiona");
   const mk = async (when: { date: string; startTime: string }, extra: Record<string, unknown> = {}) =>
-    (await s.owner.call("POST", "/sessions", { classTypeId: s.classTypeId, locationId: s.locationId, instructorId: s.ana.id, capacity: 10, durationMinutes: 50, acknowledge: ["unusual_start_time", "in_the_past"], ...when, ...extra })).body.id as string;
+    (await s.owner.call("POST", "/sessions", { classTypeId: s.classTypeId, locationId: s.locationId, instructorId: s.ana.id, capacity: 10, durationMinutes: 50, acknowledge: ["unusual_start_time", "in_the_past", "ends_after_midnight"], ...when, ...extra })).body.id as string;
   return { s, foh, mk };
 }
 

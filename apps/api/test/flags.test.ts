@@ -24,7 +24,7 @@ describe("catching likely mistakes", () => {
     expect(res.status).toBe(409);
     const [flag] = res.body.error.flags as FlagBody[];
     expect(flag!.code).toBe("ends_after_midnight");
-    expect(flag!.message).toBe("This class runs from 11:00am to 12:00am (midnight) the next day (13 hours). Did you mean 11:00am to 12:00pm (noon)?");
+    expect(flag!.message).toBe("This class ends at 12:00am (midnight), which is before its 11:00am start, so it would run overnight for 13 hours. Did you mean 11:00am to 12:00pm (noon)?");
     expect(flag!.suggestion).toEqual({ durationMinutes: 60, endTime: "12:00" });
 
     // Applying the suggestion goes straight through.

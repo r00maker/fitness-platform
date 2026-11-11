@@ -58,6 +58,14 @@ Defined once in `PERMISSIONS` (`packages/shared/src/enums.ts`).
 - **Who's attending:** studio members (not ClassPass) can see other members on the spot picker as "Sarah L.". Any client can hide themselves with `PATCH /me/privacy`.
 - **No accidental late bookings:** a client booking inside the late-cancellation window is asked to confirm first, because they won't be able to cancel for free.
 
+## Instructors and cover
+
+- **Photos:** instructors and clients both have a `photoUrl`. The calendar and class detail include the instructor's photo.
+- **Favourite instructor:** the instructor a client has attended most (at least 3 classes, no tie). Clients get `favouriteInstructor: true` on those classes in the calendar. Instructors see `favouriteInstructor` and `classesWithInstructor` for each client on their class list.
+- **Cover:** when an admin swaps in another instructor with `asCover: true` (one class at a time), or a cover request is filled, the class records who usually teaches it (`cover.forInstructor`). Switching back to the usual instructor clears it. A permanent change isn't shown as cover.
+- **Teaching lists:** `PUT /class-types/:id/instructors` sets who teaches and covers each class type. Cover requests go to that list by default (everyone, if there's no list). `GET /sessions/:id/cover-options` gives the "Ask for cover" screen each instructor's status (on the list, busy at that time) and a suggested selection. Assigning someone not on the list is flagged for confirmation.
+- **Suggested fixes** for odd times only offer a believable class (15 minutes to 3 hours, starting 5am–10pm). They try the AM/PM correction first, then the class type's usual length, and otherwise offer nothing.
+
 ## Booking rules (per studio, in `/settings`)
 
 | Rule | Default | Clients | Admins |

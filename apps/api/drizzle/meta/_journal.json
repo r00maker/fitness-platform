@@ -29,6 +29,13 @@
       "when": 1794397995124,
       "tag": "0003_client_tags_spots_privacy",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794402466653,
+      "tag": "0004_cover_and_teaching_lists",
+      "breakpoints": true
     }
   ]
 }

@@ -75,6 +75,7 @@ export const createClassType = z.object({
   defaultDurationMinutes: duration.optional(),
 });
 export const updateClassType = createClassType.partial();
+export const setClassTypeInstructors = z.object({ instructorIds: z.array(id).max(200) });
 
 // ---- Templates --------------------------------------------------------------
 export const createTemplate = z.object({
@@ -135,6 +136,8 @@ export const updateSession = z.object({
   changes: sessionChanges,
   scope: z.enum(EDIT_SCOPES).default("this"),
   notifyClients: z.boolean().default(true),
+  /** The new instructor is covering for the usual one (one class at a time). */
+  asCover: z.boolean().default(false),
   acknowledge,
 });
 
@@ -142,11 +145,13 @@ export const bulkUpdateSessions = z.object({
   sessionIds: z.array(id).min(1).max(500),
   changes: sessionChanges.refine((c) => c.date === undefined, "Dates can't be bulk-edited. Use duplicate instead."),
   notifyClients: z.boolean().default(true),
+  asCover: z.boolean().default(false),
   acknowledge,
 });
 
 export const cancelSession = z.object({
-  reason: z.string().max(500).optional(),
+  /** Shared with booked clients in the cancellation email and push. */
+  reason: z.string().max(1000, "Keep the message under 1,000 characters.").optional(),
   refund: z.enum(REFUND_METHODS).default("credit"),
   notifyClients: z.boolean().default(true),
   scope: z.enum(EDIT_SCOPES).default("this"),

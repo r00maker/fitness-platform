@@ -178,6 +178,18 @@ export const classTypes = pgTable("class_types", {
   updatedAt: updatedAt(),
 });
 
+/** Who can teach (and cover) each class type. Empty = anyone who teaches. */
+export const classTypeInstructors = pgTable(
+  "class_type_instructors",
+  {
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    classTypeId: uuid("class_type_id").notNull().references(() => classTypes.id, { onDelete: "cascade" }),
+    instructorId: uuid("instructor_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("class_type_instructor_uq").on(t.classTypeId, t.instructorId)],
+);
+
 export const classTemplates = pgTable("class_templates", {
   id: pk(),
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
@@ -238,6 +250,8 @@ export const classSessions = pgTable(
     locationId: uuid("location_id").notNull().references(() => locations.id),
     roomId: uuid("room_id").references(() => rooms.id),
     instructorId: uuid("instructor_id").references(() => users.id),
+    /** Set when the instructor is covering: who usually teaches this class. */
+    coverForInstructorId: uuid("cover_for_instructor_id").references(() => users.id),
     startsAt: ts("starts_at").notNull(),
     endsAt: ts("ends_at").notNull(),
     capacity: integer("capacity").notNull(),

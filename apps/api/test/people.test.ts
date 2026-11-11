@@ -101,7 +101,7 @@ describe("booking a class you can't cancel for free", () => {
   it("asks the client to confirm first", async () => {
     const { s, mk } = await setup();
     await db.update(organizations).set({ lateCancelFeeEnabled: true, lateCancelFeeCents: 1500, bookingClosesMinutesBefore: 0 }).where(eq(organizations.id, s.orgId));
-    const c = await mk({ ...minutesFromNow(180), acknowledge: ["unusual_start_time"] });
+    const c = await mk({ ...minutesFromNow(180), acknowledge: ["unusual_start_time", "ends_after_midnight"] });
     const res = await s.c1.call("POST", "/bookings", { sessionId: c });
     expect(res.body.error.message).toBe("This class starts in less than 12 hours. If you book and then cancel, you won't get your class credit back, and a late-cancellation fee of SGD 15.00 applies.");
     expect((await s.c1.call("POST", "/bookings", { sessionId: c, acknowledge: ["no_free_cancel"] })).status).toBe(201);
