@@ -4,9 +4,9 @@ import { Flags } from "../src/lib/flags.js";
 import { localToUtc, minutesBetweenTimes } from "../src/lib/time.js";
 
 const zone = "Asia/Singapore";
-function run(start: string, end: string, usual: number | null = 50) {
+function run(start: string, end: string, usual: number | null = 50, templateName: string | null = null) {
   const flags = new Flags();
-  checkTiming(flags, zone, { startsAt: localToUtc("2026-12-01", start, zone), durationMinutes: minutesBetweenTimes(start, end), usualMinutes: usual, className: "Reformer Pilates", isNew: true, now: new Date("2026-11-11T00:00:00Z") });
+  checkTiming(flags, zone, { startsAt: localToUtc("2026-12-01", start, zone), durationMinutes: minutesBetweenTimes(start, end), usualMinutes: usual, className: "Reformer Pilates", templateName, isNew: true, now: new Date("2026-11-11T00:00:00Z") });
   return flags.list.filter((f) => f.severity === "confirm");
 }
 
@@ -33,6 +33,12 @@ describe("suggested fixes always make sense", () => {
   it("explains a time that ends before it starts in plain words", () => {
     const [flag] = run("12:00", "11:50");
     expect(flag!.message).toBe("This class ends at 11:50am, which is before its 12:00pm (noon) start, so it would run overnight for 23h 50m. Reformer Pilates usually runs 50 minutes. Did you mean to end at 12:50pm?");
+  });
+
+  it("uses the class's template length when it came from one", () => {
+    const [flag] = run("12:00", "11:50", 55, "Reformer – 55 min");
+    expect(flag!.message).toMatch(/The “Reformer – 55 min” template runs 55 minutes\. Did you mean to end at 12:55pm\?$/);
+    expect(flag!.suggestion).toEqual({ durationMinutes: 55, endTime: "12:55" });
   });
 
   it("offers no fix rather than a silly one", () => {

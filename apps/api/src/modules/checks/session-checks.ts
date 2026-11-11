@@ -7,7 +7,7 @@ import { and, eq, gt, lt, ne } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { FLAG_LIMITS, OPTION_LABELS, type RefundMethod } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
-import { bookings, classSessions, classTypeInstructors, classTypes, rooms, users } from "../../db/schema.js";
+import { bookings, classSessions, classTemplates, classTypeInstructors, classTypes, rooms, users } from "../../db/schema.js";
 import type { Flags } from "../../lib/flags.js";
 import { utcToLocal, type TZ } from "../../lib/time.js";
 import { findOverlaps } from "../sessions/context.js";
@@ -76,7 +76,7 @@ export function suggestLength(d: number, usual?: number | null): { minutes: numb
 export function checkTiming(
   flags: Flags,
   zone: TZ,
-  s: { sessionId?: string; startsAt: Date; durationMinutes: number; usualMinutes?: number | null; className?: string; isNew: boolean; now: Date },
+  s: { sessionId?: string; startsAt: Date; durationMinutes: number; usualMinutes?: number | null; className?: string; templateName?: string | null; isNew: boolean; now: Date },
 ) {
   const start = DateTime.fromJSDate(s.startsAt, { zone });
   const end = start.plus({ minutes: s.durationMinutes });
@@ -89,7 +89,7 @@ export function checkTiming(
     ? ""
     : fix.why === "ampm"
       ? ` Did you mean ${clock(start)} to ${clock(fixEnd)}?`
-      : ` ${s.className ?? "This class"} usually runs ${fix.minutes} minutes. Did you mean to end at ${clock(fixEnd)}?`;
+      : ` ${s.templateName ? `The “${s.templateName}” template runs` : `${s.className ?? "This class"} usually runs`} ${fix.minutes} minutes. Did you mean to end at ${clock(fixEnd)}?`;
 
   const overnight = end.toISODate() !== start.toISODate() && !(end.hour === 0 && end.minute === 0 && d <= FLAG_LIMITS.longClassMinutes);
   const endBeforeStart = end.hour * 60 + end.minute < start.hour * 60 + start.minute;
@@ -103,7 +103,7 @@ export function checkTiming(
   } else if (d < FLAG_LIMITS.shortClassMinutes) {
     flags.confirm({ code: "unusually_short", message: `This class is only ${plural(d, "minute")} long. Is that right?${fixText}`, suggestion, ...ref });
   } else if (s.usualMinutes && (Math.abs(d - s.usualMinutes) / s.usualMinutes) * 100 > FLAG_LIMITS.durationDifferencePct) {
-    flags.info({ code: "duration_differs_from_usual", message: `${s.className ?? "This class"} is usually ${s.usualMinutes} minutes; this one is ${d}.`, suggestion: { durationMinutes: s.usualMinutes }, ...ref });
+    flags.info({ code: "duration_differs_from_usual", message: s.templateName ? `The “${s.templateName}” template runs ${s.usualMinutes} minutes; this class is ${d}.` : `${s.className ?? "This class"} is usually ${s.usualMinutes} minutes; this one is ${d}.`, suggestion: { durationMinutes: s.usualMinutes }, ...ref });
   }
 
   if (start.hour < FLAG_LIMITS.earliestNormalHour || start.hour >= FLAG_LIMITS.latestNormalHour) {
@@ -152,9 +152,17 @@ export async function checkInstructorListed(db: DbOrTx, flags: Flags, s: { sessi
   flags.confirm({ code: "instructor_not_listed", sessionId: s.sessionId, message: `${who ? `${who.f} ${who.l}` : "This instructor"} isn't on the list of instructors who teach ${type?.name ?? "this class"}.` });
 }
 
-export async function usualDuration(db: DbOrTx, classTypeId: string) {
+/**
+ * The length a class is expected to be: its template's length if it came from one,
+ * otherwise the class type's default.
+ */
+export async function usualDuration(db: DbOrTx, classTypeId: string, templateId?: string | null) {
   const [t] = await db.select({ name: classTypes.name, mins: classTypes.defaultDurationMinutes }).from(classTypes).where(eq(classTypes.id, classTypeId));
-  return { className: t?.name, usualMinutes: t?.mins ?? null };
+  if (templateId) {
+    const [tpl] = await db.select({ name: classTemplates.name, mins: classTemplates.durationMinutes }).from(classTemplates).where(eq(classTemplates.id, templateId));
+    if (tpl) return { className: t?.name, usualMinutes: tpl.mins, templateName: tpl.name };
+  }
+  return { className: t?.name, usualMinutes: t?.mins ?? null, templateName: null };
 }
 
 // ---------------------------------------------------------------------------
