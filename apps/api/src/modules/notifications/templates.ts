@@ -110,6 +110,42 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: "Package shared with you",
     pushBody: `${s(d.ownerName)} shared ${s(d.packageName)} with you.`,
   }),
+  "extension.requested": (d) => ({
+    subject: `Extension request: ${s(d.clientName)}`,
+    body: `${s(d.clientName)} has asked for ${s(d.days)} more days on their ${s(d.packageName)}. Reason: ${s(d.reason)}. Open the app to approve or decline.`,
+    pushTitle: "Extension request",
+    pushBody: `${s(d.clientName)} asked for ${s(d.days)} more days.`,
+  }),
+  "extension.approved": (d) => ({
+    subject: `Your ${s(d.packageName)} has been extended`,
+    body: `Good news: your ${s(d.packageName)} now lasts until ${s(d.validUntil)}.${d.fee ? ` An extension fee of ${s(d.fee)} has been added to your account.` : ""}${d.note ? ` Note from the studio: ${s(d.note)}` : ""}`,
+    pushTitle: "Extension approved",
+    pushBody: `Your ${s(d.packageName)} now lasts until ${s(d.validUntil)}.`,
+  }),
+  "extension.declined": (d) => ({
+    subject: `About your extension request`,
+    body: `The studio wasn't able to extend your ${s(d.packageName)} this time. ${s(d.note)}`,
+    pushTitle: "Extension request",
+    pushBody: `The studio replied about your ${s(d.packageName)}.`,
+  }),
+  "package.renewed": (d) => ({
+    subject: `Your ${s(d.packageName)} has renewed`,
+    body: `Your ${s(d.packageName)} has renewed and runs until ${s(d.validUntil)}.${d.classes != null ? ` You have ${s(d.classes)} classes${d.carried ? ` (including ${s(d.carried)} carried over)` : ""}.` : ""}`,
+    pushTitle: "Membership renewed",
+    pushBody: `${s(d.packageName)} runs until ${s(d.validUntil)}.`,
+  }),
+  "package.updated": (d) => ({
+    subject: `Changes to your ${s(d.packageName)}`,
+    body: `The studio has updated your ${s(d.packageName)}: ${s(d.changes)}. See My packages for the details.`,
+    pushTitle: "Package updated",
+    pushBody: `Your ${s(d.packageName)} has changed. Tap to see what's new.`,
+  }),
+  "package.stopped": (d) => ({
+    subject: `Membership stopped: ${s(d.clientName)}`,
+    body: `${s(d.clientName)} has stopped their ${s(d.packageName)}. It ends on ${s(d.endsOn)}.${d.reason ? ` Reason: ${s(d.reason)}` : ""}`,
+    pushTitle: "Membership stopped",
+    pushBody: `${s(d.clientName)} stopped ${s(d.packageName)}.`,
+  }),
   "fee.applied": (d) => ({
     subject: `${d.feeType === "no_show" ? "No-show" : "Late-cancellation"} fee: ${s(d.className)}`,
     body: `A ${d.feeType === "no_show" ? "no-show" : "late-cancellation"} fee of ${s(d.feeText)} has been added to your account for ${when(d)}, in line with the studio's policy. If you think this is a mistake, please contact the studio.`,

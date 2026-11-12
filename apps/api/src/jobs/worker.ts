@@ -8,6 +8,7 @@ import { deliverPending } from "../modules/notifications/deliver.js";
 import { providersFromConfig } from "../modules/notifications/providers.js";
 import { processWaitlistTimers } from "../modules/waitlist/engine.js";
 import { extendSeries } from "./series.js";
+import { renewDuePackages } from "../modules/packages/lifecycle.js";
 
 const config = loadConfig();
 const { db, pool } = createDb(config.DATABASE_URL);
@@ -31,6 +32,7 @@ every(2_000, "notifications", async () => {
   while ((await deliverPending(db, providers)) > 0) {}
 });
 every(30_000, "waitlist", () => processWaitlistTimers(db));
+every(60_000, "renewals", () => renewDuePackages(db));
 every(60 * 60_000, "series", () => extendSeries(db, config.SERIES_HORIZON_DAYS));
 
 const stop = async () => {

@@ -57,6 +57,13 @@
       "when": 1794480526833,
       "tag": "0007_packages_and_payroll",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794483718535,
+      "tag": "0008_extensions_checkout_categories",
+      "breakpoints": true
     }
   ]
 }

@@ -124,12 +124,58 @@ export type SharingMode = (typeof SHARING_MODES)[number];
 /** Worked out when needed, never stored, so a package can't be "stuck" in the wrong state. */
 export const PACKAGE_STATES = ["not_started", "active", "used_up", "expired", "cancelled"] as const;
 export type PackageState = (typeof PACKAGE_STATES)[number];
-export const PACKAGE_LEDGER_REASONS = ["purchase", "booked", "returned", "refunded", "adjusted"] as const;
+/**
+ * Everything that happens to a package, so its history reads as a clear timeline.
+ * Credit changes carry a number; other events (activation, extensions…) carry 0.
+ */
+export const PACKAGE_LEDGER_REASONS = [
+  "purchase",
+  "booked",
+  "returned",
+  "refunded",
+  "adjusted",
+  "activated",
+  "extended",
+  "expiry_changed",
+  "rolled_over",
+  "renewed",
+  "cancelled",
+  "plan_updated",
+] as const;
 export type PackageLedgerReason = (typeof PACKAGE_LEDGER_REASONS)[number];
 /** How a booking is paid for. "pay_later" = settled at the studio (or once payments are switched on). */
 export const BOOKING_PAYMENTS = ["package", "complimentary", "pay_later"] as const;
 export type BookingPayment = (typeof BOOKING_PAYMENTS)[number];
 export const MAX_PACKAGE_SHARERS = 10;
+/** One-time: bought once. Recurring: a membership that renews every period until it's cancelled. */
+export const PACKAGE_BILLING = ["one_time", "recurring"] as const;
+export type PackageBilling = (typeof PACKAGE_BILLING)[number];
+/** Package type edits: which packages they change. */
+export const PLAN_EDIT_SCOPES = ["new", "existing", "both"] as const;
+export type PlanEditScope = (typeof PLAN_EDIT_SCOPES)[number];
+
+/** How a studio handles clients asking for more time on a package. */
+export const EXTENSION_MODES = ["off", "review", "auto"] as const;
+export type ExtensionMode = (typeof EXTENSION_MODES)[number];
+export const EXTENSION_ATTACHMENT = ["off", "optional", "required"] as const;
+export const EXTENSION_FEE_MODES = ["free", "flat", "per_week"] as const;
+export type ExtensionFeeMode = (typeof EXTENSION_FEE_MODES)[number];
+export const EXTENSION_STATUSES = ["pending", "approved", "declined", "withdrawn"] as const;
+export type ExtensionStatus = (typeof EXTENSION_STATUSES)[number];
+/** Moving unused classes from one package to a new one: off, staff only, or clients too when they buy. */
+export const ROLLOVER_MODES = ["off", "staff", "clients"] as const;
+export type RolloverMode = (typeof ROLLOVER_MODES)[number];
+
+/** Uploaded files: package photos (visible to the studio's members) and extension attachments (private). */
+export const FILE_PURPOSES = ["package_photo", "extension_attachment"] as const;
+export type FilePurpose = (typeof FILE_PURPOSES)[number];
+export const FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"] as const;
+export const MAX_FILE_BYTES = { package_photo: 2 * 1024 * 1024, extension_attachment: 5 * 1024 * 1024 } as const;
+
+export const ORDER_STATUSES = ["pending", "paid", "cancelled"] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+/** A package type nobody's using and that hasn't sold for this long is suggested for archiving. */
+export const ARCHIVE_SUGGEST_AFTER_DAYS = 180;
 
 // ---- Payroll -----------------------------------------------------------------
 /**
@@ -151,7 +197,7 @@ export type PayHeadcount = (typeof PAY_HEADCOUNTS)[number];
 export const THEMES = ["system", "light", "dark"] as const;
 export type Theme = (typeof THEMES)[number];
 
-export const FEE_TYPES = ["late_cancel", "no_show"] as const;
+export const FEE_TYPES = ["late_cancel", "no_show", "package_extension"] as const;
 export type FeeType = (typeof FEE_TYPES)[number];
 /** pending = recorded, to be collected once payments are connected. */
 export const FEE_STATUSES = ["pending", "waived", "charged"] as const;
@@ -226,6 +272,8 @@ export const FLAG_CODES = [
   "package_expired",
   "pay_already_marked_paid",
   "period_not_over",
+  "existing_packages_affected",
+  "packages_would_expire",
 ] as const;
 export type FlagCode = (typeof FLAG_CODES)[number];
 export type FlagSeverity = "confirm" | "info";

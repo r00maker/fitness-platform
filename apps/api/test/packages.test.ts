@@ -32,7 +32,7 @@ async function setup() {
     expect(r.status, JSON.stringify(r.body)).toBe(201);
     return r.body;
   };
-  const mine = async (c: typeof s.c1) => (await c.call("GET", "/me/packages")).body;
+  const mine = async (c: typeof s.c1) => (await c.call("GET", "/me/packages")).body.packages;
   return { s, mk, plan, sell, mine };
 }
 
@@ -72,9 +72,9 @@ describe("package types", () => {
     const { s, plan } = await setup();
     const p = await plan({});
     await plan({ name: "Old pack", onSale: false });
-    expect((await s.c1.call("GET", "/package-plans")).body.map((x: { name: string }) => x.name)).toEqual(["10-class pack"]);
+    expect((await s.c1.call("GET", "/package-plans")).body.categories.flatMap((c: { packages: { name: string }[] }) => c.packages.map((x) => x.name))).toEqual(["10-class pack"]);
     expect((await s.owner.call("GET", "/package-plans")).body).toHaveLength(2);
-    await s.owner.call("PATCH", `/package-plans/${p.id}`, { onSale: false });
+    await s.owner.call("PATCH", `/package-plans/${p.id}`, { changes: { onSale: false } });
     expect((await s.owner.call("POST", `/clients/${s.c1.id}/packages`, { planId: p.id })).body.error.code).toBe("not_on_sale");
   });
 });
@@ -93,7 +93,8 @@ describe("booking with packages", () => {
     await s.c1.call("POST", `/bookings/${b.body.id}/cancel`, {});
     expect((await mine(s.c1))[0].creditsLeft).toBe(10);
     const detail = await s.c1.call("GET", `/client-packages/${sold.id}`);
-    expect(detail.body.history.map((h: { reason: string; change: number }) => `${h.reason} ${h.change}`)).toEqual(["purchase 10", "booked -1", "returned 1"]);
+    expect(detail.body.classes).toMatchObject([{ status: "Cancelled", credit: "Class given back", creditReturned: true }]);
+    expect(detail.body.changes.map((h: { kind: string }) => h.kind)).toEqual(["purchase", "activated"]);
   });
 
   it("late cancellations keep the class used", async () => {

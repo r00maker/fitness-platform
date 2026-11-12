@@ -124,6 +124,33 @@ export async function payrollRoutes(app: FastifyInstance) {
     return run;
   });
 
+  /**
+   * One person's pay details for the Staff & pay page: their current rates, every rate they've
+   * had (and any starting later), recent adjustments, and this period so far.
+   */
+  app.get("/staff/:id/pay", async (req) => {
+    requirePermission(req, "managePayroll");
+    const { id } = parse(idParam, req.params);
+    await assertStaff(req.auth.orgId, id);
+    const org = await getOrg(db, req.auth.orgId);
+    const types = new Map((await db.select({ id: classTypes.id, name: classTypes.name }).from(classTypes).where(eq(classTypes.orgId, org.id))).map((t) => [t.id, t.name]));
+    const now = today(org);
+    const rates = await db.select().from(payRates).where(and(eq(payRates.orgId, org.id), eq(payRates.staffId, id))).orderBy(asc(payRates.effectiveFrom));
+    const shown = rates.map((r) => ({ ...describeRate(r, org, r.classTypeId ? types.get(r.classTypeId) : undefined), startsLater: r.effectiveFrom > now }));
+    // Current = the latest started rate for each scope (usual, each class type, salary).
+    const started = shown.filter((r) => !r.startsLater).reverse();
+    const current = started.filter((r, i) => started.findIndex((x) => x.classTypeId === r.classTypeId && (x.type === "salary") === (r.type === "salary")) === i);
+    const report = await payReport(db, org, now, { staffId: id });
+    const adjustments = await db.select().from(payAdjustments).where(and(eq(payAdjustments.orgId, org.id), eq(payAdjustments.staffId, id))).orderBy(asc(payAdjustments.date));
+    return {
+      current,
+      history: shown,
+      upcoming: shown.filter((r) => r.startsLater),
+      thisPeriod: { period: report.period, total: report.staff[0]?.total ?? null, classes: report.staff[0]?.classes.length ?? 0, warnings: report.staff[0]?.warnings ?? [] },
+      adjustments: adjustments.slice(-20).reverse(),
+    };
+  });
+
   /** An instructor's own classes and pay (if the studio allows it). */
   app.get("/me/pay", async (req) => {
     const org = await getOrg(db, req.auth.orgId);

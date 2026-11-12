@@ -17,6 +17,12 @@ import {
   PAY_RATE_TYPES,
   SHARING_MODES,
   VALIDITY_UNITS,
+  EXTENSION_ATTACHMENT,
+  EXTENSION_FEE_MODES,
+  EXTENSION_MODES,
+  PACKAGE_BILLING,
+  PLAN_EDIT_SCOPES,
+  ROLLOVER_MODES,
   CALENDAR_VIEWS,
   EDIT_SCOPES,
   REFUND_METHODS,
@@ -73,6 +79,16 @@ export const updateOrgSettings = z.object({
   payPeriodAnchor: localDate.optional(),
   payHeadcount: z.enum(PAY_HEADCOUNTS).optional(),
   instructorsSeeOwnPay: z.boolean().optional(),
+  // Package extensions and rollovers
+  extensionMode: z.enum(EXTENSION_MODES).optional(),
+  extensionAutoDays: z.number().int().min(1).max(365).optional(),
+  extensionMaxDays: z.number().int().min(1).max(365).optional(),
+  extensionAttachment: z.enum(EXTENSION_ATTACHMENT).optional(),
+  extensionFeeMode: z.enum(EXTENSION_FEE_MODES).optional(),
+  extensionFeeCents: z.number().int().min(0).max(1_000_000).optional(),
+  rolloverMode: z.enum(ROLLOVER_MODES).optional(),
+  rolloverMaxCredits: z.number().int().min(1).max(1000).nullable().optional(),
+  rolloverWithinDays: z.number().int().min(0).max(365).optional(),
 });
 export const waiveFee = z.object({ reason: z.string().trim().min(1, "Add a short reason.").max(500) });
 
@@ -328,10 +344,16 @@ export const respondToSub = z.object({ acknowledge });
 
 // ---- Packages -------------------------------------------------------------
 const money = z.number().int().min(0, "Can't be negative.").max(100_000_000);
+const planDescription = z.string().trim().max(2000, "Keep it under 2,000 characters.").nullish();
 export const packagePlan = z
   .object({
     name,
-    description: z.string().trim().max(1000).nullish(),
+    description: planDescription,
+    /** An uploaded photo (POST /files?purpose=package_photo). */
+    photoFileId: id.nullish(),
+    categoryId: id.nullish(),
+    /** One-time, or a membership that renews every validity period. */
+    billing: z.enum(PACKAGE_BILLING).default("one_time"),
     kind: z.enum(PACKAGE_KINDS),
     /** Credit packs: how many classes. */
     credits: z.number().int().min(1, "At least 1 class.").max(1000).nullish(),
@@ -348,9 +370,22 @@ export const packagePlan = z
     /** Empty = every class. */
     classTypeIds: z.array(id).max(100).default([]),
     onSale: z.boolean().default(true),
+    /** Recurring class packs: unused classes carried into the next period, up to this many. */
+    rolloverCap: z.number().int().min(0).max(1000).nullish(),
+    /** Recurring: the fewest periods before it can be stopped. */
+    commitmentCycles: z.number().int().min(1).max(60).nullish(),
   })
   .superRefine((p, ctx) => {
     const issue = (path: string, message: string) => ctx.addIssue({ code: "custom", path: [path], message });
+    if (p.billing === "recurring") {
+      if (!p.validityValue) issue("validityValue", "How often does it renew? e.g. every 1 month.");
+      if (p.startsOn !== "purchase") issue("startsOn", "Recurring packages start when they're bought.");
+    } else {
+      if (p.rolloverCap) issue("rolloverCap", "Carrying classes over to the next period only applies to recurring packages.");
+      if (p.commitmentCycles) issue("commitmentCycles", "A minimum term only applies to recurring packages.");
+    }
+    if (p.billing === "recurring" && p.sharingMode === "allocated") issue("sharingMode", "Recurring packages can be shared as one pool, but not split into shares.");
+    if (p.rolloverCap && p.kind !== "credits") issue("rolloverCap", "Unlimited packages have no classes to carry over.");
     if (p.kind === "credits" && !p.credits) issue("credits", "How many classes does this package include?");
     if (p.kind === "unlimited" && p.credits) issue("credits", "Unlimited packages don't have a number of classes.");
     if (!!p.validityValue !== !!p.validityUnit) issue("validityValue", "Give both a number and a unit (e.g. 3 months), or leave both empty for no expiry.");
@@ -360,14 +395,76 @@ export const packagePlan = z
     if (p.maxUsers === 1 && p.sharingMode) issue("sharingMode", "Only needed when the package can be shared.");
     if (p.kind === "unlimited" && p.sharingMode === "allocated") issue("sharingMode", "Unlimited packages can't be split: everyone sharing gets unlimited classes.");
   });
+/**
+ * Changing a package type. `applyTo` decides what it changes: packages sold from now on,
+ * packages clients already have, or both. The type of package, how it's paid for, when its
+ * countdown starts and how sharing works can't change (set up a new package type instead).
+ */
 export const updatePackagePlan = z.object({
-  name: name.optional(),
-  description: z.string().trim().max(1000).nullish(),
-  priceCents: money.optional(),
-  onSale: z.boolean().optional(),
+  changes: z
+    .object({
+      name,
+      description: planDescription,
+      photoFileId: id.nullable(),
+      categoryId: id.nullable(),
+      priceCents: money,
+      onSale: z.boolean(),
+      credits: z.number().int().min(1).max(1000),
+      validityValue: z.number().int().min(1).max(1000).nullable(),
+      validityUnit: z.enum(VALIDITY_UNITS).nullable(),
+      activateWithinDays: z.number().int().min(1).max(365).nullable(),
+      maxUsers: z.number().int().min(1).max(MAX_PACKAGE_SHARERS),
+      weeklyLimit: z.number().int().min(1).max(50).nullable(),
+      classTypeIds: z.array(id).max(100),
+      rolloverCap: z.number().int().min(0).max(1000).nullable(),
+      commitmentCycles: z.number().int().min(1).max(60).nullable(),
+    })
+    .partial()
+    .refine((c) => Object.keys(c).length > 0, "Nothing to change.")
+    .refine((c) => (c.validityValue === undefined) === (c.validityUnit === undefined), "Change the number and the unit together (e.g. 3 months)."),
+  applyTo: z.enum(PLAN_EDIT_SCOPES).default("new"),
+  /** Tell clients whose packages change. */
+  notifyClients: z.boolean().default(true),
+  acknowledge,
 });
+export const packageCategory = z.object({ name: z.string().trim().min(1, "Give the category a name.").max(60), description: z.string().trim().max(300).nullish() });
+export const updatePackageCategory = packageCategory.partial();
+export const reorderCategories = z.object({ ids: z.array(id).min(1).max(100) });
+/** Deleting a package type wipes it and every package sold from it. The name must be typed to confirm. */
+export const deletePackagePlan = z.object({ confirmName: z.string().trim().min(1, "Type the package's name to confirm.") });
+export const deleteClientPackage = z.object({ confirmName: z.string().trim().min(1, "Type the package's name to confirm.") });
+
+// ---- Extensions, rollovers, renewals, checkout ------------------------------------
+export const requestExtension = z.object({
+  days: z.number().int().min(1, "Ask for at least 1 day.").max(365),
+  reason: z.string().trim().min(3, "Tell the studio why, e.g. “Knee injury, physio says 3 weeks off”.").max(1000),
+  attachmentFileId: id.optional(),
+});
+export const approveExtension = z.object({
+  /** Left out = the days asked for. */
+  days: z.number().int().min(1).max(365).optional(),
+  /** Left out = the studio's extension fee. 0 = free this time. */
+  feeCents: money.optional(),
+  note: z.string().trim().max(500).optional(),
+});
+export const declineExtension = z.object({ note: z.string().trim().min(1, "Let them know why.").max(500) });
+export const rollover = z.object({
+  fromPackageId: id,
+  /** Left out = as many as allowed. */
+  credits: z.number().int().min(1).max(1000).optional(),
+});
+export const stopRenewing = z.object({ reason: z.string().trim().max(500).optional() });
+export const checkout = z.object({
+  planId: id,
+  startDate: localDate.optional(),
+  /** Bring unused classes across from another package (if the studio allows it). */
+  rolloverFromPackageId: id.optional(),
+});
+export const checkoutQuote = z.object({ planId: id, rolloverFromPackageId: id.optional() });
 export const sellPackage = z.object({
   planId: id,
+  /** Bring unused classes across from another of the client's packages. */
+  rolloverFromPackageId: id.optional(),
   /** Countdown starts when bought: start on a later date instead (e.g. a membership from the 1st). */
   startDate: localDate.optional(),
   /** What the client paid. Left out = the package's price. */

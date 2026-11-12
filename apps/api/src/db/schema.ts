@@ -20,6 +20,7 @@ import {
   uuid,
   date,
   time,
+  customType,
 } from "drizzle-orm/pg-core";
 import {
   ATTENDANCE,
@@ -38,6 +39,14 @@ import {
   SHARING_MODES,
   VALIDITY_UNITS,
   type PayTier,
+  EXTENSION_ATTACHMENT,
+  EXTENSION_FEE_MODES,
+  EXTENSION_MODES,
+  EXTENSION_STATUSES,
+  FILE_PURPOSES,
+  ORDER_STATUSES,
+  PACKAGE_BILLING,
+  ROLLOVER_MODES,
   WAIVER_METHODS,
   MEMBER_SOURCES,
   BOOKING_SOURCES,
@@ -79,6 +88,15 @@ export const bookingPaymentEnum = pgEnum("booking_payment", BOOKING_PAYMENTS);
 export const payRateTypeEnum = pgEnum("pay_rate_type", PAY_RATE_TYPES);
 export const payPeriodEnum = pgEnum("pay_period", PAY_PERIODS);
 export const payHeadcountEnum = pgEnum("pay_headcount", PAY_HEADCOUNTS);
+export const packageBillingEnum = pgEnum("package_billing", PACKAGE_BILLING);
+export const extensionModeEnum = pgEnum("extension_mode", EXTENSION_MODES);
+export const extensionAttachmentEnum = pgEnum("extension_attachment", EXTENSION_ATTACHMENT);
+export const extensionFeeModeEnum = pgEnum("extension_fee_mode", EXTENSION_FEE_MODES);
+export const extensionStatusEnum = pgEnum("extension_status", EXTENSION_STATUSES);
+export const rolloverModeEnum = pgEnum("rollover_mode", ROLLOVER_MODES);
+export const filePurposeEnum = pgEnum("file_purpose", FILE_PURPOSES);
+export const orderStatusEnum = pgEnum("order_status", ORDER_STATUSES);
+const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
 export const notificationStatusEnum = pgEnum("notification_status", ["pending", "sent", "failed"]);
 
 const pk = () => uuid("id").primaryKey().defaultRandom();
@@ -134,6 +152,16 @@ export const organizations = pgTable("organizations", {
   payPeriodAnchor: date("pay_period_anchor"),
   payHeadcount: payHeadcountEnum("pay_headcount").notNull().default("attended"),
   instructorsSeeOwnPay: boolean("instructors_see_own_pay").notNull().default(true),
+  // Package extensions and rollovers
+  extensionMode: extensionModeEnum("extension_mode").notNull().default("review"),
+  extensionAutoDays: integer("extension_auto_days").notNull().default(14),
+  extensionMaxDays: integer("extension_max_days").notNull().default(60),
+  extensionAttachment: extensionAttachmentEnum("extension_attachment").notNull().default("optional"),
+  extensionFeeMode: extensionFeeModeEnum("extension_fee_mode").notNull().default("free"),
+  extensionFeeCents: integer("extension_fee_cents").notNull().default(0),
+  rolloverMode: rolloverModeEnum("rollover_mode").notNull().default("off"),
+  rolloverMaxCredits: integer("rollover_max_credits"),
+  rolloverWithinDays: integer("rollover_within_days").notNull().default(30),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -238,12 +266,48 @@ export const classTypeInstructors = pgTable(
 // ---------------------------------------------------------------------------
 // Packages
 // ---------------------------------------------------------------------------
-/** A package the studio sells (its terms). Editing it never changes packages already sold. */
+/**
+ * Uploaded files (package photos, extension attachments). Kept in the database for now,
+ * size-limited and type-checked; they can move to object storage later behind the same API.
+ */
+export const files = pgTable(
+  "files",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    uploadedBy: uuid("uploaded_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+    purpose: filePurposeEnum("purpose").notNull(),
+    contentType: text("content_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    data: bytea("data").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("files_org_idx").on(t.orgId)],
+);
+
+/** Groups on the buying page ("Class packs", "Memberships", "Intro offers"…). */
+export const packageCategories = pgTable("package_categories", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: createdAt(),
+});
+
+/** A package the studio sells (its terms). Changes reach packages already sold only if the admin chooses. */
 export const packagePlans = pgTable("package_plans", {
   id: pk(),
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
+  photoFileId: uuid("photo_file_id").references(() => files.id, { onDelete: "set null" }),
+  categoryId: uuid("category_id").references(() => packageCategories.id, { onDelete: "set null" }),
+  billing: packageBillingEnum("billing").notNull().default("one_time"),
+  rolloverCap: integer("rollover_cap"),
+  commitmentCycles: integer("commitment_cycles"),
+  /** Hidden and no longer sold; packages already sold keep working. */
+  archivedAt: ts("archived_at"),
   kind: packageKindEnum("kind").notNull(),
   credits: integer("credits"),
   priceCents: integer("price_cents").notNull().default(0),
@@ -286,6 +350,15 @@ export const clientPackages = pgTable(
     sharingMode: sharingModeEnum("sharing_mode"),
     weeklyLimit: integer("weekly_limit"),
     classTypeIds: uuid("class_type_ids").array().notNull().default(sql`'{}'::uuid[]`),
+    billing: packageBillingEnum("billing").notNull().default("one_time"),
+    rolloverCap: integer("rollover_cap"),
+    commitmentCycles: integer("commitment_cycles"),
+    /** Recurring: classes each period gives. */
+    creditsPerCycle: integer("credits_per_cycle"),
+    /** Recurring: which period it's in (1 = the first). */
+    cycle: integer("cycle").notNull().default(1),
+    /** Recurring: set when it's been stopped; it ends at the end of the current period (or minimum term). */
+    stopsRenewingAt: ts("stops_renewing_at"),
     pricePaidCents: integer("price_paid_cents").notNull().default(0),
     currency: text("currency").notNull(),
     soldBy: uuid("sold_by").references(() => users.id),
@@ -325,6 +398,7 @@ export const packageLedger = pgTable(
     change: integer("change").notNull(),
     reason: ledgerReasonEnum("reason").notNull(),
     note: text("note"),
+    details: jsonb("details").$type<Record<string, unknown>>(),
     createdBy: uuid("created_by").references(() => users.id),
     createdAt: createdAt(),
   },
@@ -548,7 +622,9 @@ export const fees = pgTable(
     id: pk(),
     orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
     clientId: uuid("client_id").notNull().references(() => users.id),
-    bookingId: uuid("booking_id").notNull().references(() => bookings.id),
+    /** The booking a late-cancel or no-show fee is for; null for package fees (e.g. extensions). */
+    bookingId: uuid("booking_id").references(() => bookings.id),
+    clientPackageId: uuid("client_package_id").references(() => clientPackages.id, { onDelete: "cascade" }),
     type: feeTypeEnum("type").notNull(),
     amountCents: integer("amount_cents").notNull(),
     currency: text("currency").notNull(),
@@ -628,6 +704,57 @@ export const substituteResponses = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("sub_response_once").on(t.requestId, t.instructorId)],
+);
+
+/** A client asking for more time on a package. */
+export const packageExtensionRequests = pgTable(
+  "package_extension_requests",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    packageId: uuid("package_id").notNull().references(() => clientPackages.id, { onDelete: "cascade" }),
+    requestedBy: uuid("requested_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+    days: integer("days").notNull(),
+    reason: text("reason").notNull(),
+    attachmentFileId: uuid("attachment_file_id").references(() => files.id, { onDelete: "set null" }),
+    status: extensionStatusEnum("status").notNull().default("pending"),
+    autoApproved: boolean("auto_approved").notNull().default(false),
+    daysGranted: integer("days_granted"),
+    feeCents: integer("fee_cents"),
+    decidedBy: uuid("decided_by").references(() => users.id),
+    decidedAt: ts("decided_at"),
+    decisionNote: text("decision_note"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("extension_requests_org_idx").on(t.orgId, t.status),
+    uniqueIndex("extension_one_pending").on(t.packageId).where(sql`${t.status} = 'pending'`),
+  ],
+);
+
+/**
+ * Checkout: a client's order for a package. It becomes a package once paid (by the payment
+ * provider, when connected, or marked paid at the desk by an admin).
+ */
+export const orders = pgTable(
+  "orders",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    planId: uuid("plan_id").references(() => packagePlans.id, { onDelete: "set null" }),
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull(),
+    status: orderStatusEnum("status").notNull().default("pending"),
+    startDate: date("start_date"),
+    rolloverFromPackageId: uuid("rollover_from_package_id").references(() => clientPackages.id, { onDelete: "set null" }),
+    clientPackageId: uuid("client_package_id").references(() => clientPackages.id, { onDelete: "set null" }),
+    provider: text("provider"),
+    providerRef: text("provider_ref"),
+    paidAt: ts("paid_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("orders_client_idx").on(t.orgId, t.clientId)],
 );
 
 // ---------------------------------------------------------------------------

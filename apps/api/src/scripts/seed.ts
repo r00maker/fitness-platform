@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { SignJWT } from "jose";
 import { loadConfig } from "../config.js";
 import { createDb } from "../db/client.js";
-import { classTemplates, classTypes, clientHealthNotes, packagePlans, payRates, clientTagAssignments, clientTags, clientWaivers, locations, memberships, organizations, rooms, users } from "../db/schema.js";
+import { classTemplates, classTypes, clientHealthNotes, packageCategories, packagePlans, payRates, clientTagAssignments, clientTags, clientWaivers, locations, memberships, organizations, rooms, users } from "../db/schema.js";
 import { createSeries } from "../modules/sessions/service.js";
 import { sellPackage } from "../modules/packages/service.js";
 import { Flags } from "../lib/flags.js";
@@ -48,12 +48,13 @@ await db.transaction((tx) =>
   createSeries(tx, auth, { classTypeId: yoga!.id, locationId: central!.id, roomId: studio1!.id, instructorId: ben.id, capacity: 20, durationMinutes: 60, startTime: "18:30", daysOfWeek: [2, 4], everyNWeeks: 1, startDate: today }, 28, new Flags()),
 );
 
-// Packages: a class pack and an unlimited membership; Chloe has a pack.
+// Packages, grouped into categories: a class pack and a recurring membership; Chloe has a pack.
+const [packs, memberships_] = await db.insert(packageCategories).values([{ orgId: org!.id, name: "Class packs", sortOrder: 0 }, { orgId: org!.id, name: "Memberships", sortOrder: 1 }]).returning();
 const [pack] = await db
   .insert(packagePlans)
-  .values({ orgId: org!.id, name: "10-class pack", kind: "credits", credits: 10, priceCents: 28000, validityValue: 3, validityUnit: "months", startsOn: "first_booking", activateWithinDays: 30 })
+  .values({ orgId: org!.id, categoryId: packs!.id, name: "10-class pack", description: "Ten classes to use within three months of your first booking.", kind: "credits", credits: 10, priceCents: 28000, validityValue: 3, validityUnit: "months", startsOn: "first_booking", activateWithinDays: 30 })
   .returning();
-await db.insert(packagePlans).values({ orgId: org!.id, name: "Unlimited monthly", kind: "unlimited", priceCents: 32000, validityValue: 1, validityUnit: "months", weeklyLimit: 6 });
+await db.insert(packagePlans).values({ orgId: org!.id, categoryId: memberships_!.id, billing: "recurring", name: "Unlimited monthly", kind: "unlimited", priceCents: 32000, validityValue: 1, validityUnit: "months", weeklyLimit: 6, commitmentCycles: 3 });
 await db.transaction((tx) => sellPackage(tx, auth, chloe.id, { planId: pack!.id, notifyClient: false }));
 // Pay: Ana per client with a minimum, Ben tiered by class size.
 const from = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);

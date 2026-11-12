@@ -2,7 +2,7 @@
  * Package terms in plain English, so the admin setting one up, the client buying
  * one and staff selling one all read exactly the same description.
  */
-import type { PackageKind, PackageStart, SharingMode, ValidityUnit } from "./enums.js";
+import type { PackageBilling, PackageKind, PackageStart, SharingMode, ValidityUnit } from "./enums.js";
 
 export interface PackageTerms {
   kind: PackageKind;
@@ -14,6 +14,11 @@ export interface PackageTerms {
   maxUsers: number;
   sharingMode?: SharingMode | null;
   weeklyLimit?: number | null;
+  billing?: PackageBilling;
+  /** Recurring: unused classes carried into the next period, at most this many. */
+  rolloverCap?: number | null;
+  /** Recurring: the fewest periods before it can be cancelled. */
+  commitmentCycles?: number | null;
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -32,9 +37,21 @@ export const validityText = (value: number, unit: ValidityUnit) => plural(value,
  */
 export function describePackage(t: PackageTerms, classTypeNames: string[] = []): string[] {
   const lines: string[] = [];
-  lines.push(t.kind === "credits" ? plural(t.credits ?? 0, "class", "classes") : "Unlimited classes");
-  if (t.weeklyLimit) lines.push(`Up to ${plural(t.weeklyLimit, "class", "classes")} a week`);
-  if (t.validityValue && t.validityUnit) {
+  const recurring = t.billing === "recurring" && t.validityValue && t.validityUnit;
+  const period = recurring ? (t.validityValue === 1 ? UNIT[t.validityUnit!] : validityText(t.validityValue!, t.validityUnit!)) : "";
+  if (recurring) {
+    lines.push(t.kind === "credits" ? `${plural(t.credits ?? 0, "class", "classes")} every ${period}` : "Unlimited classes");
+    if (t.weeklyLimit) lines.push(`Up to ${plural(t.weeklyLimit, "class", "classes")} a week`);
+    lines.push(`Renews every ${period} until it's cancelled`);
+    if (t.kind === "credits" && t.rolloverCap) lines.push(`Up to ${plural(t.rolloverCap, "unused class", "unused classes")} carry over to the next ${period}`);
+    if (t.commitmentCycles && t.commitmentCycles > 1) lines.push(`Minimum ${t.commitmentCycles} ${t.validityValue === 1 ? `${UNIT[t.validityUnit!]}s` : "renewals"}`);
+  } else {
+    lines.push(t.kind === "credits" ? plural(t.credits ?? 0, "class", "classes") : "Unlimited classes");
+    if (t.weeklyLimit) lines.push(`Up to ${plural(t.weeklyLimit, "class", "classes")} a week`);
+  }
+  if (recurring) {
+    // Covered above.
+  } else if (t.validityValue && t.validityUnit) {
     lines.push(`Valid for ${validityText(t.validityValue, t.validityUnit)} from ${t.startsOn === "purchase" ? "the day it's bought" : "the first booking"}`);
   } else {
     lines.push("Never expires");

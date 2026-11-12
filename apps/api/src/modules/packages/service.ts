@@ -45,6 +45,21 @@ export const lastDay = (end: Date | null, zone: TZ) => (end ? DateTime.fromJSDat
 const startOfDayAfter = (date: string, zone: TZ) => DateTime.fromISO(date, { zone }).plus({ days: 1 }).startOf("day").toJSDate();
 const friendly = (d: Date, zone: TZ) => DateTime.fromJSDate(d, { zone }).toFormat("d LLL yyyy");
 
+/** Recurring: the classes each period gives (stored on the package when sold). */
+export const planCredits = (p: Pkg) => p.creditsPerCycle ?? p.creditsTotal;
+/** Recurring: the end of the minimum term. */
+export function commitmentEnd(p: Pkg, zone: TZ): Date {
+  return expiryFrom(p.startedAt!, p.validityValue! * (p.commitmentCycles ?? 1), p.validityUnit!, zone);
+}
+/** Recurring that's been stopped: when it actually ends (end of this period, or of the minimum term if later). */
+export function renewalEnd(p: Pkg, zone: TZ): Date {
+  const thisPeriod = p.expiresAt!;
+  if (!p.commitmentCycles) return thisPeriod;
+  const c = commitmentEnd(p, zone);
+  return c > thisPeriod ? c : thisPeriod;
+}
+const endsAfterThisPeriod = (p: Pkg) => !!p.stopsRenewingAt;
+
 export function packageState(p: Pkg, now = new Date()): PackageState {
   if (p.cancelledAt) return "cancelled";
   if (p.expiresAt && now >= p.expiresAt) return "expired";
@@ -81,6 +96,10 @@ export async function presentPackages(db: DbOrTx, org: Org, pkgs: Pkg[], viewerI
   const zone = orgZone(org);
   const members = await membersOf(db, pkgs.map((p) => p.id));
   const names = await classTypeNames(db, [...new Set(pkgs.flatMap((p) => p.classTypeIds))]);
+  const planIds = [...new Set(pkgs.map((p) => p.planId).filter((x): x is string => !!x))];
+  const plans = new Map(
+    (planIds.length ? await db.select({ id: packagePlans.id, description: packagePlans.description, photoFileId: packagePlans.photoFileId }).from(packagePlans).where(inArray(packagePlans.id, planIds)) : []).map((p) => [p.id, p]),
+  );
   return pkgs.map((p) => {
     const state = packageState(p, now);
     const ms = members.get(p.id) ?? [];
@@ -101,7 +120,21 @@ export async function presentPackages(db: DbOrTx, org: Org, pkgs: Pkg[], viewerI
       firstBookingBy: !p.startedAt && p.activateBy ? lastDay(p.activateBy, zone) : null,
       purchasedOn: DateTime.fromJSDate(p.purchasedAt, { zone }).toISODate(),
       pricePaid: money(p.pricePaidCents, p.currency),
-      terms: describePackage(p, p.classTypeIds.map((id) => names.get(id) ?? "").filter(Boolean)),
+      description: (p.planId && plans.get(p.planId)?.description) || null,
+      photoUrl: p.planId && plans.get(p.planId)?.photoFileId ? `/v1/files/${plans.get(p.planId)!.photoFileId}` : null,
+      billing: p.billing,
+      ...(p.billing === "recurring"
+        ? {
+            renewal: {
+              period: p.cycle,
+              renewsOn: state === "active" && !endsAfterThisPeriod(p) ? DateTime.fromJSDate(p.expiresAt!, { zone }).toISODate() : null,
+              endsOn: endsAfterThisPeriod(p) ? lastDay(renewalEnd(p, zone), zone) : null,
+              stopped: !!p.stopsRenewingAt,
+              commitmentUntil: p.commitmentCycles && p.cycle < p.commitmentCycles ? lastDay(commitmentEnd(p, zone), zone) : null,
+            },
+          }
+        : {}),
+      terms: describePackage({ ...p, credits: p.billing === "recurring" ? planCredits(p) : p.creditsTotal }, p.classTypeIds.map((id) => names.get(id) ?? "").filter(Boolean)),
       sharing: {
         maxUsers: p.maxUsers,
         mode: p.sharingMode,
@@ -223,7 +256,10 @@ export async function useCredit(tx: DbOrTx, org: Org, opt: PackageOption, bookin
   const p = opt.pkg;
   if (!p.startedAt && p.startsOn === "first_booking") {
     const expiresAt = p.validityValue && p.validityUnit ? expiryFrom(now, p.validityValue, p.validityUnit, orgZone(org)) : null;
-    await tx.update(clientPackages).set({ startedAt: now, expiresAt }).where(and(eq(clientPackages.id, p.id), isNull(clientPackages.startedAt)));
+    const [started] = await tx.update(clientPackages).set({ startedAt: now, expiresAt }).where(and(eq(clientPackages.id, p.id), isNull(clientPackages.startedAt))).returning({ id: clientPackages.id });
+    if (started) {
+      await tx.insert(packageLedger).values({ orgId: org.id, packageId: p.id, userId: clientId, bookingId, change: 0, reason: "activated", note: "Countdown started with the first booking", details: { validUntil: lastDay(expiresAt, orgZone(org)) }, createdBy: actorId });
+    }
   }
   if (p.kind !== "credits") return;
   // Done as a guarded update so two bookings at once can't take the last class twice.
@@ -308,6 +344,7 @@ export async function sellPackage(
   const org = await getOrg(tx, auth.orgId);
   const zone = orgZone(org);
   const plan = await getPlan(tx, auth.orgId, input.planId);
+  if (plan.archivedAt) throw conflict("not_on_sale", `${plan.name} has been archived. Restore it under Packages to sell it.`);
   if (!plan.onSale) throw conflict("not_on_sale", `${plan.name} isn't on sale. Switch it back on under Packages to sell it.`);
   if (input.startDate && plan.startsOn !== "purchase") throw badRequest("start_date_not_needed", "This package starts at the first booking, so it doesn't need a start date.");
   const today = DateTime.fromJSDate(now, { zone }).toISODate()!;
@@ -337,6 +374,10 @@ export async function sellPackage(
       sharingMode: plan.sharingMode,
       weeklyLimit: plan.weeklyLimit,
       classTypeIds: plan.classTypeIds,
+      billing: plan.billing,
+      rolloverCap: plan.rolloverCap,
+      commitmentCycles: plan.commitmentCycles,
+      creditsPerCycle: plan.billing === "recurring" ? plan.credits : null,
       pricePaidCents: input.pricePaidCents ?? plan.priceCents,
       currency: org.currency,
       soldBy: auth.userId,
@@ -345,7 +386,8 @@ export async function sellPackage(
     })
     .returning();
   await tx.insert(clientPackageMembers).values({ orgId: auth.orgId, packageId: p!.id, userId: clientId, allocatedCredits: p!.sharingMode === "allocated" ? p!.creditsLeft : null, addedBy: auth.userId });
-  if (p!.kind === "credits") await tx.insert(packageLedger).values({ orgId: auth.orgId, packageId: p!.id, userId: clientId, change: p!.creditsLeft!, reason: "purchase", createdBy: auth.userId });
+  await tx.insert(packageLedger).values({ orgId: auth.orgId, packageId: p!.id, userId: clientId, change: p!.kind === "credits" ? p!.creditsLeft! : 0, reason: "purchase", note: `Bought for ${money(p!.pricePaidCents, p!.currency)}`, createdAt: now, createdBy: auth.userId });
+  if (startedAt) await tx.insert(packageLedger).values({ orgId: auth.orgId, packageId: p!.id, userId: clientId, change: 0, reason: "activated", note: input.startDate ? "Starts on the chosen date" : "Started when bought", details: { validUntil: lastDay(expiresAt, zone) }, createdAt: startedAt > now ? startedAt : new Date(now.getTime() + 1), createdBy: auth.userId });
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "package.sold", entityType: "client_package", entityId: p!.id, details: { planId: plan.id, clientId } });
   if (input.notifyClient) {
     const [shown] = await presentPackages(tx, org, [p!], clientId, now);
@@ -379,6 +421,11 @@ export async function adjustPackage(tx: DbOrTx, auth: AuthContext, id: string, i
     // Not started yet: the date is the deadline for the first booking.
     if (!p.startedAt && p.startsOn === "first_booking") set.activateBy = startOfDayAfter(input.validUntil, zone);
     else set.expiresAt = startOfDayAfter(input.validUntil, zone);
+    const before = !p.startedAt && p.startsOn === "first_booking" ? lastDay(p.activateBy, zone) : lastDay(p.expiresAt, zone);
+    await tx.insert(packageLedger).values({
+      orgId: auth.orgId, packageId: p.id, change: 0, reason: "expiry_changed", note: input.reason, createdBy: auth.userId,
+      details: { field: set.activateBy ? "firstBookingBy" : "validUntil", from: before, to: input.validUntil },
+    });
   }
   const [u] = await tx.update(clientPackages).set(set).where(eq(clientPackages.id, p.id)).returning();
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "package.adjusted", entityType: "client_package", entityId: p.id, details: input });
@@ -397,6 +444,7 @@ export async function cancelPackage(tx: DbOrTx, auth: AuthContext, id: string, r
     .where(and(eq(bookings.clientPackageId, p.id), eq(bookings.status, "confirmed"), sql`${classSessions.startsAt} > ${now}`));
   if (upcoming?.n) flags.info({ code: "clients_affected", message: `${upcoming.n} upcoming ${upcoming.n === 1 ? "booking was" : "bookings were"} made with this package. ${upcoming.n === 1 ? "It stays" : "They stay"} booked; cancel ${upcoming.n === 1 ? "it" : "them"} separately if needed.` });
   const [u] = await tx.update(clientPackages).set({ cancelledAt: now, cancelReason: reason }).where(eq(clientPackages.id, p.id)).returning();
+  await tx.insert(packageLedger).values({ orgId: auth.orgId, packageId: p.id, change: 0, reason: "cancelled", note: reason, createdBy: auth.userId });
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "package.cancelled", entityType: "client_package", entityId: p.id, details: { reason } });
   return (await presentPackages(tx, org, [u!], undefined, now))[0]!;
 }
