@@ -9,6 +9,7 @@
  */
 import { and, asc, count, desc, eq, inArray, isNull, max, ne, or, sql } from "drizzle-orm";
 import { DateTime } from "luxon";
+import { clientEvent } from "../marketing/events.js";
 import { ARCHIVE_SUGGEST_AFTER_DAYS, OPTION_LABELS, can, describePackage, type PlanEditScope } from "@studio/shared";
 import type { Db, DbOrTx } from "../../db/client.js";
 import {
@@ -510,6 +511,7 @@ export async function stopRenewing(tx: DbOrTx, auth: AuthContext, id: string, in
   if (auth.role === "client") {
     await notify(tx, { orgId: org.id, userIds: await staffIds(tx, org.id, ["owner", "admin"]), template: "package.stopped", data: { packageName: p.name, clientName: await userName(tx, auth.userId), endsOn: nice(endsOn), reason: input.reason ?? null, fee: feeCents ? money(feeCents, org.currency) : null } });
   }
+  await clientEvent(tx, auth.orgId, p.ownerId, { type: "membership_stopped", ref: p.id }, now);
   return { endsOn, commitmentApplies: !early && endsOn !== lastDay(p.expiresAt, zone), endedEarly: early, fee: feeCents ? money(feeCents, org.currency) : null };
 }
 

@@ -17,6 +17,10 @@ const envSchema = z
     POSTMARK_TOKEN: z.string().optional(),
     EMAIL_FROM: z.string().default("Studio <no-reply@example.com>"),
     PUSH_PROVIDER: z.enum(["console", "expo"]).default("console"),
+    /** Where the API can be reached from outside (used for images and unsubscribe links in emails). */
+    PUBLIC_API_URL: z.string().url().default("http://localhost:3000"),
+    /** The client app's web address (used for referral links and buttons in emails). */
+    PUBLIC_APP_URL: z.string().url().default("http://localhost:5173"),
     /** How far ahead recurring classes are created on the calendar. */
     SERIES_HORIZON_DAYS: z.coerce.number().int().min(7).max(730).default(120),
   })

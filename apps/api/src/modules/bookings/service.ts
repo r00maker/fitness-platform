@@ -18,6 +18,7 @@ import type { BookingPayment } from "@studio/shared";
 import { userName } from "../sessions/context.js";
 import { paidRunFor } from "../payroll/service.js";
 import { DateTime } from "luxon";
+import { attendedEvent, bookedEvent } from "../marketing/events.js";
 
 export type BookingRow = typeof bookings.$inferSelect;
 /** Admins (and owners) can book, cancel, move and refund for clients, and go outside booking rules. */
@@ -208,6 +209,7 @@ export async function createBooking(
     const paymentNote = pay.payment === "package" ? `It uses your ${pay.option!.pkg.name}.` : pay.payment === "complimentary" ? "This one's on us." : "Please pay at the studio.";
     await notify(tx, { orgId: auth.orgId, userIds: [clientId], template: "booking.confirmed", data: { ...(await describeSession(tx, session)), bookingId: booking!.id, paymentNote } });
   }
+  await bookedEvent(tx, auth.orgId, clientId, booking!.id, now);
   return { ...booking!, packageName: pay.option?.pkg.name ?? null };
 }
 
@@ -405,6 +407,7 @@ export async function markAttendance(tx: DbOrTx, auth: AuthContext, bookingId: s
   if (attendance !== booking.attendance) {
     await syncNoShowFee(tx, auth, b!, session, attendance, flags);
     await warnIfPaid(tx, auth, session, flags);
+    if (attendance === "present") await attendedEvent(tx, auth.orgId, b!.clientId, b!.id, now);
   }
   return b!;
 }
@@ -453,6 +456,7 @@ export async function markAllAttendance(
     .set({ attendance: input.attendance, attendanceMarkedAt: now, attendanceMarkedBy: auth.userId })
     .where(inArray(bookings.id, before.map((b) => b.id)));
   for (const b of before) if (b.attendance !== input.attendance) await syncNoShowFee(tx, auth, b, session, input.attendance, flags);
+  if (input.attendance === "present") for (const b of before) if (b.attendance !== "present") await attendedEvent(tx, auth.orgId, b.clientId, b.id, now);
   if (before.some((b) => b.attendance !== input.attendance)) await warnIfPaid(tx, auth, session, flags);
   return { updated: before.length };
 }

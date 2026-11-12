@@ -54,6 +54,10 @@ export const PERMISSIONS = {
   managePackages: ["owner", "admin"],
   /** Pay rates, adjustments, pay reports and marking pay as paid. */
   managePayroll: ["owner", "admin"],
+  /** Segments, emails, campaigns, journeys, banners, gift cards and referral settings. */
+  manageMarketing: ["owner", "admin"],
+  /** Post an announcement to clients, e.g. "The lift is out of order". Front desk can too, since they're first to know. */
+  postAnnouncements: ["owner", "admin", "front_desk"],
 } as const satisfies Record<string, readonly Role[]>;
 export type Permission = keyof typeof PERMISSIONS;
 export const can = (role: Role, permission: Permission): boolean => (PERMISSIONS[permission] as readonly Role[]).includes(role);
@@ -173,10 +177,12 @@ export const ROLLOVER_MODES = ["off", "staff", "clients"] as const;
 export type RolloverMode = (typeof ROLLOVER_MODES)[number];
 
 /** Uploaded files: package photos (visible to the studio's members) and extension attachments (private). */
-export const FILE_PURPOSES = ["package_photo", "extension_attachment"] as const;
+export const FILE_PURPOSES = ["package_photo", "extension_attachment", "email_image", "banner", "gift_card_design"] as const;
+/** Shown outside the app (in emails) or to anyone in the studio, so served from a public address. */
+export const PUBLIC_FILE_PURPOSES: readonly FilePurpose[] = ["email_image", "banner", "gift_card_design", "package_photo"];
 export type FilePurpose = (typeof FILE_PURPOSES)[number];
 export const FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"] as const;
-export const MAX_FILE_BYTES = { package_photo: 2 * 1024 * 1024, extension_attachment: 5 * 1024 * 1024 } as const;
+export const MAX_FILE_BYTES = { package_photo: 2 * 1024 * 1024, extension_attachment: 5 * 1024 * 1024, email_image: 2 * 1024 * 1024, banner: 2 * 1024 * 1024, gift_card_design: 2 * 1024 * 1024 } as const;
 
 export const ORDER_STATUSES = ["pending", "paid", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -270,6 +276,10 @@ export const FLAG_CODES = [
   "already_refunded",
   "refund_after_attending",
   "class_not_started",
+  // Marketing
+  "send_to_many",
+  "people_skipped",
+  "journey_starts",
   // Waivers
   "waiver_missing",
   "confirm_waiver_complete",

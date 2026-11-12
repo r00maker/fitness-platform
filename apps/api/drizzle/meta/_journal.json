@@ -85,6 +85,13 @@
       "when": 1794500644490,
       "tag": "0011_package_order_in_category",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794505494794,
+      "tag": "0012_marketing",
+      "breakpoints": true
     }
   ]
 }

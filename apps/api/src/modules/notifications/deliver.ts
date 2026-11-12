@@ -23,6 +23,17 @@ export async function deliverPending(db: Db, providers: { email: EmailProvider; 
 
     for (const { n, email } of batch) {
       try {
+        if (n.template === "custom") {
+          // Builder emails and custom pushes (campaigns, journeys, announcements): already personalised when queued.
+          const d = n.data as { subject?: string; html?: string; text?: string; unsubscribeUrl?: string; title?: string; body?: string; ref?: Record<string, unknown> };
+          if (n.channel === "email") await providers.email.send({ to: email, subject: d.subject ?? "", text: d.text ?? "", html: d.html, unsubscribeUrl: d.unsubscribeUrl });
+          else {
+            const tokens = await tx.select({ token: pushTokens.token }).from(pushTokens).where(eq(pushTokens.userId, n.userId));
+            if (tokens.length) await providers.push.send({ tokens: tokens.map((t) => t.token), title: d.title ?? "", body: d.body ?? "", data: { template: "custom", ...pick(d.ref ?? {}) } });
+          }
+          await tx.update(notifications).set({ status: "sent", sentAt: new Date(), attempts: n.attempts + 1 }).where(eq(notifications.id, n.id));
+          continue;
+        }
         const msg = render(n.template, n.data);
         if (n.channel === "email") {
           await providers.email.send({ to: email, subject: msg.subject, text: msg.body });
@@ -52,7 +63,7 @@ export async function deliverPending(db: Db, providers: { email: EmailProvider; 
 /** Only pass ids (never personal data) through to the device for deep-linking. */
 function pick(data: Record<string, unknown>) {
   const out: Record<string, unknown> = {};
-  for (const k of ["sessionId", "bookingId", "waitlistEntryId", "requestId"]) if (k in data) out[k] = data[k];
+  for (const k of ["sessionId", "bookingId", "waitlistEntryId", "requestId", "announcementId", "giftCardId", "journeyId"]) if (k in data) out[k] = data[k];
   return out;
 }
 

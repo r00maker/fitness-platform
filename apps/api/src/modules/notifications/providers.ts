@@ -1,6 +1,14 @@
 import type { Config } from "../../config.js";
 
-export interface EmailMessage { to: string; subject: string; text: string }
+export interface EmailMessage {
+  to: string;
+  subject: string;
+  text: string;
+  /** Emails made in the builder. */
+  html?: string;
+  /** Marketing emails: the one-click unsubscribe address (List-Unsubscribe), and sent on the bulk stream. */
+  unsubscribeUrl?: string;
+}
 export interface PushMessage { tokens: string[]; title: string; body: string; data?: Record<string, unknown> }
 export interface EmailProvider { send(msg: EmailMessage): Promise<void> }
 export interface PushProvider { send(msg: PushMessage): Promise<void> }
@@ -15,7 +23,16 @@ export function postmarkEmail(token: string, from: string): EmailProvider {
       const res = await fetch("https://api.postmarkapp.com/email", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json", "X-Postmark-Server-Token": token },
-        body: JSON.stringify({ From: from, To: m.to, Subject: m.subject, TextBody: m.text, MessageStream: "outbound" }),
+        body: JSON.stringify({
+          From: from,
+          To: m.to,
+          Subject: m.subject,
+          TextBody: m.text,
+          ...(m.html ? { HtmlBody: m.html } : {}),
+          // Marketing goes on Postmark's broadcast stream so it can't affect booking emails' delivery.
+          MessageStream: m.unsubscribeUrl ? "broadcast" : "outbound",
+          ...(m.unsubscribeUrl ? { Headers: [{ Name: "List-Unsubscribe", Value: `<${m.unsubscribeUrl}>` }, { Name: "List-Unsubscribe-Post", Value: "List-Unsubscribe=One-Click" }] } : {}),
+        }),
       });
       if (!res.ok) throw new Error(`Postmark responded ${res.status}`);
     },

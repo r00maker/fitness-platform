@@ -12,6 +12,10 @@ export interface AuthContext {
   userId: string;
   orgId: string;
   role: Role;
+  /** Signed in, but not a member of this studio yet (only on the join route). */
+  joining?: boolean;
+  /** Joining: the email the sign-in provider vouched for. */
+  email?: string;
 }
 
 declare module "fastify" {
@@ -60,7 +64,14 @@ async function authPlugin(app: FastifyInstance, opts: { config: Config; db: Db }
       .from(memberships)
       .where(and(eq(memberships.userId, userId), eq(memberships.orgId, orgId), eq(memberships.active, true)))
       .limit(1);
-    if (!m) throw forbidden("You're not a member of this studio.");
+    if (!m) {
+      // Only the join route accepts someone who isn't a member yet; it makes them a client.
+      if (req.routeOptions.config?.joining) {
+        req.auth = { userId, orgId, role: "client", joining: true, email: typeof payload.email === "string" ? payload.email : undefined };
+        return;
+      }
+      throw forbidden("You're not a member of this studio.");
+    }
     req.auth = { userId, orgId, role: m.role };
   });
 }
@@ -68,6 +79,7 @@ async function authPlugin(app: FastifyInstance, opts: { config: Config; db: Db }
 declare module "fastify" {
   interface FastifyContextConfig {
     public?: boolean;
+    joining?: boolean;
   }
 }
 

@@ -9,6 +9,9 @@ import { providersFromConfig } from "../modules/notifications/providers.js";
 import { processWaitlistTimers } from "../modules/waitlist/engine.js";
 import { extendSeries } from "./series.js";
 import { renewDuePackages } from "../modules/packages/lifecycle.js";
+import { runDueJourneys, scanJourneyTriggers } from "../modules/marketing/journeys.js";
+import { keepOverdueGiftCards } from "../modules/marketing/giftcards.js";
+import { sendScheduledCampaigns } from "../modules/marketing/campaigns.js";
 
 const config = loadConfig();
 const { db, pool } = createDb(config.DATABASE_URL);
@@ -34,6 +37,13 @@ every(2_000, "notifications", async () => {
 every(30_000, "waitlist", () => processWaitlistTimers(db));
 every(60_000, "renewals", () => renewDuePackages(db));
 every(60 * 60_000, "series", () => extendSeries(db, config.SERIES_HORIZON_DAYS));
+const urls = { api: config.PUBLIC_API_URL, app: config.PUBLIC_APP_URL };
+every(60_000, "journeys", async () => {
+  while ((await runDueJourneys(db, urls)) > 0) {}
+});
+every(60 * 60_000, "journey triggers", () => scanJourneyTriggers(db));
+every(60_000, "campaigns", () => sendScheduledCampaigns(db, urls));
+every(60 * 60_000, "gift cards", () => keepOverdueGiftCards(db));
 
 const stop = async () => {
   running = false;

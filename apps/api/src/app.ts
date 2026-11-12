@@ -6,6 +6,8 @@ import type { Config } from "./config.js";
 import type { Db } from "./db/client.js";
 import { AppError } from "./lib/errors.js";
 import auth from "./plugins/auth.js";
+import { marketingRoutes } from "./modules/marketing/routes.js";
+import { marketingAppRoutes } from "./modules/marketing/app-routes.js";
 import { bookingRoutes } from "./modules/bookings/routes.js";
 import { catalogRoutes } from "./modules/catalog/routes.js";
 import { clientRoutes } from "./modules/clients/routes.js";
@@ -85,6 +87,8 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(payrollRoutes);
       await v1.register(fileRoutes);
       await v1.register(checkoutRoutes);
+      await v1.register(marketingRoutes);
+      await v1.register(marketingAppRoutes);
     },
     { prefix: "/v1" },
   );
