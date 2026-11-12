@@ -157,6 +157,53 @@ describe("email builder", () => {
   });
 });
 
+describe("email builder: fonts, icons, categories, deleting and duplicating", () => {
+  it("renders web fonts with fallbacks and icon social links, and groups emails by category", async () => {
+    const { s } = await setup();
+    const e = await s.owner.call("POST", "/emails", {
+      name: "Brand",
+      category: "Newsletters",
+      design: { subject: "Hi", theme: { font: "lato", headingFont: "playfair", accent: "#BE185D" }, blocks: [{ type: "heading", text: "Hello" }, { type: "social", style: "icons", links: { instagram: "https://instagram.com/x", website: "https://x.example.com" } }] },
+    });
+    expect(e.status, JSON.stringify(e.body)).toBe(201);
+    const html = (await s.owner.call("POST", "/emails/preview", { design: e.body.design })).body.html as string;
+    expect(html).toContain("fonts.googleapis.com/css2?family=Lato");
+    expect(html).toContain("family=Playfair+Display");
+    expect(html).toContain("'Playfair Display', Georgia, serif");
+    expect(html).toMatch(/<img src="[^"]+\/v1\/public\/social\/instagram\.png" width="32"/);
+    expect((await app.inject({ method: "GET", url: "/v1/public/social/instagram.png" })).headers["content-type"]).toBe("image/png");
+    expect((await s.owner.call("POST", "/emails", { name: "Bad font", design: { subject: "x", theme: { font: "comic" }, blocks: [{ type: "text", text: "x" }] } })).status).toBe(400);
+    await s.owner.call("POST", "/emails", { name: "Other", category: "Promotions", design: { subject: "x", blocks: [{ type: "text", text: "x" }] } });
+    expect((await s.owner.call("GET", "/emails?category=Newsletters")).body.map((x: { name: string }) => x.name)).toEqual(["Brand"]);
+    expect((await s.owner.call("GET", "/marketing/options")).body.emailCategories).toEqual(expect.arrayContaining(["Newsletters", "Promotions", "Onboarding"]));
+  });
+
+  it("deletes emails not in use, keeps campaign history, and duplicates and deletes campaigns", async () => {
+    const { s, consent } = await setup();
+    await consent(s.c1.id);
+    const email = (await s.owner.call("POST", "/emails", { name: "News", design: { subject: "News", blocks: [{ type: "text", text: "Hi" }] } })).body;
+    const camp = (await s.owner.call("POST", "/campaigns", { name: "October", emailId: email.id })).body;
+    const j = (await s.owner.call("POST", "/journeys", { name: "Welcome", category: "Onboarding", definition: { trigger: { type: "account_created" }, steps: [{ id: "a", type: "send_email", emailId: email.id }] } })).body;
+    // In use: the journey and the waiting campaign are named.
+    const blocked = await s.owner.call("DELETE", `/emails/${email.id}`);
+    expect(blocked.body.error.usedBy).toEqual(["the journey “Welcome”", "the campaign “October”"]);
+    expect((await s.owner.call("GET", "/journeys?category=Onboarding")).body.map((x: { name: string }) => x.name)).toEqual(["Welcome"]);
+
+    await s.owner.call("POST", `/campaigns/${camp.id}/send`, { acknowledge: ["send_to_many"] });
+    const copy = await s.owner.call("POST", `/campaigns/${camp.id}/duplicate`);
+    expect(copy.body).toMatchObject({ name: "October (copy)", status: "draft", emailId: email.id });
+    expect((await s.owner.call("DELETE", `/campaigns/${copy.body.id}`)).status).toBe(204);
+    expect((await s.owner.call("DELETE", `/journeys/${j.id}`)).status).toBe(204);
+    expect((await s.owner.call("DELETE", `/emails/${email.id}`)).status).toBe(204);
+    // The sent campaign still shows which email went out.
+    expect((await s.owner.call("GET", "/campaigns")).body).toEqual([expect.objectContaining({ name: "October", emailName: "News", emailId: null, recipients: 1 })]);
+    // A copy of it needs a new email before it can be sent.
+    const again = (await s.owner.call("POST", `/campaigns/${camp.id}/duplicate`)).body;
+    expect(again.note).toMatch(/Choose an email/);
+    expect((await s.owner.call("POST", `/campaigns/${again.id}/send`, { acknowledge: ["send_to_many"] })).body.error.code).toBe("email_archived");
+  });
+});
+
 describe("journeys", () => {
   it("follows up new members: welcome, then yes/no on buying, with the studio told about people who don't", async () => {
     const { s, join, plan } = await setup();

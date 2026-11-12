@@ -6,6 +6,9 @@ import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, or, sql }
 import {
   ACQUISITION_CHANNELS,
   EMAIL_BLOCK_TYPES,
+  EMAIL_CATEGORY_SUGGESTIONS,
+  EMAIL_FONTS,
+  JOURNEY_CATEGORY_SUGGESTIONS,
   JOURNEY_EVENTS,
   JOURNEY_STEP_TYPES,
   JOURNEY_TRIGGERS,
@@ -56,12 +59,17 @@ import { RECIPES, starterEmails } from "./starters.js";
 
 const idParam = z.object({ id: schemas.id });
 const ack = z.object({ acknowledge: z.array(z.string()).default([]) });
-const archivedQuery = z.object({ archived: z.stringbool().default(false) });
+const listQuery = z.object({ archived: z.stringbool().default(false), category: z.string().trim().max(40).optional() });
 const peopleQuery = z.object({ status: z.enum(["active", "completed", "exited"]).default("active") });
 const recipeBody = z.object({ recipe: z.enum(Object.keys(RECIPES) as [string, ...string[]]) });
 const enrollBody = z.object({ clientId: schemas.id });
 const testBody = z.object({ design: emailDesign.optional(), purpose: z.enum(["marketing", "service"]).optional() });
 
+/** Categories in use, plus suggestions, for the category picker. */
+async function categoriesOf(db: DbOrTx, col: typeof journeys.category | typeof emailDesigns.category, orgCol: typeof journeys.orgId | typeof emailDesigns.orgId, orgId: string, suggestions: readonly string[]) {
+  const used = await db.selectDistinct({ c: col }).from(col.table).where(and(eq(orgCol, orgId), isNotNull(col)));
+  return [...new Set([...used.map((u) => u.c as string), ...suggestions])].sort((a, b) => a.localeCompare(b));
+}
 export const urlsOf = (app: FastifyInstance): Urls => ({ api: app.config.PUBLIC_API_URL, app: app.config.PUBLIC_APP_URL });
 
 /** Names for the things a rule can point at (tags, class types…), for plain-English descriptions. */
@@ -106,6 +114,9 @@ export async function marketingRoutes(app: FastifyInstance) {
       pick: { tags: n.tags, classTypes: n.types, instructors: n.staff, locations: n.locs, packageTypes: n.plans },
       segments: segs,
       emails,
+      emailCategories: await categoriesOf(db, emailDesigns.category, emailDesigns.orgId, req.auth.orgId, EMAIL_CATEGORY_SUGGESTIONS),
+      journeyCategories: await categoriesOf(db, journeys.category, journeys.orgId, req.auth.orgId, JOURNEY_CATEGORY_SUGGESTIONS),
+      fonts: EMAIL_FONTS,
     };
   });
 
@@ -189,11 +200,11 @@ export async function marketingRoutes(app: FastifyInstance) {
 
   // --- Emails -------------------------------------------------------------------------
   app.get("/emails", async (req) => {
-    const { archived } = parse(archivedQuery, req.query);
+    const { archived, category } = parse(listQuery, req.query);
     return db
-      .select({ id: emailDesigns.id, name: emailDesigns.name, purpose: emailDesigns.purpose, subject: sql<string>`${emailDesigns.design}->>'subject'`, updatedAt: emailDesigns.updatedAt, archivedAt: emailDesigns.archivedAt })
+      .select({ id: emailDesigns.id, name: emailDesigns.name, purpose: emailDesigns.purpose, category: emailDesigns.category, subject: sql<string>`${emailDesigns.design}->>'subject'`, updatedAt: emailDesigns.updatedAt, archivedAt: emailDesigns.archivedAt })
       .from(emailDesigns)
-      .where(and(eq(emailDesigns.orgId, req.auth.orgId), archived ? isNotNull(emailDesigns.archivedAt) : isNull(emailDesigns.archivedAt)))
+      .where(and(eq(emailDesigns.orgId, req.auth.orgId), archived ? isNotNull(emailDesigns.archivedAt) : isNull(emailDesigns.archivedAt), category ? eq(emailDesigns.category, category) : undefined))
       .orderBy(desc(emailDesigns.updatedAt));
   });
   app.get("/emails/starters", async () => Object.entries(starterEmails(app.config.PUBLIC_APP_URL)).map(([id, s]) => ({ id, ...s })));
@@ -236,6 +247,26 @@ export async function marketingRoutes(app: FastifyInstance) {
     return { ...e, warning: body.archived && usedBy.length ? `Live journeys that send it (${usedBy.map((j) => j.name).join(", ")}) will skip that step.` : null };
   });
 
+  /**
+   * Delete an email for good. Not while a journey sends it or a campaign is waiting to send it
+   * (those are listed so they can be changed first). Sent campaigns keep its name in their history.
+   */
+  app.delete("/emails/:id", async (req, reply) => {
+    const { id } = parse(idParam, req.params);
+    const [e] = await db.select().from(emailDesigns).where(and(eq(emailDesigns.id, id), eq(emailDesigns.orgId, req.auth.orgId)));
+    if (!e) throw notFound("email");
+    const inJourneys = (await db.select({ name: journeys.name, def: journeys.definition }).from(journeys).where(eq(journeys.orgId, req.auth.orgId))).filter((j) => JSON.stringify(j.def.steps).includes(`"${id}"`));
+    const waiting = await db.select({ name: emailCampaigns.name }).from(emailCampaigns).where(and(eq(emailCampaigns.emailId, id), inArray(emailCampaigns.status, ["draft", "scheduled"])));
+    if (inJourneys.length || waiting.length) {
+      const where = [...inJourneys.map((j) => `the journey “${j.name}”`), ...waiting.map((c) => `the campaign “${c.name}”`)];
+      throw conflict("email_in_use", `This email is used by ${where.join(", ")}. Change ${where.length === 1 ? "it" : "them"} to use another email first.`, { usedBy: where });
+    }
+    await db.update(emailCampaigns).set({ emailName: e.name }).where(eq(emailCampaigns.emailId, id));
+    await db.delete(emailDesigns).where(eq(emailDesigns.id, id));
+    await audit(db, { orgId: req.auth.orgId, actorId: req.auth.userId, action: "email.deleted", entityType: "email_design", entityId: id, details: { name: e.name } });
+    return reply.code(204).send();
+  });
+
   /** See the email as a client would, filled in with your own details (or sample ones). */
   app.post("/emails/preview", async (req) => {
     const body = parse(z.object({ design: emailDesign, purpose: z.enum(["marketing", "service"]).default("marketing"), clientId: schemas.id.optional() }), req.body);
@@ -275,7 +306,7 @@ export async function marketingRoutes(app: FastifyInstance) {
     const rows = await db
       .select({ c: emailCampaigns, emailName: emailDesigns.name, segmentName: segments.name })
       .from(emailCampaigns)
-      .innerJoin(emailDesigns, eq(emailDesigns.id, emailCampaigns.emailId))
+      .leftJoin(emailDesigns, eq(emailDesigns.id, emailCampaigns.emailId))
       .leftJoin(segments, eq(segments.id, emailCampaigns.segmentId))
       .where(eq(emailCampaigns.orgId, req.auth.orgId))
       .orderBy(desc(emailCampaigns.createdAt));
@@ -287,22 +318,28 @@ export async function marketingRoutes(app: FastifyInstance) {
     return rows.map((r) => {
       const d = delivery.filter((x) => x.id === r.c.id);
       const n = (s: string) => Number(d.find((x) => x.status === s)?.n ?? 0);
-      return { ...r.c, emailName: r.emailName, audience: r.segmentName ?? "Everyone", delivered: n("sent"), failed: n("failed"), queued: n("pending") };
+      return { ...r.c, emailName: r.emailName ?? r.c.emailName ?? "(deleted email)", audience: r.segmentName ?? "Everyone", delivered: n("sent"), failed: n("failed"), queued: n("pending") };
     });
   });
   app.post("/campaigns", async (req, reply) => {
     const input = parse(campaignInput, req.body);
-    const [e] = await db.select({ id: emailDesigns.id }).from(emailDesigns).where(and(eq(emailDesigns.id, input.emailId), eq(emailDesigns.orgId, req.auth.orgId), isNull(emailDesigns.archivedAt)));
+    const [e] = await db.select({ id: emailDesigns.id, name: emailDesigns.name }).from(emailDesigns).where(and(eq(emailDesigns.id, input.emailId), eq(emailDesigns.orgId, req.auth.orgId), isNull(emailDesigns.archivedAt)));
     if (!e) throw notFound("email");
     if (input.segmentId) await audienceFor(req.auth.orgId, input.segmentId);
-    const [c] = await db.insert(emailCampaigns).values({ orgId: req.auth.orgId, name: input.name, emailId: input.emailId, segmentId: input.segmentId ?? null, sendAt: input.sendAt ?? null, createdBy: req.auth.userId }).returning();
+    const [c] = await db.insert(emailCampaigns).values({ orgId: req.auth.orgId, name: input.name, emailId: input.emailId, emailName: e.name, segmentId: input.segmentId ?? null, sendAt: input.sendAt ?? null, createdBy: req.auth.userId }).returning();
     reply.code(201);
     return c;
   });
   app.patch("/campaigns/:id", async (req) => {
     const { id } = parse(idParam, req.params);
     const input = parse(campaignInput.partial(), req.body);
-    const [c] = await db.update(emailCampaigns).set(input).where(and(eq(emailCampaigns.id, id), eq(emailCampaigns.orgId, req.auth.orgId), inArray(emailCampaigns.status, ["draft", "scheduled"]))).returning();
+    let emailName: string | undefined;
+    if (input.emailId) {
+      const [e] = await db.select({ name: emailDesigns.name }).from(emailDesigns).where(and(eq(emailDesigns.id, input.emailId), eq(emailDesigns.orgId, req.auth.orgId), isNull(emailDesigns.archivedAt)));
+      if (!e) throw notFound("email");
+      emailName = e.name;
+    }
+    const [c] = await db.update(emailCampaigns).set({ ...input, ...(emailName ? { emailName } : {}) }).where(and(eq(emailCampaigns.id, id), eq(emailCampaigns.orgId, req.auth.orgId), inArray(emailCampaigns.status, ["draft", "scheduled"]))).returning();
     if (!c) throw conflict("not_editable", "Only drafts and scheduled campaigns can be changed.");
     return c;
   });
@@ -314,8 +351,8 @@ export async function marketingRoutes(app: FastifyInstance) {
       const [c] = await tx.select().from(emailCampaigns).where(and(eq(emailCampaigns.id, id), eq(emailCampaigns.orgId, req.auth.orgId))).for("update");
       if (!c) throw notFound("campaign");
       if (c.status !== "draft" && c.status !== "scheduled") throw conflict("already_sent", c.status === "cancelled" ? "This campaign was cancelled." : "This campaign has already been sent.");
-      const [design] = await tx.select().from(emailDesigns).where(eq(emailDesigns.id, c.emailId));
-      if (!design || design.archivedAt) throw conflict("email_archived", "The email for this campaign has been archived. Restore it or choose another.");
+      const [design] = c.emailId ? await tx.select().from(emailDesigns).where(eq(emailDesigns.id, c.emailId)) : [];
+      if (!design || design.archivedAt) throw conflict("email_archived", "The email for this campaign has been archived or deleted. Choose another.");
       const ids = await audienceFor(req.auth.orgId, c.segmentId);
       const reachable = design.purpose === "marketing" ? await consenting(req.auth.orgId, ids) : ids.length;
       if (!reachable) throw conflict("nobody", design.purpose === "marketing" ? "Nobody in this audience has agreed to marketing emails yet." : "There's nobody in this audience.");
@@ -327,10 +364,27 @@ export async function marketingRoutes(app: FastifyInstance) {
         return { campaign: u! };
       }
       const r = await queueDesignEmail(tx, req.auth.orgId, design, ids, urlsOf(app), { campaignId: c.id });
-      const [u] = await tx.update(emailCampaigns).set({ status: "sent", sentAt: new Date(), recipients: r.sent, skipped: r.skipped }).where(eq(emailCampaigns.id, c.id)).returning();
+      const [u] = await tx.update(emailCampaigns).set({ status: "sent", sentAt: new Date(), recipients: r.sent, skipped: r.skipped, emailName: design.name }).where(eq(emailCampaigns.id, c.id)).returning();
       await audit(tx, { orgId: req.auth.orgId, actorId: req.auth.userId, action: "campaign.sent", entityType: "email_campaign", entityId: c.id, details: { recipients: r.sent, skipped: r.skipped } });
       return { campaign: u! };
     });
+  });
+  /** A fresh draft with the same email and audience (e.g. to send last month's newsletter again). */
+  app.post("/campaigns/:id/duplicate", async (req, reply) => {
+    const { id } = parse(idParam, req.params);
+    const [c] = await db.select().from(emailCampaigns).where(and(eq(emailCampaigns.id, id), eq(emailCampaigns.orgId, req.auth.orgId)));
+    if (!c) throw notFound("campaign");
+    const [copy] = await db.insert(emailCampaigns).values({ orgId: c.orgId, name: `${c.name} (copy)`.slice(0, 80), emailId: c.emailId, emailName: c.emailName, segmentId: c.segmentId, createdBy: req.auth.userId }).returning();
+    reply.code(201);
+    return { ...copy!, note: c.emailId ? null : "The email this campaign used has been deleted. Choose an email before sending." };
+  });
+  /** Removes it from the list. Emails already sent can't be unsent; a scheduled one won't go out. */
+  app.delete("/campaigns/:id", async (req, reply) => {
+    const { id } = parse(idParam, req.params);
+    const [c] = await db.delete(emailCampaigns).where(and(eq(emailCampaigns.id, id), eq(emailCampaigns.orgId, req.auth.orgId))).returning();
+    if (!c) throw notFound("campaign");
+    await audit(db, { orgId: req.auth.orgId, actorId: req.auth.userId, action: "campaign.deleted", entityType: "email_campaign", entityId: id, details: { name: c.name, status: c.status } });
+    return reply.code(204).send();
   });
   app.post("/campaigns/:id/cancel", async (req) => {
     const { id } = parse(idParam, req.params);
@@ -353,7 +407,8 @@ export async function marketingRoutes(app: FastifyInstance) {
   }
 
   app.get("/journeys", async (req) => {
-    const rows = await db.select().from(journeys).where(eq(journeys.orgId, req.auth.orgId)).orderBy(desc(journeys.updatedAt));
+    const { category } = parse(listQuery, req.query);
+    const rows = await db.select().from(journeys).where(and(eq(journeys.orgId, req.auth.orgId), category ? eq(journeys.category, category) : undefined)).orderBy(desc(journeys.updatedAt));
     return Promise.all(rows.map((j) => present(j, true)));
   });
   app.get("/journeys/recipes", async () => Object.entries(RECIPES).map(([id, r]) => ({ id, name: r.name, description: r.description })));

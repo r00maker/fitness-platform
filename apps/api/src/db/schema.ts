@@ -948,6 +948,7 @@ export const emailDesigns = pgTable("email_designs", {
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   purpose: emailPurposeEnum("purpose").notNull().default("marketing"),
+  category: text("category"),
   design: jsonb("design").$type<EmailDesign>().notNull(),
   archivedAt: ts("archived_at"),
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
@@ -959,7 +960,9 @@ export const emailCampaigns = pgTable("email_campaigns", {
   id: pk(),
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  emailId: uuid("email_id").notNull().references(() => emailDesigns.id),
+  /** Null once the email itself has been deleted; the name is kept for the campaign's history. */
+  emailId: uuid("email_id").references(() => emailDesigns.id, { onDelete: "set null" }),
+  emailName: text("email_name"),
   /** Null = every client. */
   segmentId: uuid("segment_id").references(() => segments.id, { onDelete: "set null" }),
   status: campaignStatusEnum("status").notNull().default("draft"),
@@ -977,6 +980,7 @@ export const journeys = pgTable("journeys", {
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
+  category: text("category"),
   definition: jsonb("definition").$type<JourneyDefinition>().notNull(),
   reentry: text("reentry").notNull().default("once"),
   quietHours: boolean("quiet_hours").notNull().default(true),

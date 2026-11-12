@@ -7,7 +7,7 @@
  * are escaped when they're filled in.
  */
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { MERGE_TAGS, describePackage, type EmailBlock, type EmailDesign, type MergeTag } from "@studio/shared";
+import { EMAIL_FONTS, MERGE_TAGS, describePackage, type EmailBlock, type EmailDesign, type EmailFont, type MergeTag } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
 import { classTypes, files, packagePlans } from "../../db/schema.js";
 import { badRequest } from "../../lib/errors.js";
@@ -63,13 +63,18 @@ function inline(raw: string, v: MergeValues, linkColor: string): string {
 }
 const plainInline = (raw: string, v: MergeValues) => fillPlain(raw.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t: string, u: string) => `${t} (${fillPlain(u, v)})`).replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\*([^*]+)\*/g, "$1"), v);
 
-const FONTS = { sans: "Helvetica, Arial, sans-serif", serif: "Georgia, 'Times New Roman', serif", rounded: "'Trebuchet MS', 'Segoe UI', Helvetica, Arial, sans-serif" } as const;
+/** The Google Fonts stylesheet for any web fonts a theme uses (mail apps that can't load it use the fallback). */
+function fontLink(fonts: (EmailFont | null | undefined)[]) {
+  const families = [...new Set(fonts.filter(Boolean).map((f) => (EMAIL_FONTS[f!] as { google?: string }).google).filter(Boolean))];
+  return families.length ? `<link href="https://fonts.googleapis.com/css2?${families.map((f) => `family=${f}`).join("&")}&display=swap" rel="stylesheet">` : "";
+}
 const RADIUS = { rounded: "8px", pill: "999px", square: "0" } as const;
 
 export function renderEmail(design: EmailDesign, ctx: RenderContext): { subject: string; preheader: string; html: string; text: string } {
   const t = design.theme;
   const v = { ...ctx.values, studio_name: ctx.studioName };
-  const font = FONTS[t.font];
+  const font = EMAIL_FONTS[t.font].stack;
+  const hfont = EMAIL_FONTS[t.headingFont ?? t.font].stack;
   const img = (id: string) => publicFileUrl(ctx.publicApiUrl, id);
   const text: string[] = [];
 
@@ -79,7 +84,7 @@ export function renderEmail(design: EmailDesign, ctx: RenderContext): { subject:
       case "heading": {
         text.push(fillPlain(b.text, v), "");
         const size = b.level === 1 ? 26 : 20;
-        return `<tr><td style="padding:${pad};text-align:${b.align};font-family:${font};font-size:${size}px;line-height:1.25;font-weight:700;color:${t.text}">${fillHtml(esc(b.text), v)}</td></tr>`;
+        return `<tr><td style="padding:${pad};text-align:${b.align};font-family:${hfont};font-size:${size}px;line-height:1.25;font-weight:700;color:${t.text}">${fillHtml(esc(b.text), v)}</td></tr>`;
       }
       case "text":
         text.push(plainInline(b.text, v), "");
@@ -110,7 +115,7 @@ export function renderEmail(design: EmailDesign, ctx: RenderContext): { subject:
         text.push(`${p.name} — ${p.price}`, ...p.terms.map((x) => `• ${x}`), `${b.buttonLabel}: ${url}`, "");
         return `<tr><td style="padding:8px 32px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${mix(t.text, t.content, 0.15)};border-radius:12px"><tr><td style="padding:18px 20px;font-family:${font};color:${t.text}">
           ${p.photoFileId ? `<img src="${esc(img(p.photoFileId))}" width="496" alt="" style="display:block;width:100%;max-width:496px;height:auto;border:0;border-radius:8px;margin-bottom:12px">` : ""}
-          <div style="font-size:18px;font-weight:700">${esc(p.name)}</div>
+          <div style="font-size:18px;font-weight:700;font-family:${hfont}">${esc(p.name)}</div>
           <div style="font-size:22px;font-weight:700;color:${t.accent};margin:4px 0 8px">${esc(p.price)}</div>
           ${p.description ? `<div style="font-size:15px;line-height:1.5;margin-bottom:8px">${esc(p.description)}</div>` : ""}
           <div style="font-size:14px;line-height:1.6;opacity:.85">${p.terms.map((x) => `• ${esc(x)}`).join("<br>")}</div>
@@ -122,6 +127,10 @@ export function renderEmail(design: EmailDesign, ctx: RenderContext): { subject:
         const links = (Object.keys(names) as (keyof typeof names)[]).filter((k) => b.links[k] && isSafeUrl(b.links[k]!));
         if (!links.length) return "";
         text.push(links.map((k) => `${names[k]}: ${b.links[k]}`).join("\n"), "");
+        if (b.style === "icons") {
+          const icon = (k: keyof typeof names) => `<a href="${esc(b.links[k]!)}" style="display:inline-block;margin:0 5px;text-decoration:none"><img src="${esc(`${ctx.publicApiUrl.replace(/\/$/, "")}/v1/public/social/${k}.png`)}" width="32" height="32" alt="${names[k]}" style="display:block;width:32px;height:32px;border:0"></a>`;
+          return `<tr><td style="padding:12px 32px;text-align:${b.align};font-size:0;line-height:0">${links.map(icon).join("")}</td></tr>`;
+        }
         return `<tr><td style="padding:12px 32px;text-align:${b.align};font-family:${font};font-size:14px">${links.map((k) => `<a href="${esc(b.links[k]!)}" style="color:${t.accent};font-weight:700;text-decoration:none;margin:0 8px">${names[k]}</a>`).join(" ")}</td></tr>`;
       }
       case "columns":
@@ -138,7 +147,7 @@ export function renderEmail(design: EmailDesign, ctx: RenderContext): { subject:
     ? `You're getting this because you said yes to news from ${esc(ctx.studioName)}. <a href="${esc(ctx.unsubscribeUrl)}" style="color:inherit;text-decoration:underline">Unsubscribe</a>`
     : `This email is about your account with ${esc(ctx.studioName)}.`;
   text.push("", ctx.unsubscribeUrl ? `You're getting this because you said yes to news from ${ctx.studioName}. Unsubscribe: ${ctx.unsubscribeUrl}` : `This email is about your account with ${ctx.studioName}.`);
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>${esc(subject)}</title>
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting">${fontLink([t.font, t.headingFont])}<title>${esc(subject)}</title>
 <style>@media (max-width:620px){.wrap{width:100%!important}.col{display:block!important;width:100%!important;padding:0!important}}</style></head>
 <body style="margin:0;padding:0;background:${t.background}">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}&nbsp;</div>

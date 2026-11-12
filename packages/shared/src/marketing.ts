@@ -161,6 +161,8 @@ const spacerBlock = z.object({ type: z.literal("spacer"), height: z.number().int
 const packageBlock = z.object({ type: z.literal("package"), planId: id, buttonLabel: z.string().trim().max(60).default("Buy now") });
 const socialBlock = z.object({
   type: z.literal("social"),
+  /** Round icons (brand colours) or the names as text links. */
+  style: z.enum(["icons", "text"]).default("text"),
   links: z.object({ instagram: safeUrl.optional(), facebook: safeUrl.optional(), tiktok: safeUrl.optional(), youtube: safeUrl.optional(), website: safeUrl.optional() }),
   align: align.default("center"),
 });
@@ -180,12 +182,33 @@ export const EMAIL_BLOCK_TYPES = {
   columns: { label: "Two columns", help: "Two blocks side by side, e.g. a photo next to text. They stack on phones." },
 } as const;
 
+/**
+ * Fonts for emails. The first four are on nearly every device. The rest are Google Fonts: Apple
+ * Mail, iPhones and most Android mail apps show them; Gmail and Outlook show the fallback listed.
+ */
+export const EMAIL_FONTS = {
+  sans: { label: "Clean", stack: "Helvetica, Arial, sans-serif" },
+  serif: { label: "Classic", stack: "Georgia, 'Times New Roman', serif" },
+  rounded: { label: "Friendly", stack: "'Trebuchet MS', 'Segoe UI', Helvetica, Arial, sans-serif" },
+  modern: { label: "Modern", stack: "Verdana, Geneva, Tahoma, sans-serif" },
+  montserrat: { label: "Montserrat (bold, modern)", google: "Montserrat:wght@400;700", stack: "Montserrat, Arial, sans-serif", fallback: "Arial" },
+  poppins: { label: "Poppins (geometric)", google: "Poppins:wght@400;700", stack: "Poppins, Helvetica, Arial, sans-serif", fallback: "Helvetica" },
+  lato: { label: "Lato (warm)", google: "Lato:wght@400;700", stack: "Lato, Helvetica, Arial, sans-serif", fallback: "Helvetica" },
+  dmsans: { label: "DM Sans (soft)", google: "DM+Sans:wght@400;700", stack: "'DM Sans', Helvetica, Arial, sans-serif", fallback: "Helvetica" },
+  playfair: { label: "Playfair Display (elegant)", google: "Playfair+Display:wght@400;700", stack: "'Playfair Display', Georgia, serif", fallback: "Georgia" },
+  cormorant: { label: "Cormorant (refined)", google: "Cormorant+Garamond:wght@500;700", stack: "'Cormorant Garamond', Georgia, serif", fallback: "Georgia" },
+} as const;
+export type EmailFont = keyof typeof EMAIL_FONTS;
+const fontId = z.enum(Object.keys(EMAIL_FONTS) as [EmailFont, ...EmailFont[]]);
+
 export const emailTheme = z.object({
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#f4f6f4"),
   content: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#ffffff"),
   text: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#17201c"),
   accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#0e6b5f"),
-  font: z.enum(["sans", "serif", "rounded"]).default("sans"),
+  font: fontId.default("sans"),
+  /** Headings in a different font (e.g. Playfair headings over Lato text). Left out = same as the text. */
+  headingFont: fontId.nullish(),
   buttonShape: z.enum(["rounded", "pill", "square"]).default("rounded"),
   logoFileId: id.nullish(),
 });
@@ -200,8 +223,13 @@ export type EmailDesign = z.infer<typeof emailDesign>;
 /** Marketing emails only go to people who agreed to them, and include an unsubscribe link. Service emails are about their account or bookings. */
 export const EMAIL_PURPOSES = ["marketing", "service"] as const;
 export type EmailPurpose = (typeof EMAIL_PURPOSES)[number];
+/** A label to group things by ("Onboarding", "Promotions"…). Free text, so studios use their own. */
+export const category = z.string().trim().max(40).nullish();
+export const EMAIL_CATEGORY_SUGGESTIONS = ["Onboarding", "Promotions", "Newsletters", "Reminders", "Milestones"] as const;
+export const JOURNEY_CATEGORY_SUGGESTIONS = ["Onboarding", "Retention", "Win-back", "Milestones", "Ads & leads"] as const;
 export const emailDesignInput = z.object({
   name: z.string().trim().min(1, "Give the email a name.").max(80),
+  category,
   purpose: z.enum(EMAIL_PURPOSES).default("marketing"),
   design: emailDesign,
 });
@@ -324,6 +352,7 @@ export const journeyDefinition = z.object({
 export type JourneyDefinition = z.infer<typeof journeyDefinition>;
 export const journeyInput = z.object({
   name: z.string().trim().min(1, "Give the journey a name.").max(80),
+  category,
   description: z.string().trim().max(300).nullish(),
   definition: journeyDefinition,
   /** once = each client goes through it at most once; every_time = each time the trigger happens (never twice at the same time). */

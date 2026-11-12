@@ -92,6 +92,13 @@
       "when": 1794505494794,
       "tag": "0012_marketing",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794509725480,
+      "tag": "0013_marketing_categories_deletes",
+      "breakpoints": true
     }
   ]
 }

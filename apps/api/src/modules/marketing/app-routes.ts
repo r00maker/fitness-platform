@@ -54,6 +54,7 @@ import { adjustCredit, creditSummary, usableVouchers, voucherLabel } from "./cre
 import { clientEvent } from "./events.js";
 import { auditGift, deliver, findRecipient, keep, presentCards } from "./giftcards.js";
 import { queuePush } from "./messages.js";
+import { SOCIAL_ICONS } from "./social-icons.js";
 import { applyReferral, describeReferralRules, myReferrals, referralReport } from "./referrals.js";
 import { allClients, matchSegment } from "./segments.js";
 
@@ -151,6 +152,15 @@ export async function marketingAppRoutes(app: FastifyInstance) {
     const [r] = await db.select({ first: users.firstName }).from(memberships).innerJoin(users, eq(users.id, memberships.userId)).where(and(eq(memberships.orgId, orgId), eq(memberships.referralCode, code.toUpperCase()), eq(memberships.active, true)));
     if (!r) return { valid: false };
     return { valid: true, studioName: org.name, referrerFirstName: r.first, welcomeGift: org.refereeReward ? describeReward(org.refereeReward, (c) => money(c, org.currency)) : null };
+  });
+
+  /** Social icons for emails (public, cached for a long time). */
+  app.get("/public/social/:name", { config: { public: true } }, async (req, reply) => {
+    const { name } = parse(z.object({ name: z.string().regex(/^[a-z]+\.png$/) }), req.params);
+    const png = SOCIAL_ICONS[name.replace(/\.png$/, "")];
+    if (!png) throw notFound("icon");
+    reply.header("content-type", "image/png").header("cache-control", "public, max-age=2592000, immutable").header("cross-origin-resource-policy", "cross-origin");
+    return reply.send(Buffer.from(png, "base64"));
   });
 
   // --- Marketing choices and unsubscribing ------------------------------------------

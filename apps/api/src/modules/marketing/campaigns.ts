@@ -10,7 +10,7 @@ export async function sendScheduledCampaigns(db: Db, urls: Urls, now = new Date(
   return db.transaction(async (tx) => {
     const due = await tx.select().from(emailCampaigns).where(and(eq(emailCampaigns.status, "scheduled"), lte(emailCampaigns.sendAt, now))).for("update", { skipLocked: true });
     for (const c of due) {
-      const [design] = await tx.select().from(emailDesigns).where(eq(emailDesigns.id, c.emailId));
+      const [design] = c.emailId ? await tx.select().from(emailDesigns).where(eq(emailDesigns.id, c.emailId)) : [];
       if (!design || design.archivedAt) {
         await tx.update(emailCampaigns).set({ status: "cancelled" }).where(eq(emailCampaigns.id, c.id));
         continue;
