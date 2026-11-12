@@ -6,6 +6,9 @@ import { z } from "zod";
 import {
   ATTENDANCE,
   FLAG_CODES,
+  HEALTH_CATEGORIES,
+  HEALTH_NOTE_MAX_LENGTH,
+  THEMES,
   CALENDAR_VIEWS,
   EDIT_SCOPES,
   REFUND_METHODS,
@@ -53,6 +56,9 @@ export const updateOrgSettings = z.object({
   noShowFeeEnabled: z.boolean().optional(),
   noShowFeeCents: z.number().int().min(0).max(1_000_000).optional(),
   currency: z.string().regex(/^[A-Z]{3}$/, "Use a 3-letter currency code like SGD.").optional(),
+  waiverRequired: z.boolean().optional(),
+  waiverText: z.string().trim().min(20, "Paste in your full waiver.").max(20_000).nullable().optional(),
+  spotBookingEnabled: z.boolean().optional(),
 });
 export const waiveFee = z.object({ reason: z.string().trim().min(1, "Add a short reason.").max(500) });
 
@@ -202,8 +208,35 @@ export const calendarQuery = z.object({
   instructorId: id.optional(),
   timeOfDay: z.enum(TIMES_OF_DAY).optional(),
   q: z.string().trim().max(100).optional(),
-  includeCancelled: z.coerce.boolean().default(false),
+  includeCancelled: z.stringbool().default(false),
+  /** Clients: only classes with their favourite instructor (one-tap filter). */
+  favouriteInstructor: z.stringbool().default(false),
 });
+
+// ---- Waivers ----------------------------------------------------------------
+/** A client signing the studio's waiver: tick "I agree" and type their full name. */
+export const signWaiver = z.object({
+  agree: z.literal(true, { message: "Tick the box to agree to the waiver." }),
+  signedName: z.string().trim().min(2, "Type your full name to sign.").max(120),
+});
+export const confirmWaiver = z.object({ acknowledge });
+export const reverseWaiver = z.object({ reason: z.string().trim().min(1, "Add a short reason.").max(500) });
+
+// ---- Health notes -----------------------------------------------------------
+const healthDescription = z
+  .string()
+  .trim()
+  .min(3, "Add a few words, e.g. “sore left knee”.")
+  .max(HEALTH_NOTE_MAX_LENGTH, `Keep it under ${HEALTH_NOTE_MAX_LENGTH} characters.`);
+export const createHealthNote = z.object({
+  /** Left out = worked out from the description (see suggestHealthCategory). */
+  category: z.enum(HEALTH_CATEGORIES).optional(),
+  description: healthDescription,
+});
+export const updateHealthNote = z
+  .object({ category: z.enum(HEALTH_CATEGORIES), description: healthDescription })
+  .partial()
+  .refine((c) => Object.keys(c).length > 0, "Nothing to change.");
 
 // ---- Bookings & attendance -------------------------------------------------
 export const createBooking = z.object({
@@ -211,6 +244,8 @@ export const createBooking = z.object({
   clientId: id.optional(),
   /** Spot number (1-based) in rooms with spot selection. Left out = the next free spot. */
   spot: z.number().int().min(1).max(500).optional(),
+  /** First booking: sign the studio's waiver in the same step. */
+  waiver: signWaiver.optional(),
   acknowledge,
 });
 export const cancelBooking = z.object({
@@ -227,10 +262,17 @@ export const refundBooking = z.object({
   acknowledge,
 });
 export const markAttendance = z.object({ attendance: z.enum(ATTENDANCE) });
-export const createClientTag = z.object({ name: z.string().trim().min(1, "Give the tag a name.").max(40), color: hexColor.optional() });
+export const createClientTag = z.object({
+  name: z.string().trim().min(1, "Give the tag a name.").max(40),
+  color: hexColor.optional(),
+  /** Shown straight under the client's name on class lists (others are in “More”). */
+  pinned: z.boolean().optional(),
+});
 export const updateClientTag = createClientTag.partial();
 export const setClientTags = z.object({ tagIds: z.array(id).max(50) });
 export const updatePrivacy = z.object({ showInAttendeeList: z.boolean() });
+/** Personal settings that follow the person to every device. */
+export const updatePreferences = z.object({ theme: z.enum(THEMES) });
 export const clientSearch = z.object({ q: z.string().trim().max(100).optional() });
 export const markAllAttendance = z.object({
   attendance: z.enum(ATTENDANCE).exclude(["unmarked"]).default("present"),
@@ -246,12 +288,14 @@ export const joinWaitlist = z.object({
   mode: z.enum(WAITLIST_MODES),
   /** Must be one of the studio's three expiry options, or null to wait until class starts. */
   expiresHoursBeforeStart: z.number().int().min(0).nullable().default(null),
+  waiver: signWaiver.optional(),
 });
 
 // ---- Substitutes ------------------------------------------------------------
 export const createSubRequest = z.object({
   sessionId: id,
   reason: z.string().max(500).optional(),
+  /** Admins only. Instructors' requests go to the class's teaching list; the admin decides who covers. */
   invitedInstructorIds: z.array(id).max(200).optional(),
 });
 export const approveSub = z.object({ instructorId: id, acknowledge });

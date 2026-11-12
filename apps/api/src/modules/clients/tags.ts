@@ -72,7 +72,7 @@ export async function clientTagRoutes(app: FastifyInstance) {
       if (unique.length) await tx.insert(clientTagAssignments).values(unique.map((tagId) => ({ orgId: req.auth.orgId, clientId: id, tagId })));
       await audit(tx, { orgId: req.auth.orgId, actorId: req.auth.userId, action: "client.tags_set", entityType: "client", entityId: id, details: { tagIds: unique } });
       return tx
-        .select({ id: clientTags.id, name: clientTags.name, color: clientTags.color })
+        .select({ id: clientTags.id, name: clientTags.name, color: clientTags.color, pinned: clientTags.pinned })
         .from(clientTagAssignments)
         .innerJoin(clientTags, eq(clientTags.id, clientTagAssignments.tagId))
         .where(and(eq(clientTagAssignments.orgId, req.auth.orgId), eq(clientTagAssignments.clientId, id)))

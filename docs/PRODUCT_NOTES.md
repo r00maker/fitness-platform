@@ -26,19 +26,27 @@
 - **Room limits:** a class with more spots than its room holds is flagged.
 - **Reliable notifications** (transactional outbox with retries).
 
+## Waivers, health notes and cover: how they work
+
+- **Waivers** are on by default and can be switched off under Studio rules. Studio members sign in the app (tick and typed name) at their first booking or when joining a waitlist, and never again. No one can book or waitlist a studio member who hasn't signed, staff included: staff are asked to get them to sign in the app, or to mark a paper copy done first. So members never appear on a class list without one. ClassPass clients are checked at the studio: Front of House, admins or the class's instructor mark them done after a "have you checked?" confirmation. Anyone shown without a waiver gets that button (for example, after an admin undoes one). Only admins can undo a completed waiver, and the record is kept. When studios change their wording, existing signatures stay valid and each signature records the version signed.
+- **Health notes** (injuries, pregnancy, postnatal, recent surgery, medical conditions) are written by the client in plain English, either when booking or under "Injuries & conditions". The type is suggested from the wording on the device, so health details aren't sent to an outside service to be classified. The client can change the suggested type. Notes stay until resolved. When booking, a client is only asked "Still the same?" once a note is over 30 days old. Instructors see active notes for their own classes, and resolved notes drop off straight away. Clients can delete notes. Notes are never put in emails or push messages, and the audit log records that a note changed, never what it says.
+- **Class lists show what matters first:** no waiver (in red), health notes, first class and up to two pinned tags ("+N" for the rest). Everything else is behind a tap.
+- **Cover:** instructors can ask for cover but don't choose who covers. Their request goes to the class's teaching list and admins are told. Admins choose who to ask, approve offers or assign someone directly.
+- **Favourite instructor filter:** clients tap one chip to see only that instructor's classes.
+
 ## Suggested next features (roughly in priority order)
 
 1. **Pricing & payments** (on hold): memberships, class packs/credits, drop-ins, Stripe checkout. Refunds and fees are recorded today but no money moves until this exists. A weekly limit per membership type plugs in here.
 2. ~~Booking rules~~: built (booking window, optional weekly limit, late-cancel and no-show fees).
 3. **Closures & holidays**: block out dates so recurring classes skip them, with one action to cancel a whole day and notify everyone.
-4. **Spot / equipment selection**: reformer #3, bike #12, mat position. A big differentiator for pilates and cycling studios.
-5. **Instructor qualifications**: who can teach which class type. Cover requests then only go to people who can actually teach it.
+4. ~~Spot / equipment selection~~: built, and studios can switch it off.
+5. ~~Instructor qualifications~~: built as teaching lists.
 6. **Self check-in**: a QR code at the front desk or a tablet kiosk that marks attendance automatically.
 7. **Notification preferences**: per-person email/push choices, quiet hours, and a single digest when an admin bulk-changes many classes.
 8. **Calendar sync**: a private iCal feed so instructors and clients see their classes in Google/Apple Calendar.
 9. **Instructor pay**: rates per class or per head, plus a payroll export.
 10. **Reports**: fill rate, waitlist-to-booking conversion, no-show rate and popular time slots.
-11. **Waivers & intake forms** before a client's first class.
+11. ~~Waivers~~: built. **Intake forms** (longer health questionnaires) could build on health notes later.
 12. **Virtual/hybrid classes** with a livestream link sent only to booked clients.
 13. **Offline attendance** in the mobile app for studios with poor signal, syncing when back online.
 14. **Translations**: wording already lives in one file (`packages/shared/src/fields.ts`), ready to translate.

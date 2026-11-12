@@ -19,6 +19,7 @@ export interface CalendarQuery {
   timeOfDay?: TimeOfDay;
   q?: string;
   includeCancelled: boolean;
+  favouriteInstructor?: boolean;
 }
 
 const instructor = alias(users, "instructor");
@@ -46,6 +47,10 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
   // Instructors see only their own classes; Front of House and admins see everything.
   if (auth.role === "instructor") q = { ...q, instructorId: auth.userId };
   else if (!isClient && !can(auth.role, "viewFullSchedule")) q = { ...q, instructorId: auth.userId };
+  // Clients see a star on classes taught by their favourite instructor, and can filter to just those in one tap.
+  const favourite = isClient ? (await instructorHistory(db, auth.orgId, [auth.userId])).favourite.get(auth.userId) : undefined;
+  const favouriteOnly = isClient && q.favouriteInstructor;
+  if (favouriteOnly) q = { ...q, instructorId: favourite?.instructorId };
   const now = new Date();
 
   // Badges for staff: double-booked instructor or room (allowed, but worth seeing at a glance).
@@ -99,6 +104,8 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
         q.locationId ? eq(classSessions.locationId, q.locationId) : undefined,
         q.classTypeId ? eq(classSessions.classTypeId, q.classTypeId) : undefined,
         q.instructorId ? eq(classSessions.instructorId, q.instructorId) : undefined,
+        // Filtering by favourite but they don't have one yet: nothing matches.
+        favouriteOnly && !favourite ? sql`false` : undefined,
         search
           ? or(
               ilike(classTypes.name, search),
@@ -112,8 +119,6 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
     .orderBy(asc(classSessions.startsAt))
     .limit(2000);
 
-  // Clients see a star on classes taught by their favourite instructor.
-  const favourite = isClient ? (await instructorHistory(db, auth.orgId, [auth.userId])).favourite.get(auth.userId) : undefined;
 
   // Time of day is judged in each class's own local time (so it respects the daylight-saving setting).
   const visible = q.timeOfDay
@@ -128,6 +133,7 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
     view: q.view,
     timezone: tzName,
     daylightSaving: org.observesDaylightSaving,
+    ...(isClient ? { favouriteInstructorId: favourite?.instructorId ?? null, favouriteOnly } : {}),
     from: from.toISOString(),
     to: to.toISOString(),
     sessions: visible.map((r) => {

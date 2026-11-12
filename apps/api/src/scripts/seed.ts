@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { SignJWT } from "jose";
 import { loadConfig } from "../config.js";
 import { createDb } from "../db/client.js";
-import { classTemplates, classTypes, locations, memberships, organizations, rooms, users } from "../db/schema.js";
+import { classTemplates, classTypes, clientHealthNotes, clientTagAssignments, clientTags, clientWaivers, locations, memberships, organizations, rooms, users } from "../db/schema.js";
 import { createSeries } from "../modules/sessions/service.js";
 import { Flags } from "../lib/flags.js";
 
@@ -23,8 +23,13 @@ const mk = async (firstName: string, lastName: string, role: "owner" | "admin" |
 const owner = await mk("Olivia", "Owner", "owner");
 const ana = await mk("Ana", "Instructor", "instructor");
 const ben = await mk("Ben", "Instructor", "instructor");
-await mk("Chloe", "Client", "client");
-await mk("Dev", "Client", "client");
+const chloe = await mk("Chloe", "Client", "client");
+const dev = await mk("Dev", "Client", "client");
+// Chloe has signed the waiver; Dev hasn't yet and has a knee injury; Chloe is tagged VIP (shown up front).
+await db.insert(clientWaivers).values({ orgId: org!.id, clientId: chloe.id, method: "signed_by_client", signedName: "Chloe Client", waiverVersion: 1, recordedBy: chloe.id });
+await db.insert(clientHealthNotes).values({ orgId: org!.id, clientId: dev.id, category: "injury", description: "Sore right knee, avoiding deep lunges", createdBy: dev.id });
+const [vip] = await db.insert(clientTags).values({ orgId: org!.id, name: "VIP", color: "#b45309", pinned: true }).returning();
+await db.insert(clientTagAssignments).values({ orgId: org!.id, clientId: chloe.id, tagId: vip!.id });
 
 const [central] = await db.insert(locations).values({ orgId: org!.id, name: "Central", timezone: "Asia/Singapore" }).returning();
 const [studio1] = await db.insert(rooms).values({ orgId: org!.id, locationId: central!.id, name: "Studio 1", capacity: 20 }).returning();

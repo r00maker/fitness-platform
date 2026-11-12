@@ -29,9 +29,9 @@ describe("client details on class lists", () => {
 
   it("shows photo, spot, classes attended, first visit and tags", async () => {
     const { s, foh, mk } = await setup();
-    const tag = await s.owner.call("POST", "/client-tags", { name: "Injury: lower back", color: "#b42318" });
+    const tag = await s.owner.call("POST", "/client-tags", { name: "VIP", color: "#b42318" });
     expect(tag.status).toBe(201);
-    expect((await foh.call("PUT", `/clients/${s.c1.id}/tags`, { tagIds: [tag.body.id] })).body).toEqual([{ id: tag.body.id, name: "Injury: lower back", color: "#b42318" }]);
+    expect((await foh.call("PUT", `/clients/${s.c1.id}/tags`, { tagIds: [tag.body.id] })).body).toEqual([{ id: tag.body.id, name: "VIP", color: "#b42318", pinned: false }]);
     const c = await mk();
     await s.c1.call("POST", "/bookings", { sessionId: c, spot: 3 });
     await s.c2.call("POST", "/bookings", { sessionId: c });
@@ -39,7 +39,7 @@ describe("client details on class lists", () => {
     const roster = (await foh.call("GET", `/sessions/${c}`)).body.roster;
     const chloe = roster.find((r: { clientId: string }) => r.clientId === s.c1.id);
     const dev = roster.find((r: { clientId: string }) => r.clientId === s.c2.id);
-    expect(chloe).toMatchObject({ spot: 3, spotLabel: "Reformer 3", attendedCount: 0, firstVisit: true, tags: [{ name: "Injury: lower back" }], photoUrl: null, packageName: null });
+    expect(chloe).toMatchObject({ spot: 3, spotLabel: "Reformer 3", attendedCount: 0, firstVisit: true, tags: [{ name: "VIP" }], photoUrl: null, packageName: null });
     expect(dev).toMatchObject({ spot: 1, spotLabel: "Reformer 1", attendedCount: 1, firstVisit: false, tags: [] });
   });
 

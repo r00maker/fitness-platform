@@ -11,7 +11,12 @@ import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { canSeeRequest } from "../substitutes/service.js";
 import { getCalendar } from "./calendar.js";
-import { describeSession, getSession } from "./context.js";
+import { describeSession, getOrg, getSession } from "./context.js";
+import { waiverStatuses } from "../clients/waivers.js";
+import { activeHealthNotes } from "../clients/health.js";
+
+/** Pinned tags shown under a client's name; the rest are counted as "+N" and listed under More. */
+const MAX_UP_FRONT_TAGS = 2;
 import * as svc from "./service.js";
 
 const idParam = z.object({ id: schemas.id });
@@ -19,13 +24,6 @@ const idParam = z.object({ id: schemas.id });
 export async function sessionRoutes(app: FastifyInstance) {
   app.get("/calendar", async (req) => getCalendar(app.db, req.auth, parse(schemas.calendarQuery, req.query)));
 
-  /**
-   * Class detail. What's included depends on who's asking:
-   *  - Admin: everything, including client contact details.
-   *  - Front of House: everything except client contact details.
-   *  - Instructor: their own classes (with the client list), or a class they've been asked to cover (no client list).
-   *  - Client: class details plus their own booking or waitlist place.
-   */
   /** Who may open this class: everyone except instructors looking at other people's classes they weren't asked to cover. */
   async function visibleSession(auth: { role: string; userId: string; orgId: string }, id: string) {
     const s = await getSession(app.db, auth.orgId, id);
@@ -42,9 +40,13 @@ export async function sessionRoutes(app: FastifyInstance) {
 
   /**
    * Class detail. What's included depends on who's asking:
-   *  - Admin and Front of House: the full client list with contact details, photo, spot, tags and classes attended.
+   *  - Admin and Front of House: the full client list with contact details, photo, spot, tags,
+   *    classes attended, waiver status and health notes.
    *  - Instructor: the same for their own classes; a class they've been asked to cover shows no client list.
    *  - Client: class details plus their own booking or waitlist place (who else is coming is under /attendees).
+   *
+   * Each client row has `upFront`: the few things worth seeing at a glance, most important first
+   * (no waiver, health notes, first class, pinned tags). Everything else is for the expandable "More".
    */
   app.get("/sessions/:id", async (req) => {
     const { id } = parse(idParam, req.params);
@@ -54,7 +56,8 @@ export async function sessionRoutes(app: FastifyInstance) {
     const isClient = role === "client";
     const fullRoster = can(role, "viewAllRosters") || ownClass;
     const contacts = can(role, "viewClientContacts") || ownClass;
-    const labels = await spotLabels(app.db, s.roomId);
+    const labels = await spotLabels(app.db, s);
+    const org = await getOrg(app.db, orgId);
 
     const rows = isClient || fullRoster
       ? await app.db
@@ -69,9 +72,17 @@ export async function sessionRoutes(app: FastifyInstance) {
           .orderBy(asc(bookings.spot), asc(users.firstName))
       : [];
     const ids = rows.map((r) => r.clientId);
-    const [attended, tags, history] = fullRoster
-      ? await Promise.all([attendedCounts(app.db, orgId, ids), tagsFor(app.db, orgId, ids), instructorHistory(app.db, orgId, ids)])
-      : [new Map(), new Map(), { withInstructor: new Map(), favourite: new Map() }];
+    // Extra client details are only loaded for staff who can see the whole list (the helpers skip empty lists).
+    const staffIds = fullRoster ? ids : [];
+    const [attended, tags, history, waivers, health] = await Promise.all([
+      attendedCounts(app.db, orgId, staffIds),
+      tagsFor(app.db, orgId, staffIds),
+      instructorHistory(app.db, orgId, staffIds),
+      waiverStatuses(app.db, org, staffIds),
+      activeHealthNotes(app.db, orgId, staffIds),
+    ]);
+    // Anyone shown without a waiver gets a "Mark waiver done" button for staff (studio members can't be booked without one).
+    const canMarkWaiver = can(role, "confirmWaivers");
     const person = async (uid: string | null) => {
       if (!uid) return null;
       const [u] = await app.db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, photoUrl: users.photoUrl }).from(users).where(eq(users.id, uid));
@@ -91,20 +102,37 @@ export async function sessionRoutes(app: FastifyInstance) {
       ...info,
       notes: isClient ? undefined : s.notes,
       spotSelection: !!labels,
+      waiverRequired: org.waiverRequired,
       instructor: await person(s.instructorId),
       cover: s.coverForInstructorId ? { forInstructor: await person(s.coverForInstructorId) } : null,
       booked: fullRoster ? rows.filter((r) => r.status === "confirmed").length : undefined,
-      roster: rows.map(({ email, phone, ...r }) => {
+      roster: rows.map(({ email, phone, spot, ...r }) => {
         const n = attended.get(r.clientId) ?? 0;
+        const clientTags: { id: string; name: string; color: string; pinned: boolean }[] = tags.get(r.clientId) ?? [];
+        const waiver = waivers.get(r.clientId);
+        const notes = health.get(r.clientId) ?? [];
+        const pinned = clientTags.filter((t) => t.pinned);
         return {
           ...r,
-          spotLabel: r.spot && labels ? labels[r.spot - 1] : null,
+          // No spot selection (room or studio setting): spot details are left out entirely.
+          ...(labels ? { spot, spotLabel: spot ? labels[spot - 1] : null } : {}),
           ...(contacts ? { email, phone } : {}),
           ...(fullRoster
             ? {
+                upFront: [
+                  ...(waiver?.status === "missing" ? [{ kind: "waiver_missing", text: "No waiver" }] : []),
+                  ...notes.map((h) => ({ kind: "health", text: h.label })),
+                  ...(n === 0 ? [{ kind: "first_class", text: "First class" }] : []),
+                  ...pinned.slice(0, MAX_UP_FRONT_TAGS).map((t) => ({ kind: "tag", text: t.name, color: t.color })),
+                ],
+                moreTags: Math.max(0, pinned.length - MAX_UP_FRONT_TAGS) + clientTags.filter((t) => !t.pinned).length,
+                waiver: waiver
+                  ? { ...waiver, canMarkDone: waiver.status === "missing" && canMarkWaiver, canUndo: waiver.status === "complete" && can(role, "reverseWaivers") }
+                  : null,
+                healthNotes: notes,
                 attendedCount: n,
                 firstVisit: n === 0,
-                tags: tags.get(r.clientId) ?? [],
+                tags: clientTags,
                 packageName: null /* filled in by the payments module */,
                 // For the instructor: how often this client comes to their classes, and whether they're the favourite.
                 classesWithInstructor: s.instructorId ? (history.withInstructor.get(r.clientId)?.get(s.instructorId) ?? 0) : 0,
@@ -133,7 +161,7 @@ export async function sessionRoutes(app: FastifyInstance) {
       const [m] = await app.db.select({ source: memberships.source }).from(memberships).where(and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)));
       viewerIsMember = m?.source === "direct";
     }
-    const labels = await spotLabels(app.db, s.roomId);
+    const labels = await spotLabels(app.db, s);
     const rows = await app.db
       .select({ clientId: bookings.clientId, spot: bookings.spot, firstName: users.firstName, lastName: users.lastName, photoUrl: users.photoUrl, source: memberships.source, visible: memberships.showInAttendeeList })
       .from(bookings)

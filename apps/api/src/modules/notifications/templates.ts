@@ -104,6 +104,12 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: "Can you cover a class?",
     pushBody: `${when(d)} needs an instructor.`,
   }),
+  "sub.request_made": (d) => ({
+    subject: `Cover requested: ${when(d)}`,
+    body: `${s(d.requesterName)} has asked for ${when(d)} at ${s(d.locationName)} to be covered.${d.reason ? ` Note: ${s(d.reason)}.` : ""} It's gone to the class's teaching list. Open the app to choose who covers or assign someone directly.`,
+    pushTitle: "Cover requested",
+    pushBody: `${s(d.requesterName)} needs cover for ${when(d)}.`,
+  }),
   "sub.awaiting_approval": (d) => ({
     subject: `Cover offered: ${when(d)}`,
     body: `${s(d.instructorName)} has offered to cover ${when(d)}. Open the app to approve.`,

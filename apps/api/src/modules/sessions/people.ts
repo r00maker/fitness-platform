@@ -2,7 +2,7 @@
  * Extra client information shown on class lists, loaded in a few grouped
  * queries rather than one per client.
  */
-import { and, count, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { FAVOURITE_INSTRUCTOR_MIN_CLASSES } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
 import { bookings, classSessions, clientTagAssignments, clientTags } from "../../db/schema.js";
@@ -18,14 +18,14 @@ export async function attendedCounts(db: DbOrTx, orgId: string, clientIds: strin
 }
 
 export async function tagsFor(db: DbOrTx, orgId: string, clientIds: string[]) {
-  const out = new Map<string, { id: string; name: string; color: string }[]>();
+  const out = new Map<string, { id: string; name: string; color: string; pinned: boolean }[]>();
   if (!clientIds.length) return out;
   const rows = await db
-    .select({ clientId: clientTagAssignments.clientId, id: clientTags.id, name: clientTags.name, color: clientTags.color })
+    .select({ clientId: clientTagAssignments.clientId, id: clientTags.id, name: clientTags.name, color: clientTags.color, pinned: clientTags.pinned })
     .from(clientTagAssignments)
     .innerJoin(clientTags, eq(clientTags.id, clientTagAssignments.tagId))
     .where(and(eq(clientTagAssignments.orgId, orgId), inArray(clientTagAssignments.clientId, clientIds)))
-    .orderBy(clientTags.name);
+    .orderBy(desc(clientTags.pinned), clientTags.name);
   for (const { clientId, ...t } of rows) out.set(clientId, [...(out.get(clientId) ?? []), t]);
   return out;
 }

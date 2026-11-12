@@ -1,7 +1,9 @@
 /**
  * Substitute (cover) requests.
- *  - Instructors can ask for cover on their own classes; admins on any class.
- *  - Invited instructors (or everyone who teaches, if none chosen) get email + push.
+ *  - Instructors can ask for cover on their own classes, but don't choose who covers:
+ *    their request goes to the class's teaching list (set by admins) and admins are told.
+ *  - Admins can ask for cover on any class and choose exactly who is asked, or assign someone directly.
+ *  - Invited instructors (or everyone who teaches, if there's no list) get email + push.
  *  - "Automatic" studios: the first instructor to accept gets the class.
  *    "Manual" studios: acceptances are collected and an admin picks one.
  */
@@ -43,6 +45,9 @@ export async function createSubRequest(tx: DbOrTx, auth: AuthContext, input: { s
     throw forbidden("You can only ask for cover on classes you teach.");
   }
   if (s.status !== "scheduled" || s.startsAt <= now) throw conflict("class_not_upcoming", "Cover can only be requested for upcoming classes.");
+  if (input.invitedInstructorIds?.length && !isManager(auth)) {
+    throw forbidden("Your studio's admin arranges who covers. Just send the request and you'll be told once it's sorted.");
+  }
 
   const org = await getOrg(tx, auth.orgId);
   const instructors = new Set(await staffIds(tx, auth.orgId, ["owner", "admin", "instructor"]));
@@ -66,12 +71,22 @@ export async function createSubRequest(tx: DbOrTx, auth: AuthContext, input: { s
   if (!r) throw conflict("already_requested", "Cover has already been requested for this class.");
 
   const info = await describeSession(tx, s);
+  const requesterName = await userName(tx, auth.userId);
   await notify(tx, {
     orgId: auth.orgId,
     userIds: await invitees(tx, r),
     template: "sub.requested",
-    data: { ...info, requestId: r.id, reason: input.reason, requesterName: await userName(tx, auth.userId) },
+    data: { ...info, requestId: r.id, reason: input.reason, requesterName },
   });
+  // Admins hear about every request an instructor makes, so they can step in and choose.
+  if (!isManager(auth)) {
+    await notify(tx, {
+      orgId: auth.orgId,
+      userIds: await staffIds(tx, auth.orgId, ["owner", "admin"]),
+      template: "sub.request_made",
+      data: { ...info, requestId: r.id, reason: input.reason, requesterName },
+    });
+  }
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "sub.requested", entityType: "substitute_request", entityId: r.id });
   return r;
 }
@@ -180,13 +195,13 @@ export async function teachingList(db: DbOrTx, classTypeId: string): Promise<str
 }
 
 /**
- * Who could cover a class, for the "Ask for cover" screen: every other instructor,
+ * Who could cover a class, for the admin's "Arrange cover" screen: every other instructor,
  * marked if they're on the class's teaching list and if they're busy at that time.
  * `suggested` is the default selection (listed and free, or everyone free if there's no list).
  */
 export async function coverOptions(db: DbOrTx, auth: AuthContext, sessionId: string) {
+  if (!isManager(auth)) throw forbidden("Your studio's admin arranges who covers.");
   const s = await getSession(db, auth.orgId, sessionId);
-  if (!isManager(auth) && !(auth.role === "instructor" && s.instructorId === auth.userId)) throw forbidden("You can only ask for cover on classes you teach.");
   const ids = (await staffIds(db, auth.orgId, ["instructor"])).filter((id) => id !== s.instructorId);
   const list = new Set(await teachingList(db, s.classTypeId));
   const options = [];
