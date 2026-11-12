@@ -438,6 +438,8 @@ export const updatePackagePlan = z.object({
 export const packageCategory = z.object({ name: z.string().trim().min(1, "Give the category a name.").max(60), description: z.string().trim().max(300).nullish() });
 export const updatePackageCategory = packageCategory.partial();
 export const reorderCategories = z.object({ ids: z.array(id).min(1).max(100) });
+/** The packages in a category, in the order clients see them. Packages left out move to "No category". */
+export const categoryPackages = z.object({ planIds: z.array(id).max(200).refine((a) => new Set(a).size === a.length, "Each package can only be listed once.") });
 /** Deleting a package type wipes it and every package sold from it. The name must be typed to confirm. */
 export const deletePackagePlan = z.object({ confirmName: z.string().trim().min(1, "Type the package's name to confirm.") });
 export const deleteClientPackage = z.object({ confirmName: z.string().trim().min(1, "Type the package's name to confirm.") });

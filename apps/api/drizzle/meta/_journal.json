@@ -78,6 +78,13 @@
       "when": 1794496312192,
       "tag": "0010_drop_single_pay_rate_class_type",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794500644490,
+      "tag": "0011_package_order_in_category",
+      "breakpoints": true
     }
   ]
 }

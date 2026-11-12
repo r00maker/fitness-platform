@@ -1,0 +1,1 @@
+ALTER TABLE "package_plans" ADD COLUMN "sort_order" integer DEFAULT 0 NOT NULL;

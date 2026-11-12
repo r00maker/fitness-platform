@@ -21,6 +21,7 @@ import {
   memberships,
   orders,
   organizations,
+  packageCategories,
   packageExtensionRequests,
   packageLedger,
   packagePlans,
@@ -535,6 +536,35 @@ type PlanChanges = Partial<{
 /** Fields that belong to the package type itself (what's on sale), never copied onto sold packages. */
 const PLAN_ONLY = ["description", "photoFileId", "categoryId", "priceCents", "onSale", "commitmentCycles", "earlyCancelFeeMode", "earlyCancelFeeCents"] as const;
 
+/** The next position at the end of a category (or of "No category"). */
+export async function endOfCategory(tx: DbOrTx, orgId: string, categoryId: string | null) {
+  const [r] = await tx
+    .select({ m: max(packagePlans.sortOrder) })
+    .from(packagePlans)
+    .where(and(eq(packagePlans.orgId, orgId), categoryId ? eq(packagePlans.categoryId, categoryId) : isNull(packagePlans.categoryId)));
+  return r?.m === null || r?.m === undefined ? 0 : r.m + 1;
+}
+
+/**
+ * Set which packages are in a category and their order. Listed packages move here (from wherever
+ * they were); packages that were here but aren't listed move to "No category".
+ */
+export async function setCategoryPackages(tx: DbOrTx, auth: AuthContext, categoryId: string, planIds: string[]) {
+  if (!isManager(auth)) throw forbidden();
+  const [cat] = await tx.select().from(packageCategories).where(and(eq(packageCategories.id, categoryId), eq(packageCategories.orgId, auth.orgId))).for("update");
+  if (!cat) throw notFound("category");
+  if (planIds.length) {
+    const found = await tx.select({ id: packagePlans.id }).from(packagePlans).where(and(eq(packagePlans.orgId, auth.orgId), inArray(packagePlans.id, planIds)));
+    if (found.length !== planIds.length) throw notFound("package type");
+  }
+  const leaving = (await tx.select({ id: packagePlans.id }).from(packagePlans).where(and(eq(packagePlans.orgId, auth.orgId), eq(packagePlans.categoryId, categoryId)))).filter((p) => !planIds.includes(p.id));
+  let next = await endOfCategory(tx, auth.orgId, null);
+  for (const p of leaving) await tx.update(packagePlans).set({ categoryId: null, sortOrder: next++ }).where(eq(packagePlans.id, p.id));
+  for (const [i, pid] of planIds.entries()) await tx.update(packagePlans).set({ categoryId, sortOrder: i }).where(eq(packagePlans.id, pid));
+  await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "package_category.packages_set", entityType: "package_category", entityId: categoryId, details: { planIds, removed: leaving.map((p) => p.id) } });
+  return { category: cat, moved: planIds.length, removed: leaving.length };
+}
+
 export async function updatePlan(tx: DbOrTx, auth: AuthContext, id: string, input: { changes: PlanChanges; applyTo: PlanEditScope; notifyClients: boolean }, flags: Flags, now = new Date()) {
   if (!isManager(auth)) throw forbidden();
   const org = await getOrg(tx, auth.orgId);
@@ -608,7 +638,9 @@ export async function updatePlan(tx: DbOrTx, auth: AuthContext, id: string, inpu
 
   let updatedPlan = plan;
   if (input.applyTo !== "existing") {
-    const [u] = await tx.update(packagePlans).set(c).where(eq(packagePlans.id, plan.id)).returning();
+    const moving = c.categoryId !== undefined && (c.categoryId ?? null) !== plan.categoryId;
+    const sortOrder = moving ? await endOfCategory(tx, auth.orgId, c.categoryId ?? null) : undefined;
+    const [u] = await tx.update(packagePlans).set({ ...c, ...(moving ? { sortOrder } : {}) }).where(eq(packagePlans.id, plan.id)).returning();
     updatedPlan = u!;
   }
   for (const [pid, u] of updates) {

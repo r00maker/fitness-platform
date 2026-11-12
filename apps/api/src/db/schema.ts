@@ -305,6 +305,8 @@ export const packagePlans = pgTable("package_plans", {
   description: text("description"),
   photoFileId: uuid("photo_file_id").references(() => files.id, { onDelete: "set null" }),
   categoryId: uuid("category_id").references(() => packageCategories.id, { onDelete: "set null" }),
+  /** Position within its category on the buying page. */
+  sortOrder: integer("sort_order").notNull().default(0),
   billing: packageBillingEnum("billing").notNull().default("one_time"),
   rolloverCap: integer("rollover_cap"),
   commitmentCycles: integer("commitment_cycles"),

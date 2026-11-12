@@ -73,6 +73,43 @@ describe("photos, descriptions and categories", () => {
     await s.owner.call("DELETE", `/package-categories/${packs.id}`);
     expect((await s.c1.call("GET", "/package-plans")).body.categories.map((c: { name: string }) => c.name)).toEqual(["Memberships", "Other"]);
   });
+
+  it("keeps a category's description and lets admins choose its packages and their order in one place", async () => {
+    const { s, plan } = await setup();
+    const packs = (await s.owner.call("POST", "/package-categories", { name: "Class packs", description: "Use them when it suits you." })).body;
+    const intro = (await s.owner.call("POST", "/package-categories", { name: "Intro offers" })).body;
+    expect(packs.description).toBe("Use them when it suits you.");
+    const ten = await plan({ name: "10-class pack", categoryId: packs.id });
+    const five = await plan({ name: "5-class pack", priceCents: 15000, categoryId: packs.id });
+    const trial = await plan({ name: "Trial class", credits: 1, priceCents: 2000, categoryId: intro.id });
+    const loose = await plan({ name: "Drop-in", credits: 1, priceCents: 3500 });
+
+    // Admins see each category's packages; new packages go to the end of their category.
+    const cats = (await s.owner.call("GET", "/package-categories")).body;
+    expect(cats[0]).toMatchObject({ name: "Class packs", description: "Use them when it suits you.", packages: [{ name: "10-class pack" }, { name: "5-class pack" }] });
+    expect((await s.c1.call("GET", "/package-categories")).body[0].packages).toBeUndefined();
+
+    // Reorder, pull the trial class in from another category, and take the 10-class pack out.
+    const r = await s.owner.call("PUT", `/package-categories/${packs.id}/packages`, { planIds: [trial.id, loose.id, five.id] });
+    expect(r.body).toMatchObject({ moved: 3, removed: 1 });
+    const page = (await s.c1.call("GET", "/package-plans")).body.categories;
+    expect(page.map((c: { name: string; packages: { name: string }[] }) => `${c.name}: ${c.packages.map((p) => p.name).join(", ")}`)).toEqual([
+      "Class packs: Trial class, Drop-in, 5-class pack",
+      "Other: 10-class pack",
+    ]);
+    expect(page[0].description).toBe("Use them when it suits you.");
+
+    // Descriptions can be changed or cleared.
+    expect((await s.owner.call("PATCH", `/package-categories/${packs.id}`, { description: null })).body.description).toBeNull();
+
+    // Only admins, only their own packages, each listed once.
+    expect((await s.c1.call("PUT", `/package-categories/${packs.id}/packages`, { planIds: [] })).status).toBe(403);
+    expect((await s.owner.call("PUT", `/package-categories/${packs.id}/packages`, { planIds: [five.id, five.id] })).status).toBe(400);
+    expect((await s.owner.call("PUT", `/package-categories/${packs.id}/packages`, { planIds: ["00000000-0000-4000-8000-000000000000"] })).status).toBe(404);
+    // Moving a package into a category by editing it puts it at the end.
+    await s.owner.call("PATCH", `/package-plans/${ten.id}`, { changes: { categoryId: packs.id }, applyTo: "new" });
+    expect((await s.owner.call("GET", "/package-categories")).body[0].packages.map((p: { name: string }) => p.name)).toEqual(["Trial class", "Drop-in", "5-class pack", "10-class pack"]);
+  });
 });
 
 describe("package history", () => {

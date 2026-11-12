@@ -53,7 +53,18 @@ export async function packageRoutes(app: FastifyInstance) {
   }
 
   // --- Categories -------------------------------------------------------------------
-  app.get("/package-categories", async (req) => db.select().from(packageCategories).where(eq(packageCategories.orgId, req.auth.orgId)).orderBy(asc(packageCategories.sortOrder), asc(packageCategories.name)));
+  /** Categories in order. Admins also get each category's packages (archived ones flagged), for managing them in one place. */
+  app.get("/package-categories", async (req) => {
+    const cats = await db.select().from(packageCategories).where(eq(packageCategories.orgId, req.auth.orgId)).orderBy(asc(packageCategories.sortOrder), asc(packageCategories.name));
+    if (!can(req.auth.role, "managePackages")) return cats;
+    const plans = await db
+      .select({ id: packagePlans.id, name: packagePlans.name, categoryId: packagePlans.categoryId, onSale: packagePlans.onSale, archivedAt: packagePlans.archivedAt })
+      .from(packagePlans)
+      .where(eq(packagePlans.orgId, req.auth.orgId))
+      .orderBy(asc(packagePlans.sortOrder), asc(packagePlans.priceCents));
+    const view = (p: (typeof plans)[number]) => ({ id: p.id, name: p.name, onSale: p.onSale, archived: !!p.archivedAt });
+    return cats.map((c) => ({ ...c, packages: plans.filter((p) => p.categoryId === c.id).map(view) }));
+  });
   app.post("/package-categories", async (req, reply) => {
     requirePermission(req, "managePackages");
     const input = parse(schemas.packageCategory, req.body);
@@ -77,6 +88,13 @@ export async function packageRoutes(app: FastifyInstance) {
     if (!c) throw notFound("category");
     return reply.code(204).send();
   });
+  /** Choose a category's packages and their order straight from the categories window. */
+  app.put("/package-categories/:id/packages", async (req) => {
+    requirePermission(req, "managePackages");
+    const { id } = parse(idParam, req.params);
+    const { planIds } = parse(schemas.categoryPackages, req.body);
+    return inTx(app, (tx) => life.setCategoryPackages(tx, req.auth, id, planIds));
+  });
   app.put("/package-categories/order", async (req) => {
     requirePermission(req, "managePackages");
     const { ids } = parse(schemas.reorderCategories, req.body);
@@ -98,7 +116,7 @@ export async function packageRoutes(app: FastifyInstance) {
       .select()
       .from(packagePlans)
       .where(and(eq(packagePlans.orgId, req.auth.orgId), admin ? (archived ? isNotNull(packagePlans.archivedAt) : isNull(packagePlans.archivedAt)) : and(eq(packagePlans.onSale, true), isNull(packagePlans.archivedAt))))
-      .orderBy(asc(packagePlans.priceCents));
+      .orderBy(asc(packagePlans.sortOrder), asc(packagePlans.priceCents));
     const plans = await presentPlans(req.auth.orgId, rows, admin);
     if (admin) return plans;
     const cats = await db.select().from(packageCategories).where(eq(packageCategories.orgId, req.auth.orgId)).orderBy(asc(packageCategories.sortOrder));
@@ -111,7 +129,8 @@ export async function packageRoutes(app: FastifyInstance) {
     requirePermission(req, "managePackages");
     const input = parse(schemas.packagePlan, req.body);
     await checkRefs(req.auth.orgId, input);
-    const [plan] = await db.insert(packagePlans).values({ ...input, orgId: req.auth.orgId }).returning();
+    const sortOrder = await life.endOfCategory(db, req.auth.orgId, input.categoryId ?? null);
+    const [plan] = await db.insert(packagePlans).values({ ...input, orgId: req.auth.orgId, sortOrder }).returning();
     reply.code(201);
     return (await presentPlans(req.auth.orgId, [plan!], true))[0];
   });
