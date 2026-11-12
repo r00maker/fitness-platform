@@ -50,6 +50,10 @@ export const PERMISSIONS = {
   reverseWaivers: ["owner", "admin"],
   /** Add or resolve a health note on a client's behalf (clients manage their own). */
   manageHealthNotes: ["owner", "admin", "front_desk"],
+  /** Set up package types, sell packages to clients, and adjust or cancel them. */
+  managePackages: ["owner", "admin"],
+  /** Pay rates, adjustments, pay reports and marking pay as paid. */
+  managePayroll: ["owner", "admin"],
 } as const satisfies Record<string, readonly Role[]>;
 export type Permission = keyof typeof PERMISSIONS;
 export const can = (role: Role, permission: Permission): boolean => (PERMISSIONS[permission] as readonly Role[]).includes(role);
@@ -105,11 +109,101 @@ export type HealthNoteStatus = (typeof HEALTH_NOTE_STATUSES)[number];
 export const HEALTH_NOTE_REVIEW_DAYS = 30;
 export const HEALTH_NOTE_MAX_LENGTH = 280;
 
+// ---- Packages ----------------------------------------------------------------
+/** "credits": a number of classes (e.g. a 10-class pack). "unlimited": any number of classes while it's valid. */
+export const PACKAGE_KINDS = ["credits", "unlimited"] as const;
+export type PackageKind = (typeof PACKAGE_KINDS)[number];
+export const VALIDITY_UNITS = ["days", "weeks", "months"] as const;
+export type ValidityUnit = (typeof VALIDITY_UNITS)[number];
+/** When the validity countdown starts: when it's bought, or when its first class is booked. */
+export const PACKAGE_STARTS = ["purchase", "first_booking"] as const;
+export type PackageStart = (typeof PACKAGE_STARTS)[number];
+/** Shared packages: everyone draws from one pool, or each person has their own share of the credits. */
+export const SHARING_MODES = ["pool", "allocated"] as const;
+export type SharingMode = (typeof SHARING_MODES)[number];
+/** Worked out when needed, never stored, so a package can't be "stuck" in the wrong state. */
+export const PACKAGE_STATES = ["not_started", "active", "used_up", "expired", "cancelled"] as const;
+export type PackageState = (typeof PACKAGE_STATES)[number];
+/**
+ * Everything that happens to a package, so its history reads as a clear timeline.
+ * Credit changes carry a number; other events (activation, extensions…) carry 0.
+ */
+export const PACKAGE_LEDGER_REASONS = [
+  "purchase",
+  "booked",
+  "returned",
+  "refunded",
+  "adjusted",
+  "activated",
+  "extended",
+  "expiry_changed",
+  "rolled_over",
+  "renewed",
+  "cancelled",
+  "plan_updated",
+] as const;
+export type PackageLedgerReason = (typeof PACKAGE_LEDGER_REASONS)[number];
+/** How a booking is paid for. "pay_later" = settled at the studio (or once payments are switched on). */
+export const BOOKING_PAYMENTS = ["package", "complimentary", "pay_later"] as const;
+export type BookingPayment = (typeof BOOKING_PAYMENTS)[number];
+export const MAX_PACKAGE_SHARERS = 10;
+/** One-time: bought once. Recurring: a membership that renews every period until it's cancelled. */
+export const PACKAGE_BILLING = ["one_time", "recurring"] as const;
+export type PackageBilling = (typeof PACKAGE_BILLING)[number];
+/**
+ * Leaving a membership before its minimum term: not allowed (it runs to the end of the term),
+ * a set fee, or the rest of the minimum term charged.
+ */
+export const EARLY_CANCEL_FEE_MODES = ["none", "flat", "remaining"] as const;
+export type EarlyCancelFeeMode = (typeof EARLY_CANCEL_FEE_MODES)[number];
+/** Package type edits: which packages they change. */
+export const PLAN_EDIT_SCOPES = ["new", "existing", "both"] as const;
+export type PlanEditScope = (typeof PLAN_EDIT_SCOPES)[number];
+
+/** How a studio handles clients asking for more time on a package. */
+export const EXTENSION_MODES = ["off", "review", "auto"] as const;
+export type ExtensionMode = (typeof EXTENSION_MODES)[number];
+export const EXTENSION_ATTACHMENT = ["off", "optional", "required"] as const;
+export const EXTENSION_FEE_MODES = ["free", "flat", "per_week"] as const;
+export type ExtensionFeeMode = (typeof EXTENSION_FEE_MODES)[number];
+export const EXTENSION_STATUSES = ["pending", "approved", "declined", "withdrawn"] as const;
+export type ExtensionStatus = (typeof EXTENSION_STATUSES)[number];
+/** Moving unused classes from one package to a new one: off, staff only, or clients too when they buy. */
+export const ROLLOVER_MODES = ["off", "staff", "clients"] as const;
+export type RolloverMode = (typeof ROLLOVER_MODES)[number];
+
+/** Uploaded files: package photos (visible to the studio's members) and extension attachments (private). */
+export const FILE_PURPOSES = ["package_photo", "extension_attachment"] as const;
+export type FilePurpose = (typeof FILE_PURPOSES)[number];
+export const FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"] as const;
+export const MAX_FILE_BYTES = { package_photo: 2 * 1024 * 1024, extension_attachment: 5 * 1024 * 1024 } as const;
+
+export const ORDER_STATUSES = ["pending", "paid", "cancelled"] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+/** A package type nobody's using and that hasn't sold for this long is suggested for archiving. */
+export const ARCHIVE_SUGGEST_AFTER_DAYS = 180;
+
+// ---- Payroll -----------------------------------------------------------------
+/**
+ * per_class: a flat amount for each class taught.
+ * per_client: an optional base, plus an amount for each client (optionally after the first few), with an optional minimum.
+ * tiered: a set amount depending on how many clients came.
+ * hourly: an hourly rate, paid on the class's length.
+ * salary: a fixed amount each pay period (front desk, managers, salaried instructors).
+ */
+export const PAY_RATE_TYPES = ["per_class", "per_client", "tiered", "hourly", "salary"] as const;
+export type PayRateType = (typeof PAY_RATE_TYPES)[number];
+export const PAY_PERIODS = ["weekly", "fortnightly", "twice_monthly", "monthly"] as const;
+export type PayPeriod = (typeof PAY_PERIODS)[number];
+/** Who counts towards per-client and tiered pay: clients who attended, or everyone booked (no-shows included). */
+export const PAY_HEADCOUNTS = ["attended", "booked"] as const;
+export type PayHeadcount = (typeof PAY_HEADCOUNTS)[number];
+
 /** Light or dark colours. "system" follows the phone or computer's own setting. */
 export const THEMES = ["system", "light", "dark"] as const;
 export type Theme = (typeof THEMES)[number];
 
-export const FEE_TYPES = ["late_cancel", "no_show"] as const;
+export const FEE_TYPES = ["late_cancel", "no_show", "package_extension", "early_cancellation"] as const;
 export type FeeType = (typeof FEE_TYPES)[number];
 /** pending = recorded, to be collected once payments are connected. */
 export const FEE_STATUSES = ["pending", "waived", "charged"] as const;
@@ -179,6 +273,13 @@ export const FLAG_CODES = [
   // Waivers
   "waiver_missing",
   "confirm_waiver_complete",
+  // Packages and payroll
+  "no_package",
+  "package_expired",
+  "pay_already_marked_paid",
+  "period_not_over",
+  "existing_packages_affected",
+  "packages_would_expire",
 ] as const;
 export type FlagCode = (typeof FLAG_CODES)[number];
 export type FlagSeverity = "confirm" | "info";

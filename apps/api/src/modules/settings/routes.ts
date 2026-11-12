@@ -68,6 +68,7 @@ export async function settingsRoutes(app: FastifyInstance) {
       noShowFee: org.noShowFeeEnabled ? money(org.noShowFeeCents, org.currency) : null,
       waiverRequired: org.waiverRequired,
       spotBookingEnabled: org.spotBookingEnabled,
+      clientsNeedPackage: org.clientsNeedPackage,
     };
   });
 

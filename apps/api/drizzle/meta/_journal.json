@@ -50,6 +50,41 @@
       "when": 1794418377280,
       "tag": "0006_user_theme_preference",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794480526833,
+      "tag": "0007_packages_and_payroll",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794483718535,
+      "tag": "0008_extensions_checkout_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794496303885,
+      "tag": "0009_early_cancel_and_pay_rate_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794496312192,
+      "tag": "0010_drop_single_pay_rate_class_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794500644490,
+      "tag": "0011_package_order_in_category",
+      "breakpoints": true
     }
   ]
 }

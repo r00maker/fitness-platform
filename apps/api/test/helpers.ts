@@ -35,11 +35,11 @@ export function caller(token: string) {
 }
 
 /** A studio with an owner, two instructors, three clients, a location, room and class type. */
-export async function studio(opts: { substituteApproval?: "automatic" | "manual"; waiverRequired?: boolean } = {}) {
+export async function studio(opts: { substituteApproval?: "automatic" | "manual"; waiverRequired?: boolean; clientsNeedPackage?: boolean } = {}) {
   // Waivers are on by default for real studios; most tests aren't about them, so they're off unless asked for.
   const [org] = await db
     .insert(organizations)
-    .values({ name: "Test Studio", timezone: "Asia/Singapore", substituteApproval: opts.substituteApproval ?? "manual", waiverRequired: opts.waiverRequired ?? false })
+    .values({ name: "Test Studio", timezone: "Asia/Singapore", substituteApproval: opts.substituteApproval ?? "manual", waiverRequired: opts.waiverRequired ?? false, clientsNeedPackage: opts.clientsNeedPackage ?? false })
     .returning();
   const orgId = org!.id;
   const [loc] = await db.insert(locations).values({ orgId, name: "Central", timezone: "Asia/Singapore" }).returning();

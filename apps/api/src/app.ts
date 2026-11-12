@@ -12,6 +12,10 @@ import { clientRoutes } from "./modules/clients/routes.js";
 import { clientTagRoutes } from "./modules/clients/tags.js";
 import { healthNoteRoutes } from "./modules/clients/health.js";
 import { waiverRoutes } from "./modules/clients/waivers.js";
+import { packageRoutes } from "./modules/packages/routes.js";
+import { payrollRoutes } from "./modules/payroll/routes.js";
+import { fileRoutes } from "./modules/files/routes.js";
+import { checkoutRoutes } from "./modules/checkout/routes.js";
 import { sessionRoutes } from "./modules/sessions/routes.js";
 import { settingsRoutes } from "./modules/settings/routes.js";
 import { substituteRoutes } from "./modules/substitutes/routes.js";
@@ -77,6 +81,10 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(clientTagRoutes);
       await v1.register(waiverRoutes);
       await v1.register(healthNoteRoutes);
+      await v1.register(packageRoutes);
+      await v1.register(payrollRoutes);
+      await v1.register(fileRoutes);
+      await v1.register(checkoutRoutes);
     },
     { prefix: "/v1" },
   );

@@ -33,8 +33,7 @@ export async function bookingRoutes(app: FastifyInstance) {
     const { id } = parse(idParam, req.params);
     const input = parse(schemas.refundBooking, req.body);
     return withFlags(app, input.acknowledge, async (tx, flags) => {
-      await svc.refundBooking(tx, req.auth, id, input, flags);
-      return { refunded: true };
+      return { refunded: true, ...(await svc.refundBooking(tx, req.auth, id, input, flags)) };
     });
   });
 
