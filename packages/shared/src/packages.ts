@@ -2,7 +2,7 @@
  * Package terms in plain English, so the admin setting one up, the client buying
  * one and staff selling one all read exactly the same description.
  */
-import type { PackageBilling, PackageKind, PackageStart, SharingMode, ValidityUnit } from "./enums.js";
+import type { EarlyCancelFeeMode, PackageBilling, PackageKind, PackageStart, SharingMode, ValidityUnit } from "./enums.js";
 
 export interface PackageTerms {
   kind: PackageKind;
@@ -19,6 +19,9 @@ export interface PackageTerms {
   rolloverCap?: number | null;
   /** Recurring: the fewest periods before it can be cancelled. */
   commitmentCycles?: number | null;
+  /** Recurring with a minimum term: what leaving early costs. */
+  earlyCancelFeeMode?: EarlyCancelFeeMode | null;
+  earlyCancelFeeCents?: number | null;
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -35,7 +38,8 @@ export const validityText = (value: number, unit: ValidityUnit) => plural(value,
  *   Up to 3 people can share it, using one pool of credits
  *   Reformer Pilates and Barre only
  */
-export function describePackage(t: PackageTerms, classTypeNames: string[] = []): string[] {
+/** `fmt` formats money (e.g. "SGD 50.00"), for the early cancellation fee. */
+export function describePackage(t: PackageTerms, classTypeNames: string[] = [], fmt?: (cents: number) => string): string[] {
   const lines: string[] = [];
   const recurring = t.billing === "recurring" && t.validityValue && t.validityUnit;
   const period = recurring ? (t.validityValue === 1 ? UNIT[t.validityUnit!] : validityText(t.validityValue!, t.validityUnit!)) : "";
@@ -44,7 +48,13 @@ export function describePackage(t: PackageTerms, classTypeNames: string[] = []):
     if (t.weeklyLimit) lines.push(`Up to ${plural(t.weeklyLimit, "class", "classes")} a week`);
     lines.push(`Renews every ${period} until it's cancelled`);
     if (t.kind === "credits" && t.rolloverCap) lines.push(`Up to ${plural(t.rolloverCap, "unused class", "unused classes")} carry over to the next ${period}`);
-    if (t.commitmentCycles && t.commitmentCycles > 1) lines.push(`Minimum ${t.commitmentCycles} ${t.validityValue === 1 ? `${UNIT[t.validityUnit!]}s` : "renewals"}`);
+    if (t.commitmentCycles && t.commitmentCycles > 1) {
+      // Always in real time ("9 months"), with the number of periods when a period is longer than 1 unit.
+      const term = validityText(t.commitmentCycles * t.validityValue!, t.validityUnit!);
+      lines.push(`Minimum term of ${term}${t.validityValue! > 1 ? ` (${t.commitmentCycles} periods)` : ""}`);
+      if (t.earlyCancelFeeMode === "flat" && t.earlyCancelFeeCents) lines.push(`Leaving before then: ${fmt ? fmt(t.earlyCancelFeeCents) : "a"} early cancellation fee`);
+      else if (t.earlyCancelFeeMode === "remaining") lines.push("Leaving before then: the rest of the minimum term is charged");
+    }
   } else {
     lines.push(t.kind === "credits" ? plural(t.credits ?? 0, "class", "classes") : "Unlimited classes");
     if (t.weeklyLimit) lines.push(`Up to ${plural(t.weeklyLimit, "class", "classes")} a week`);

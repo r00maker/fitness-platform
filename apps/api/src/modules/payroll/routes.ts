@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { can, schemas } from "@studio/shared";
 import { DateTime } from "luxon";
 import { z } from "zod";
@@ -10,7 +10,7 @@ import { withFlags } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { getOrg } from "../sessions/context.js";
-import { describeRate, orgZone, payReport, toCsv } from "./service.js";
+import { describeRate, orgZone, payReport, rateScope, toCsv } from "./service.js";
 
 const idParam = z.object({ id: schemas.id });
 
@@ -30,7 +30,7 @@ export async function payrollRoutes(app: FastifyInstance) {
     const org = await getOrg(db, req.auth.orgId);
     const types = new Map((await db.select({ id: classTypes.id, name: classTypes.name }).from(classTypes).where(eq(classTypes.orgId, org.id))).map((t) => [t.id, t.name]));
     const rows = await db.select().from(payRates).where(eq(payRates.orgId, org.id)).orderBy(asc(payRates.staffId), asc(payRates.effectiveFrom));
-    return rows.map((r) => ({ ...r, ...describeRate(r, org, r.classTypeId ? types.get(r.classTypeId) : undefined) }));
+    return rows.map((r) => ({ ...r, ...describeRate(r, org, types) }));
   });
 
   app.post("/pay-rates", async (req, reply) => {
@@ -38,9 +38,10 @@ export async function payrollRoutes(app: FastifyInstance) {
     const input = parse(schemas.payRate, req.body);
     const org = await getOrg(db, req.auth.orgId);
     await assertStaff(org.id, input.staffId);
-    if (input.classTypeId) {
-      const [t] = await db.select({ id: classTypes.id }).from(classTypes).where(and(eq(classTypes.id, input.classTypeId), eq(classTypes.orgId, org.id)));
-      if (!t) throw notFound("class type");
+    const ids = [...new Set(input.classTypeIds)];
+    if (ids.length) {
+      const found = await db.select({ id: classTypes.id }).from(classTypes).where(and(inArray(classTypes.id, ids), eq(classTypes.orgId, org.id)));
+      if (found.length !== ids.length) throw notFound("class type");
     }
     // Only the fields the chosen pay type uses are kept, so old values can't leak into the maths.
     const keep = {
@@ -52,11 +53,12 @@ export async function payrollRoutes(app: FastifyInstance) {
     }[input.type];
     const [rate] = await db
       .insert(payRates)
-      .values({ orgId: org.id, staffId: input.staffId, classTypeId: input.classTypeId ?? null, type: input.type, ...keep, effectiveFrom: input.effectiveFrom ?? today(org), createdBy: req.auth.userId })
+      .values({ orgId: org.id, staffId: input.staffId, classTypeIds: ids, type: input.type, ...keep, effectiveFrom: input.effectiveFrom ?? today(org), createdBy: req.auth.userId })
       .returning();
     await audit(db, { orgId: org.id, actorId: req.auth.userId, action: "pay_rate.added", entityType: "pay_rate", entityId: rate!.id, details: { staffId: input.staffId } });
     reply.code(201);
-    return { ...rate, ...describeRate(rate!, org) };
+    const types = new Map((await db.select({ id: classTypes.id, name: classTypes.name }).from(classTypes).where(eq(classTypes.orgId, org.id))).map((t) => [t.id, t.name]));
+    return { ...rate, ...describeRate(rate!, org, types) };
   });
 
   /** Remove a rate (e.g. one added by mistake). Periods already marked as paid keep their figures. */
@@ -136,10 +138,10 @@ export async function payrollRoutes(app: FastifyInstance) {
     const types = new Map((await db.select({ id: classTypes.id, name: classTypes.name }).from(classTypes).where(eq(classTypes.orgId, org.id))).map((t) => [t.id, t.name]));
     const now = today(org);
     const rates = await db.select().from(payRates).where(and(eq(payRates.orgId, org.id), eq(payRates.staffId, id))).orderBy(asc(payRates.effectiveFrom));
-    const shown = rates.map((r) => ({ ...describeRate(r, org, r.classTypeId ? types.get(r.classTypeId) : undefined), startsLater: r.effectiveFrom > now }));
+    const shown = rates.map((r) => ({ ...describeRate(r, org, types), scope: rateScope(r), startsLater: r.effectiveFrom > now }));
     // Current = the latest started rate for each scope (usual, each class type, salary).
     const started = shown.filter((r) => !r.startsLater).reverse();
-    const current = started.filter((r, i) => started.findIndex((x) => x.classTypeId === r.classTypeId && (x.type === "salary") === (r.type === "salary")) === i);
+    const current = started.filter((r, i) => started.findIndex((x) => x.scope === r.scope) === i);
     const report = await payReport(db, org, now, { staffId: id });
     const adjustments = await db.select().from(payAdjustments).where(and(eq(payAdjustments.orgId, org.id), eq(payAdjustments.staffId, id))).orderBy(asc(payAdjustments.date));
     return {

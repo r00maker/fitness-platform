@@ -47,6 +47,7 @@ import {
   ORDER_STATUSES,
   PACKAGE_BILLING,
   ROLLOVER_MODES,
+  EARLY_CANCEL_FEE_MODES,
   WAIVER_METHODS,
   MEMBER_SOURCES,
   BOOKING_SOURCES,
@@ -96,6 +97,7 @@ export const extensionStatusEnum = pgEnum("extension_status", EXTENSION_STATUSES
 export const rolloverModeEnum = pgEnum("rollover_mode", ROLLOVER_MODES);
 export const filePurposeEnum = pgEnum("file_purpose", FILE_PURPOSES);
 export const orderStatusEnum = pgEnum("order_status", ORDER_STATUSES);
+export const earlyCancelFeeModeEnum = pgEnum("early_cancel_fee_mode", EARLY_CANCEL_FEE_MODES);
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
 export const notificationStatusEnum = pgEnum("notification_status", ["pending", "sent", "failed"]);
 
@@ -306,6 +308,8 @@ export const packagePlans = pgTable("package_plans", {
   billing: packageBillingEnum("billing").notNull().default("one_time"),
   rolloverCap: integer("rollover_cap"),
   commitmentCycles: integer("commitment_cycles"),
+  earlyCancelFeeMode: earlyCancelFeeModeEnum("early_cancel_fee_mode").notNull().default("none"),
+  earlyCancelFeeCents: integer("early_cancel_fee_cents"),
   /** Hidden and no longer sold; packages already sold keep working. */
   archivedAt: ts("archived_at"),
   kind: packageKindEnum("kind").notNull(),
@@ -359,6 +363,11 @@ export const clientPackages = pgTable(
     cycle: integer("cycle").notNull().default(1),
     /** Recurring: set when it's been stopped; it ends at the end of the current period (or minimum term). */
     stopsRenewingAt: ts("stops_renewing_at"),
+    /** Stopped during the minimum term with the early cancellation fee: ends at the end of the current period. */
+    endsEarly: boolean("ends_early").notNull().default(false),
+    /** The early cancellation terms agreed at purchase. */
+    earlyCancelFeeMode: earlyCancelFeeModeEnum("early_cancel_fee_mode").notNull().default("none"),
+    earlyCancelFeeCents: integer("early_cancel_fee_cents"),
     pricePaidCents: integer("price_paid_cents").notNull().default(0),
     currency: text("currency").notNull(),
     soldBy: uuid("sold_by").references(() => users.id),
@@ -767,8 +776,8 @@ export const payRates = pgTable(
     id: pk(),
     orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
     staffId: uuid("staff_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    /** Null = their usual rate; set = this class type only. */
-    classTypeId: uuid("class_type_id").references(() => classTypes.id, { onDelete: "cascade" }),
+    /** Empty = their usual rate; otherwise the class types this rate covers (one or a group). */
+    classTypeIds: uuid("class_type_ids").array().notNull().default(sql`'{}'::uuid[]`),
     type: payRateTypeEnum("type").notNull(),
     amountCents: integer("amount_cents"),
     perClientCents: integer("per_client_cents"),

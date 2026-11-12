@@ -150,6 +150,12 @@ export const MAX_PACKAGE_SHARERS = 10;
 /** One-time: bought once. Recurring: a membership that renews every period until it's cancelled. */
 export const PACKAGE_BILLING = ["one_time", "recurring"] as const;
 export type PackageBilling = (typeof PACKAGE_BILLING)[number];
+/**
+ * Leaving a membership before its minimum term: not allowed (it runs to the end of the term),
+ * a set fee, or the rest of the minimum term charged.
+ */
+export const EARLY_CANCEL_FEE_MODES = ["none", "flat", "remaining"] as const;
+export type EarlyCancelFeeMode = (typeof EARLY_CANCEL_FEE_MODES)[number];
 /** Package type edits: which packages they change. */
 export const PLAN_EDIT_SCOPES = ["new", "existing", "both"] as const;
 export type PlanEditScope = (typeof PLAN_EDIT_SCOPES)[number];
@@ -197,7 +203,7 @@ export type PayHeadcount = (typeof PAY_HEADCOUNTS)[number];
 export const THEMES = ["system", "light", "dark"] as const;
 export type Theme = (typeof THEMES)[number];
 
-export const FEE_TYPES = ["late_cancel", "no_show", "package_extension"] as const;
+export const FEE_TYPES = ["late_cancel", "no_show", "package_extension", "early_cancellation"] as const;
 export type FeeType = (typeof FEE_TYPES)[number];
 /** pending = recorded, to be collected once payments are connected. */
 export const FEE_STATUSES = ["pending", "waived", "charged"] as const;

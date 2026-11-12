@@ -23,6 +23,7 @@ import {
   PACKAGE_BILLING,
   PLAN_EDIT_SCOPES,
   ROLLOVER_MODES,
+  EARLY_CANCEL_FEE_MODES,
   CALENDAR_VIEWS,
   EDIT_SCOPES,
   REFUND_METHODS,
@@ -374,6 +375,9 @@ export const packagePlan = z
     rolloverCap: z.number().int().min(0).max(1000).nullish(),
     /** Recurring: the fewest periods before it can be stopped. */
     commitmentCycles: z.number().int().min(1).max(60).nullish(),
+    /** Leaving before the minimum term ends: "none" = it simply runs to the end of the term. */
+    earlyCancelFeeMode: z.enum(EARLY_CANCEL_FEE_MODES).default("none"),
+    earlyCancelFeeCents: money.nullish(),
   })
   .superRefine((p, ctx) => {
     const issue = (path: string, message: string) => ctx.addIssue({ code: "custom", path: [path], message });
@@ -385,6 +389,8 @@ export const packagePlan = z
       if (p.commitmentCycles) issue("commitmentCycles", "A minimum term only applies to recurring packages.");
     }
     if (p.billing === "recurring" && p.sharingMode === "allocated") issue("sharingMode", "Recurring packages can be shared as one pool, but not split into shares.");
+    if (p.earlyCancelFeeMode !== "none" && !(p.billing === "recurring" && (p.commitmentCycles ?? 0) > 1)) issue("earlyCancelFeeMode", "An early cancellation fee needs a recurring package with a minimum term.");
+    if (p.earlyCancelFeeMode === "flat" && !p.earlyCancelFeeCents) issue("earlyCancelFeeCents", "Set the fee amount.");
     if (p.rolloverCap && p.kind !== "credits") issue("rolloverCap", "Unlimited packages have no classes to carry over.");
     if (p.kind === "credits" && !p.credits) issue("credits", "How many classes does this package include?");
     if (p.kind === "unlimited" && p.credits) issue("credits", "Unlimited packages don't have a number of classes.");
@@ -418,6 +424,8 @@ export const updatePackagePlan = z.object({
       classTypeIds: z.array(id).max(100),
       rolloverCap: z.number().int().min(0).max(1000).nullable(),
       commitmentCycles: z.number().int().min(1).max(60).nullable(),
+      earlyCancelFeeMode: z.enum(EARLY_CANCEL_FEE_MODES),
+      earlyCancelFeeCents: money.nullable(),
     })
     .partial()
     .refine((c) => Object.keys(c).length > 0, "Nothing to change.")
@@ -453,7 +461,13 @@ export const rollover = z.object({
   /** Left out = as many as allowed. */
   credits: z.number().int().min(1).max(1000).optional(),
 });
-export const stopRenewing = z.object({ reason: z.string().trim().max(500).optional() });
+export const stopRenewing = z.object({
+  reason: z.string().trim().max(500).optional(),
+  /** During the minimum term: end at the end of this period instead, paying the early cancellation fee. */
+  endEarly: z.boolean().default(false),
+  /** Admins only: the fee to charge instead (0 waives it). */
+  feeCents: money.optional(),
+});
 export const checkout = z.object({
   planId: id,
   startDate: localDate.optional(),
@@ -490,8 +504,11 @@ export const setPackageAllocations = z.object({ allocations: z.array(z.object({ 
 export const payRate = z
   .object({
     staffId: id,
-    /** Leave out for their usual rate; set to pay a different rate for one class type (e.g. privates). */
-    classTypeId: id.nullish(),
+    /**
+     * Leave empty for their usual rate. Or pick class types that share a different rate,
+     * e.g. Reformer Pilates and Vinyasa Yoga at one rate, private sessions at another.
+     */
+    classTypeIds: z.array(id).max(50).default([]),
     type: z.enum(PAY_RATE_TYPES),
     amountCents: money.nullish(),
     perClientCents: money.nullish(),
@@ -513,7 +530,7 @@ export const payRate = z
         if (new Set(from).size !== from.length) issue("tiers", "Each tier needs a different starting number.");
       }
     }
-    if (r.type === "salary" && r.classTypeId) issue("classTypeId", "Salaries apply to the whole pay period, not one class type.");
+    if (r.type === "salary" && r.classTypeIds.length) issue("classTypeIds", "Salaries apply to the whole pay period, not particular classes.");
   });
 export const payAdjustment = z.object({
   staffId: id,

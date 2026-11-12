@@ -77,7 +77,7 @@ describe("payroll report", () => {
     const { s, foh, privates, past, rate, report } = await setup();
     const r = await rate({ staffId: s.ana.id, type: "per_client", amountCents: 2000, perClientCents: 300, clientsIncluded: 2, minimumCents: 2500 });
     expect(r.description).toBe("SGD 20.00 per class + SGD 3.00 per client after the first 2 (at least SGD 25.00)");
-    await rate({ staffId: s.ana.id, classTypeId: privates.id, type: "per_class", amountCents: 8000 });
+    await rate({ staffId: s.ana.id, classTypeIds: [privates.id], type: "per_class", amountCents: 8000 });
     await rate({ staffId: foh.id, type: "salary", amountCents: 50000 });
     await past(s.ana.id, 5, 1); // 20 + 3 × 3 = 29
     await past(s.ana.id, 1); // minimum 25
@@ -89,8 +89,8 @@ describe("payroll report", () => {
     const ana = rep.staff.find((x: { name: string }) => x.name.startsWith("Ana"));
     expect(ana.classes.map((c: { amountCents: number }) => c.amountCents)).toEqual([2900, 2500, 8000]);
     expect(ana).toMatchObject({ classPayCents: 13400, adjustmentsCents: 5000, totalCents: 18400, total: "SGD 184.00", warnings: [] });
-    expect(ana.rates.map((x: { description: string; classTypeName: string | null }) => `${x.classTypeName ?? "Usual"}: ${x.description}`)).toEqual([
-      "Usual: SGD 20.00 per class + SGD 3.00 per client after the first 2 (at least SGD 25.00)",
+    expect(ana.rates.map((x: { description: string; appliesTo: string }) => `${x.appliesTo}: ${x.description}`)).toEqual([
+      "Every class (usual rate): SGD 20.00 per class + SGD 3.00 per client after the first 2 (at least SGD 25.00)",
       "Private Reformer: SGD 80.00 per class",
     ]);
     const ben = rep.staff.find((x: { name: string }) => x.name.startsWith("Ben"));
@@ -114,6 +114,20 @@ describe("payroll report", () => {
     ana = (await report()).staff[0];
     expect(ana.classes.map((c: { clients: number; amountCents: number }) => `${c.clients}:${c.amountCents}`)).toEqual(["3:6000", "2:4000"]);
     expect(ana.warnings).toEqual([]);
+  });
+
+  it("one rate can cover a group of class types", async () => {
+    const { s, privates, past, rate, report } = await setup();
+    const [yoga] = await db.insert(classTypes).values({ orgId: s.orgId, name: "Vinyasa Yoga", color: "#059669" }).returning();
+    await rate({ staffId: s.ana.id, type: "per_class", amountCents: 4000 });
+    const group = await rate({ staffId: s.ana.id, classTypeIds: [s.classTypeId, yoga!.id], type: "per_class", amountCents: 5500 });
+    expect(group.appliesTo).toBe("Reformer Pilates & Vinyasa Yoga");
+    await past(s.ana.id, 2); // Reformer: group rate
+    await past(s.ana.id, 2, 0, { classTypeId: yoga!.id }); // Yoga: group rate
+    await past(s.ana.id, 2, 0, { classTypeId: privates.id }); // not in the group: usual rate
+    const ana = (await report()).staff[0];
+    expect(ana.classes.map((c: { className: string; amountCents: number }) => `${c.className}: ${c.amountCents}`)).toEqual(["Reformer Pilates: 5500", "Vinyasa Yoga: 5500", "Private Reformer: 4000"]);
+    expect(ana.rates.map((r: { appliesTo: string }) => r.appliesTo).sort()).toEqual(["Every class (usual rate)", "Reformer Pilates & Vinyasa Yoga"]);
   });
 
   it("uses the rate that applied on the class date", async () => {
@@ -165,7 +179,7 @@ describe("rates, exports and who sees what", () => {
     const bad = async (body: Record<string, unknown>) => (await s.owner.call("POST", "/pay-rates", { staffId: s.ana.id, ...body })).body.error.fields;
     expect(await bad({ type: "per_class" })).toMatchObject({ amountCents: "Set the amount." });
     expect(await bad({ type: "tiered", tiers: [{ fromClients: 3, amountCents: 1 }, { fromClients: 6, amountCents: 2 }] })).toMatchObject({ tiers: "The first tier should start at 0 clients, so every class is covered." });
-    expect(await bad({ type: "salary", amountCents: 100, classTypeId: privates.id })).toMatchObject({ classTypeId: "Salaries apply to the whole pay period, not one class type." });
+    expect(await bad({ type: "salary", amountCents: 100, classTypeIds: [privates.id] })).toMatchObject({ classTypeIds: "Salaries apply to the whole pay period, not particular classes." });
     expect((await s.owner.call("POST", "/pay-rates", { staffId: s.c1.id, type: "per_class", amountCents: 100 })).status).toBe(404);
   });
 

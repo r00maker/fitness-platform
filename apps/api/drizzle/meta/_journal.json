@@ -64,6 +64,20 @@
       "when": 1794483718535,
       "tag": "0008_extensions_checkout_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794496303885,
+      "tag": "0009_early_cancel_and_pay_rate_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794496312192,
+      "tag": "0010_drop_single_pay_rate_class_type",
+      "breakpoints": true
     }
   ]
 }

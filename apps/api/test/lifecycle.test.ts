@@ -264,7 +264,7 @@ describe("recurring packages", () => {
     const { s, plan, sell, history } = await setup();
     expect((await s.owner.call("POST", "/package-plans", { name: "X", kind: "credits", credits: 8, billing: "recurring" })).body.error.fields).toMatchObject({ validityValue: "How often does it renew? e.g. every 1 month." });
     const pl = await plan({ name: "8 a month", credits: 8, validityValue: 1, validityUnit: "months", billing: "recurring", rolloverCap: 2, commitmentCycles: 3, priceCents: 22000 });
-    expect(pl.terms).toEqual(["8 classes every month", "Renews every month until it's cancelled", "Up to 2 unused classes carry over to the next month", "Minimum 3 months"]);
+    expect(pl.terms).toEqual(["8 classes every month", "Renews every month until it's cancelled", "Up to 2 unused classes carry over to the next month", "Minimum term of 3 months"]);
     const p = await sell(s.c1.id, pl.id);
     expect(p).toMatchObject({ billing: "recurring", renewal: { period: 1, stopped: false, commitmentUntil: expect.any(String) } });
 
@@ -283,6 +283,44 @@ describe("recurring packages", () => {
     expect((await s.c1.call("GET", "/me/packages")).body.packages[0].renewal).toMatchObject({ stopped: true, renewsOn: null, endsOn: stop.body.endsOn });
     expect(await outbox("package.stopped")).toHaveLength(2);
     expect((await s.c1.call("POST", `/client-packages/${p.id}/extension-requests`, { days: 7, reason: "Holiday" })).body.error.code).toBe("recurring");
+  });
+});
+
+describe("leaving a membership early", () => {
+  it("runs to the end of the minimum term, or ends early with the studio's fee", async () => {
+    const { s, plan, sell } = await setup();
+    expect((await s.owner.call("POST", "/package-plans", { name: "X", kind: "unlimited", validityValue: 1, validityUnit: "months", billing: "recurring", earlyCancelFeeMode: "flat" })).body.error.fields).toMatchObject({
+      earlyCancelFeeMode: "An early cancellation fee needs a recurring package with a minimum term.",
+    });
+    const flat = await plan({ name: "Unlimited", kind: "unlimited", credits: null, billing: "recurring", validityValue: 1, validityUnit: "months", commitmentCycles: 6, earlyCancelFeeMode: "flat", earlyCancelFeeCents: 9000, priceCents: 30000 });
+    expect(flat.terms).toEqual(["Unlimited classes", "Renews every month until it's cancelled", "Minimum term of 6 months", "Leaving before then: SGD 90.00 early cancellation fee"]);
+    const p = await sell(s.c1.id, flat.id);
+    const options = (await s.c1.call("GET", `/client-packages/${p.id}/stop-options`)).body;
+    expect(options).toMatchObject({ inMinimumTerm: true, endEarly: { allowed: true, fee: "SGD 90.00", periodsLeft: 5 } });
+    expect(options.stopAtEndOfTerm.endsOn > options.endEarly.endsOn).toBe(true);
+    const early = await s.c1.call("POST", `/client-packages/${p.id}/stop-renewing`, { endEarly: true, reason: "Moving overseas" });
+    expect(early.body).toMatchObject({ endedEarly: true, fee: "SGD 90.00", endsOn: options.endEarly.endsOn });
+    expect(await db.select().from(fees).where(eq(fees.type, "early_cancellation"))).toMatchObject([{ amountCents: 9000, status: "pending" }]);
+    // Changing their mind: the membership carries on and the fee goes.
+    await s.c1.call("POST", `/client-packages/${p.id}/resume-renewing`, {});
+    expect((await db.select().from(fees).where(eq(fees.type, "early_cancellation")))[0]!.status).toBe("waived");
+  });
+
+  it("charges the rest of the term, or doesn't allow leaving early", async () => {
+    const { s, plan, sell } = await setup();
+    const rest = await plan({ name: "8 a month", credits: 8, billing: "recurring", validityValue: 1, validityUnit: "months", commitmentCycles: 3, earlyCancelFeeMode: "remaining", priceCents: 20000 });
+    expect(rest.terms).toContain("Leaving before then: the rest of the minimum term is charged");
+    const a = await sell(s.c1.id, rest.id);
+    expect((await s.c1.call("GET", `/client-packages/${a.id}/stop-options`)).body.endEarly).toMatchObject({ fee: "SGD 400.00", periodsLeft: 2 });
+    // Admins can waive it.
+    expect((await s.owner.call("POST", `/client-packages/${a.id}/stop-renewing`, { endEarly: true, feeCents: 0 })).body).toMatchObject({ endedEarly: true, fee: null });
+
+    const locked = await plan({ name: "Locked", kind: "unlimited", credits: null, billing: "recurring", validityValue: 3, validityUnit: "months", commitmentCycles: 4 });
+    expect(locked.terms).toContain("Minimum term of 12 months (4 periods)");
+    const b = await sell(s.c2.id, locked.id);
+    expect((await s.c2.call("GET", `/client-packages/${b.id}/stop-options`)).body.endEarly).toMatchObject({ allowed: false, fee: null });
+    expect((await s.c2.call("POST", `/client-packages/${b.id}/stop-renewing`, { endEarly: true })).body.error.code).toBe("early_cancel_not_allowed");
+    expect((await s.c2.call("POST", `/client-packages/${b.id}/stop-renewing`, {})).body).toMatchObject({ endedEarly: false, commitmentApplies: true });
   });
 });
 

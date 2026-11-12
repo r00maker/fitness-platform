@@ -58,7 +58,7 @@ export async function checkoutRoutes(app: FastifyInstance) {
     const chosen = rolloverFromPackageId ? rollovers.find((r) => r.packageId === rolloverFromPackageId) : undefined;
     if (rolloverFromPackageId && !chosen) throw badRequest("no_rollover", "Those classes can't be rolled over.");
     return {
-      package: { id: p.id, name: p.name, description: p.description, photoUrl: p.photoFileId ? `/v1/files/${p.photoFileId}` : null, billing: p.billing, terms: await planTerms(db, p) },
+      package: { id: p.id, name: p.name, description: p.description, photoUrl: p.photoFileId ? `/v1/files/${p.photoFileId}` : null, billing: p.billing, terms: await planTerms(db, p, org.currency) },
       lines: [
         { label: p.name, amount: money(p.priceCents, org.currency) },
         ...(chosen ? [{ label: `${chosen.classes} unused ${chosen.classes === 1 ? "class" : "classes"} from ${chosen.name}`, amount: "Included" }] : []),

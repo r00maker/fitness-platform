@@ -33,7 +33,7 @@ import type { AuthContext } from "../../plugins/auth.js";
 import { money } from "../bookings/rules.js";
 import { notify } from "../notifications/outbox.js";
 import { getOrg, staffIds, userName } from "../sessions/context.js";
-import { expiryFrom, getPackage, lastDay, orgZone, packageState, presentPackages, renewalEnd, type Pkg } from "./service.js";
+import { commitmentEnd, earlyCancelFee, expiryFrom, getPackage, lastDay, orgZone, packageState, periodsLeftInTerm, presentPackages, renewalEnd, type Pkg } from "./service.js";
 import { assertFile } from "../files/routes.js";
 
 type Org = typeof organizations.$inferSelect;
@@ -145,7 +145,7 @@ export async function packageHistory(db: DbOrTx, auth: AuthContext, id: string, 
         extended: `Extended by ${plural(det.days as number, "day")}, to ${nice(det.to as string)}`,
         rolled_over: n > 0 ? `+${plural(n, "class", "classes")} rolled over from ${det.otherName}` : `${plural(-n, "class", "classes")} rolled over to ${det.otherName}`,
         renewed: `Renewed: period ${det.period}${p.kind === "credits" ? `, ${plural(det.classes as number, "class", "classes")}${det.carried ? ` (${det.carried} carried over)` : ""}` : ""}`,
-        cancelled: det.stoppedRenewing ? `Stopped renewing: ends ${nice(det.endsOn as string)}` : "Cancelled",
+        cancelled: det.stoppedRenewing ? `${det.endedEarly ? "Ending early" : "Stopped renewing"}: ends ${nice(det.endsOn as string)}${det.fee ? ` (early cancellation fee ${det.fee})` : ""}` : "Cancelled",
         plan_updated: "Package rules updated by the studio",
         booked: "",
         returned: "",
@@ -451,22 +451,65 @@ export async function renewDuePackages(db: Db, now = new Date()) {
   return renewed;
 }
 
-/** Stop a membership renewing. It keeps working to the end of this period (or the minimum term). */
-export async function stopRenewing(tx: DbOrTx, auth: AuthContext, id: string, reason: string | undefined, now = new Date()) {
-  const org = await getOrg(tx, auth.orgId);
-  const zone = orgZone(org);
-  const p = await getPackage(tx, auth.orgId, id, true);
+async function stoppable(db: DbOrTx, auth: AuthContext, id: string, lock = false) {
+  const p = await getPackage(db, auth.orgId, id, lock);
   if (!isManager(auth) && p.ownerId !== auth.userId) throw auth.role === "client" ? forbidden("Only the person who bought this membership can stop it.") : forbidden();
   if (p.billing !== "recurring") throw badRequest("not_recurring", "Only recurring packages renew.");
+  return p;
+}
+
+/**
+ * The choices when stopping a membership:
+ *  - stop at the end of the minimum term (or this period, if the term is done): no fee;
+ *  - during the term, end at the end of this period instead, paying the early cancellation fee
+ *    (if the studio allows leaving early).
+ */
+export async function stopOptions(db: DbOrTx, auth: AuthContext, id: string) {
+  const org = await getOrg(db, auth.orgId);
+  const zone = orgZone(org);
+  const p = await stoppable(db, auth, id);
+  const inTerm = periodsLeftInTerm(p, zone) > 0;
+  const fee = earlyCancelFee(p, zone);
+  return {
+    inMinimumTerm: inTerm,
+    minimumTermEndsOn: inTerm ? lastDay(commitmentEnd(p, zone), zone) : null,
+    stopAtEndOfTerm: { endsOn: lastDay(renewalEnd({ ...p, stopsRenewingAt: new Date(), endsEarly: false }, zone), zone), fee: null },
+    endEarly: inTerm
+      ? { allowed: fee !== null, endsOn: lastDay(p.expiresAt, zone), feeCents: fee, fee: fee === null ? null : money(fee, org.currency), periodsLeft: periodsLeftInTerm(p, zone) }
+      : null,
+  };
+}
+
+/** Stop a membership renewing: at the end of the minimum term (or this period), or early with the fee. */
+export async function stopRenewing(tx: DbOrTx, auth: AuthContext, id: string, input: { reason?: string; endEarly?: boolean; feeCents?: number }, now = new Date()) {
+  const org = await getOrg(tx, auth.orgId);
+  const zone = orgZone(org);
+  const p = await stoppable(tx, auth, id, true);
   if (p.cancelledAt || p.stopsRenewingAt) throw conflict("already_stopped", "This membership has already been stopped.");
-  const stopped = { ...p, stopsRenewingAt: now };
-  const endsOn = lastDay(renewalEnd(stopped, zone), zone)!;
-  await tx.update(clientPackages).set({ stopsRenewingAt: now }).where(eq(clientPackages.id, p.id));
-  await tx.insert(packageLedger).values({ orgId: org.id, packageId: p.id, change: 0, reason: "cancelled", note: reason ?? null, details: { stoppedRenewing: true, endsOn }, createdBy: auth.userId });
-  if (auth.role === "client") {
-    await notify(tx, { orgId: org.id, userIds: await staffIds(tx, org.id, ["owner", "admin"]), template: "package.stopped", data: { packageName: p.name, clientName: await userName(tx, auth.userId), endsOn: nice(endsOn), reason: reason ?? null } });
+  if (input.feeCents !== undefined && !isManager(auth)) throw forbidden("Only the studio can change the fee.");
+  const inTerm = periodsLeftInTerm(p, zone) > 0;
+  const early = !!input.endEarly && inTerm;
+  let feeCents = 0;
+  if (early) {
+    const fee = earlyCancelFee(p, zone);
+    if (fee === null && !isManager(auth)) {
+      throw conflict("early_cancel_not_allowed", `This membership has a minimum term until ${nice(lastDay(commitmentEnd(p, zone), zone))}, so it can't end before then. You can stop it now and it will end when the term is up.`);
+    }
+    feeCents = input.feeCents ?? fee ?? 0;
   }
-  return { endsOn, commitmentApplies: endsOn !== lastDay(p.expiresAt, zone) };
+  const endsOn = lastDay(renewalEnd({ ...p, stopsRenewingAt: now, endsEarly: early }, zone), zone)!;
+  await tx.update(clientPackages).set({ stopsRenewingAt: now, endsEarly: early }).where(eq(clientPackages.id, p.id));
+  if (feeCents > 0) {
+    await tx.insert(fees).values({ orgId: org.id, clientId: p.ownerId, clientPackageId: p.id, type: "early_cancellation", amountCents: feeCents, currency: org.currency });
+  }
+  await tx.insert(packageLedger).values({
+    orgId: org.id, packageId: p.id, change: 0, reason: "cancelled", note: input.reason ?? null, createdBy: auth.userId,
+    details: { stoppedRenewing: true, endsOn, endedEarly: early, fee: feeCents ? money(feeCents, org.currency) : null },
+  });
+  if (auth.role === "client") {
+    await notify(tx, { orgId: org.id, userIds: await staffIds(tx, org.id, ["owner", "admin"]), template: "package.stopped", data: { packageName: p.name, clientName: await userName(tx, auth.userId), endsOn: nice(endsOn), reason: input.reason ?? null, fee: feeCents ? money(feeCents, org.currency) : null } });
+  }
+  return { endsOn, commitmentApplies: !early && endsOn !== lastDay(p.expiresAt, zone), endedEarly: early, fee: feeCents ? money(feeCents, org.currency) : null };
 }
 
 export async function resumeRenewing(tx: DbOrTx, auth: AuthContext, id: string, now = new Date()) {
@@ -474,7 +517,9 @@ export async function resumeRenewing(tx: DbOrTx, auth: AuthContext, id: string, 
   if (!isManager(auth) && p.ownerId !== auth.userId) throw forbidden();
   if (!p.stopsRenewingAt) throw conflict("not_stopped", "This membership is still renewing.");
   if (p.expiresAt && p.expiresAt <= now) throw conflict("already_ended", "This membership has already ended. Buy it again to restart.");
-  await tx.update(clientPackages).set({ stopsRenewingAt: null }).where(eq(clientPackages.id, p.id));
+  await tx.update(clientPackages).set({ stopsRenewingAt: null, endsEarly: false }).where(eq(clientPackages.id, p.id));
+  // Staying after all: an unpaid early cancellation fee no longer applies.
+  await tx.update(fees).set({ status: "waived", waivedBy: auth.userId, waivedAt: now, waivedReason: "Membership resumed" }).where(and(eq(fees.clientPackageId, p.id), eq(fees.type, "early_cancellation"), eq(fees.status, "pending")));
   return { renewing: true };
 }
 
@@ -485,9 +530,10 @@ type PlanChanges = Partial<{
   name: string; description: string | null; photoFileId: string | null; categoryId: string | null; priceCents: number; onSale: boolean;
   credits: number; validityValue: number | null; validityUnit: "days" | "weeks" | "months" | null; activateWithinDays: number | null;
   maxUsers: number; weeklyLimit: number | null; classTypeIds: string[]; rolloverCap: number | null; commitmentCycles: number | null;
+  earlyCancelFeeMode: "none" | "flat" | "remaining"; earlyCancelFeeCents: number | null;
 }>;
 /** Fields that belong to the package type itself (what's on sale), never copied onto sold packages. */
-const PLAN_ONLY = ["description", "photoFileId", "categoryId", "priceCents", "onSale", "commitmentCycles"] as const;
+const PLAN_ONLY = ["description", "photoFileId", "categoryId", "priceCents", "onSale", "commitmentCycles", "earlyCancelFeeMode", "earlyCancelFeeCents"] as const;
 
 export async function updatePlan(tx: DbOrTx, auth: AuthContext, id: string, input: { changes: PlanChanges; applyTo: PlanEditScope; notifyClients: boolean }, flags: Flags, now = new Date()) {
   if (!isManager(auth)) throw forbidden();
@@ -549,7 +595,7 @@ export async function updatePlan(tx: DbOrTx, auth: AuthContext, id: string, inpu
     if (c.rolloverCap !== undefined) describeChange.push(`up to ${c.rolloverCap ?? 0} unused classes carry over`);
     const planOnly = PLAN_ONLY.filter((k) => c[k] !== undefined);
     if (planOnly.length && input.applyTo === "existing") {
-      flags.info({ code: "existing_packages_affected", message: `Price, minimum term, category, photo and description belong to the package type itself, so they're only saved with “New sales” or “Both”. The description and photo clients see always come from the package type.` });
+      flags.info({ code: "existing_packages_affected", message: `Price, minimum term, early cancellation fee, category, photo and description belong to the package type itself (clients keep the terms they signed up to), so they're only saved with “New sales” or “Both”. The description and photo clients see always come from the package type.` });
     }
     if (updates.size) {
       flags.confirm({
@@ -653,8 +699,8 @@ export async function deleteClientPackage(tx: DbOrTx, auth: AuthContext, id: str
 }
 
 /** The plain-English rules for a plan (for the selling page and checkout). */
-export async function planTerms(db: DbOrTx, plan: Plan) {
+export async function planTerms(db: DbOrTx, plan: Plan, currency = "SGD") {
   const names = plan.classTypeIds.length ? await db.select({ id: classTypes.id, name: classTypes.name }).from(classTypes).where(inArray(classTypes.id, plan.classTypeIds)) : [];
-  return describePackage(plan, plan.classTypeIds.map((id) => names.find((n) => n.id === id)?.name ?? "").filter(Boolean));
+  return describePackage(plan, plan.classTypeIds.map((id) => names.find((n) => n.id === id)?.name ?? "").filter(Boolean), (c) => money(c, currency));
 }
 

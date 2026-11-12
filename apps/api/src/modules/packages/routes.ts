@@ -35,7 +35,7 @@ export async function packageRoutes(app: FastifyInstance) {
       ...r,
       price: money(r.priceCents, org.currency),
       photoUrl: r.photoFileId ? `/v1/files/${r.photoFileId}` : null,
-      terms: describePackage(r, r.classTypeIds.map((id) => name.get(id) ?? "").filter(Boolean)),
+      terms: describePackage(r, r.classTypeIds.map((id) => name.get(id) ?? "").filter(Boolean), (c) => money(c, org.currency)),
       ...(forAdmin ? { usage: usage.get(r.id) } : {}),
     }));
   }
@@ -195,10 +195,15 @@ export async function packageRoutes(app: FastifyInstance) {
     const input = parse(schemas.rollover, req.body);
     return inTx(app, (tx) => life.rolloverInto(tx, req.auth, id, input));
   });
+  /** Before stopping a membership: when it would end, and what leaving early would cost. */
+  app.get("/client-packages/:id/stop-options", async (req) => {
+    const { id } = parse(idParam, req.params);
+    return life.stopOptions(db, req.auth, id);
+  });
   app.post("/client-packages/:id/stop-renewing", async (req) => {
     const { id } = parse(idParam, req.params);
-    const { reason } = parse(schemas.stopRenewing, req.body ?? {});
-    return inTx(app, (tx) => life.stopRenewing(tx, req.auth, id, reason));
+    const input = parse(schemas.stopRenewing, req.body ?? {});
+    return inTx(app, (tx) => life.stopRenewing(tx, req.auth, id, input));
   });
   app.post("/client-packages/:id/resume-renewing", async (req) => {
     const { id } = parse(idParam, req.params);

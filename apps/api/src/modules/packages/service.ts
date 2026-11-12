@@ -54,11 +54,28 @@ export function commitmentEnd(p: Pkg, zone: TZ): Date {
 /** Recurring that's been stopped: when it actually ends (end of this period, or of the minimum term if later). */
 export function renewalEnd(p: Pkg, zone: TZ): Date {
   const thisPeriod = p.expiresAt!;
-  if (!p.commitmentCycles) return thisPeriod;
+  if (!p.commitmentCycles || p.endsEarly) return thisPeriod;
   const c = commitmentEnd(p, zone);
   return c > thisPeriod ? c : thisPeriod;
 }
 const endsAfterThisPeriod = (p: Pkg) => !!p.stopsRenewingAt;
+
+/** Periods still to pay in the minimum term after the current one (0 = the term is done). */
+export function periodsLeftInTerm(p: Pkg, zone: TZ): number {
+  if (p.billing !== "recurring" || !p.commitmentCycles || !p.startedAt || !p.expiresAt) return 0;
+  return Math.max(0, p.commitmentCycles - p.cycle);
+}
+/**
+ * The early cancellation fee for leaving at the end of this period instead of the end of the
+ * minimum term. Null when the studio doesn't allow leaving early; 0 when the term is already done.
+ */
+export function earlyCancelFee(p: Pkg, zone: TZ): number | null {
+  const left = periodsLeftInTerm(p, zone);
+  if (left === 0) return 0;
+  if (p.earlyCancelFeeMode === "flat") return p.earlyCancelFeeCents ?? 0;
+  if (p.earlyCancelFeeMode === "remaining") return left * p.pricePaidCents;
+  return null;
+}
 
 export function packageState(p: Pkg, now = new Date()): PackageState {
   if (p.cancelledAt) return "cancelled";
@@ -131,10 +148,11 @@ export async function presentPackages(db: DbOrTx, org: Org, pkgs: Pkg[], viewerI
               endsOn: endsAfterThisPeriod(p) ? lastDay(renewalEnd(p, zone), zone) : null,
               stopped: !!p.stopsRenewingAt,
               commitmentUntil: p.commitmentCycles && p.cycle < p.commitmentCycles ? lastDay(commitmentEnd(p, zone), zone) : null,
+              endsEarly: p.endsEarly,
             },
           }
         : {}),
-      terms: describePackage({ ...p, credits: p.billing === "recurring" ? planCredits(p) : p.creditsTotal }, p.classTypeIds.map((id) => names.get(id) ?? "").filter(Boolean)),
+      terms: describePackage({ ...p, credits: p.billing === "recurring" ? planCredits(p) : p.creditsTotal }, p.classTypeIds.map((id) => names.get(id) ?? "").filter(Boolean), (c) => money(c, p.currency)),
       sharing: {
         maxUsers: p.maxUsers,
         mode: p.sharingMode,
@@ -378,6 +396,8 @@ export async function sellPackage(
       rolloverCap: plan.rolloverCap,
       commitmentCycles: plan.commitmentCycles,
       creditsPerCycle: plan.billing === "recurring" ? plan.credits : null,
+      earlyCancelFeeMode: plan.earlyCancelFeeMode,
+      earlyCancelFeeCents: plan.earlyCancelFeeCents,
       pricePaidCents: input.pricePaidCents ?? plan.priceCents,
       currency: org.currency,
       soldBy: auth.userId,

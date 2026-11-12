@@ -77,19 +77,39 @@ export function periodFor(date: string, payPeriod: PayPeriod, anchor: string | n
 // ---------------------------------------------------------------------------
 // Rates
 // ---------------------------------------------------------------------------
-/** The rate for a class: a rate for that class type if there is one, otherwise their usual rate, as of the class date. */
+/**
+ * The rate for a class, as of the class date: a rate covering that class type (on its own or in a
+ * group) if there is one, otherwise their usual rate. If several cover it, the newest one wins.
+ */
 export function rateFor(rates: Rate[], staffId: string, classTypeId: string, date: string): Rate | undefined {
   const mine = rates.filter((r) => r.staffId === staffId && r.type !== "salary" && r.effectiveFrom <= date).sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
-  return mine.find((r) => r.classTypeId === classTypeId) ?? mine.find((r) => r.classTypeId === null);
+  return mine.find((r) => r.classTypeIds.includes(classTypeId)) ?? mine.find((r) => r.classTypeIds.length === 0);
 }
 
 export function salaryFor(rates: Rate[], staffId: string, lastDayOfPeriod: string): Rate | undefined {
   return rates.filter((r) => r.staffId === staffId && r.type === "salary" && r.effectiveFrom <= lastDayOfPeriod).sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
 }
 
-export function describeRate(r: Rate, org: Org, typeName?: string) {
+/** Rates that cover the same thing (usual, the same group of class types, or salary): only the newest applies. */
+export const rateScope = (r: Pick<Rate, "classTypeIds" | "type">) => (r.type === "salary" ? "salary" : [...r.classTypeIds].sort().join(",") || "usual");
+
+const listNames = (names: string[]) => (names.length <= 1 ? names[0] ?? "" : `${names.slice(0, -1).join(", ")} & ${names.at(-1)}`);
+
+export function describeRate(r: Rate, org: Org, typeNames: Map<string, string> = new Map()) {
   const text = describePayRate(r, (c) => money(c, org.currency), PERIOD_NOUN[org.payPeriod]);
-  return { id: r.id, staffId: r.staffId, classTypeId: r.classTypeId, classTypeName: typeName ?? null, type: r.type, typeLabel: OPTION_LABELS.payRateType[r.type], description: text, effectiveFrom: r.effectiveFrom };
+  const names = r.classTypeIds.map((id) => typeNames.get(id) ?? "").filter(Boolean);
+  return {
+    id: r.id,
+    staffId: r.staffId,
+    classTypeIds: r.classTypeIds,
+    classTypeNames: names,
+    /** e.g. "Every class (usual rate)", "Reformer Pilates & Vinyasa Yoga" */
+    appliesTo: r.type === "salary" ? "Salary" : names.length ? listNames(names) : "Every class (usual rate)",
+    type: r.type,
+    typeLabel: OPTION_LABELS.payRateType[r.type],
+    description: text,
+    effectiveFrom: r.effectiveFrom,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -217,12 +237,12 @@ export async function payReport(db: DbOrTx, org: Org, date: string, opts: { staf
     const adjustmentsCents = myAdj.reduce((n, a) => n + a.amountCents, 0);
     const totalCents = classPayCents + salaryCents + adjustmentsCents;
     const current = myRates.filter((r) => r.effectiveFrom <= period.lastDay).sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
-    const latestPerScope = current.filter((r, i) => current.findIndex((x) => x.classTypeId === r.classTypeId && (x.type === "salary") === (r.type === "salary")) === i);
+    const latestPerScope = current.filter((r, i) => current.findIndex((x) => rateScope(x) === rateScope(r)) === i);
     out.push({
       staffId: p.id,
       name: `${p.first} ${p.last}`,
       role: OPTION_LABELS.role[p.role],
-      rates: latestPerScope.map((r) => describeRate(r, org, r.classTypeId ? typeNames.get(r.classTypeId) : undefined)),
+      rates: latestPerScope.map((r) => describeRate(r, org, typeNames)),
       classes: lines,
       salaryCents,
       adjustments: myAdj.map((a) => ({ id: a.id, date: a.date, amountCents: a.amountCents, amount: fmt(a.amountCents), reason: a.reason })),

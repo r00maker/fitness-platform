@@ -1,0 +1,1 @@
+ALTER TABLE "pay_rates" DROP COLUMN "class_type_id";

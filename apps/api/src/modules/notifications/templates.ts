@@ -142,7 +142,7 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
   }),
   "package.stopped": (d) => ({
     subject: `Membership stopped: ${s(d.clientName)}`,
-    body: `${s(d.clientName)} has stopped their ${s(d.packageName)}. It ends on ${s(d.endsOn)}.${d.reason ? ` Reason: ${s(d.reason)}` : ""}`,
+    body: `${s(d.clientName)} has stopped their ${s(d.packageName)}. It ends on ${s(d.endsOn)}.${d.fee ? ` An early cancellation fee of ${s(d.fee)} has been added.` : ""}${d.reason ? ` Reason: ${s(d.reason)}` : ""}`,
     pushTitle: "Membership stopped",
     pushBody: `${s(d.clientName)} stopped ${s(d.packageName)}.`,
   }),
