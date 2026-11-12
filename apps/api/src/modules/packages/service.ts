@@ -13,6 +13,7 @@
  */
 import { and, asc, count, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { DateTime } from "luxon";
+import { clientEvent } from "../marketing/events.js";
 import { OPTION_LABELS, describePackage, type PackageState } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
 import { bookings, classSessions, classTypes, clientPackageMembers, clientPackages, memberships, organizations, packageLedger, packagePlans, users } from "../../db/schema.js";
@@ -296,6 +297,7 @@ export async function useCredit(tx: DbOrTx, org: Org, opt: PackageOption, bookin
     if (!share) throw conflict("package_used_up", "There are no classes left in your share of this package.");
   }
   await tx.insert(packageLedger).values({ orgId: org.id, packageId: p.id, userId: clientId, bookingId, change: -1, reason: "booked", createdBy: actorId });
+  if ((p.creditsLeft ?? 0) - 1 <= 0) await clientEvent(tx, org.id, p.ownerId, { type: "package_used_up", ref: p.id }, now);
 }
 
 /**
@@ -413,6 +415,7 @@ export async function sellPackage(
     const [shown] = await presentPackages(tx, org, [p!], clientId, now);
     await notify(tx, { orgId: auth.orgId, userIds: [clientId], template: "package.added", data: { packageName: p!.name, terms: shown!.terms.join(". ") } });
   }
+  await clientEvent(tx, auth.orgId, clientId, { type: "package_bought", planId: plan.id, ref: p!.id }, now);
   return (await presentPackages(tx, org, [p!], undefined, now))[0]!;
 }
 

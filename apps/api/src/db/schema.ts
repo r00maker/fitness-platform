@@ -60,6 +60,16 @@ import {
   SUB_REQUEST_STATUSES,
   WAITLIST_MODES,
   WAITLIST_STATUSES,
+  ACQUISITION_CHANNELS,
+  CAMPAIGN_STATUSES,
+  EMAIL_PURPOSES,
+  GIFT_CARD_STATUSES,
+  BANNER_PLACEMENTS,
+  BANNER_LINKS,
+  type EmailDesign,
+  type JourneyDefinition,
+  type Reward,
+  type SegmentDefinition,
 } from "@studio/shared";
 
 export const roleEnum = pgEnum("role", ROLES);
@@ -100,6 +110,18 @@ export const orderStatusEnum = pgEnum("order_status", ORDER_STATUSES);
 export const earlyCancelFeeModeEnum = pgEnum("early_cancel_fee_mode", EARLY_CANCEL_FEE_MODES);
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
 export const notificationStatusEnum = pgEnum("notification_status", ["pending", "sent", "failed"]);
+export const acquisitionEnum = pgEnum("acquisition_channel", ACQUISITION_CHANNELS);
+export const emailPurposeEnum = pgEnum("email_purpose", EMAIL_PURPOSES);
+export const campaignStatusEnum = pgEnum("campaign_status", CAMPAIGN_STATUSES);
+export const journeyStatusEnum = pgEnum("journey_status", ["draft", "live", "paused"]);
+export const enrollmentStatusEnum = pgEnum("enrollment_status", ["active", "completed", "exited"]);
+export const giftCardStatusEnum = pgEnum("gift_card_status", GIFT_CARD_STATUSES);
+export const creditReasonEnum = pgEnum("credit_reason", ["granted", "used", "returned", "expired", "adjusted"]);
+export const creditSourceEnum = pgEnum("credit_source", ["gift_card", "referral", "journey", "studio"]);
+export const referralStatusEnum = pgEnum("referral_status", ["pending", "rewarded", "capped", "expired", "void"]);
+export const orderKindEnum = pgEnum("order_kind", ["package", "gift_card"]);
+export const bannerPlacementEnum = pgEnum("banner_placement", BANNER_PLACEMENTS);
+export const bannerLinkEnum = pgEnum("banner_link", BANNER_LINKS);
 
 const pk = () => uuid("id").primaryKey().defaultRandom();
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
@@ -164,6 +186,24 @@ export const organizations = pgTable("organizations", {
   rolloverMode: rolloverModeEnum("rollover_mode").notNull().default("off"),
   rolloverMaxCredits: integer("rollover_max_credits"),
   rolloverWithinDays: integer("rollover_within_days").notNull().default(30),
+  // Gift cards
+  giftCardsEnabled: boolean("gift_cards_enabled").notNull().default(false),
+  giftCardAmounts: integer("gift_card_amounts").array().notNull().default(sql`'{5000,10000,20000}'::integer[]`),
+  giftCardCustomMinCents: integer("gift_card_custom_min_cents"),
+  giftCardCustomMaxCents: integer("gift_card_custom_max_cents"),
+  /** How long a gift card can be used once it's given (or kept). */
+  giftCardValidityDays: integer("gift_card_validity_days").notNull().default(365),
+  /** How long a bought gift card can wait to be given before it's added to the buyer's own credit. */
+  giftCardGiveWithinDays: integer("gift_card_give_within_days").notNull().default(90),
+  // Referrals
+  referralsEnabled: boolean("referrals_enabled").notNull().default(false),
+  referralQualify: text("referral_qualify").notNull().default("classes_attended"),
+  referralQualifyValue: integer("referral_qualify_value").notNull().default(3),
+  referralQualifyWithinDays: integer("referral_qualify_within_days").notNull().default(60),
+  referrerReward: jsonb("referrer_reward").$type<Reward>().notNull().default({ type: "free_classes", classes: 1, validDays: 60 }),
+  refereeReward: jsonb("referee_reward").$type<Reward | null>(),
+  referralCodeWindowDays: integer("referral_code_window_days").notNull().default(7),
+  referralMonthlyCap: integer("referral_monthly_cap"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -199,9 +239,22 @@ export const memberships = pgTable(
     source: memberSourceEnum("source").notNull().default("direct"),
     /** Clients only: whether other members can see them on class lists. */
     showInAttendeeList: boolean("show_in_attendee_list").notNull().default(true),
+    /** Clients only: agreed to marketing emails / pushes (never assumed; off until they say yes). */
+    marketingEmail: boolean("marketing_email").notNull().default(false),
+    marketingPush: boolean("marketing_push").notNull().default(false),
+    marketingConsentAt: ts("marketing_consent_at"),
+    /** Secret for the unsubscribe link in marketing emails. */
+    unsubscribeToken: text("unsubscribe_token").notNull().default(sql`replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '')`),
+    referralCode: text("referral_code"),
+    acquisition: acquisitionEnum("acquisition").notNull().default("direct"),
+    attribution: jsonb("attribution").$type<Record<string, string>>(),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("memberships_org_user_uq").on(t.orgId, t.userId)],
+  (t) => [
+    uniqueIndex("memberships_org_user_uq").on(t.orgId, t.userId),
+    uniqueIndex("memberships_unsubscribe_uq").on(t.unsubscribeToken),
+    uniqueIndex("memberships_referral_code_uq").on(t.orgId, t.referralCode).where(sql`${t.referralCode} is not null`),
+  ],
 );
 
 export const pushTokens = pgTable(
@@ -763,6 +816,13 @@ export const orders = pgTable(
     provider: text("provider"),
     providerRef: text("provider_ref"),
     paidAt: ts("paid_at"),
+    kind: orderKindEnum("kind").notNull().default("package"),
+    giftCardId: uuid("gift_card_id"),
+    /** Price before discounts and credit; amountCents is what's left to pay. */
+    subtotalCents: integer("subtotal_cents"),
+    discountCents: integer("discount_cents").notNull().default(0),
+    creditCents: integer("credit_cents").notNull().default(0),
+    voucherId: uuid("voucher_id"),
     createdAt: createdAt(),
   },
   (t) => [index("orders_client_idx").on(t.orgId, t.clientId)],
@@ -865,4 +925,293 @@ export const auditLog = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("audit_entity_idx").on(t.entityType, t.entityId)],
+);
+
+// ---------------------------------------------------------------------------
+// Marketing
+// ---------------------------------------------------------------------------
+/** A saved "clients who…" filter. Always worked out live, so it's never out of date. */
+export const segments = pgTable("segments", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  definition: jsonb("definition").$type<SegmentDefinition>().notNull(),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** An email made in the builder (blocks, not HTML). */
+export const emailDesigns = pgTable("email_designs", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  purpose: emailPurposeEnum("purpose").notNull().default("marketing"),
+  category: text("category"),
+  design: jsonb("design").$type<EmailDesign>().notNull(),
+  archivedAt: ts("archived_at"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const emailCampaigns = pgTable("email_campaigns", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  /** Null once the email itself has been deleted; the name is kept for the campaign's history. */
+  emailId: uuid("email_id").references(() => emailDesigns.id, { onDelete: "set null" }),
+  emailName: text("email_name"),
+  /** Null = every client. */
+  segmentId: uuid("segment_id").references(() => segments.id, { onDelete: "set null" }),
+  status: campaignStatusEnum("status").notNull().default("draft"),
+  sendAt: ts("send_at"),
+  sentAt: ts("sent_at"),
+  recipients: integer("recipients").notNull().default(0),
+  skipped: integer("skipped").notNull().default(0),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const journeys = pgTable("journeys", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category"),
+  definition: jsonb("definition").$type<JourneyDefinition>().notNull(),
+  reentry: text("reentry").notNull().default("once"),
+  quietHours: boolean("quiet_hours").notNull().default(true),
+  status: journeyStatusEnum("status").notNull().default("draft"),
+  /** Goes up by one each time it's changed; people part-way through keep the version they started. */
+  version: integer("version").notNull().default(1),
+  liveSince: ts("live_since"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** One client's way through a journey. */
+export const journeyEnrollments = pgTable(
+  "journey_enrollments",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    journeyId: uuid("journey_id").notNull().references(() => journeys.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    /** The steps as they were when this client started. */
+    definition: jsonb("definition").$type<JourneyDefinition>().notNull(),
+    /** Where they are: indexes into the steps, e.g. [2, "yes", 0]. */
+    path: jsonb("path").$type<(number | string)[]>().notNull(),
+    status: enrollmentStatusEnum("status").notNull().default("active"),
+    /** When the next step runs (null while waiting for something to happen). */
+    nextRunAt: ts("next_run_at"),
+    /** A "wait for" step: what they're waiting for, and until when. */
+    waitingFor: jsonb("waiting_for").$type<{ event: string; planIds?: string[]; until: string } | null>(),
+    /** What started it (e.g. the package), so the same thing can't start it twice. */
+    triggerRef: text("trigger_ref"),
+    exitReason: text("exit_reason"),
+    startedAt: createdAt(),
+    finishedAt: ts("finished_at"),
+  },
+  (t) => [
+    index("journey_enrollments_due_idx").on(t.nextRunAt).where(sql`${t.status} = 'active'`),
+    index("journey_enrollments_client_idx").on(t.orgId, t.clientId),
+    uniqueIndex("journey_one_active_per_client").on(t.journeyId, t.clientId).where(sql`${t.status} = 'active'`),
+  ],
+);
+
+/** Each step each client reached, for the journey's numbers ("120 got the email, 31 bought"). */
+export const journeyStepLog = pgTable(
+  "journey_step_log",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    journeyId: uuid("journey_id").notNull().references(() => journeys.id, { onDelete: "cascade" }),
+    enrollmentId: uuid("enrollment_id").notNull().references(() => journeyEnrollments.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    stepId: text("step_id").notNull(),
+    /** done, skipped, yes, no, failed */
+    outcome: text("outcome").notNull(),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("journey_step_log_idx").on(t.journeyId, t.stepId)],
+);
+
+/** For "joins a segment" journeys: who matched last time we checked. */
+export const journeySegmentMembers = pgTable(
+  "journey_segment_members",
+  {
+    journeyId: uuid("journey_id").notNull().references(() => journeys.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  },
+  (t) => [uniqueIndex("journey_segment_members_uq").on(t.journeyId, t.clientId)],
+);
+
+export const banners = pgTable("banners", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  imageFileId: uuid("image_file_id").notNull().references(() => files.id),
+  placement: bannerPlacementEnum("placement").notNull().default("home"),
+  linkType: bannerLinkEnum("link_type").notNull().default("none"),
+  linkTarget: text("link_target"),
+  audience: text("audience").notNull().default("everyone"),
+  segmentId: uuid("segment_id").references(() => segments.id, { onDelete: "set null" }),
+  startsAt: ts("starts_at"),
+  endsAt: ts("ends_at"),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  views: integer("views").notNull().default(0),
+  clicks: integer("clicks").notNull().default(0),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const announcements = pgTable(
+  "announcements",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    importance: text("importance").notNull().default("info"),
+    audience: text("audience").notNull().default("everyone"),
+    locationId: uuid("location_id").references(() => locations.id, { onDelete: "cascade" }),
+    bookedWithinDays: integer("booked_within_days").notNull().default(7),
+    startsAt: ts("starts_at").notNull(),
+    endsAt: ts("ends_at").notNull(),
+    sendPush: boolean("send_push").notNull().default(true),
+    pushedTo: integer("pushed_to"),
+    endedEarlyAt: ts("ended_early_at"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("announcements_live_idx").on(t.orgId, t.endsAt)],
+);
+
+export const announcementDismissals = pgTable(
+  "announcement_dismissals",
+  {
+    announcementId: uuid("announcement_id").notNull().references(() => announcements.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("announcement_dismissals_uq").on(t.announcementId, t.userId)],
+);
+
+export const giftCardDesigns = pgTable("gift_card_designs", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  fileId: uuid("file_id").notNull().references(() => files.id),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: createdAt(),
+});
+
+export const giftCards = pgTable(
+  "gift_cards",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    /** Shown on the card, e.g. GIFT-7K2P-9QXM. */
+    code: text("code").notNull(),
+    designId: uuid("design_id").references(() => giftCardDesigns.id, { onDelete: "set null" }),
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull(),
+    buyerId: uuid("buyer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    recipientId: uuid("recipient_id").references(() => users.id, { onDelete: "set null" }),
+    status: giftCardStatusEnum("status").notNull().default("pending_payment"),
+    fromName: text("from_name"),
+    message: text("message"),
+    /** Unsent cards: give it by then, or it's added to the buyer's own credit. */
+    giveBy: ts("give_by"),
+    givenAt: ts("given_at"),
+    creditGrantId: uuid("credit_grant_id"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("gift_cards_code_uq").on(t.orgId, t.code), index("gift_cards_buyer_idx").on(t.orgId, t.buyerId), index("gift_cards_recipient_idx").on(t.orgId, t.recipientId)],
+);
+
+/** Studio credit: money a client can spend in the online store. Each grant expires on its own date; the soonest is used first. */
+export const creditGrants = pgTable(
+  "credit_grants",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    amountCents: integer("amount_cents").notNull(),
+    remainingCents: integer("remaining_cents").notNull(),
+    currency: text("currency").notNull(),
+    source: creditSourceEnum("source").notNull(),
+    sourceId: uuid("source_id"),
+    note: text("note"),
+    expiresAt: ts("expires_at").notNull(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("credit_grants_client_idx").on(t.orgId, t.clientId), check("credit_remaining_ok", sql`${t.remainingCents} >= 0 and ${t.remainingCents} <= ${t.amountCents}`)],
+);
+
+export const creditLedger = pgTable(
+  "credit_ledger",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    grantId: uuid("grant_id").references(() => creditGrants.id, { onDelete: "cascade" }),
+    change: integer("change").notNull(),
+    reason: creditReasonEnum("reason").notNull(),
+    orderId: uuid("order_id"),
+    note: text("note"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("credit_ledger_client_idx").on(t.orgId, t.clientId, t.createdAt)],
+);
+
+/** A one-time discount (from a referral or a journey). */
+export const vouchers = pgTable(
+  "vouchers",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    percent: integer("percent"),
+    amountCents: integer("amount_cents"),
+    note: text("note"),
+    expiresAt: ts("expires_at").notNull(),
+    usedAt: ts("used_at"),
+    orderId: uuid("order_id"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("vouchers_client_idx").on(t.orgId, t.clientId)],
+);
+
+export const referrals = pgTable(
+  "referrals",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    referrerId: uuid("referrer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    refereeId: uuid("referee_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    /** joined (code at sign-up), later (added within the window), staff (added by the studio) */
+    via: text("via").notNull(),
+    status: referralStatusEnum("status").notNull().default("pending"),
+    rewardedAt: ts("rewarded_at"),
+    note: text("note"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("referrals_one_per_referee").on(t.orgId, t.refereeId), index("referrals_referrer_idx").on(t.orgId, t.referrerId)],
 );

@@ -5,3 +5,4 @@ export type { CreateSessionInput, SessionChanges } from "./schemas.js";
 export * from "./health.js";
 export * from "./packages.js";
 export * from "./pay.js";
+export * from "./marketing.js";

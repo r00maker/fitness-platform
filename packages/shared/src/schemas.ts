@@ -475,8 +475,12 @@ export const checkout = z.object({
   startDate: localDate.optional(),
   /** Bring unused classes across from another package (if the studio allows it). */
   rolloverFromPackageId: id.optional(),
+  /** A one-time discount to use (from a referral or the studio). */
+  voucherId: id.optional(),
+  /** Use studio credit (gift cards, rewards) towards it. On unless turned off. */
+  useCredit: z.boolean().default(true),
 });
-export const checkoutQuote = z.object({ planId: id, rolloverFromPackageId: id.optional() });
+export const checkoutQuote = z.object({ planId: id, rolloverFromPackageId: id.optional(), voucherId: id.optional(), useCredit: z.stringbool().default(true) });
 export const sellPackage = z.object({
   planId: id,
   /** Bring unused classes across from another of the client's packages. */
