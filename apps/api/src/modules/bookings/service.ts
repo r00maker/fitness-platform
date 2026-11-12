@@ -13,6 +13,11 @@ import { fillOpenSpots } from "../waitlist/engine.js";
 import { applyFee, bookingWindow, feeFor, waivePendingFees, weeklyBookings, windowMessage, windowStatus } from "./rules.js";
 import { pickSpot } from "./spots.js";
 import { requireWaiver } from "../clients/waivers.js";
+import { packageOptions, returnCredit, useCredit, whyNoPackage, type PackageOption } from "../packages/service.js";
+import type { BookingPayment } from "@studio/shared";
+import { userName } from "../sessions/context.js";
+import { paidRunFor } from "../payroll/service.js";
+import { DateTime } from "luxon";
 
 export type BookingRow = typeof bookings.$inferSelect;
 /** Admins (and owners) can book, cancel, move and refund for clients, and go outside booking rules. */
@@ -53,6 +58,55 @@ async function resolveClient(tx: DbOrTx, auth: AuthContext, clientId?: string): 
 
 const hoursUntil = (s: SessionRow, now: Date) => (s.startsAt.getTime() - now.getTime()) / 3_600_000;
 
+type Org = Awaited<ReturnType<typeof getOrg>>;
+interface Payment {
+  payment: BookingPayment;
+  option?: PackageOption;
+}
+
+/**
+ * How a booking is paid for:
+ *  - staff can book someone in for free (complimentary);
+ *  - otherwise a package: the one chosen, or the one that runs out soonest;
+ *  - no package that fits: clients are told why; staff are asked whether to book anyway
+ *    as "pay at studio". Studios that don't need packages book as "pay at studio".
+ */
+export async function choosePayment(
+  tx: DbOrTx,
+  auth: AuthContext,
+  org: Org,
+  clientId: string,
+  session: SessionRow,
+  input: { clientPackageId?: string; complimentary?: boolean },
+  flags: Flags | undefined,
+  now: Date,
+  opts: { ignoreSessionId?: string; preferPackageId?: string | null } = {},
+): Promise<Payment> {
+  const isClient = auth.role === "client";
+  if (input.complimentary) {
+    if (isClient) throw forbidden("Only staff can book complimentary classes.");
+    return { payment: "complimentary" };
+  }
+  const options = await packageOptions(tx, org, clientId, session, now, opts.ignoreSessionId);
+  if (input.clientPackageId) {
+    const chosen = options.find((o) => o.pkg.id === input.clientPackageId);
+    if (!chosen) throw notFound("package");
+    if (!chosen.ok) throw conflict("package_not_usable", `${chosen.pkg.name} can't be used for this class: ${chosen.reason!.charAt(0).toLowerCase()}${chosen.reason!.slice(1)}.`);
+    return { payment: "package", option: chosen };
+  }
+  const preferred = opts.preferPackageId ? options.find((o) => o.ok && o.pkg.id === opts.preferPackageId) : undefined;
+  const best = preferred ?? options.find((o) => o.ok);
+  if (best) return { payment: "package", option: best };
+  if (!org.clientsNeedPackage) return { payment: "pay_later" };
+  if (isClient) throw conflict("package_needed", whyNoPackage(options, true), { packages: options.map((o) => ({ id: o.pkg.id, name: o.pkg.name, reason: o.reason })) });
+  flags?.confirm({
+    code: "no_package",
+    sessionId: session.id,
+    message: `${whyNoPackage(options, false, await userName(tx, clientId))} Book anyway? It'll show as “Pay at studio”. You can also book it as complimentary, or sell them a package first.`,
+  });
+  return { payment: "pay_later" };
+}
+
 /**
  * Book a client in. Pass `flags` to run the "please check" warnings (e.g. the client
  * is already in another class at that time); internal callers like waitlist claims skip them.
@@ -60,10 +114,10 @@ const hoursUntil = (s: SessionRow, now: Date) => (s.startsAt.getTime() - now.get
 export async function createBooking(
   tx: DbOrTx,
   auth: AuthContext,
-  input: { sessionId: string; clientId?: string; spot?: number; waiver?: { signedName: string } },
+  input: { sessionId: string; clientId?: string; spot?: number; waiver?: { signedName: string }; clientPackageId?: string; complimentary?: boolean; notifyClient?: boolean },
   flags?: Flags,
   now = new Date(),
-  opts: { ignoreSessionId?: string } = {},
+  opts: { ignoreSessionId?: string; preferPackageId?: string | null; silent?: boolean } = {},
 ) {
   const clientId = await resolveClient(tx, auth, input.clientId);
   const isClient = auth.role === "client";
@@ -130,6 +184,8 @@ export async function createBooking(
   // First booking: studio members sign the waiver (in the same step if they've sent it).
   await requireWaiver(tx, auth, org, clientId, input.waiver, flags, session.id);
 
+  const pay = await choosePayment(tx, auth, org, clientId, session, input, flags, now, opts);
+
   const spot = await pickSpot(tx, session, input.spot);
   const [booking] = await tx
     .insert(bookings)
@@ -140,11 +196,19 @@ export async function createBooking(
       spot,
       source: holdingOffer ? "waitlist_claimed" : isClient ? "client" : "staff",
       bookedBy: auth.userId,
+      payment: pay.payment,
+      clientPackageId: pay.option?.pkg.id ?? null,
     })
     .returning();
+  if (pay.option) await useCredit(tx, org, pay.option, booking!.id, clientId, auth.userId, now);
   if (entry) await tx.update(waitlistEntries).set({ status: "enrolled", bookingId: booking!.id }).where(eq(waitlistEntries.id, entry.id));
-  await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "booking.created", entityType: "booking", entityId: booking!.id });
-  return booking!;
+  await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "booking.created", entityType: "booking", entityId: booking!.id, details: { payment: pay.payment, packageId: pay.option?.pkg.id } });
+  // Booked in by staff: let the client know (moves send their own message).
+  if (!isClient && !opts.silent && input.notifyClient !== false) {
+    const paymentNote = pay.payment === "package" ? `It uses your ${pay.option!.pkg.name}.` : pay.payment === "complimentary" ? "This one's on us." : "Please pay at the studio.";
+    await notify(tx, { orgId: auth.orgId, userIds: [clientId], template: "booking.confirmed", data: { ...(await describeSession(tx, session)), bookingId: booking!.id, paymentNote } });
+  }
+  return { ...booking!, packageName: pay.option?.pkg.name ?? null };
 }
 
 async function recordRefund(
@@ -170,7 +234,7 @@ export async function cancelBooking(
   tx: DbOrTx,
   auth: AuthContext,
   bookingId: string,
-  input: { refund?: RefundMethod; reason?: string; notifyClient: boolean },
+  input: { refund?: RefundMethod; reason?: string; notifyClient: boolean; lateCancel?: boolean; chargeLateFee?: boolean },
   flags: Flags,
   now = new Date(),
 ) {
@@ -199,6 +263,20 @@ export async function cancelBooking(
         message: `This class starts in less than ${org.lateCancelWindowHours} hours, so you won't get your class credit back${fee ? `, and a late-cancellation fee of ${fee.text} applies` : ""}. Cancel anyway?`,
       });
     }
+  } else {
+    // Staff cancelling for a client: the studio's policy by default, which they can override.
+    const insideWindow = now < session.startsAt && hoursUntil(session, now) < org.lateCancelWindowHours;
+    const late = input.lateCancel ?? insideWindow;
+    status = late ? "late_cancelled" : "cancelled";
+    refund = input.refund ?? (late ? "none" : "credit");
+    lateFee = late && input.chargeLateFee !== false && !!feeFor(org, "late_cancel");
+    if (insideWindow && input.lateCancel === undefined) {
+      flags.info({
+        code: "late_cancel",
+        sessionId: session.id,
+        message: `This is inside the ${org.lateCancelWindowHours}-hour late-cancellation window, so it counts as a late cancellation${refund === "none" ? " and the class isn't given back" : ""}${lateFee ? ` and a ${feeFor(org, "late_cancel")!.text} fee applies` : ""}. You can change this when cancelling.`,
+      });
+    }
   }
 
   const [updated] = await tx
@@ -207,15 +285,17 @@ export async function cancelBooking(
     .where(eq(bookings.id, booking.id))
     .returning();
   await recordRefund(tx, auth, booking, refund, { reason: input.reason });
+  // "Credit" = the class goes back to the package it came from.
+  const credit = refund === "credit" ? await returnCredit(tx, org, booking, "returned", auth.userId, input.reason ?? "Cancelled", flags, now) : { returned: false };
   const fee = lateFee ? await applyFee(tx, org, booking, session, "late_cancel") : null;
-  await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "booking.cancelled", entityType: "booking", entityId: booking.id, details: { status, refund, reason: input.reason, feeId: fee?.id } });
+  await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "booking.cancelled", entityType: "booking", entityId: booking.id, details: { status, refund, reason: input.reason, feeId: fee?.id, creditReturned: credit.returned } });
 
   if (input.notifyClient && auth.role !== "client") {
     const info = await describeSession(tx, session);
     await notify(tx, { orgId: auth.orgId, userIds: [booking.clientId], template: "booking.cancelled", data: { ...info, bookingId: booking.id, refundNote: refundNote(refund) } });
   }
   await fillOpenSpots(tx, auth.orgId, session.id, now);
-  return { booking: updated!, refund, fee };
+  return { booking: updated!, refund, fee, lateCancel: status === "late_cancelled", classReturnedToPackage: credit.returned };
 }
 
 /**
@@ -246,7 +326,16 @@ export async function moveBooking(tx: DbOrTx, auth: AuthContext, bookingId: stri
   }
 
   await tx.update(bookings).set({ status: "cancelled", cancelledAt: now }).where(eq(bookings.id, booking.id));
-  const moved = await createBooking(tx, auth, { sessionId: input.targetSessionId, clientId: booking.clientId }, flags, now, { ignoreSessionId: booking.sessionId });
+  // The class goes back to the package and the new booking uses the same one if it can.
+  await returnCredit(tx, org, booking, "returned", auth.userId, "Moved to another class", undefined, now);
+  const moved = await createBooking(
+    tx,
+    auth,
+    { sessionId: input.targetSessionId, clientId: booking.clientId, complimentary: booking.payment === "complimentary" && auth.role !== "client" ? true : undefined },
+    flags,
+    now,
+    { ignoreSessionId: booking.sessionId, preferPackageId: booking.clientPackageId, silent: true },
+  );
   await tx.update(bookings).set({ source: "moved" }).where(eq(bookings.id, moved.id));
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "booking.moved", entityType: "booking", entityId: booking.id, details: { to: moved.id } });
 
@@ -273,10 +362,14 @@ export async function refundBooking(tx: DbOrTx, auth: AuthContext, bookingId: st
     flags.confirm({ code: "already_refunded", message: `This booking was already refunded on ${p.createdAt.toISOString().slice(0, 10)} (${p.method === "credit" ? "class credit" : "payment"}).`, details: { refundId: p.id } });
   }
   if (booking.attendance === "present") flags.info({ code: "refund_after_attending", message: "This client was marked as attended." });
+  if (booking.payment === "complimentary") throw badRequest("complimentary", "This class was complimentary, so there's nothing to refund.");
   await recordRefund(tx, auth, booking, input.method, input);
+  const org = await getOrg(tx, auth.orgId);
+  const credit = input.method === "credit" ? await returnCredit(tx, org, booking, "refunded", auth.userId, input.reason, flags) : { returned: false };
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "booking.refunded", entityType: "booking", entityId: booking.id, details: input });
   const info = await describeSession(tx, await getSession(tx, auth.orgId, booking.sessionId));
   await notify(tx, { orgId: auth.orgId, userIds: [booking.clientId], template: "booking.refunded", data: { ...info, bookingId: booking.id, reason: input.reason, refundNote: refundNote(input.method) } });
+  return { classReturnedToPackage: credit.returned };
 }
 
 /** Instructors take attendance for their own classes; Front of House and admins for any class. */
@@ -309,8 +402,25 @@ export async function markAttendance(tx: DbOrTx, auth: AuthContext, bookingId: s
     .set({ attendance, attendanceMarkedAt: now, attendanceMarkedBy: auth.userId })
     .where(eq(bookings.id, bookingId))
     .returning();
-  if (attendance !== booking.attendance) await syncNoShowFee(tx, auth, b!, session, attendance, flags);
+  if (attendance !== booking.attendance) {
+    await syncNoShowFee(tx, auth, b!, session, attendance, flags);
+    await warnIfPaid(tx, auth, session, flags);
+  }
   return b!;
+}
+
+/** Attendance changed for a class whose pay was already marked as paid: tell admins it won't change what was paid. */
+async function warnIfPaid(tx: DbOrTx, auth: AuthContext, session: SessionRow, flags: Flags) {
+  if (!can(auth.role, "managePayroll")) return;
+  const zone = await locationZone(tx, auth.orgId, session.locationId);
+  const run = await paidRunFor(tx, auth.orgId, DateTime.fromJSDate(session.startsAt, { zone }).toISODate()!);
+  if (run) {
+    flags.info({
+      code: "pay_already_marked_paid",
+      sessionId: session.id,
+      message: `Pay for this period was marked as paid on ${DateTime.fromJSDate(run.paidAt, { zone }).toFormat("d LLL")}. The payroll report will show the difference; add an adjustment if pay needs to change.`,
+    });
+  }
 }
 
 /** "Mark everyone present" – only touches people not yet marked, unless overwrite is set. */
@@ -343,5 +453,6 @@ export async function markAllAttendance(
     .set({ attendance: input.attendance, attendanceMarkedAt: now, attendanceMarkedBy: auth.userId })
     .where(inArray(bookings.id, before.map((b) => b.id)));
   for (const b of before) if (b.attendance !== input.attendance) await syncNoShowFee(tx, auth, b, session, input.attendance, flags);
+  if (before.some((b) => b.attendance !== input.attendance)) await warnIfPaid(tx, auth, session, flags);
   return { updated: before.length };
 }

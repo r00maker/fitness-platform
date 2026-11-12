@@ -6,7 +6,7 @@ import { badRequest, conflict, forbidden, notFound } from "../../lib/errors.js";
 import type { Flags } from "../../lib/flags.js";
 import type { AuthContext } from "../../plugins/auth.js";
 import { bookingWindow, weeklyBookings, windowMessage, windowStatus } from "../bookings/rules.js";
-import { createBooking } from "../bookings/service.js";
+import { choosePayment, createBooking } from "../bookings/service.js";
 import { assertMemberWithRole, confirmedCount, getOrg, heldOfferCount, locationZone, lockSession } from "../sessions/context.js";
 import { fillOpenSpots } from "./engine.js";
 import { requireWaiver } from "../clients/waivers.js";
@@ -52,8 +52,9 @@ export async function joinWaitlist(
   const open = session.capacity - (await confirmedCount(tx, session.id)) - (await heldOfferCount(tx, session.id));
   if (open > 0) throw conflict("spots_available", "There's still space in this class – you can book it directly.");
 
-  // They may be booked in automatically later, so the waiver is needed now.
+  // They may be booked in automatically later, so the waiver and a package that covers the class are needed now.
   await requireWaiver(tx, auth, org, clientId, input.waiver, flags, session.id);
+  await choosePayment(tx, auth, org, clientId, session, {}, flags, now);
 
   const hours = input.expiresHoursBeforeStart;
   if (hours !== null && !org.waitlistExpiryOptionsHours.includes(hours)) {

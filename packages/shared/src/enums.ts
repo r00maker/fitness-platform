@@ -50,6 +50,10 @@ export const PERMISSIONS = {
   reverseWaivers: ["owner", "admin"],
   /** Add or resolve a health note on a client's behalf (clients manage their own). */
   manageHealthNotes: ["owner", "admin", "front_desk"],
+  /** Set up package types, sell packages to clients, and adjust or cancel them. */
+  managePackages: ["owner", "admin"],
+  /** Pay rates, adjustments, pay reports and marking pay as paid. */
+  managePayroll: ["owner", "admin"],
 } as const satisfies Record<string, readonly Role[]>;
 export type Permission = keyof typeof PERMISSIONS;
 export const can = (role: Role, permission: Permission): boolean => (PERMISSIONS[permission] as readonly Role[]).includes(role);
@@ -104,6 +108,44 @@ export type HealthNoteStatus = (typeof HEALTH_NOTE_STATUSES)[number];
 /** A note is checked with the client ("still current?") when they book, once it's this many days since they last confirmed it. */
 export const HEALTH_NOTE_REVIEW_DAYS = 30;
 export const HEALTH_NOTE_MAX_LENGTH = 280;
+
+// ---- Packages ----------------------------------------------------------------
+/** "credits": a number of classes (e.g. a 10-class pack). "unlimited": any number of classes while it's valid. */
+export const PACKAGE_KINDS = ["credits", "unlimited"] as const;
+export type PackageKind = (typeof PACKAGE_KINDS)[number];
+export const VALIDITY_UNITS = ["days", "weeks", "months"] as const;
+export type ValidityUnit = (typeof VALIDITY_UNITS)[number];
+/** When the validity countdown starts: when it's bought, or when its first class is booked. */
+export const PACKAGE_STARTS = ["purchase", "first_booking"] as const;
+export type PackageStart = (typeof PACKAGE_STARTS)[number];
+/** Shared packages: everyone draws from one pool, or each person has their own share of the credits. */
+export const SHARING_MODES = ["pool", "allocated"] as const;
+export type SharingMode = (typeof SHARING_MODES)[number];
+/** Worked out when needed, never stored, so a package can't be "stuck" in the wrong state. */
+export const PACKAGE_STATES = ["not_started", "active", "used_up", "expired", "cancelled"] as const;
+export type PackageState = (typeof PACKAGE_STATES)[number];
+export const PACKAGE_LEDGER_REASONS = ["purchase", "booked", "returned", "refunded", "adjusted"] as const;
+export type PackageLedgerReason = (typeof PACKAGE_LEDGER_REASONS)[number];
+/** How a booking is paid for. "pay_later" = settled at the studio (or once payments are switched on). */
+export const BOOKING_PAYMENTS = ["package", "complimentary", "pay_later"] as const;
+export type BookingPayment = (typeof BOOKING_PAYMENTS)[number];
+export const MAX_PACKAGE_SHARERS = 10;
+
+// ---- Payroll -----------------------------------------------------------------
+/**
+ * per_class: a flat amount for each class taught.
+ * per_client: an optional base, plus an amount for each client (optionally after the first few), with an optional minimum.
+ * tiered: a set amount depending on how many clients came.
+ * hourly: an hourly rate, paid on the class's length.
+ * salary: a fixed amount each pay period (front desk, managers, salaried instructors).
+ */
+export const PAY_RATE_TYPES = ["per_class", "per_client", "tiered", "hourly", "salary"] as const;
+export type PayRateType = (typeof PAY_RATE_TYPES)[number];
+export const PAY_PERIODS = ["weekly", "fortnightly", "twice_monthly", "monthly"] as const;
+export type PayPeriod = (typeof PAY_PERIODS)[number];
+/** Who counts towards per-client and tiered pay: clients who attended, or everyone booked (no-shows included). */
+export const PAY_HEADCOUNTS = ["attended", "booked"] as const;
+export type PayHeadcount = (typeof PAY_HEADCOUNTS)[number];
 
 /** Light or dark colours. "system" follows the phone or computer's own setting. */
 export const THEMES = ["system", "light", "dark"] as const;
@@ -179,6 +221,11 @@ export const FLAG_CODES = [
   // Waivers
   "waiver_missing",
   "confirm_waiver_complete",
+  // Packages and payroll
+  "no_package",
+  "package_expired",
+  "pay_already_marked_paid",
+  "period_not_over",
 ] as const;
 export type FlagCode = (typeof FLAG_CODES)[number];
 export type FlagSeverity = "confirm" | "info";

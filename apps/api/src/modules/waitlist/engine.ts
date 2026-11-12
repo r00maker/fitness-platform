@@ -9,6 +9,7 @@
  *    after it passes they're removed and told, so nobody is booked last-minute.
  */
 import { and, asc, eq, gt, inArray, lte } from "drizzle-orm";
+import { packageOptions, useCredit } from "../packages/service.js";
 import { DateTime } from "luxon";
 import type { Db, DbOrTx } from "../../db/client.js";
 import { bookings, classSessions, waitlistEntries } from "../../db/schema.js";
@@ -43,10 +44,14 @@ export async function fillOpenSpots(tx: DbOrTx, orgId: string, sessionId: string
     // Someone who has hit the weekly limit since joining keeps their place but is skipped for now.
     if (org.weeklyBookingLimit != null && (await weeklyBookings(tx, orgId, entry.clientId, session.startsAt, zone)).count >= org.weeklyBookingLimit) continue;
     if (entry.mode === "automatic") {
+      // Paid with the package that runs out soonest. No usable package (e.g. it's expired since they joined): they keep their place but are skipped.
+      const pkg = (await packageOptions(tx, org, entry.clientId, session, now)).find((o) => o.ok);
+      if (!pkg && org.clientsNeedPackage) continue;
       const [b] = await tx
         .insert(bookings)
-        .values({ orgId, sessionId, clientId: entry.clientId, source: "waitlist_automatic", spot: await pickSpot(tx, session) })
+        .values({ orgId, sessionId, clientId: entry.clientId, source: "waitlist_automatic", spot: await pickSpot(tx, session), payment: pkg ? "package" : "pay_later", clientPackageId: pkg?.pkg.id ?? null })
         .returning({ id: bookings.id });
+      if (pkg) await useCredit(tx, org, pkg, b!.id, entry.clientId, null, now);
       await tx.update(waitlistEntries).set({ status: "enrolled", bookingId: b!.id }).where(eq(waitlistEntries.id, entry.id));
       await notify(tx, { orgId, userIds: [entry.clientId], template: "waitlist.enrolled", data: { ...info, bookingId: b!.id } });
     } else {

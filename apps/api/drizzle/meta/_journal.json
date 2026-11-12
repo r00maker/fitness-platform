@@ -50,6 +50,13 @@
       "when": 1794418377280,
       "tag": "0006_user_theme_preference",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794480526833,
+      "tag": "0007_packages_and_payroll",
+      "breakpoints": true
     }
   ]
 }

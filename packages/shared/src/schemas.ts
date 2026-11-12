@@ -9,6 +9,14 @@ import {
   HEALTH_CATEGORIES,
   HEALTH_NOTE_MAX_LENGTH,
   THEMES,
+  MAX_PACKAGE_SHARERS,
+  PACKAGE_KINDS,
+  PACKAGE_STARTS,
+  PAY_HEADCOUNTS,
+  PAY_PERIODS,
+  PAY_RATE_TYPES,
+  SHARING_MODES,
+  VALIDITY_UNITS,
   CALENDAR_VIEWS,
   EDIT_SCOPES,
   REFUND_METHODS,
@@ -59,6 +67,12 @@ export const updateOrgSettings = z.object({
   waiverRequired: z.boolean().optional(),
   waiverText: z.string().trim().min(20, "Paste in your full waiver.").max(20_000).nullable().optional(),
   spotBookingEnabled: z.boolean().optional(),
+  clientsNeedPackage: z.boolean().optional(),
+  payPeriod: z.enum(PAY_PERIODS).optional(),
+  /** Fortnightly pay: the first day of any one pay fortnight. */
+  payPeriodAnchor: localDate.optional(),
+  payHeadcount: z.enum(PAY_HEADCOUNTS).optional(),
+  instructorsSeeOwnPay: z.boolean().optional(),
 });
 export const waiveFee = z.object({ reason: z.string().trim().min(1, "Add a short reason.").max(500) });
 
@@ -246,10 +260,21 @@ export const createBooking = z.object({
   spot: z.number().int().min(1).max(500).optional(),
   /** First booking: sign the studio's waiver in the same step. */
   waiver: signWaiver.optional(),
+  /** Which package pays for it. Left out = the package that runs out soonest. */
+  clientPackageId: id.optional(),
+  /** Staff only: book for free. */
+  complimentary: z.boolean().optional(),
+  /** Staff booking someone in: send them a confirmation. */
+  notifyClient: z.boolean().default(true),
   acknowledge,
 });
 export const cancelBooking = z.object({
+  /** Left out = the studio's policy (credit back, unless it's a late cancellation). */
   refund: z.enum(REFUND_METHODS).optional(),
+  /** Staff only. Left out = late if inside the late-cancellation window. */
+  lateCancel: z.boolean().optional(),
+  /** Staff only, for late cancellations. Left out = charge it if the studio charges one. */
+  chargeLateFee: z.boolean().optional(),
   reason: z.string().max(500).optional(),
   notifyClient: z.boolean().default(true),
   acknowledge,
@@ -300,6 +325,108 @@ export const createSubRequest = z.object({
 });
 export const approveSub = z.object({ instructorId: id, acknowledge });
 export const respondToSub = z.object({ acknowledge });
+
+// ---- Packages -------------------------------------------------------------
+const money = z.number().int().min(0, "Can't be negative.").max(100_000_000);
+export const packagePlan = z
+  .object({
+    name,
+    description: z.string().trim().max(1000).nullish(),
+    kind: z.enum(PACKAGE_KINDS),
+    /** Credit packs: how many classes. */
+    credits: z.number().int().min(1, "At least 1 class.").max(1000).nullish(),
+    priceCents: money.default(0),
+    /** Both empty = never expires. */
+    validityValue: z.number().int().min(1).max(1000).nullish(),
+    validityUnit: z.enum(VALIDITY_UNITS).nullish(),
+    startsOn: z.enum(PACKAGE_STARTS).default("purchase"),
+    /** Countdown starts on first booking: it expires if nothing is booked within this many days of buying. */
+    activateWithinDays: z.number().int().min(1).max(365).nullish(),
+    maxUsers: z.number().int().min(1).max(MAX_PACKAGE_SHARERS).default(1),
+    sharingMode: z.enum(SHARING_MODES).nullish(),
+    weeklyLimit: z.number().int().min(1).max(50).nullish(),
+    /** Empty = every class. */
+    classTypeIds: z.array(id).max(100).default([]),
+    onSale: z.boolean().default(true),
+  })
+  .superRefine((p, ctx) => {
+    const issue = (path: string, message: string) => ctx.addIssue({ code: "custom", path: [path], message });
+    if (p.kind === "credits" && !p.credits) issue("credits", "How many classes does this package include?");
+    if (p.kind === "unlimited" && p.credits) issue("credits", "Unlimited packages don't have a number of classes.");
+    if (!!p.validityValue !== !!p.validityUnit) issue("validityValue", "Give both a number and a unit (e.g. 3 months), or leave both empty for no expiry.");
+    if (p.kind === "unlimited" && !p.validityValue) issue("validityValue", "Unlimited packages need a validity period, e.g. 1 month.");
+    if (p.activateWithinDays && p.startsOn !== "first_booking") issue("activateWithinDays", "Only needed when the countdown starts at the first booking.");
+    if (p.maxUsers > 1 && p.kind === "credits" && !p.sharingMode) issue("sharingMode", "Choose whether sharers use one pool of credits or each get their own share.");
+    if (p.maxUsers === 1 && p.sharingMode) issue("sharingMode", "Only needed when the package can be shared.");
+    if (p.kind === "unlimited" && p.sharingMode === "allocated") issue("sharingMode", "Unlimited packages can't be split: everyone sharing gets unlimited classes.");
+  });
+export const updatePackagePlan = z.object({
+  name: name.optional(),
+  description: z.string().trim().max(1000).nullish(),
+  priceCents: money.optional(),
+  onSale: z.boolean().optional(),
+});
+export const sellPackage = z.object({
+  planId: id,
+  /** Countdown starts when bought: start on a later date instead (e.g. a membership from the 1st). */
+  startDate: localDate.optional(),
+  /** What the client paid. Left out = the package's price. */
+  pricePaidCents: money.optional(),
+  note: z.string().trim().max(500).optional(),
+  notifyClient: z.boolean().default(true),
+});
+export const adjustPackage = z
+  .object({
+    /** + adds classes, − removes them. */
+    credits: z.number().int().min(-1000).max(1000).refine((n) => n !== 0, "Add or remove at least 1.").optional(),
+    /** New last day the package can be used. */
+    validUntil: localDate.optional(),
+    reason: z.string().trim().min(1, "Add a short reason.").max(500),
+  })
+  .refine((a) => a.credits !== undefined || a.validUntil !== undefined, "Change the classes, the expiry date, or both.");
+export const cancelPackage = z.object({ reason: z.string().trim().min(1, "Add a short reason.").max(500) });
+export const addPackageSharer = z.object({ email: z.email("That email doesn't look right.").optional(), clientId: id.optional() }).refine((a) => !!a.email !== !!a.clientId, "Give the person's email.");
+/** Allocated sharing: how many of the remaining credits each person can use. */
+export const setPackageAllocations = z.object({ allocations: z.array(z.object({ userId: id, credits: z.number().int().min(0).max(1000) })).min(1).max(MAX_PACKAGE_SHARERS) });
+
+// ---- Payroll ------------------------------------------------------------------
+export const payRate = z
+  .object({
+    staffId: id,
+    /** Leave out for their usual rate; set to pay a different rate for one class type (e.g. privates). */
+    classTypeId: id.nullish(),
+    type: z.enum(PAY_RATE_TYPES),
+    amountCents: money.nullish(),
+    perClientCents: money.nullish(),
+    clientsIncluded: z.number().int().min(0).max(500).nullish(),
+    minimumCents: money.nullish(),
+    tiers: z.array(z.object({ fromClients: z.number().int().min(0).max(1000), amountCents: money })).min(2, "Add at least two tiers.").max(10).nullish(),
+    /** Used for classes from this date. Left out = today. */
+    effectiveFrom: localDate.optional(),
+  })
+  .superRefine((r, ctx) => {
+    const issue = (path: string, message: string) => ctx.addIssue({ code: "custom", path: [path], message });
+    if (["per_class", "hourly", "salary"].includes(r.type) && !r.amountCents) issue("amountCents", "Set the amount.");
+    if (r.type === "per_client" && !r.perClientCents) issue("perClientCents", "Set the amount per client.");
+    if (r.type === "tiered") {
+      if (!r.tiers?.length) issue("tiers", "Add the tiers.");
+      else {
+        const from = r.tiers.map((t) => t.fromClients);
+        if (!from.includes(0)) issue("tiers", "The first tier should start at 0 clients, so every class is covered.");
+        if (new Set(from).size !== from.length) issue("tiers", "Each tier needs a different starting number.");
+      }
+    }
+    if (r.type === "salary" && r.classTypeId) issue("classTypeId", "Salaries apply to the whole pay period, not one class type.");
+  });
+export const payAdjustment = z.object({
+  staffId: id,
+  date: localDate,
+  /** Negative for a deduction. */
+  amountCents: z.number().int().min(-100_000_000).max(100_000_000).refine((n) => n !== 0, "Enter an amount."),
+  reason: z.string().trim().min(1, "Add a short reason, e.g. “Workshop on 3 Nov”.").max(300),
+});
+export const payrollQuery = z.object({ date: localDate.optional() });
+export const markPaid = z.object({ date: localDate, acknowledge });
 
 // ---- Push tokens -----------------------------------------------------------
 export const registerPushToken = z.object({

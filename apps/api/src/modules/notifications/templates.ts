@@ -92,6 +92,24 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: "Waitlist closed",
     pushBody: `The waitlist for ${when(d)} has closed.`,
   }),
+  "booking.confirmed": (d) => ({
+    subject: `You're booked: ${when(d)}`,
+    body: `The studio has booked you into ${when(d)} at ${s(d.locationName)}.${d.paymentNote ? ` ${s(d.paymentNote)}` : ""} See you there!`,
+    pushTitle: "You're booked in",
+    pushBody: `${when(d)}.`,
+  }),
+  "package.added": (d) => ({
+    subject: `Your ${s(d.packageName)} is ready`,
+    body: `${s(d.packageName)} has been added to your account. ${s(d.terms)}. You'll find it under My packages.`,
+    pushTitle: "Package added",
+    pushBody: `${s(d.packageName)} is ready to use.`,
+  }),
+  "package.shared": (d) => ({
+    subject: `${s(d.ownerName)} shared a package with you`,
+    body: `${s(d.ownerName)} has shared ${s(d.packageName)} with you, so you can book classes with it.${d.allocated ? " They'll choose how many of the classes are yours." : ""} You'll find it under My packages.`,
+    pushTitle: "Package shared with you",
+    pushBody: `${s(d.ownerName)} shared ${s(d.packageName)} with you.`,
+  }),
   "fee.applied": (d) => ({
     subject: `${d.feeType === "no_show" ? "No-show" : "Late-cancellation"} fee: ${s(d.className)}`,
     body: `A ${d.feeType === "no_show" ? "no-show" : "late-cancellation"} fee of ${s(d.feeText)} has been added to your account for ${when(d)}, in line with the studio's policy. If you think this is a mistake, please contact the studio.`,
