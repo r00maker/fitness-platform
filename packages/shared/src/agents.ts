@@ -185,7 +185,9 @@ export function describeAgent(d: AgentDefinition, opts: { peopleCount?: number }
   const people = opts.peopleCount ?? d.notify.userIds.length;
   const who = listWords([...d.notify.roles.map((r) => ROLE_WORDS[r]), ...(people ? [`${people} chosen ${people === 1 ? "person" : "people"}`] : [])]);
   const onlyOwn = d.notify.roles.includes("instructor") ? " Instructors only hear about their own classes." : "";
-  return `${d.when.type === "before_class" ? `${when[0]!.toUpperCase()}${when.slice(1)}` : when}, it ${job} and tells ${who}.${onlyOwn}`;
+  // "Reminds instructors…" already says who hears it when only instructors are told.
+  const saysWho = d.notify.roles.length === 1 && d.notify.roles[0] === "instructor" && !people && (j.type === "cover_classes" || j.type === "teaching");
+  return `${d.when.type === "before_class" ? `${when[0]!.toUpperCase()}${when.slice(1)}` : when}, it ${job}${saysWho ? "" : ` and tells ${who}`}.${onlyOwn}`;
 }
 
 // ---------------------------------------------------------------------------

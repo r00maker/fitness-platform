@@ -154,7 +154,7 @@ describe("reminder agents", () => {
     await cls(new Date(now.getTime() + 5 * 3_600_000), { instructorId: s.ana.id }); // not yet
     const r = await make({ name: "Ping", definition: { when: { type: "before_class", hoursBefore: 2 }, job: { type: "teaching", daysAhead: 1 }, notify: { roles: ["instructor"] }, sees: ["schedule"] } });
     expect(r.status, JSON.stringify(r.body)).toBe(201);
-    expect(r.body.description).toBe("2 hours before each class, it reminds instructors about each class they teach and tells instructors. Instructors only hear about their own classes.");
+    expect(r.body.description).toBe("2 hours before each class, it reminds instructors about each class they teach. Instructors only hear about their own classes.");
     await runDueAgents(db, now);
     await runDueAgents(db, new Date(now.getTime() + 60_000));
     const msgs = await db.select().from(agentMessages);

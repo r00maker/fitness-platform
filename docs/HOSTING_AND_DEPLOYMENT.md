@@ -102,7 +102,7 @@ Agents run on the **Claude API**, Anthropic's pay-as-you-go developer platform. 
 
 1. Create an organisation on the **Claude Console** (platform.claude.com) and add a payment method. You can pay as you go from prepaid credit, and move to invoicing later.
 2. Create two **workspaces**, `staging` and `production`. Each gets its own API key and a **monthly spend limit**. The spend limit is a backstop in case the platform's own caps fail.
-3. Put each key in that environment's secret manager as `ANTHROPIC_API_KEY`. Never commit it, and never put it in the web or mobile app.
+3. Put each key in that environment's secret manager as `ANTHROPIC_API_KEY`. Never commit it, and never put it in the web or mobile app. Optional settings: `ASSISTANT_MODEL` (default `claude-opus-5-5`), `ASSISTANT_MONTHLY_REPLIES` (replies included per studio each month, default 300) and `ASSISTANT_DISABLED=true` (a kill switch for every studio).
 4. Accept Anthropic's **data processing agreement** for the organisation. Add "AI processing (Anthropic)" to the platform's list of subprocessors, and tell studios so their own privacy notices can mention it. This matters under data-protection laws such as PDPA in Singapore, Malaysia and Thailand. By default, data sent through the API under the commercial terms is not used to train models.
 
 ### How usage and cost are tracked
@@ -127,3 +127,8 @@ Claude only sees what our tools return. Every tool runs with the requesting stud
 - **Prompt caching:** the fixed instructions sent with every run cost about a tenth of the normal price after the first time.
 - **Batch runs:** checks that don't need an instant answer (e.g. overnight reports) cost half price through the batch API.
 - **Run on a schedule or an event**, not constantly, and keep answers short.
+
+### What's built
+
+- **Reminder agents** (`apps/api/src/modules/agents/`) don't use the Claude API at all: they're rules over the studio's schedule, so they cost nothing per run and don't count towards the allowance. The worker runs them every minute.
+- **The assistant** (`apps/api/src/modules/assistant/`) uses the Claude API with tool use. It reads the help guide (`docs/help/` and `docs/PRODUCT_NOTES.md`, copied into the image) and has six tools, all limited to the asker's studio and role. It only *offers* actions; the person confirms each one. If the model declines a request, the API retries on its default fallback model (server-side fallback).
