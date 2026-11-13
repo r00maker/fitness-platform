@@ -8,14 +8,14 @@ import { TEMPLATES } from "./templates.js";
  */
 export async function notify(
   db: DbOrTx,
-  opts: { orgId: string; userIds: (string | null | undefined)[]; template: string; data: Record<string, unknown> },
+  opts: { orgId: string; userIds: (string | null | undefined)[]; template: string; data: Record<string, unknown>; channels?: readonly ("email" | "push")[] },
 ): Promise<void> {
   if (!TEMPLATES[opts.template]) throw new Error(`Unknown notification template: ${opts.template}`);
   const ids = [...new Set(opts.userIds.filter((x): x is string => !!x))];
   if (ids.length === 0) return;
   await db.insert(notifications).values(
     ids.flatMap((userId) =>
-      (["email", "push"] as const).map((channel) => ({
+      (opts.channels ?? (["email", "push"] as const)).map((channel) => ({
         orgId: opts.orgId,
         userId,
         channel,

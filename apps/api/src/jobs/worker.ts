@@ -13,6 +13,7 @@ import { runDueJourneys, scanJourneyTriggers } from "../modules/marketing/journe
 import { keepOverdueGiftCards } from "../modules/marketing/giftcards.js";
 import { expireLoyalty } from "../modules/marketing/loyalty.js";
 import { leadFollowUps, sendMetaConversions } from "../modules/marketing/ads.js";
+import { autoCancelDue } from "../modules/sessions/service.js";
 import { sendScheduledCampaigns } from "../modules/marketing/campaigns.js";
 
 const config = loadConfig();
@@ -49,6 +50,7 @@ every(60 * 60_000, "gift cards", () => keepOverdueGiftCards(db));
 every(6 * 60 * 60_000, "loyalty expiry", () => expireLoyalty(db));
 every(15 * 60_000, "lead follow-ups", () => leadFollowUps(db, urls));
 every(5 * 60_000, "meta conversions", () => sendMetaConversions(db, config));
+every(60_000, "auto-cancel", () => autoCancelDue(db));
 
 const stop = async () => {
   running = false;

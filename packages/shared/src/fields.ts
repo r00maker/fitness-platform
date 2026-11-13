@@ -229,6 +229,7 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   waiver_missing: "Waiver not signed",
   confirm_waiver_complete: "Check the waiver first",
   appointment_no_client: "No client added",
+  delete_class_type: "Delete this class type?",
   classpass_reduced: "Fewer ClassPass spots than already booked",
   no_package: "No package for this class",
   package_expired: "Package has expired",

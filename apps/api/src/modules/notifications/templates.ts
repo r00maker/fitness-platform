@@ -20,6 +20,18 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: "Class cancelled",
     pushBody: `${when(d)} has been cancelled.`,
   }),
+  "staff.invite": (d) => ({
+    subject: `You've been added to ${s(d.studioName)}`,
+    body: `Hi ${s(d.firstName)}, ${s(d.invitedBy)} has added you to ${s(d.studioName)} as ${s(d.roleLabel)}. To sign in, set your password here: ${s(d.link)} The link works for 7 days. After that, ask them to send a new one. Your sign-in email is ${s(d.email)}.`,
+    pushTitle: "Welcome",
+    pushBody: `You've been added to ${s(d.studioName)}.`,
+  }),
+  "session.auto_cancelled": (d) => ({
+    subject: `Auto-cancelled: ${when(d)}`,
+    body: `${when(d)} had ${d.booked} of the ${d.needed} bookings it needed at the cut-off, so it was cancelled automatically. Everyone booked has been told and given their class back.`,
+    pushTitle: "Class auto-cancelled",
+    pushBody: `${when(d)}: ${d.booked} of ${d.needed} booked, so it was cancelled.`,
+  }),
   "session.rescheduled": (d) => ({
     subject: `Time change: ${s(d.className)}`,
     body: `${s(d.className)} has moved from ${s(d.oldLocalDate)} ${s(d.oldLocalTime)} to ${s(d.localDate)} ${s(d.localTime)}. Your booking has been kept. If the new time doesn't work, you can cancel without a fee.`,

@@ -152,6 +152,17 @@ export const createClassType = z.object({
 });
 export const updateClassType = createClassType.partial();
 
+/**
+ * Auto-cancel: if fewer than `minBookings` people are booked `hoursBefore` hours before the
+ * class, it's cancelled and everyone booked is told and given their class back. Null = off.
+ */
+export const autoCancel = z
+  .object({
+    hoursBefore: z.number().int().min(1, "At least 1 hour before.").max(72, "At most 72 hours (3 days) before."),
+    minBookings: z.number().int().min(1, "At least 1 person.").max(1000),
+  })
+  .nullable();
+
 /** ClassPass: whether ClassPass clients can book, and the most spots they can take. */
 const classpassEnabled = z.boolean();
 const classpassSpots = z.number().int().min(1, "Open at least 1 spot to ClassPass, or switch it off.").max(1000);
@@ -173,6 +184,7 @@ export const createTemplate = z.object({
   waitlistCapacity: z.number().int().min(1).max(1000).nullish(),
   classpassEnabled: classpassEnabled.default(false),
   classpassSpots: classpassSpots.nullish(),
+  autoCancel: autoCancel.optional(),
 });
 export const updateTemplate = createTemplate.partial();
 
@@ -195,6 +207,8 @@ export const createSession = z.object({
   notes: z.string().max(2000).nullish(),
   classpassEnabled: classpassEnabled.optional(),
   classpassSpots: classpassSpots.nullish(),
+  /** Left out = the template's setting. */
+  autoCancel: autoCancel.optional(),
   /** Appointments only: book these clients in as it's created. */
   clientIds: clientIds.optional(),
   acknowledge,
@@ -216,6 +230,7 @@ export const sessionChanges = z
     classTypeId: id,
     classpassEnabled,
     classpassSpots: classpassSpots.nullable(),
+    autoCancel,
   })
   .partial()
   .refine((c) => Object.keys(c).length > 0, "Nothing to change.")
@@ -280,6 +295,7 @@ export const createSeries = z
     occurrences: z.number().int().min(1).max(520).optional(),
     classpassEnabled: classpassEnabled.optional(),
     classpassSpots: classpassSpots.nullish(),
+    autoCancel: autoCancel.optional(),
     /** Appointments only: book these clients into every session in the series. */
     clientIds: clientIds.optional(),
     notes: z.string().max(2000).nullish(),
@@ -613,3 +629,15 @@ export const registerPushToken = z.object({
   token: z.string().min(10).max(500),
   platform: z.enum(["ios", "android", "web"]),
 });
+
+// ---- Staff ------------------------------------------------------------------
+/** Add a staff member. They get an email with a link to set their password; no 2FA is required for staff. */
+export const inviteStaff = z.object({
+  email: z.email("Enter a valid email address.").max(200),
+  firstName: z.string().trim().min(1, "Add their first name.").max(60),
+  lastName: z.string().trim().min(1, "Add their last name.").max(60),
+  role: z.enum(["admin", "front_desk", "instructor"]),
+  phone: z.string().trim().max(30).nullish(),
+});
+export const changeStaffRole = z.object({ role: z.enum(["admin", "front_desk", "instructor"]) });
+export const deleteClassType = z.object({ acknowledge });

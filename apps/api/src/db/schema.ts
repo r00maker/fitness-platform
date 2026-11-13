@@ -240,6 +240,27 @@ export const users = pgTable(
   (t) => [uniqueIndex("users_email_lower_uq").on(sql`lower(${t.email})`)],
 );
 
+/**
+ * A staff member who's been added but hasn't set their password yet. The email link carries a
+ * random token; only its hash is stored. Links last 7 days and can be re-sent.
+ */
+export const staffInvites = pgTable(
+  "staff_invites",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: roleEnum("role").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: ts("expires_at").notNull(),
+    acceptedAt: ts("accepted_at"),
+    invitedBy: uuid("invited_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("staff_invites_token_uq").on(t.tokenHash), index("staff_invites_org_idx").on(t.orgId, t.userId)],
+);
+
 export const memberships = pgTable(
   "memberships",
   {
@@ -255,6 +276,7 @@ export const memberships = pgTable(
     /** Clients only: agreed to marketing emails / pushes (never assumed; off until they say yes). */
     marketingEmail: boolean("marketing_email").notNull().default(false),
     marketingPush: boolean("marketing_push").notNull().default(false),
+    marketingWhatsapp: boolean("marketing_whatsapp").notNull().default(false),
     marketingConsentAt: ts("marketing_consent_at"),
     /** Secret for the unsubscribe link in marketing emails. */
     unsubscribeToken: text("unsubscribe_token").notNull().default(sql`replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '')`),
@@ -506,6 +528,9 @@ export const classTemplates = pgTable("class_templates", {
   waitlistCapacity: integer("waitlist_capacity"),
   classpassEnabled: boolean("classpass_enabled").notNull().default(false),
   classpassSpots: integer("classpass_spots"),
+  /** Auto-cancel when fewer than autoCancelMin are booked autoCancelHours before the start (both null = off). */
+  autoCancelHours: integer("auto_cancel_hours"),
+  autoCancelMin: integer("auto_cancel_min"),
   archivedAt: ts("archived_at"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -535,6 +560,8 @@ export const classSeries = pgTable("class_series", {
   occurrences: integer("occurrences"),
   classpassEnabled: boolean("classpass_enabled").notNull().default(false),
   classpassSpots: integer("classpass_spots"),
+  autoCancelHours: integer("auto_cancel_hours"),
+  autoCancelMin: integer("auto_cancel_min"),
   /** Appointments: clients booked into every session the series makes. */
   clientIds: uuid("client_ids").array().notNull().default(sql`'{}'::uuid[]`),
   notes: text("notes"),
@@ -575,6 +602,12 @@ export const classSessions = pgTable(
     /** ClassPass clients can book this class, up to classpassSpots of them. Unused ClassPass spots stay open to members. */
     classpassEnabled: boolean("classpass_enabled").notNull().default(false),
     classpassSpots: integer("classpass_spots"),
+    /** Auto-cancel: checked once, at autoCancelHours before the start. */
+    autoCancelHours: integer("auto_cancel_hours"),
+    autoCancelMin: integer("auto_cancel_min"),
+    autoCancelCheckedAt: ts("auto_cancel_checked_at"),
+    /** Cancelled by the auto-cancel rule rather than by a person. */
+    autoCancelled: boolean("auto_cancelled").notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -1042,6 +1075,8 @@ export const journeyEnrollments = pgTable(
     /** Where they are: indexes into the steps, e.g. [2, "yes", 0]. */
     path: jsonb("path").$type<(number | string)[]>().notNull(),
     status: enrollmentStatusEnum("status").notNull().default("active"),
+    /** Reached the journey's goal (and so left it). */
+    convertedAt: ts("converted_at"),
     /** When the next step runs (null while waiting for something to happen). */
     nextRunAt: ts("next_run_at"),
     /** A "wait for" step: what they're waiting for, and until when. */
@@ -1419,3 +1454,17 @@ export const adConversions = pgTable(
   },
   (t) => [index("ad_conversions_pending_idx").on(t.status, t.platform), uniqueIndex("ad_conversions_once").on(t.orgId, t.platform, t.event, t.clientId)],
 );
+
+/** The studio's WhatsApp Business connection (Cloud API). The token is encrypted (lib/secrets.ts). */
+export const whatsappSettings = pgTable("whatsapp_settings", {
+  orgId: uuid("org_id").primaryKey().references(() => organizations.id, { onDelete: "cascade" }),
+  phoneNumberId: text("phone_number_id"),
+  businessAccountId: text("business_account_id"),
+  accessToken: text("access_token"),
+  displayPhone: text("display_phone"),
+  defaultCountryCode: text("default_country_code").notNull().default("65"),
+  /** Approved message templates the studio can use: [{ name, language, body, category, variables }]. */
+  templates: jsonb("templates").$type<{ name: string; language: string; body: string; category: string; variables: number }[]>().notNull().default([]),
+  lastError: text("last_error"),
+  updatedAt: updatedAt(),
+});

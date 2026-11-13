@@ -17,6 +17,7 @@ import { packageOptions, returnCredit, useCredit, whyNoPackage, type PackageOpti
 import type { BookingPayment } from "@studio/shared";
 import { userName } from "../sessions/context.js";
 import { paidRunFor } from "../payroll/service.js";
+import { classpassLead } from "../marketing/ads.js";
 import { DateTime } from "luxon";
 import { attendedEvent, bookedEvent } from "../marketing/events.js";
 import { loyaltyForAttendance, loyaltyForRefund } from "../marketing/loyalty.js";
@@ -99,6 +100,14 @@ export async function choosePayment(
   const preferred = opts.preferPackageId ? options.find((o) => o.ok && o.pkg.id === opts.preferPackageId) : undefined;
   const best = preferred ?? options.find((o) => o.ok);
   if (best) return { payment: "package", option: best };
+  // Appointments can only be booked with a package that covers them (or as complimentary).
+  const [type] = await tx.select({ kind: classTypes.kind, name: classTypes.name }).from(classTypes).where(eq(classTypes.id, session.classTypeId));
+  if (type?.kind === "appointment") {
+    const who = isClient ? "You need" : `${await userName(tx, clientId)} needs`;
+    throw conflict("appointment_package_needed", `${who} a package that covers ${type.name} appointments before ${isClient ? "you can be" : "they can be"} booked in.${isClient ? "" : " Sell them one first, or book it as complimentary."}`, {
+      packages: options.map((o) => ({ id: o.pkg.id, name: o.pkg.name, reason: o.reason })),
+    });
+  }
   if (!org.clientsNeedPackage) return { payment: "pay_later" };
   if (isClient) throw conflict("package_needed", whyNoPackage(options, true), { packages: options.map((o) => ({ id: o.pkg.id, name: o.pkg.name, reason: o.reason })) });
   flags?.confirm({
@@ -215,6 +224,7 @@ export async function createBooking(
     })
     .returning();
   if (pay.option) await useCredit(tx, org, pay.option, booking!.id, clientId, auth.userId, now);
+  if (input.viaClasspass) await classpassLead(tx, auth.orgId, clientId, now);
   if (entry) await tx.update(waitlistEntries).set({ status: "enrolled", bookingId: booking!.id }).where(eq(waitlistEntries.id, entry.id));
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "booking.created", entityType: "booking", entityId: booking!.id, details: { payment: pay.payment, packageId: pay.option?.pkg.id } });
   // Booked in by staff: let the client know (moves send their own message).

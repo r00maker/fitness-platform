@@ -1,4 +1,6 @@
 import type { Config } from "../../config.js";
+import type { DbOrTx } from "../../db/client.js";
+import { sendWhatsapp } from "../marketing/whatsapp.js";
 
 export interface EmailMessage {
   to: string;
@@ -12,6 +14,8 @@ export interface EmailMessage {
 export interface PushMessage { tokens: string[]; title: string; body: string; data?: Record<string, unknown> }
 export interface EmailProvider { send(msg: EmailMessage): Promise<void> }
 export interface PushProvider { send(msg: PushMessage): Promise<void> }
+/** WhatsApp template messages, sent with each studio's own connected number. */
+export interface WhatsappProvider { send(db: DbOrTx, orgId: string, msg: { to: string; template: string; language: string; params: string[] }): Promise<void> }
 
 /** Development: print instead of sending. */
 export const consoleEmail: EmailProvider = { async send(m) { console.log(`[email] to=${m.to} subject="${m.subject}"`); } };
@@ -51,10 +55,10 @@ export const expoPush: PushProvider = {
   },
 };
 
-export function providersFromConfig(config: Config): { email: EmailProvider; push: PushProvider } {
+export function providersFromConfig(config: Config): { email: EmailProvider; push: PushProvider; whatsapp: WhatsappProvider } {
   const email =
     config.EMAIL_PROVIDER === "postmark"
       ? postmarkEmail(config.POSTMARK_TOKEN ?? (() => { throw new Error("POSTMARK_TOKEN missing"); })(), config.EMAIL_FROM)
       : consoleEmail;
-  return { email, push: config.PUSH_PROVIDER === "expo" ? expoPush : consolePush };
+  return { email, push: config.PUSH_PROVIDER === "expo" ? expoPush : consolePush, whatsapp: { send: (db, orgId, msg) => sendWhatsapp(db, config, orgId, msg) } };
 }

@@ -54,6 +54,10 @@ export const PERMISSIONS = {
   managePackages: ["owner", "admin"],
   /** Pay rates, adjustments, pay reports and marking pay as paid. */
   managePayroll: ["owner", "admin"],
+  /** Add staff (they get an email to set their password), change roles, remove access. */
+  manageStaff: ["owner", "admin"],
+  /** Revenue, sales, attendance and conversion reports. */
+  viewReports: ["owner", "admin"],
   /** Segments, emails, campaigns, journeys, banners, gift cards and referral settings. */
   manageMarketing: ["owner", "admin"],
   /** Post an announcement to clients, e.g. "The lift is out of order". Front desk can too, since they're first to know. */
@@ -241,7 +245,7 @@ export const TIME_OF_DAY_HOURS: Record<TimeOfDay, [number, number]> = {
   evening: [17, 24],
 };
 
-export const NOTIFICATION_CHANNELS = ["email", "push"] as const;
+export const NOTIFICATION_CHANNELS = ["email", "push", "whatsapp"] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 /**
@@ -297,6 +301,7 @@ export const FLAG_CODES = [
   "confirm_waiver_complete",
   // Appointments and ClassPass
   "appointment_no_client",
+  "delete_class_type",
   "classpass_reduced",
   // Packages and payroll
   "no_package",

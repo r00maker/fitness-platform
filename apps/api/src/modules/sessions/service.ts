@@ -1,6 +1,6 @@
-import { and, asc, count, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, asc, count, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, sql } from "drizzle-orm";
 import type { CreateSessionInput, EditScope, RefundMethod, SessionChanges } from "@studio/shared";
-import type { DbOrTx } from "../../db/client.js";
+import type { Db, DbOrTx } from "../../db/client.js";
 import {
   bookings,
   refunds,
@@ -15,7 +15,7 @@ import {
 } from "../../db/schema.js";
 import { audit } from "../../lib/audit.js";
 import { badRequest, conflict, notFound } from "../../lib/errors.js";
-import type { Flags } from "../../lib/flags.js";
+import { Flags } from "../../lib/flags.js";
 import { addMinutes, daysBetween, localToUtc, minutesBetweenTimes, recurrenceDates, shiftDate, utcToLocal } from "../../lib/time.js";
 import type { AuthContext } from "../../plugins/auth.js";
 import { createBooking, refundNote } from "../bookings/service.js";
@@ -60,6 +60,11 @@ async function assertClassType(db: DbOrTx, orgId: string, classTypeId: string) {
   return c;
 }
 
+/** Auto-cancel needs a minimum the class can actually reach. */
+function checkAutoCancel(min: number | null, capacity: number) {
+  if (min != null && min > capacity) throw badRequest("invalid_input", "Some details need fixing.", { fields: { autoCancel: `The class only has ${capacity} spots, so the minimum can be at most ${capacity}.` } });
+}
+
 /** ClassPass settings that can work: on with a number of spots no bigger than the class, and never for appointments. */
 function checkClasspassSettings(kind: string, enabled: boolean, spots: number | null, capacity: number) {
   if (!enabled) return;
@@ -100,6 +105,8 @@ interface ResolvedFields {
   room: Room | null;
   classpassEnabled: boolean;
   classpassSpots: number | null;
+  autoCancelHours: number | null;
+  autoCancelMin: number | null;
   /** Of the class type: "class" or "appointment". */
   kind: string;
 }
@@ -137,7 +144,12 @@ async function resolveFields(db: DbOrTx, orgId: string, input: FieldInput): Prom
     classpassEnabled: input.classpassEnabled ?? t?.classpassEnabled ?? false,
     classpassSpots: input.classpassSpots !== undefined ? input.classpassSpots : (t?.classpassSpots ?? null),
     kind: type?.kind ?? "class",
+    autoCancelHours: null,
+    autoCancelMin: null,
   };
+  // Auto-cancel: from the class if given, else the template. Appointments are never auto-cancelled.
+  const ac = input.autoCancel !== undefined ? input.autoCancel : t?.autoCancelHours ? { hoursBefore: t.autoCancelHours, minBookings: t.autoCancelMin! } : null;
+  if (ac && !isAppointment) { f.autoCancelHours = ac.hoursBefore; f.autoCancelMin = ac.minBookings; }
   if (isAppointment && t?.classpassEnabled && input.classpassEnabled === undefined) f.classpassEnabled = false;
   if (!f.classpassEnabled) f.classpassSpots = null;
   const missing: Record<string, string> = {};
@@ -150,6 +162,7 @@ async function resolveFields(db: DbOrTx, orgId: string, input: FieldInput): Prom
 
   if (clients.length > f.capacity) throw badRequest("invalid_input", "Some details need fixing.", { fields: { capacity: `You've added ${clients.length} clients, so it needs at least ${clients.length} spots.` } });
   checkClasspassSettings(f.kind, f.classpassEnabled, f.classpassSpots, f.capacity);
+  checkAutoCancel(f.autoCancelMin, f.capacity);
   await locationZone(db, orgId, f.locationId);
   if (f.roomId) f.room = await getRoom(db, orgId, f.roomId, f.locationId);
   if (f.instructorId) await assertMemberWithRole(db, orgId, f.instructorId, TEACHER_ROLES, "instructor");
@@ -223,6 +236,8 @@ export async function createSeries(
       occurrences: input.occurrences ?? null,
       classpassEnabled: f.classpassEnabled,
       classpassSpots: f.classpassSpots,
+      autoCancelHours: f.autoCancelHours,
+      autoCancelMin: f.autoCancelMin,
       clientIds: f.kind === "appointment" ? (input.clientIds ?? []) : [],
       notes: f.notes,
       createdBy: auth.userId,
@@ -283,6 +298,8 @@ export async function generateSeriesSessions(tx: DbOrTx, series: SeriesRow, thro
       waitlistCapacity: series.waitlistCapacity,
       classpassEnabled: series.classpassEnabled,
       classpassSpots: series.classpassSpots,
+      autoCancelHours: series.autoCancelHours,
+      autoCancelMin: series.autoCancelMin,
       notes: series.notes,
       startsAt,
       endsAt,
@@ -403,6 +420,13 @@ async function applyChanges(
   const classpassSpots = !classpassEnabled ? null : changes.classpassSpots !== undefined ? changes.classpassSpots : s.classpassSpots;
   const type = await assertClassType(tx, auth.orgId, classTypeId);
   checkClasspassSettings(type.kind, classpassEnabled, classpassSpots, capacity);
+  // Auto-cancel: a new rule (or a different time) is checked afresh.
+  const autoCancelSet =
+    changes.autoCancel !== undefined
+      ? { autoCancelHours: changes.autoCancel?.hoursBefore ?? null, autoCancelMin: changes.autoCancel?.minBookings ?? null, autoCancelCheckedAt: null }
+      : timeChanged ? { autoCancelCheckedAt: null } : {};
+  if (type.kind === "appointment" && changes.autoCancel) throw badRequest("auto_cancel_appointment", "Appointments aren't auto-cancelled: you book people into them.");
+  checkAutoCancel(changes.autoCancel !== undefined ? (changes.autoCancel?.minBookings ?? null) : s.autoCancelMin, capacity);
   if (classpassEnabled !== s.classpassEnabled || classpassSpots !== s.classpassSpots) {
     const cp = await classpassBooked(tx, s.id);
     if (cp > (classpassSpots ?? 0)) {
@@ -433,6 +457,7 @@ async function applyChanges(
       notes: changes.notes !== undefined ? changes.notes : s.notes,
       classpassEnabled,
       classpassSpots,
+      ...autoCancelSet,
       detachedFromSeries: s.detachedFromSeries || (opts.detach && !!s.seriesId),
     })
     .where(eq(classSessions.id, s.id))
@@ -530,6 +555,7 @@ export async function updateSession(
       ...(input.changes.waitlistCapacity !== undefined && { waitlistCapacity: input.changes.waitlistCapacity }),
       ...(input.changes.classpassEnabled !== undefined && { classpassEnabled: input.changes.classpassEnabled, ...(!input.changes.classpassEnabled && { classpassSpots: null }) }),
       ...(input.changes.classpassSpots !== undefined && { classpassSpots: input.changes.classpassSpots }),
+      ...(input.changes.autoCancel !== undefined && { autoCancelHours: input.changes.autoCancel?.hoursBefore ?? null, autoCancelMin: input.changes.autoCancel?.minBookings ?? null }),
       ...(input.changes.notes !== undefined && { notes: input.changes.notes }),
     })
     .where(eq(classSeries.id, seriesId));
@@ -681,6 +707,51 @@ export async function deleteSession(tx: DbOrTx, auth: AuthContext, sessionId: st
 }
 
 // ---------------------------------------------------------------------------
+// Auto-cancel
+// ---------------------------------------------------------------------------
+/**
+ * Worker: classes with an auto-cancel rule are checked once, at the cut-off. If fewer than the
+ * minimum are booked, the class is cancelled: everyone booked gets their class back and is told
+ * why, the waitlist closes, and the instructor and admins are told. Otherwise it simply runs.
+ */
+export async function autoCancelDue(db: Db, now = new Date()): Promise<{ checked: number; cancelled: string[] }> {
+  const due = await db
+    .select({ id: classSessions.id, orgId: classSessions.orgId })
+    .from(classSessions)
+    .where(
+      and(
+        eq(classSessions.status, "scheduled"),
+        isNotNull(classSessions.autoCancelHours),
+        isNull(classSessions.autoCancelCheckedAt),
+        gt(classSessions.startsAt, now),
+        lte(sql`${classSessions.startsAt} - make_interval(hours => ${classSessions.autoCancelHours})`, now),
+      ),
+    )
+    .limit(200);
+  const cancelled: string[] = [];
+  for (const d of due) {
+    await db.transaction(async (tx) => {
+      const s = await lockSession(tx, d.orgId, d.id);
+      if (s.status !== "scheduled" || s.autoCancelCheckedAt || s.autoCancelMin == null) return;
+      await tx.update(classSessions).set({ autoCancelCheckedAt: now }).where(eq(classSessions.id, s.id));
+      const booked = await confirmedCount(tx, s.id);
+      if (booked >= s.autoCancelMin) return;
+      const [owner] = await tx.select({ id: memberships.userId }).from(memberships).where(and(eq(memberships.orgId, s.orgId), eq(memberships.role, "owner"))).limit(1);
+      if (!owner) return;
+      const auth: AuthContext = { orgId: s.orgId, userId: owner.id, role: "owner" };
+      const reason = `Not enough people booked (${booked} of the ${s.autoCancelMin} needed), so the studio has cancelled it`;
+      await cancelOne(tx, auth, s, { reason, refund: "credit", notifyClients: true }, new Flags(), now);
+      await tx.update(classSessions).set({ autoCancelled: true }).where(eq(classSessions.id, s.id));
+      const team = await tx.select({ id: memberships.userId }).from(memberships).where(and(eq(memberships.orgId, s.orgId), inArray(memberships.role, ["owner", "admin"]), eq(memberships.active, true)));
+      const info = await describeSession(tx, s);
+      await notify(tx, { orgId: s.orgId, userIds: [...new Set([...team.map((t) => t.id), ...(s.instructorId ? [s.instructorId] : [])])], template: "session.auto_cancelled", data: { ...info, booked, needed: s.autoCancelMin } });
+      cancelled.push(s.id);
+    });
+  }
+  return { checked: due.length, cancelled };
+}
+
+// ---------------------------------------------------------------------------
 // Duplicate
 // ---------------------------------------------------------------------------
 async function copyTo(tx: DbOrTx, auth: AuthContext, s: SessionRow, date: string, flags: Flags, now: Date): Promise<SessionRow> {
@@ -706,6 +777,8 @@ async function copyTo(tx: DbOrTx, auth: AuthContext, s: SessionRow, date: string
       notes: s.notes,
       classpassEnabled: s.classpassEnabled,
       classpassSpots: s.classpassSpots,
+      autoCancelHours: s.autoCancelHours,
+      autoCancelMin: s.autoCancelMin,
       startsAt,
       endsAt,
     })

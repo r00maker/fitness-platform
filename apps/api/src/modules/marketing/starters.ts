@@ -114,6 +114,7 @@ export const RECIPES: Record<string, { name: string; description: string; emails
     emails: ["miss_you"],
     build: (e) => ({
       trigger: { type: "inactive", days: 30 },
+      goal: { event: "class_booked" },
       steps: [
         { id: "hello", type: "send_email", emailId: e.miss_you! },
         {
@@ -146,6 +147,6 @@ export const RECIPES: Record<string, { name: string; description: string; emails
     name: "Last class used",
     description: "When a client books the last class on a credit pack, remind them to top up.",
     emails: ["last_class"],
-    build: (e) => ({ trigger: { type: "package_used_up" }, steps: [{ id: "topup", type: "send_email", emailId: e.last_class! }] }),
+    build: (e) => ({ trigger: { type: "package_used_up" }, goal: { event: "package_bought" }, steps: [{ id: "topup", type: "send_email", emailId: e.last_class! }] }),
   },
 };

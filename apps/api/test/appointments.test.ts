@@ -16,12 +16,15 @@ const ACK = ["possible_duplicate", "instructor_double_booked", "room_double_book
 async function setup() {
   const s = await studio();
   const privateType = (await s.owner.call("POST", "/class-types", { name: "Private reformer", color: "#7C3AED", kind: "appointment", defaultDurationMinutes: 55 })).body;
+  // Appointments need a package made for them: an unlimited private pack for Chloe and Dev.
+  const apptPlan = (await s.owner.call("POST", "/package-plans", { name: "Private unlimited", kind: "unlimited", priceCents: 90000, validityValue: 12, validityUnit: "months", classTypeIds: [privateType.id] })).body;
+  for (const c of [s.c1, s.c2]) expect((await s.owner.call("POST", `/clients/${c.id}/packages`, { planId: apptPlan.id })).status).toBe(201);
   const appt = (body: Record<string, unknown> = {}) =>
     s.owner.call("POST", "/sessions", { classTypeId: privateType.id, locationId: s.locationId, roomId: s.roomId, instructorId: s.ana.id, durationMinutes: 55, date: dayOffset(3), startTime: "15:00", acknowledge: ACK, ...body });
   const cls = (body: Record<string, unknown> = {}) =>
     s.owner.call("POST", "/sessions", { classTypeId: s.classTypeId, locationId: s.locationId, roomId: s.roomId, instructorId: s.ana.id, capacity: 10, durationMinutes: 50, date: dayOffset(3), startTime: "09:00", acknowledge: ACK, ...body });
   const calendar = (who: { call: typeof s.owner.call }) => who.call("GET", `/calendar?view=week&date=${dayOffset(3)}`).then((r) => r.body.sessions as Record<string, unknown>[]);
-  return { s, privateType, appt, cls, calendar };
+  return { s, privateType, apptPlan, appt, cls, calendar };
 }
 
 describe("class type colours", () => {
@@ -70,6 +73,22 @@ describe("appointments", () => {
     const self = await s.c2.call("POST", "/bookings", { sessionId: r.body.id });
     expect(self.status).toBe(403);
     expect(self.body.error.message).toMatch(/booked by the studio/);
+  });
+
+  it("needs a package that covers appointments (group class packs don't), or complimentary", async () => {
+    const { s, appt } = await setup();
+    const groupPack = (await s.owner.call("POST", "/package-plans", { name: "10-class pack", kind: "credits", credits: 10, priceCents: 28000, validityValue: 3, validityUnit: "months" })).body;
+    await s.owner.call("POST", `/clients/${s.c3.id}/packages`, { planId: groupPack.id });
+    const r = await appt({ clientIds: [s.c3.id] });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatchObject({ code: "appointment_package_needed", message: expect.stringMatching(/needs a package that covers Private reformer appointments.*complimentary/) });
+    expect(r.body.error.packages[0].reason).toMatch(/covers group classes, not Private reformer appointments/);
+    // An open slot, then booked in for free.
+    const open = await appt({ acknowledge: [...ACK, "appointment_no_client"] });
+    expect((await s.owner.call("POST", "/bookings", { sessionId: open.body.id, clientId: s.c3.id, complimentary: true })).body).toMatchObject({ payment: "complimentary" });
+    // Chloe's private pack pays for hers.
+    const mine = await appt({ clientIds: [s.c1.id], startTime: "17:00" });
+    expect((await db.select().from(bookings).where(eq(bookings.sessionId, mine.body.id)))[0]!.payment).toBe("package");
   });
 
   it("fits everyone added, and only takes clients for appointments", async () => {

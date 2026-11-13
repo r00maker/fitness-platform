@@ -237,7 +237,7 @@ export async function packageOptions(db: DbOrTx, org: Org, clientId: string, ses
     .from(clientPackageMembers)
     .innerJoin(clientPackages, eq(clientPackages.id, clientPackageMembers.packageId))
     .where(and(eq(clientPackageMembers.orgId, org.id), eq(clientPackageMembers.userId, clientId)));
-  const [type] = await db.select({ name: classTypes.name }).from(classTypes).where(eq(classTypes.id, session.classTypeId));
+  const [type] = await db.select({ name: classTypes.name, kind: classTypes.kind }).from(classTypes).where(eq(classTypes.id, session.classTypeId));
   const out: PackageOption[] = [];
   for (const { p, m } of rows) {
     const state = packageState(p, now);
@@ -249,6 +249,8 @@ export async function packageOptions(db: DbOrTx, org: Org, clientId: string, ses
       continue;
     }
     if (p.classTypeIds.length && !p.classTypeIds.includes(session.classTypeId)) { no(`It doesn't cover ${type?.name ?? "this class"}`); continue; }
+    // Appointments need a package made for them: an "every class" pack covers group classes only.
+    if (type?.kind === "appointment" && !p.classTypeIds.length) { no(`It covers group classes, not ${type.name} appointments`); continue; }
     if (p.startedAt && session.startsAt < p.startedAt) { no(`It starts on ${friendly(p.startedAt, zone)}, after this class`); continue; }
     if (runsOutAt && session.startsAt >= runsOutAt) { no(`It ${p.startedAt ? "expires" : "would expire"} on ${friendly(new Date(runsOutAt.getTime() - 1), zone)}, before this class`); continue; }
     if (p.kind === "credits") {

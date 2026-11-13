@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { and, asc, eq, gte } from "drizzle-orm";
 import { schemas } from "@studio/shared";
 import { z } from "zod";
-import { bookings, classSessions } from "../../db/schema.js";
+import { bookings, classSessions, classTypes } from "../../db/schema.js";
 import { withFlags } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
 import * as svc from "./service.js";
@@ -49,12 +49,30 @@ export async function bookingRoutes(app: FastifyInstance) {
     return withFlags(app, input.acknowledge, (tx, flags) => svc.markAllAttendance(tx, req.auth, id, input, flags));
   });
 
-  app.get("/me/bookings", async (req) =>
-    app.db
-      .select({ booking: bookings, session: classSessions })
+  /**
+   * The client's upcoming bookings, split into group classes and appointments (some people do both).
+   * `?show=classes|appointments` narrows it. Staff notes and ClassPass settings aren't included.
+   */
+  app.get("/me/bookings", async (req) => {
+    const { show } = parse(z.object({ show: z.enum(["all", "classes", "appointments"]).default("all") }), req.query);
+    const rows = await app.db
+      .select({
+        booking: bookings,
+        session: { id: classSessions.id, startsAt: classSessions.startsAt, endsAt: classSessions.endsAt, locationId: classSessions.locationId, roomId: classSessions.roomId, instructorId: classSessions.instructorId, status: classSessions.status },
+        classType: { id: classTypes.id, name: classTypes.name, color: classTypes.color, kind: classTypes.kind },
+      })
       .from(bookings)
       .innerJoin(classSessions, eq(classSessions.id, bookings.sessionId))
+      .innerJoin(classTypes, eq(classTypes.id, classSessions.classTypeId))
       .where(and(eq(bookings.orgId, req.auth.orgId), eq(bookings.clientId, req.auth.userId), eq(bookings.status, "confirmed"), gte(classSessions.endsAt, new Date())))
-      .orderBy(asc(classSessions.startsAt)),
-  );
+      .orderBy(asc(classSessions.startsAt));
+    const items = rows.map((r) => ({ ...r, isAppointment: r.classType.kind === "appointment" }));
+    const classes = items.filter((i) => !i.isAppointment);
+    const appointments = items.filter((i) => i.isAppointment);
+    return {
+      counts: { classes: classes.length, appointments: appointments.length },
+      ...(show !== "appointments" ? { classes } : {}),
+      ...(show !== "classes" ? { appointments } : {}),
+    };
+  });
 }

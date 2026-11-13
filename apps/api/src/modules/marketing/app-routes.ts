@@ -119,9 +119,9 @@ export async function marketingAppRoutes(app: FastifyInstance) {
       } else if (input.phone && !u.phone) {
         await tx.update(users).set({ phone: input.phone }).where(eq(users.id, u.id));
       }
-      const consent = input.marketingEmail || input.marketingPush;
+      const consent = input.marketingEmail || input.marketingPush || input.marketingWhatsapp;
       await tx.insert(memberships).values({
-        orgId: org.id, userId: u!.id, role: "client", marketingEmail: input.marketingEmail, marketingPush: input.marketingPush,
+        orgId: org.id, userId: u!.id, role: "client", marketingEmail: input.marketingEmail, marketingPush: input.marketingPush, marketingWhatsapp: input.marketingWhatsapp,
         marketingConsentAt: consent ? new Date() : null, attribution: input.attribution ?? null, acquisition: acquisitionFrom(input.attribution, !!input.referralCode),
       });
       let referral: { referrerFirstName: string; welcomeGift: string | null } | null = null;
@@ -168,16 +168,16 @@ export async function marketingAppRoutes(app: FastifyInstance) {
 
   // --- Marketing choices and unsubscribing ------------------------------------------
   app.get("/me/marketing", async (req) => {
-    const [m] = await db.select({ marketingEmail: memberships.marketingEmail, marketingPush: memberships.marketingPush, since: memberships.marketingConsentAt }).from(memberships).where(and(eq(memberships.orgId, req.auth.orgId), eq(memberships.userId, req.auth.userId)));
+    const [m] = await db.select({ marketingEmail: memberships.marketingEmail, marketingPush: memberships.marketingPush, marketingWhatsapp: memberships.marketingWhatsapp, since: memberships.marketingConsentAt }).from(memberships).where(and(eq(memberships.orgId, req.auth.orgId), eq(memberships.userId, req.auth.userId)));
     return m;
   });
   app.patch("/me/marketing", async (req) => {
     const input = parse(marketingPrefs, req.body);
     const [m] = await db
       .update(memberships)
-      .set({ ...input, ...(input.marketingEmail || input.marketingPush ? { marketingConsentAt: new Date() } : {}) })
+      .set({ ...input, ...(input.marketingEmail || input.marketingPush || input.marketingWhatsapp ? { marketingConsentAt: new Date() } : {}) })
       .where(and(eq(memberships.orgId, req.auth.orgId), eq(memberships.userId, req.auth.userId)))
-      .returning({ marketingEmail: memberships.marketingEmail, marketingPush: memberships.marketingPush });
+      .returning({ marketingEmail: memberships.marketingEmail, marketingPush: memberships.marketingPush, marketingWhatsapp: memberships.marketingWhatsapp });
     return m;
   });
   /** The link in marketing emails. GET shows a confirm button (so link scanners can't unsubscribe people); POST unsubscribes (also used by one-click mail apps). */

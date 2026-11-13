@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { and, asc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { schemas } from "@studio/shared";
 import { z } from "zod";
-import { bookings, classSeries, classSessions, classTemplates, classTypeInstructors, classTypes, locations, rooms } from "../../db/schema.js";
+import { bookings, classSeries, classSessions, classTemplates, classTypeInstructors, classTypes, locations, packagePlans, rooms } from "../../db/schema.js";
 import type { DbOrTx } from "../../db/client.js";
 import { conflict } from "../../lib/errors.js";
 import { withFlags } from "../../lib/route.js";
@@ -208,12 +208,49 @@ export async function catalogRoutes(app: FastifyInstance) {
       return { classTypeId: id, instructorIds: unique };
     });
 
-    /** Archive rather than delete, so past classes keep their name and colour. */
-    admin.delete("/class-types/:id", async (req, reply) => {
+    /**
+     * Delete a class type. Refused while it's on the calendar (upcoming classes or a repeat that's
+     * still running): move or cancel those first. Otherwise it asks first, then removes it from new
+     * classes, packages and pay rates. Past classes keep their name and colour, and its templates go too.
+     */
+    admin.delete("/class-types/:id", async (req) => {
       const { id } = parse(idParam, req.params);
-      const [row] = await db.update(classTypes).set({ archivedAt: new Date() }).where(and(eq(classTypes.id, id), eq(classTypes.orgId, req.auth.orgId))).returning();
-      if (!row) throw notFound("class type");
-      return reply.code(204).send();
+      const { acknowledge } = parse(schemas.deleteClassType, req.body ?? {});
+      return withFlags(app, acknowledge, async (tx, flags) => {
+        const [type] = await tx.select().from(classTypes).where(and(eq(classTypes.id, id), eq(classTypes.orgId, req.auth.orgId), isNull(classTypes.archivedAt)));
+        if (!type) throw notFound("class type");
+        const now = new Date();
+        const [{ upcoming } = { upcoming: 0 }] = await tx
+          .select({ upcoming: sql<number>`count(*)::int` })
+          .from(classSessions)
+          .where(and(eq(classSessions.classTypeId, id), eq(classSessions.status, "scheduled"), gt(classSessions.endsAt, now)));
+        const repeats = await tx
+          .select({ id: classSeries.id })
+          .from(classSeries)
+          .where(and(eq(classSeries.classTypeId, id), isNull(classSeries.endedAt), sql`(${classSeries.endDate} is null or ${classSeries.endDate} >= current_date)`));
+        if (upcoming || repeats.length) {
+          throw conflict(
+            "class_type_in_use",
+            `${type.name} is still on the calendar${upcoming ? ` (${upcoming} upcoming ${upcoming === 1 ? "class" : "classes"})` : ""}${repeats.length ? `${upcoming ? " and" : ""} in ${repeats.length} repeating ${repeats.length === 1 ? "schedule" : "schedules"}` : ""}. Cancel them or change them to another class type first, then delete it.`,
+            { upcoming, repeats: repeats.length },
+          );
+        }
+        const tpls = await tx.select({ id: classTemplates.id, name: classTemplates.name }).from(classTemplates).where(and(eq(classTemplates.classTypeId, id), isNull(classTemplates.archivedAt)));
+        const plans = await tx.select({ id: packagePlans.id, name: packagePlans.name, classTypeIds: packagePlans.classTypeIds }).from(packagePlans).where(and(eq(packagePlans.orgId, req.auth.orgId), isNull(packagePlans.archivedAt), sql`${id} = any(${packagePlans.classTypeIds})`));
+        const onlyThis = plans.filter((p) => p.classTypeIds.length === 1);
+        flags.confirm({
+          code: "delete_class_type",
+          message: [
+            `${type.name} will be removed from the class list. Past classes keep their name and colour in history and reports.`,
+            tpls.length ? `${tpls.length === 1 ? "Its template" : `Its ${tpls.length} templates`} (${tpls.map((t) => t.name).join(", ")}) will be deleted too.` : "",
+            onlyThis.length ? `${onlyThis.map((p) => p.name).join(", ")} ${onlyThis.length === 1 ? "only covers" : "only cover"} ${type.name}, so ${onlyThis.length === 1 ? "it will be taken off sale" : "they'll be taken off sale"}. Packages already sold keep working for past bookings.` : "",
+          ].filter(Boolean).join(" "),
+        });
+        await tx.update(classTypes).set({ archivedAt: now }).where(eq(classTypes.id, id));
+        if (tpls.length) await tx.update(classTemplates).set({ archivedAt: now }).where(inArray(classTemplates.id, tpls.map((t) => t.id)));
+        if (onlyThis.length) await tx.update(packagePlans).set({ onSale: false }).where(inArray(packagePlans.id, onlyThis.map((p) => p.id)));
+        return { deleted: type.name, templatesRemoved: tpls.length, packagesTakenOffSale: onlyThis.map((p) => p.name) };
+      });
     });
 
     admin.get("/templates", async (req) =>
@@ -237,6 +274,13 @@ export async function catalogRoutes(app: FastifyInstance) {
       }
       if (t.instructorId) await assertMemberWithRole(db, orgId, t.instructorId, ["owner", "admin", "instructor"], "instructor");
     }
+    /** Auto-cancel on a template: only for classes, with a minimum the class can reach. */
+    async function checkTemplateAutoCancel(orgId: string, classTypeId: string, ac: { minBookings: number } | null, capacity: number) {
+      if (!ac) return;
+      const [type] = await db.select({ kind: classTypes.kind }).from(classTypes).where(and(eq(classTypes.id, classTypeId), eq(classTypes.orgId, orgId)));
+      if (type?.kind === "appointment") throw badRequest("auto_cancel_appointment", "Appointments aren't auto-cancelled: you book people into them.");
+      if (ac.minBookings > capacity) throw badRequest("invalid_input", "Some details need fixing.", { fields: { autoCancel: `The class only has ${capacity} spots, so the minimum can be at most ${capacity}.` } });
+    }
     /** ClassPass on a template: only for classes, with spots that fit. */
     async function checkTemplateClasspass(orgId: string, t: { classTypeId: string; capacity: number; classpassEnabled: boolean; classpassSpots: number | null }) {
       if (!t.classpassEnabled) return;
@@ -250,8 +294,10 @@ export async function catalogRoutes(app: FastifyInstance) {
       const input = parse(schemas.createTemplate, req.body);
       await checkTemplateRefs(req.auth.orgId, input);
       await checkTemplateClasspass(req.auth.orgId, { ...input, classpassSpots: input.classpassSpots ?? null });
+      const { autoCancel, ...fields } = input;
+      await checkTemplateAutoCancel(req.auth.orgId, input.classTypeId, autoCancel ?? null, input.capacity);
       reply.code(201);
-      return (await db.insert(classTemplates).values({ ...input, classpassSpots: input.classpassEnabled ? input.classpassSpots : null, orgId: req.auth.orgId }).returning())[0];
+      return (await db.insert(classTemplates).values({ ...fields, classpassSpots: input.classpassEnabled ? input.classpassSpots : null, autoCancelHours: autoCancel?.hoursBefore ?? null, autoCancelMin: autoCancel?.minBookings ?? null, orgId: req.auth.orgId }).returning())[0];
     });
 
     admin.patch("/templates/:id", async (req) => {
@@ -263,7 +309,10 @@ export async function catalogRoutes(app: FastifyInstance) {
       const next = { ...cur, ...input };
       await checkTemplateClasspass(req.auth.orgId, next);
       if (!next.classpassEnabled) input.classpassSpots = null;
-      const [row] = await db.update(classTemplates).set(input).where(and(eq(classTemplates.id, id), eq(classTemplates.orgId, req.auth.orgId))).returning();
+      const { autoCancel, ...fields } = input;
+      const ac = autoCancel !== undefined ? autoCancel : cur.autoCancelHours ? { hoursBefore: cur.autoCancelHours, minBookings: cur.autoCancelMin! } : null;
+      await checkTemplateAutoCancel(req.auth.orgId, next.classTypeId, ac, next.capacity);
+      const [row] = await db.update(classTemplates).set({ ...fields, ...(autoCancel !== undefined && { autoCancelHours: autoCancel?.hoursBefore ?? null, autoCancelMin: autoCancel?.minBookings ?? null }) }).where(and(eq(classTemplates.id, id), eq(classTemplates.orgId, req.auth.orgId))).returning();
       if (!row) throw notFound("template");
       return row;
     });

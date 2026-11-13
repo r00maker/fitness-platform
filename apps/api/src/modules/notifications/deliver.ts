@@ -1,7 +1,7 @@
 import { and, eq, lte, sql } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
 import { notifications, pushTokens, users } from "../../db/schema.js";
-import type { EmailProvider, PushProvider } from "./providers.js";
+import type { EmailProvider, PushProvider, WhatsappProvider } from "./providers.js";
 import { render } from "./templates.js";
 
 const MAX_ATTEMPTS = 5;
@@ -10,7 +10,7 @@ const MAX_ATTEMPTS = 5;
  * Deliver a batch of queued notifications. Safe to run on several workers at
  * once: rows are claimed with SKIP LOCKED so each message is sent by one worker.
  */
-export async function deliverPending(db: Db, providers: { email: EmailProvider; push: PushProvider }, batchSize = 50): Promise<number> {
+export async function deliverPending(db: Db, providers: { email: EmailProvider; push: PushProvider; whatsapp?: WhatsappProvider }, batchSize = 50): Promise<number> {
   return db.transaction(async (tx) => {
     const batch = await tx
       .select({ n: notifications, accountEmail: users.email })
@@ -27,6 +27,13 @@ export async function deliverPending(db: Db, providers: { email: EmailProvider; 
       try {
         if (!email && n.channel === "email") throw new Error("No email address");
         if (!n.userId && n.channel === "push") {
+          await tx.update(notifications).set({ status: "sent", sentAt: new Date(), attempts: n.attempts + 1 }).where(eq(notifications.id, n.id));
+          continue;
+        }
+        if (n.channel === "whatsapp") {
+          if (!providers.whatsapp) throw new Error("WhatsApp sending isn't set up on this server");
+          const d = n.data as { to: string; template: string; language: string; params: string[] };
+          await providers.whatsapp.send(tx, n.orgId, d);
           await tx.update(notifications).set({ status: "sent", sentAt: new Date(), attempts: n.attempts + 1 }).where(eq(notifications.id, n.id));
           continue;
         }
