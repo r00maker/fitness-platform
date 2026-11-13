@@ -188,6 +188,30 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: "Gift card added to your credit",
     pushBody: `${s(d.amount)} added. Use it by ${s(d.validUntil)}.`,
   }),
+  "loyalty.redeemed": (d) => ({
+    subject: `Reward redeemed: ${s(d.rewardName)}`,
+    body: `You used ${s(d.points)} for ${s(d.rewardName)}. ${s(d.message)}`,
+    pushTitle: "Reward redeemed",
+    pushBody: s(d.message).slice(0, 140),
+  }),
+  "loyalty.to_hand_over": (d) => ({
+    subject: `Reward to hand over: ${s(d.rewardName)}`,
+    body: `A client redeemed ${s(d.rewardName)}. They'll show code ${s(d.code)} at the desk. Mark it given under Marketing → Loyalty once they have it.`,
+    pushTitle: "Reward to hand over",
+    pushBody: `${s(d.rewardName)} · code ${s(d.code)}`,
+  }),
+  "loyalty.cancelled": (d) => ({
+    subject: `${s(d.rewardName)} was cancelled`,
+    body: `The studio cancelled your ${s(d.rewardName)} reward, and your ${s(d.points)} have been returned.`,
+    pushTitle: "Reward cancelled",
+    pushBody: `${s(d.points)} returned to you.`,
+  }),
+  "loyalty.expiring": (d) => ({
+    subject: `Your ${s(d.plural)} expire on ${s(d.date)}`,
+    body: `${s(d.points)} will expire on ${s(d.date)}.${d.inactivity ? " Come to a class before then and they'll stay." : " Use them for a reward before then."}`,
+    pushTitle: `${s(d.plural)} expiring soon`,
+    pushBody: `${s(d.points)} expire on ${s(d.date)}.`,
+  }),
   "package.stopped": (d) => ({
     subject: `Membership stopped: ${s(d.clientName)}`,
     body: `${s(d.clientName)} has stopped their ${s(d.packageName)}. It ends on ${s(d.endsOn)}.${d.fee ? ` An early cancellation fee of ${s(d.fee)} has been added.` : ""}${d.reason ? ` Reason: ${s(d.reason)}` : ""}`,

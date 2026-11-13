@@ -44,6 +44,7 @@ export const SEGMENT_FIELDS = {
   daysUntilExpiry: { group: "Packages", kind: "number", label: "Days until their package expires", unit: "days", within: false, help: "For the package that runs out soonest. Clients without an expiring package aren't included." },
   membership: { group: "Packages", kind: "choice", label: "Membership", options: ["active", "stopping", "none"], help: "Recurring packages: renewing, stopped but still running to the end of the period, or none." },
   studioCredit: { group: "Spending", kind: "number", label: "Studio credit", unit: "money", within: false, help: "Studio credit they can spend, from gift cards, referral rewards or the studio." },
+  loyaltyPoints: { group: "Spending", kind: "number", label: "Loyalty points", unit: "points", within: false, help: "Loyalty points they have now." },
 
   daysSinceJoined: { group: "Profile", kind: "number", label: "Days since they joined", unit: "days", within: false, help: "How long they've had an account with the studio." },
   source: { group: "Profile", kind: "choice", label: "Books through", options: ["direct", "classpass"], help: "Studio members, or clients who book through ClassPass." },
@@ -502,3 +503,72 @@ export function makeReferralCode(firstName: string, random: () => number = Math.
   for (let i = 0; i < 4; i++) tail += safe[Math.floor(random() * safe.length)];
   return `${letters}-${tail}`;
 }
+
+// ---------------------------------------------------------------------------
+// Loyalty: points with the studio's own name, earned per class or per amount spent,
+// swapped for rewards. Points expire after a stretch without visits (by default).
+// ---------------------------------------------------------------------------
+export const LOYALTY_EARN = {
+  classes: "For each class they attend",
+  spend: "For what they spend",
+} as const;
+export type LoyaltyEarn = keyof typeof LOYALTY_EARN;
+/**
+ * never: points never expire.
+ * inactivity (recommended): all points expire if a client doesn't come to a class, earn or redeem
+ *   for the chosen number of months. Regulars never lose points; lapsed clients get a reminder first.
+ * fixed: each batch of points expires the chosen number of months after it was earned.
+ */
+export const LOYALTY_EXPIRY = {
+  inactivity: { label: "Expire after a stretch without visits", help: "All points expire if a client doesn't come to a class, earn or redeem for the months you choose. Regulars never lose points. Recommended." },
+  fixed: { label: "Each point lasts a set time", help: "Points expire the chosen number of months after they're earned, oldest first." },
+  never: { label: "Never expire", help: "Simple, but points pile up for clients who've stopped coming." },
+} as const;
+export type LoyaltyExpiry = keyof typeof LOYALTY_EXPIRY;
+export const LOYALTY_NAME_IDEAS = ["Points", "Petals", "Sweat Points", "Stars", "Reps", "Zen Coins"] as const;
+
+export const loyaltySettings = z
+  .object({
+    loyaltyEnabled: z.boolean(),
+    /** What one point is called, e.g. "Petal". */
+    loyaltyName: z.string().trim().min(1, "Give your points a name.").max(24),
+    /** More than one, e.g. "Petals". */
+    loyaltyNamePlural: z.string().trim().min(1).max(24),
+    loyaltyEarn: z.enum(Object.keys(LOYALTY_EARN) as [LoyaltyEarn, ...LoyaltyEarn[]]),
+    loyaltyPointsPerClass: z.number().int().min(1).max(10_000),
+    /** Points per 1 unit of the studio's currency spent (e.g. per SGD 1). */
+    loyaltyPointsPerUnit: z.number().int().min(1).max(1_000),
+    loyaltyExpiry: z.enum(Object.keys(LOYALTY_EXPIRY) as [LoyaltyExpiry, ...LoyaltyExpiry[]]),
+    loyaltyExpiryMonths: z.number().int().min(1).max(60),
+  })
+  .partial();
+
+export const LOYALTY_REWARD_KINDS = {
+  free_classes: { label: "Free classes", help: "Classes added to their account, valid for the days you choose." },
+  discount: { label: "Discount", help: "A percentage or amount off one purchase." },
+  credit: { label: "Studio credit", help: "Money to spend on anything in your online store." },
+  gift_card: { label: "Gift card", help: "A gift card in their Gift cards tab, to give to someone (or keep)." },
+  experience: { label: "Something special", help: "Anything you hand over in person: a smoothie, a tote bag, a private session. Your team marks it given." },
+} as const;
+export type LoyaltyRewardKind = keyof typeof LOYALTY_REWARD_KINDS;
+export const loyaltyRewardInput = z
+  .object({
+    name: z.string().trim().min(1, "Give the reward a name.").max(80),
+    description: z.string().trim().max(300).nullish(),
+    photoFileId: id.nullish(),
+    cost: z.number().int().min(1, "It needs to cost at least 1 point.").max(1_000_000),
+    kind: z.enum(Object.keys(LOYALTY_REWARD_KINDS) as [LoyaltyRewardKind, ...LoyaltyRewardKind[]]),
+    /** free_classes / discount / credit: what they get. */
+    reward: reward.nullish(),
+    /** gift_card: its value. */
+    giftCardCents: cents.min(100).nullish(),
+    /** How many can be redeemed in total (null = no limit), e.g. 20 tote bags. */
+    stock: z.number().int().min(0).max(100_000).nullish(),
+    active: z.boolean().default(true),
+  })
+  .superRefine((r, ctx) => {
+    if ((r.kind === "free_classes" || r.kind === "discount" || r.kind === "credit") && r.reward?.type !== r.kind) ctx.addIssue({ code: "custom", path: ["reward"], message: "Set what they get." });
+    if (r.kind === "gift_card" && !r.giftCardCents) ctx.addIssue({ code: "custom", path: ["giftCardCents"], message: "Set the gift card's value." });
+  });
+export const loyaltyAdjust = z.object({ points: z.number().int().min(-1_000_000).max(1_000_000).refine((n) => n !== 0, "Enter a number of points."), reason: z.string().trim().min(1, "Add a reason.").max(200) });
+export const pointsText = (n: number, name: string, plural: string) => `${n.toLocaleString("en")} ${Math.abs(n) === 1 ? name : plural}`;

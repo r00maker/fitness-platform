@@ -15,7 +15,7 @@ import { conflict } from "../../lib/errors.js";
 import { money } from "../bookings/rules.js";
 import { getOrg } from "../sessions/context.js";
 
-type Source = "gift_card" | "referral" | "journey" | "studio";
+type Source = "gift_card" | "referral" | "journey" | "studio" | "loyalty";
 
 /** The end of the local day N days from now, so "valid for 30 days" means the whole 30th day. */
 export function endOfDayAfter(days: number, zone: string, now = new Date()) {
@@ -128,7 +128,7 @@ export async function giveReward(
   orgId: string,
   clientId: string,
   reward: Reward,
-  ctx: { source: "referral" | "journey"; sourceId?: string | null; why: string; by?: string | null },
+  ctx: { source: "referral" | "journey" | "loyalty"; sourceId?: string | null; why: string; by?: string | null },
   now = new Date(),
 ): Promise<string> {
   const org = await getOrg(tx, orgId);

@@ -29,6 +29,7 @@ import { planTerms, rolloverInto, rolloverOptions } from "../packages/lifecycle.
 import { orgZone, sellPackage } from "../packages/service.js";
 import { returnCredit, spendCredit, usableGrants, usableVouchers, voucherDiscount, voucherLabel } from "../marketing/credit.js";
 import { checkAmount, findRecipient, giftCardPaid, giftCode } from "../marketing/giftcards.js";
+import { loyaltyForSpend } from "../marketing/loyalty.js";
 
 /**
  * The seam for a payment provider (e.g. Stripe, HitPay, 2C2P). When one is configured it
@@ -64,6 +65,7 @@ async function completeOrder(tx: DbOrTx, o: Order, by: AuthContext, how: string)
   let clientPackageId = o.clientPackageId;
   if (o.kind === "gift_card") {
     if (o.giftCardId) await giftCardPaid(tx, o.giftCardId);
+    await loyaltyForSpend(tx, o.orgId, o.clientId, o.amountCents, "order", o.id, "Gift card");
   } else if (!clientPackageId) {
     if (!o.planId) throw conflict("plan_deleted", "This package no longer exists, so the order can't be completed. Cancel it instead.");
     // Staff mark orders paid; a fully-credited checkout completes itself, acting for the studio.
