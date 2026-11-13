@@ -13,6 +13,12 @@ const envSchema = z
     AUTH_ISSUER: z.string().optional(),
     AUTH_AUDIENCE: z.string().optional(),
     AUTH_DEV_SECRET: z.string().min(32).optional(),
+    /**
+     * How many proxies (load balancers) sit in front of the API. The client's real address is
+     * read from X-Forwarded-For only that many hops back, so it can't be faked to dodge rate
+     * limits. 1 suits most hosts (Render, Fly, Railway, a single AWS load balancer); 0 = none.
+     */
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
     EMAIL_PROVIDER: z.enum(["console", "postmark"]).default("console"),
     POSTMARK_TOKEN: z.string().optional(),
     EMAIL_FROM: z.string().default("Studio <no-reply@example.com>"),
@@ -54,6 +60,9 @@ const envSchema = z
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === "production" && !env.AUTH_JWKS_URL) {
       ctx.addIssue({ code: "custom", message: "AUTH_JWKS_URL is required in production" });
+    }
+    if (env.NODE_ENV === "production" && (!env.AUTH_ISSUER || !env.AUTH_AUDIENCE)) {
+      ctx.addIssue({ code: "custom", message: "AUTH_ISSUER and AUTH_AUDIENCE are required in production, so only tokens your sign-in provider issued for this app are accepted" });
     }
     if (env.NODE_ENV === "production" && env.AUTH_DEV_SECRET) {
       ctx.addIssue({ code: "custom", message: "AUTH_DEV_SECRET must not be set in production" });

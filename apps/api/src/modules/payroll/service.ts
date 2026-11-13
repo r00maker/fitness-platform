@@ -291,7 +291,7 @@ export function toCsv(report: Awaited<ReturnType<typeof payReport>>) {
   const cell = (v: unknown) => {
     const t = String(v ?? "");
     // Quote everything; neutralise leading characters spreadsheets treat as formulas.
-    return `"${(/^[=+\-@]/.test(t) && !/^-?\d/.test(t) ? `'${t}` : t).replace(/"/g, '""')}"`;
+    return `"${(/^[=+\-@\t\r]/.test(t) && !/^-?\d/.test(t) ? `'${t}` : t).replace(/"/g, '""')}"`;
   };
   const amount = (c: number | null) => (c === null ? "" : (c / 100).toFixed(2));
   const rows: unknown[][] = [["Name", "Date", "Item", "Clients", `Amount (${report.currency})`]];

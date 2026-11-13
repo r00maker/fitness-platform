@@ -224,7 +224,8 @@ export async function adsOnPurchase(tx: DbOrTx, orgId: string, clientId: string,
 const graph = (cfg: Pick<Config, "META_GRAPH_VERSION">, path: string) => `https://graph.facebook.com/${cfg.META_GRAPH_VERSION}/${path}`;
 
 async function fetchMetaLead(cfg: Pick<Config, "META_GRAPH_VERSION">, leadgenId: string, token: string) {
-  const res = await adsFetch(`${graph(cfg, encodeURIComponent(leadgenId))}?fields=field_data,campaign_name,ad_name,form_id,created_time&access_token=${encodeURIComponent(token)}`, { signal: AbortSignal.timeout(10_000) });
+  // The token goes in a header rather than the address, so it never ends up in proxy or server logs.
+  const res = await adsFetch(`${graph(cfg, encodeURIComponent(leadgenId))}?fields=field_data,campaign_name,ad_name,form_id,created_time`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) });
   const body = (await res.json().catch(() => ({}))) as { field_data?: { name: string; values: string[] }[]; campaign_name?: string; ad_name?: string; form_id?: string; error?: { message: string } };
   if (!res.ok) throw new Error(body.error?.message ?? `Meta responded ${res.status}`);
   const f = Object.fromEntries((body.field_data ?? []).map((x) => [x.name.toLowerCase(), x.values?.[0] ?? ""]));
@@ -278,10 +279,10 @@ export async function sendMetaConversions(db: Db, cfg: Pick<Config, "META_GRAPH_
     }));
     const ids = rows.map((r) => r.c.id);
     try {
-      const res = await adsFetch(`${graph(cfg, `${s.metaPixelId}/events`)}?access_token=${encodeURIComponent(decryptSecret(s.metaCapiToken))}`, {
+      const res = await adsFetch(graph(cfg, `${s.metaPixelId}/events`), {
         method: "POST",
         signal: AbortSignal.timeout(15_000),
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${decryptSecret(s.metaCapiToken)}` },
         body: JSON.stringify({ data, ...(opts.testEventCode ? { test_event_code: opts.testEventCode } : {}) }),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: { message: string } };
@@ -531,7 +532,7 @@ export async function adsRoutes(app: FastifyInstance) {
     if (!s || !s.googleFeedEnabled || !sameSecret(key, s.googleFeedKey)) throw unauthorized();
     const org = await getOrg(db, orgId);
     const rows = await db.select().from(adConversions).where(and(eq(adConversions.orgId, orgId), eq(adConversions.platform, "google"), gte(adConversions.happenedAt, new Date(Date.now() - 90 * DAY)))).orderBy(adConversions.happenedAt);
-    const cell = (v: string) => (/^[=+\-@]/.test(v) ? `'${v}` : v).replace(/"/g, '""');
+    const cell = (v: string) => (/^[=+\-@\t\r]/.test(v) ? `'${v}` : v).replace(/"/g, '""');
     const lines = [
       `Parameters:TimeZone=${org.timezone}`,
       "Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency",

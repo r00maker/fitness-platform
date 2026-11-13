@@ -34,7 +34,8 @@ import { waitlistRoutes } from "./modules/waitlist/routes.js";
 export async function buildApp(opts: { config: Config; db: Db }) {
   const app = Fastify({
     bodyLimit: 256 * 1024,
-    trustProxy: true,
+    // Only the configured number of proxies is trusted for the client's address.
+    trustProxy: opts.config.TRUST_PROXY_HOPS ? (_address: string, hop: number) => hop < opts.config.TRUST_PROXY_HOPS : false,
     logger:
       opts.config.NODE_ENV === "test"
         ? false
@@ -52,10 +53,12 @@ export async function buildApp(opts: { config: Config; db: Db }) {
   app.addContentTypeParser("application/x-www-form-urlencoded", { parseAs: "string", bodyLimit: 4096 }, (_req, _body, done) => done(null, {}));
   await app.register(helmet);
   await app.register(cors, { origin: opts.config.CORS_ORIGINS.split(",").map((o) => o.trim()), credentials: false });
+  // Per address. (Keying on the sign-in token would let anyone dodge the limit by sending made-up
+  // tokens, since this runs before tokens are checked.) Busier routes have their own limits.
   await app.register(rateLimit, {
-    max: 300,
+    max: 600,
     timeWindow: "1 minute",
-    keyGenerator: (req) => req.headers.authorization?.slice(-24) ?? req.ip,
+    keyGenerator: (req) => req.ip,
   });
 
   app.setErrorHandler((err: FastifyError | AppError, req, reply) => {

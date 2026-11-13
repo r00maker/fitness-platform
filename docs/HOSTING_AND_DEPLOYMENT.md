@@ -39,7 +39,7 @@ Mobile apps are built and published with **Expo EAS** (React Native) to the App 
 | What | Where | Protection |
 |---|---|---|
 | Studios, classes, bookings, waitlists, client names/emails | PostgreSQL | Encrypted at rest (managed DB default) and in transit (TLS). Every row is tagged with its studio (`org_id`) and every query is filtered by the signed-in user's studio. Tests check that one studio can't see another's classes. |
-| Passwords, 2FA, social login | **Not stored by us.** A sign-in provider (Clerk, Auth0, AWS Cognito or Supabase Auth) | The API only accepts tokens signed by that provider, then looks up the person's role in *our* database, so a token can't grant itself admin rights. |
+| Passwords, 2FA, social login | **Not stored by us.** A sign-in provider (Clerk, Auth0, AWS Cognito or Supabase Auth) | The API only accepts tokens signed by that provider for this app (`AUTH_JWKS_URL`, `AUTH_ISSUER` and `AUTH_AUDIENCE` are all required in production), then looks up the person's role in *our* database, so a token can't grant itself admin rights. New sign-ups need a confirmed email: set the provider to include `email_verified` in its tokens. |
 | Staff invites | Our own invite link → the sign-in provider | The invite email links to the app's “set your password” page, which creates the sign-in with the provider for that email (linked to our user id), then marks the invite accepted. Turn 2FA off for staff in the provider. |
 | Card details | **Not stored by us.** Stripe | Cards never touch our servers, which keeps PCI compliance to the lightest level (SAQ-A). |
 | Photos, waivers, documents (later) | Private object storage (S3 / Cloudflare R2) | Not publicly readable; the API hands out short-lived signed links. |
@@ -51,7 +51,7 @@ Mobile apps are built and published with **Expo EAS** (React Native) to the App 
 
 **Backups:** turn on daily automated backups with **point-in-time recovery** (restore to any minute in the last 7–35 days). Test a restore into staging once a quarter; a backup you've never restored is only a hope.
 
-**Already built:** strict input validation on every request, parameterised SQL only (no string-built queries), role checks on every endpoint, row locking for capacity, security headers (Helmet), rate limiting, CORS allow-list, non-root container, dependency vulnerability audit in CI.
+**Already built:** strict input validation on every request, rate limits per address (set `TRUST_PROXY_HOPS` to the number of load balancers in front of the API, usually 1, so the real address is used), parameterised SQL only (no string-built queries), role checks on every endpoint, row locking for capacity, security headers (Helmet), rate limiting, CORS allow-list, non-root container, dependency vulnerability audit in CI.
 
 **Next hardening steps (before real client data):**
 1. PostgreSQL Row-Level Security as a second lock on studio isolation (protects even against a missed filter in code).

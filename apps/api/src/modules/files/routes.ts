@@ -55,7 +55,7 @@ export async function fileRoutes(app: FastifyInstance) {
   }
 
   /** Upload: POST /files?purpose=package_photo with the file as the body. Returns its id and address. */
-  app.post("/files", { bodyLimit: maxBytes }, async (req, reply) => {
+  app.post("/files", { bodyLimit: maxBytes, config: { rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (req, reply) => {
     const { purpose } = parse(uploadQuery, req.query);
     if (purpose === "package_photo" && !can(req.auth.role, "managePackages")) throw forbidden("Only admins can add package photos.");
     if (MARKETING_PURPOSES.includes(purpose) && !can(req.auth.role, "manageMarketing")) throw forbidden("Only admins can add marketing images.");

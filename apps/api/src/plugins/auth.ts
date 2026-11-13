@@ -16,6 +16,8 @@ export interface AuthContext {
   joining?: boolean;
   /** Joining: the email the sign-in provider vouched for. */
   email?: string;
+  /** Joining: the provider says the person has confirmed that email address. */
+  emailVerified?: boolean;
 }
 
 declare module "fastify" {
@@ -67,7 +69,14 @@ async function authPlugin(app: FastifyInstance, opts: { config: Config; db: Db }
     if (!m) {
       // Only the join route accepts someone who isn't a member yet; it makes them a client.
       if (req.routeOptions.config?.joining) {
-        req.auth = { userId, orgId, role: "client", joining: true, email: typeof payload.email === "string" ? payload.email : undefined };
+        req.auth = {
+          userId,
+          orgId,
+          role: "client",
+          joining: true,
+          email: typeof payload.email === "string" ? payload.email : undefined,
+          emailVerified: payload.email_verified === true || payload.email_verified === "true",
+        };
         return;
       }
       throw forbidden("You're not a member of this studio.");

@@ -14,14 +14,14 @@ afterAll(async () => {
 });
 
 const urls = { api: config.PUBLIC_API_URL, app: config.PUBLIC_APP_URL };
-type Call = { url: string; body?: string };
+type Call = { url: string; body?: string; auth?: string | null };
 
 /** Pretend to be Meta's Graph API: lead details by id, and accepting conversion events. */
 function fakeMeta(leadsById: Record<string, Record<string, string>>, opts: { failEvents?: string } = {}) {
   const calls: Call[] = [];
   setAdsFetch((async (input: string | URL, init?: RequestInit) => {
     const url = String(input);
-    calls.push({ url, body: init?.body as string | undefined });
+    calls.push({ url, body: init?.body as string | undefined, auth: new Headers(init?.headers).get("authorization") });
     const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
     if (url.includes("/events")) return opts.failEvents ? json(400, { error: { message: opts.failEvents } }) : json(200, { events_received: 1 });
     const id = decodeURIComponent(url.split("/").pop()!.split("?")[0]!);
@@ -103,7 +103,8 @@ describe("Meta lead ads", () => {
     expect(r.json()).toEqual({ received: 1 });
     // The lead was read with the studio's Page token.
     expect(calls[0]!.url).toContain("/L1?fields=");
-    expect(calls[0]!.url).toContain("access_token=EAAB-page-token-secret-0123456789");
+    expect(calls[0]!.auth).toBe("Bearer EAAB-page-token-secret-0123456789");
+    expect(calls[0]!.url).not.toContain("access_token"); // never in the address, where it could be logged
     // Meta sometimes sends the same lead twice.
     await metaPost(metaLead("L1"));
     // A page we don't know is ignored.
@@ -209,7 +210,8 @@ describe("from lead to paying client", () => {
     // Meta gets hashed details only, in one request.
     expect(await sendMetaConversions(db, config)).toBe(2);
     const sent = calls.find((c) => c.url.includes("/2000002/events"))!;
-    expect(sent.url).toContain("access_token=EAAB-capi-token-secret-0123456789");
+    expect(sent.auth).toBe("Bearer EAAB-capi-token-secret-0123456789");
+    expect(sent.url).not.toContain("access_token");
     expect(sent.body).not.toContain("mei.tan@work.example");
     expect(sent.body).not.toContain("91234567");
     const events = JSON.parse(sent.body!).data;
