@@ -13,22 +13,29 @@ const MAX_ATTEMPTS = 5;
 export async function deliverPending(db: Db, providers: { email: EmailProvider; push: PushProvider }, batchSize = 50): Promise<number> {
   return db.transaction(async (tx) => {
     const batch = await tx
-      .select({ n: notifications, email: users.email })
+      .select({ n: notifications, accountEmail: users.email })
       .from(notifications)
-      .innerJoin(users, eq(users.id, notifications.userId))
+      .leftJoin(users, eq(users.id, notifications.userId))
       .where(and(eq(notifications.status, "pending"), lte(notifications.sendAfter, new Date())))
       .orderBy(notifications.sendAfter)
       .limit(batchSize)
       .for("update", { of: notifications, skipLocked: true });
 
-    for (const { n, email } of batch) {
+    for (const { n, accountEmail } of batch) {
+      // Leads have no account yet: their emails carry the address themselves.
+      const email = n.toEmail ?? accountEmail ?? "";
       try {
+        if (!email && n.channel === "email") throw new Error("No email address");
+        if (!n.userId && n.channel === "push") {
+          await tx.update(notifications).set({ status: "sent", sentAt: new Date(), attempts: n.attempts + 1 }).where(eq(notifications.id, n.id));
+          continue;
+        }
         if (n.template === "custom") {
           // Builder emails and custom pushes (campaigns, journeys, announcements): already personalised when queued.
           const d = n.data as { subject?: string; html?: string; text?: string; unsubscribeUrl?: string; title?: string; body?: string; ref?: Record<string, unknown> };
           if (n.channel === "email") await providers.email.send({ to: email, subject: d.subject ?? "", text: d.text ?? "", html: d.html, unsubscribeUrl: d.unsubscribeUrl });
           else {
-            const tokens = await tx.select({ token: pushTokens.token }).from(pushTokens).where(eq(pushTokens.userId, n.userId));
+            const tokens = await tx.select({ token: pushTokens.token }).from(pushTokens).where(eq(pushTokens.userId, n.userId!));
             if (tokens.length) await providers.push.send({ tokens: tokens.map((t) => t.token), title: d.title ?? "", body: d.body ?? "", data: { template: "custom", ...pick(d.ref ?? {}) } });
           }
           await tx.update(notifications).set({ status: "sent", sentAt: new Date(), attempts: n.attempts + 1 }).where(eq(notifications.id, n.id));
@@ -38,7 +45,7 @@ export async function deliverPending(db: Db, providers: { email: EmailProvider; 
         if (n.channel === "email") {
           await providers.email.send({ to: email, subject: msg.subject, text: msg.body });
         } else {
-          const tokens = await tx.select({ token: pushTokens.token }).from(pushTokens).where(eq(pushTokens.userId, n.userId));
+          const tokens = await tx.select({ token: pushTokens.token }).from(pushTokens).where(eq(pushTokens.userId, n.userId!));
           if (tokens.length) await providers.push.send({ tokens: tokens.map((t) => t.token), title: msg.pushTitle, body: msg.pushBody, data: { template: n.template, ...pick(n.data) } });
         }
         await tx.update(notifications).set({ status: "sent", sentAt: new Date(), attempts: n.attempts + 1 }).where(eq(notifications.id, n.id));

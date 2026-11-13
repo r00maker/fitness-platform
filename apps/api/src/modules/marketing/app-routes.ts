@@ -55,6 +55,7 @@ import { clientEvent } from "./events.js";
 import { auditGift, deliver, findRecipient, keep, presentCards } from "./giftcards.js";
 import { queuePush } from "./messages.js";
 import { SOCIAL_ICONS } from "./social-icons.js";
+import { adsOnJoin } from "./ads.js";
 import { applyReferral, describeReferralRules, myReferrals, referralReport } from "./referrals.js";
 import { allClients, matchSegment } from "./segments.js";
 
@@ -137,6 +138,8 @@ export async function marketingAppRoutes(app: FastifyInstance) {
           await tx.update(memberships).set({ acquisition: acquisitionFrom(input.attribution, false) }).where(and(eq(memberships.orgId, org.id), eq(memberships.userId, u!.id)));
         }
       }
+      // From an ad or a lead form: match their enquiry and tell the ad platform about the sign-up.
+      await adsOnJoin(tx, org.id, u!.id, { leadToken: input.leadToken, email: u!.email, phone: input.phone ?? u!.phone, attribution: input.attribution ?? null });
       await clientEvent(tx, org.id, u!.id, { type: "account_created" });
       return { studio: org.name, referral, referralProblem };
     });

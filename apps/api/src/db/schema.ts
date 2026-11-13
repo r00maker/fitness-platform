@@ -916,7 +916,9 @@ export const notifications = pgTable(
   {
     id: pk(),
     orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
-    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** Null for emails to people without an account yet (leads); then toEmail is used. */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    toEmail: text("to_email"),
     channel: channelEnum("channel").notNull(),
     template: text("template").notNull(),
     data: jsonb("data").$type<Record<string, unknown>>().notNull(),
@@ -1310,4 +1312,95 @@ export const loyaltyRedemptions = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("loyalty_redemptions_idx").on(t.orgId, t.status, t.createdAt)],
+);
+
+// ---------------------------------------------------------------------------
+// Ads funnel
+// ---------------------------------------------------------------------------
+/** One row per studio: ad platform connections (tokens encrypted) and lead follow-up. */
+export const adsSettings = pgTable("ads_settings", {
+  orgId: uuid("org_id").primaryKey().references(() => organizations.id, { onDelete: "cascade" }),
+  metaPageId: text("meta_page_id"),
+  metaPageToken: text("meta_page_token"),
+  metaPixelId: text("meta_pixel_id"),
+  metaCapiToken: text("meta_capi_token"),
+  metaSendConversions: boolean("meta_send_conversions").notNull().default(false),
+  metaLastError: text("meta_last_error"),
+  googleKey: text("google_key").notNull(),
+  googleFeedKey: text("google_feed_key").notNull(),
+  googleFeedEnabled: boolean("google_feed_enabled").notNull().default(false),
+  googleSignupName: text("google_signup_name").notNull().default("Studio sign-up"),
+  googlePurchaseName: text("google_purchase_name").notNull().default("First purchase"),
+  phoneCountryCode: text("phone_country_code").notNull().default("65"),
+  leadFollowUp: boolean("lead_follow_up").notNull().default(false),
+  leadFirstEmailId: uuid("lead_first_email_id").references(() => emailDesigns.id, { onDelete: "set null" }),
+  leadReminderEmailId: uuid("lead_reminder_email_id").references(() => emailDesigns.id, { onDelete: "set null" }),
+  leadReminderDays: integer("lead_reminder_days").notNull().default(3),
+  leadNotifyTeam: boolean("lead_notify_team").notNull().default(true),
+  updatedAt: updatedAt(),
+});
+
+/** Someone who filled in a lead form (or the studio added) but may not have an account yet. */
+export const leads = pgTable(
+  "leads",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    source: text("source").notNull(),
+    status: text("status").notNull().default("new"),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    email: text("email"),
+    phone: text("phone"),
+    note: text("note"),
+    /** The platform's id for the lead (Meta leadgen id, Google lead id), so a lead can't arrive twice. */
+    externalId: text("external_id"),
+    campaignName: text("campaign_name"),
+    adName: text("ad_name"),
+    formName: text("form_name"),
+    gclid: text("gclid"),
+    isTest: boolean("is_test").notNull().default(false),
+    /** Secret for their sign-up link and for stopping follow-up emails. */
+    token: text("token").notNull(),
+    clientId: uuid("client_id").references(() => users.id, { onDelete: "set null" }),
+    unsubscribed: boolean("unsubscribed").notNull().default(false),
+    nextFollowUpAt: ts("next_follow_up_at"),
+    joinedAt: ts("joined_at"),
+    boughtAt: ts("bought_at"),
+    firstPurchaseCents: integer("first_purchase_cents"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("leads_org_idx").on(t.orgId, t.createdAt),
+    uniqueIndex("leads_external_uq").on(t.orgId, t.source, t.externalId).where(sql`${t.externalId} is not null`),
+    uniqueIndex("leads_token_uq").on(t.token),
+  ],
+);
+
+/** Results to report to an ad platform: a sign-up or a first purchase. */
+export const adConversions = pgTable(
+  "ad_conversions",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(),
+    /** signup or purchase */
+    event: text("event").notNull(),
+    clientId: uuid("client_id").references(() => users.id, { onDelete: "set null" }),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    valueCents: integer("value_cents"),
+    currency: text("currency"),
+    gclid: text("gclid"),
+    fbclid: text("fbclid"),
+    metaLeadId: text("meta_lead_id"),
+    happenedAt: ts("happened_at").notNull(),
+    /** pending, sent, failed (Meta); listed (Google reads them from the feed) */
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    sentAt: ts("sent_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("ad_conversions_pending_idx").on(t.status, t.platform), uniqueIndex("ad_conversions_once").on(t.orgId, t.platform, t.event, t.clientId)],
 );

@@ -19,6 +19,12 @@ const envSchema = z
     PUSH_PROVIDER: z.enum(["console", "expo"]).default("console"),
     /** Where the API can be reached from outside (used for images and unsubscribe links in emails). */
     PUBLIC_API_URL: z.string().url().default("http://localhost:3000"),
+    /** 64 hex characters. Encrypts stored access tokens (Meta). Generate with: openssl rand -hex 32 */
+    SECRETS_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/).optional(),
+    /** Meta (Facebook/Instagram) app: verifies lead webhooks. Set both to receive Lead Ads. */
+    META_APP_SECRET: z.string().min(8).optional(),
+    META_VERIFY_TOKEN: z.string().min(8).optional(),
+    META_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default("v21.0"),
     /** The client app's web address (used for referral links and buttons in emails). */
     PUBLIC_APP_URL: z.string().url().default("http://localhost:5173"),
     /** How far ahead recurring classes are created on the calendar. */
