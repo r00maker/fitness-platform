@@ -39,6 +39,7 @@ Mobile apps are built and published with **Expo EAS** (React Native) to the App 
 |---|---|---|
 | Studios, classes, bookings, waitlists, client names/emails | PostgreSQL | Encrypted at rest (managed DB default) and in transit (TLS). Every row is tagged with its studio (`org_id`) and every query is filtered by the signed-in user's studio. Tests check that one studio can't see another's classes. |
 | Passwords, 2FA, social login | **Not stored by us.** A sign-in provider (Clerk, Auth0, AWS Cognito or Supabase Auth) | The API only accepts tokens signed by that provider, then looks up the person's role in *our* database, so a token can't grant itself admin rights. |
+| Staff invites | Our own invite link → the sign-in provider | The invite email links to the app's “set your password” page, which creates the sign-in with the provider for that email (linked to our user id), then marks the invite accepted. Turn 2FA off for staff in the provider. |
 | Card details | **Not stored by us.** Stripe | Cards never touch our servers, which keeps PCI compliance to the lightest level (SAQ-A). |
 | Photos, waivers, documents (later) | Private object storage (S3 / Cloudflare R2) | Not publicly readable; the API hands out short-lived signed links. |
 | Secrets (DB password, API keys) | The host's secret manager / environment variables | Never in code or git. The app refuses to start if production config is unsafe (e.g. a dev secret is set). |
