@@ -159,6 +159,7 @@ export const FIELDS = {
   extensionReason: { label: "Reason", help: "e.g. “Knee injury, physio says 3 weeks off” or “Travelling for work”." },
   extensionAttachmentField: { label: "Attachment", help: "A doctor's note or similar, if you have one. JPG, PNG, WebP or PDF, up to 5 MB." },
   clientsNeedPackage: { label: "Clients need a package to book", help: "Clients must have a package that covers the class to book it. Turn off if clients can book and pay at the studio." },
+  allowBookingWithoutPackage: { label: "Allow bookings without a package", help: "Lets staff book someone who doesn't have a package that covers the class or appointment. It shows as “Pay at studio”, after a check. Turn off and a package is always needed (staff can still book someone in for free as complimentary)." },
   complimentary: { label: "Complimentary", help: "Book them in for free, without using a package. Shows as “Complimentary” on their history." },
   payWith: { label: "Pay with", help: "Which package this booking uses. We pick the one that runs out soonest so nothing goes to waste." },
 
@@ -230,6 +231,7 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   confirm_waiver_complete: "Check the waiver first",
   appointment_no_client: "No client added",
   delete_class_type: "Delete this class type?",
+  whatsapp_charge: "Meta charges for this message",
   classpass_reduced: "Fewer ClassPass spots than already booked",
   no_package: "No package for this class",
   package_expired: "Package has expired",

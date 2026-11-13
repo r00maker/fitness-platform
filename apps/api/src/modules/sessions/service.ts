@@ -1,5 +1,5 @@
 import { and, asc, count, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, sql } from "drizzle-orm";
-import type { CreateSessionInput, EditScope, RefundMethod, SessionChanges } from "@studio/shared";
+import type { CreateSessionInput, EditScope, RefundMethod, SessionChanges, SessionFilter } from "@studio/shared";
 import type { Db, DbOrTx } from "../../db/client.js";
 import {
   bookings,
@@ -8,6 +8,7 @@ import {
   classSessions,
   classTemplates,
   classTypes,
+  locations,
   memberships,
   rooms,
   substituteRequests,
@@ -370,9 +371,14 @@ async function applyChanges(
   const s = await lockSession(tx, auth.orgId, current.id);
   const zone = await locationZone(tx, auth.orgId, s.locationId);
   const local = utcToLocal(s.startsAt, zone);
+  // Moving to another location keeps the same local time there, and needs a room at the new place.
+  const locationId = changes.locationId ?? s.locationId;
+  const locChanged = locationId !== s.locationId;
+  const newZone = locChanged ? await locationZone(tx, auth.orgId, locationId) : zone;
+  if (locChanged && changes.roomId === undefined && s.roomId) throw badRequest("room_needed", "Choose a room at the new location (or no room).");
   const currentDuration = Math.round((s.endsAt.getTime() - s.startsAt.getTime()) / 60_000);
   const duration = resolveDuration(changes, changes.startTime ?? local.time, currentDuration)!;
-  const startsAt = changes.date || changes.startTime ? localToUtc(changes.date ?? local.date, changes.startTime ?? local.time, zone) : s.startsAt;
+  const startsAt = changes.date || changes.startTime || locChanged ? localToUtc(changes.date ?? local.date, changes.startTime ?? local.time, newZone) : s.startsAt;
   const endsAt = addMinutes(startsAt, duration);
   const timeChanged = startsAt.getTime() !== s.startsAt.getTime() || endsAt.getTime() !== s.endsAt.getTime();
   const instructorId = changes.instructorId !== undefined ? changes.instructorId : s.instructorId;
@@ -385,7 +391,7 @@ async function applyChanges(
   if (timeChanged && s.startsAt <= now) throw conflict("class_started", "Classes that have started can't be moved.");
   if (changes.classTypeId) await assertClassType(tx, auth.orgId, changes.classTypeId);
   if (changes.instructorId) await assertMemberWithRole(tx, auth.orgId, changes.instructorId, TEACHER_ROLES, "instructor");
-  const room = roomId ? await getRoom(tx, auth.orgId, roomId, s.locationId) : null;
+  const room = roomId ? await getRoom(tx, auth.orgId, roomId, locationId) : null;
   const booked = await confirmedCount(tx, s.id);
   if (capacity < booked) {
     throw conflict("below_booked", `${booked} people are already booked, so spots can't go below ${booked}. Move or cancel some bookings first.`);
@@ -393,8 +399,8 @@ async function applyChanges(
 
   // Warnings.
   const ref = { sessionId: s.id };
-  if (timeChanged || instructorId !== s.instructorId || roomId !== s.roomId || classTypeId !== s.classTypeId) {
-    await checkSlot(tx, auth.orgId, flags, zone, { ...ref, instructorId, roomId, classTypeId, locationId: s.locationId, startsAt, endsAt, excludeIds: [s.id] });
+  if (timeChanged || locChanged || instructorId !== s.instructorId || roomId !== s.roomId || classTypeId !== s.classTypeId) {
+    await checkSlot(tx, auth.orgId, flags, newZone, { ...ref, instructorId, roomId, classTypeId, locationId, startsAt, endsAt, excludeIds: [s.id] });
   }
   if (timeChanged) {
     if (checkTiming(flags, zone, { ...ref, startsAt, durationMinutes: duration, ...(await usualDuration(tx, classTypeId, s.templateId)), isNew: false, now })) flags.drop(CLASH_CODES, s.id);
@@ -446,6 +452,7 @@ async function applyChanges(
     .update(classSessions)
     .set({
       classTypeId,
+      locationId,
       instructorId,
       coverForInstructorId: coverFor,
       roomId,
@@ -551,6 +558,7 @@ export async function updateSession(
       ...(input.changes.roomId !== undefined && { roomId: input.changes.roomId }),
       ...(input.changes.capacity && { capacity: input.changes.capacity }),
       ...(input.changes.classTypeId && { classTypeId: input.changes.classTypeId }),
+      ...(input.changes.locationId && { locationId: input.changes.locationId }),
       ...(input.changes.waitlistEnabled !== undefined && { waitlistEnabled: input.changes.waitlistEnabled }),
       ...(input.changes.waitlistCapacity !== undefined && { waitlistCapacity: input.changes.waitlistCapacity }),
       ...(input.changes.classpassEnabled !== undefined && { classpassEnabled: input.changes.classpassEnabled, ...(!input.changes.classpassEnabled && { classpassSpots: null }) }),
@@ -589,19 +597,91 @@ async function splitSeries(tx: DbOrTx, s: SessionRow): Promise<string> {
   return next!.id;
 }
 
+// ---------------------------------------------------------------------------
+// Choosing many classes at once
+// ---------------------------------------------------------------------------
+const MAX_BULK = 2000;
+
+/** Upcoming classes matching a filter (dates in each class's own local time). */
+export async function findSessions(db: DbOrTx, orgId: string, f: SessionFilter, now = new Date()): Promise<SessionRow[]> {
+  const zone = await orgZone(db, orgId);
+  const from = localToUtc(f.from, "00:00", zone);
+  const to = localToUtc(shiftDate(f.to, 1), "00:00", zone);
+  const tz = sql`${locations.timezone}`;
+  const instructors = f.instructorIds;
+  const named = instructors?.filter((x): x is string => !!x) ?? [];
+  const rows = await db
+    .select({ s: classSessions })
+    .from(classSessions)
+    .innerJoin(classTypes, eq(classTypes.id, classSessions.classTypeId))
+    .innerJoin(locations, eq(locations.id, classSessions.locationId))
+    .where(
+      and(
+        eq(classSessions.orgId, orgId),
+        eq(classSessions.status, "scheduled"),
+        gte(classSessions.startsAt, from),
+        lt(classSessions.startsAt, to),
+        gt(classSessions.startsAt, now),
+        f.kind === "all" ? undefined : eq(classTypes.kind, f.kind),
+        f.classTypeIds?.length ? inArray(classSessions.classTypeId, f.classTypeIds) : undefined,
+        instructors?.length
+          ? sql`(${named.length ? inArray(classSessions.instructorId, named) : sql`false`} or ${instructors.includes(null) ? sql`${classSessions.instructorId} is null` : sql`false`})`
+          : undefined,
+        f.locationId ? eq(classSessions.locationId, f.locationId) : undefined,
+        f.roomIds?.length ? inArray(classSessions.roomId, f.roomIds) : undefined,
+        f.weekdays?.length ? sql`extract(isodow from ${classSessions.startsAt} at time zone ${tz}) in (${sql.join(f.weekdays.map((d) => sql`${d}`), sql`, `)})` : undefined,
+        f.startTimes?.length ? sql`to_char(${classSessions.startsAt} at time zone ${tz}, 'HH24:MI') in (${sql.join(f.startTimes.map((t) => sql`${t}`), sql`, `)})` : undefined,
+        f.seriesId ? eq(classSessions.seriesId, f.seriesId) : undefined,
+      ),
+    )
+    .orderBy(asc(classSessions.startsAt))
+    .limit(MAX_BULK + 1);
+  if (rows.length > MAX_BULK) throw badRequest("too_many", `That's more than ${MAX_BULK.toLocaleString("en")} classes. Choose a shorter span of dates or narrow the filters.`);
+  return rows.map((r) => r.s);
+}
+
+/** What a filter matches, before changing anything: how many, who's booked, first and last. */
+export async function previewBulk(db: DbOrTx, orgId: string, f: SessionFilter, now = new Date()) {
+  const list = await findSessions(db, orgId, f, now);
+  const ids = list.map((s) => s.id);
+  const booked = ids.length
+    ? await db.select({ sessionId: bookings.sessionId, n: count() }).from(bookings).where(and(inArray(bookings.sessionId, ids), eq(bookings.status, "confirmed"))).groupBy(bookings.sessionId)
+    : [];
+  const bookedBy = new Map(booked.map((b) => [b.sessionId, Number(b.n)]));
+  const sample = [];
+  for (const s of list.slice(0, 8)) sample.push({ id: s.id, ...(await describeSession(db, s)), booked: bookedBy.get(s.id) ?? 0 });
+  const clients = [...bookedBy.values()].reduce((a, b) => a + b, 0);
+  return {
+    count: list.length,
+    withBookings: bookedBy.size,
+    clientsBooked: clients,
+    first: list[0]?.startsAt.toISOString() ?? null,
+    last: list.at(-1)?.startsAt.toISOString() ?? null,
+    sample,
+    text: list.length ? `${list.length} ${list.length === 1 ? "class" : "classes"}${bookedBy.size ? `, ${bookedBy.size} with bookings (${clients} ${clients === 1 ? "person" : "people"} booked)` : ", none booked yet"}.` : "No upcoming classes match.",
+  };
+}
+
+async function pickSessions(tx: DbOrTx, orgId: string, input: { sessionIds?: string[]; filter?: SessionFilter }, now: Date) {
+  if (input.filter) {
+    const list = await findSessions(tx, orgId, input.filter, now);
+    if (!list.length) throw badRequest("no_classes", "No upcoming classes match those filters.");
+    return list;
+  }
+  const ids = input.sessionIds ?? [];
+  const sessions = await tx.select().from(classSessions).where(and(eq(classSessions.orgId, orgId), inArray(classSessions.id, ids))).orderBy(asc(classSessions.startsAt));
+  if (sessions.length !== new Set(ids).size) throw notFound("class");
+  return sessions;
+}
+
 export async function bulkUpdateSessions(
   tx: DbOrTx,
   auth: AuthContext,
-  input: { sessionIds: string[]; changes: SessionChanges; notifyClients: boolean; asCover?: boolean },
+  input: { sessionIds?: string[]; filter?: SessionFilter; changes: SessionChanges; notifyClients: boolean; asCover?: boolean },
   flags: Flags,
   now = new Date(),
 ) {
-  const sessions = await tx
-    .select()
-    .from(classSessions)
-    .where(and(eq(classSessions.orgId, auth.orgId), inArray(classSessions.id, input.sessionIds)))
-    .orderBy(asc(classSessions.startsAt));
-  if (sessions.length !== new Set(input.sessionIds).size) throw notFound("class");
+  const sessions = await pickSessions(tx, auth.orgId, input, now);
   checkBulk(flags, sessions.length, "change");
   const updated = [];
   for (const s of sessions) updated.push(await applyChanges(tx, auth, s, input.changes, { notifyClients: input.notifyClients, detach: true, now, flags, asCover: input.asCover }));
@@ -675,9 +755,8 @@ export async function cancelSession(tx: DbOrTx, auth: AuthContext, sessionId: st
   return { cancelled };
 }
 
-export async function bulkCancelSessions(tx: DbOrTx, auth: AuthContext, input: CancelOpts & { sessionIds: string[] }, flags: Flags, now = new Date()) {
-  const sessions = await tx.select().from(classSessions).where(and(eq(classSessions.orgId, auth.orgId), inArray(classSessions.id, input.sessionIds)));
-  if (sessions.length !== new Set(input.sessionIds).size) throw notFound("class");
+export async function bulkCancelSessions(tx: DbOrTx, auth: AuthContext, input: CancelOpts & { sessionIds?: string[]; filter?: SessionFilter }, flags: Flags, now = new Date()) {
+  const sessions = await pickSessions(tx, auth.orgId, input, now);
   checkBulk(flags, sessions.length, "cancel");
   const cancelled = [];
   for (const s of sessions) cancelled.push(await cancelOne(tx, auth, s, input, flags, now));

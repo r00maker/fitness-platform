@@ -69,6 +69,7 @@ export async function settingsRoutes(app: FastifyInstance) {
       waiverRequired: org.waiverRequired,
       spotBookingEnabled: org.spotBookingEnabled,
       clientsNeedPackage: org.clientsNeedPackage,
+      allowBookingWithoutPackage: org.allowBookingWithoutPackage,
     };
   });
 

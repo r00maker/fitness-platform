@@ -100,21 +100,27 @@ export async function choosePayment(
   const preferred = opts.preferPackageId ? options.find((o) => o.ok && o.pkg.id === opts.preferPackageId) : undefined;
   const best = preferred ?? options.find((o) => o.ok);
   if (best) return { payment: "package", option: best };
-  // Appointments can only be booked with a package that covers them (or as complimentary).
+  /*
+   * No package that covers it:
+   *  - studios that don't need packages book group classes as "pay at studio";
+   *  - appointments always need a package (or the setting below);
+   *  - clients booking themselves are told why;
+   *  - staff can book anyway as "pay at studio" only if the studio allows bookings without a
+   *    package (Studio rules). If it doesn't, they sell a package first or book it as complimentary.
+   */
   const [type] = await tx.select({ kind: classTypes.kind, name: classTypes.name }).from(classTypes).where(eq(classTypes.id, session.classTypeId));
-  if (type?.kind === "appointment") {
-    const who = isClient ? "You need" : `${await userName(tx, clientId)} needs`;
-    throw conflict("appointment_package_needed", `${who} a package that covers ${type.name} appointments before ${isClient ? "you can be" : "they can be"} booked in.${isClient ? "" : " Sell them one first, or book it as complimentary."}`, {
-      packages: options.map((o) => ({ id: o.pkg.id, name: o.pkg.name, reason: o.reason })),
-    });
+  const appointment = type?.kind === "appointment";
+  if (!org.clientsNeedPackage && !appointment) return { payment: "pay_later" };
+  const packages = options.map((o) => ({ id: o.pkg.id, name: o.pkg.name, reason: o.reason }));
+  if (isClient) {
+    throw conflict(appointment ? "appointment_package_needed" : "package_needed", appointment ? `You need a package that covers ${type!.name} appointments before you can be booked in.` : whyNoPackage(options, true), { packages });
   }
-  if (!org.clientsNeedPackage) return { payment: "pay_later" };
-  if (isClient) throw conflict("package_needed", whyNoPackage(options, true), { packages: options.map((o) => ({ id: o.pkg.id, name: o.pkg.name, reason: o.reason })) });
-  flags?.confirm({
-    code: "no_package",
-    sessionId: session.id,
-    message: `${whyNoPackage(options, false, await userName(tx, clientId))} Book anyway? It'll show as “Pay at studio”. You can also book it as complimentary, or sell them a package first.`,
-  });
+  const name = await userName(tx, clientId);
+  const why = appointment ? `${name} doesn't have a package that covers ${type!.name} appointments.` : whyNoPackage(options, false, name);
+  if (!org.allowBookingWithoutPackage) {
+    throw conflict(appointment ? "appointment_package_needed" : "package_required", `${why} Your studio only allows bookings with a package, so sell them one first, or book it as complimentary.`, { packages });
+  }
+  flags?.confirm({ code: "no_package", sessionId: session.id, message: `${why} Book anyway? It'll show as “Pay at studio”. You can also book it as complimentary, or sell them a package first.` });
   return { payment: "pay_later" };
 }
 

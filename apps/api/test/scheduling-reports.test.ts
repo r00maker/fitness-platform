@@ -5,7 +5,7 @@ import { setWhatsappFetch } from "../src/modules/marketing/whatsapp.js";
 import { runDueJourneys } from "../src/modules/marketing/journeys.js";
 import { deliverPending } from "../src/modules/notifications/deliver.js";
 import { autoCancelDue } from "../src/modules/sessions/service.js";
-import { app, caller, config, dayOffset, db, minutesFromNow, outbox, person, pool, reset, studio, tokenFor } from "./helpers.js";
+import { app, caller, config, dayOffset, db, outbox, person, pool, reset, studio, tokenFor } from "./helpers.js";
 
 beforeEach(reset);
 afterAll(async () => {
@@ -27,15 +27,18 @@ async function setup() {
 describe("auto-cancel", () => {
   it("cancels a class that hasn't reached its minimum at the cut-off, and leaves the rest", async () => {
     const { s, cls } = await setup();
-    const soon = minutesFromNow(120);
-    const low = (await cls({ ...soon, autoCancel: { hoursBefore: 3, minBookings: 3 } })).body;
+    // Classes at normal hours a few days ahead; the check runs "as of" 2 hours before the first one,
+    // so the test doesn't depend on what time of day it's run.
+    const low = (await cls({ startTime: "09:00", autoCancel: { hoursBefore: 3, minBookings: 3 } })).body;
     expect(low).toMatchObject({ autoCancelHours: 3, autoCancelMin: 3 });
-    const ok = (await cls({ ...minutesFromNow(150), autoCancel: { hoursBefore: 3, minBookings: 2 } })).body;
-    const later = (await cls({ autoCancel: { hoursBefore: 3, minBookings: 5 } })).body; // in 3 days: not yet
+    const ok = (await cls({ startTime: "09:30", roomId: null, autoCancel: { hoursBefore: 3, minBookings: 2 } })).body;
+    const later = (await cls({ date: dayOffset(5), autoCancel: { hoursBefore: 3, minBookings: 5 } })).body; // days away: not yet
+    for (const c of [low, ok, later]) expect(c.id, JSON.stringify(c)).toBeTruthy();
+    const at = new Date(new Date(low.startsAt).getTime() - 2 * 3_600_000);
     expect((await s.c1.call("POST", "/bookings", { sessionId: low.id, acknowledge: ACK })).status).toBe(201);
     for (const c of [s.c2, s.c3]) { const b = await c.call("POST", "/bookings", { sessionId: ok.id, acknowledge: ACK }); expect(b.status, JSON.stringify(b.body)).toBe(201); }
 
-    const r = await autoCancelDue(db);
+    const r = await autoCancelDue(db, at);
     expect(r.cancelled).toEqual([low.id]);
     const rows = Object.fromEntries((await db.select().from(classSessions)).map((x) => [x.id, x]));
     expect(rows[low.id]).toMatchObject({ status: "cancelled", autoCancelled: true });
@@ -48,7 +51,7 @@ describe("auto-cancel", () => {
     expect((await db.select().from(bookings).where(eq(bookings.sessionId, low.id)))[0]!.status).toBe("cancelled");
     expect(new Set((await outbox("session.auto_cancelled")).map((n) => n.userId))).toEqual(new Set([s.owner.id, s.ana.id]));
     // Checked once only.
-    expect((await autoCancelDue(db)).checked).toBe(0);
+    expect((await autoCancelDue(db, at)).checked).toBe(0);
   });
 
   it("comes from the template, can be changed on the class, and must make sense", async () => {
@@ -186,6 +189,7 @@ describe("WhatsApp", () => {
     const before = await s.owner.call("POST", "/journeys", { name: "WA", definition: { trigger: { type: "package_used_up" }, steps: [{ id: "wa", type: "send_whatsapp", template: "top_up", language: "en", variables: ["{{first_name}}"] }] } });
     expect(before.body.error.code).toBe("whatsapp_not_connected");
 
+    await s.owner.call("PUT", "/comms/billing", { mode: "meta_direct", paymentMethodAdded: true });
     const conn = await s.owner.call("PATCH", "/whatsapp/settings", { phoneNumberId: "1234567890", businessAccountId: "9876543210", accessToken: "EAAG-whatsapp-token-0123456789" });
     expect(conn.body).toMatchObject({ connected: true });
     expect(JSON.stringify(conn.body)).not.toContain("whatsapp-token");
