@@ -276,6 +276,10 @@ export const FLAG_CODES = [
   "already_refunded",
   "refund_after_attending",
   "class_not_started",
+  // Rooms
+  "room_has_classes",
+  "room_smaller",
+  "spots_removed",
   // Marketing
   "send_to_many",
   "people_skipped",

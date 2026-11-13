@@ -1,16 +1,52 @@
 /** Locations, rooms, class types and templates: the building blocks of the schedule. */
 import type { FastifyInstance } from "fastify";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { schemas } from "@studio/shared";
 import { z } from "zod";
-import { classTemplates, classTypeInstructors, classTypes, locations, rooms } from "../../db/schema.js";
+import { bookings, classSeries, classSessions, classTemplates, classTypeInstructors, classTypes, locations, rooms } from "../../db/schema.js";
+import type { DbOrTx } from "../../db/client.js";
+import { conflict } from "../../lib/errors.js";
+import { withFlags } from "../../lib/route.js";
+import type { Flags } from "../../lib/flags.js";
 import { staffIds } from "../sessions/context.js";
 import { badRequest, notFound } from "../../lib/errors.js";
-import { parse } from "../../lib/validate.js";
+import { parse, parsePatch } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { assertMemberWithRole } from "../sessions/context.js";
 
 const idParam = z.object({ id: schemas.id });
+
+async function activeRoom(db: DbOrTx, orgId: string, id: string) {
+  const [r] = await db.select().from(rooms).where(and(eq(rooms.id, id), eq(rooms.orgId, orgId)));
+  if (!r) throw notFound("room");
+  if (r.archivedAt) throw conflict("room_removed", "This room has been removed.");
+  return r;
+}
+
+/** Upcoming classes (in a room, or given ones) set for more people, or with more bookings, than `capacity`. */
+async function warnIfSmaller(db: DbOrTx, flags: Flags, roomId: string | null, capacity: number, roomName: string, sessionIds?: string[]) {
+  const rows = await db
+    .select({ id: classSessions.id, capacity: classSessions.capacity, booked: sql<number>`(select count(*) from ${bookings} b where b.session_id = ${classSessions.id} and b.status = 'confirmed')` })
+    .from(classSessions)
+    .where(and(roomId ? eq(classSessions.roomId, roomId) : inArray(classSessions.id, sessionIds ?? []), eq(classSessions.status, "scheduled"), gt(classSessions.startsAt, new Date())));
+  const big = rows.filter((r) => r.capacity > capacity);
+  if (!big.length) return;
+  const overBooked = big.filter((r) => Number(r.booked) > capacity).length;
+  flags.confirm({
+    code: "room_smaller",
+    message: `${big.length} upcoming ${big.length === 1 ? "class is" : "classes are"} set for more than the ${capacity} people ${roomName} will hold${overBooked ? `, and ${overBooked} already ${overBooked === 1 ? "has" : "have"} more bookings than that` : ""}. ${big.length === 1 ? "It keeps its" : "They keep their"} numbers; change ${big.length === 1 ? "it" : "them"} if needed.`,
+  });
+}
+
+/** Upcoming confirmed bookings whose spot number is beyond the first `keep` spots. */
+async function upcomingSpotBookings(db: DbOrTx, roomId: string, keep: number) {
+  const rows = await db
+    .select({ id: bookings.id })
+    .from(bookings)
+    .innerJoin(classSessions, eq(classSessions.id, bookings.sessionId))
+    .where(and(eq(classSessions.roomId, roomId), eq(bookings.status, "confirmed"), gt(classSessions.startsAt, new Date()), sql`${bookings.spot} > ${keep}`));
+  return rows.map((r) => r.id);
+}
 
 export async function catalogRoutes(app: FastifyInstance) {
   const { db } = app;
@@ -47,6 +83,80 @@ export async function catalogRoutes(app: FastifyInstance) {
       const capacity = input.capacity ?? input.spotLabels?.length;
       reply.code(201);
       return (await db.insert(rooms).values({ ...input, capacity, orgId: req.auth.orgId }).returning())[0];
+    });
+
+    /**
+     * Change a room: its name, how many it holds, its named spots and their layout.
+     * Warns (before saving) if upcoming classes are bigger than the room will be, or if booked
+     * spots would no longer exist (those bookings stay, without a spot number).
+     */
+    admin.patch("/rooms/:id", async (req) => {
+      const { id } = parse(idParam, req.params);
+      const { acknowledge, ...input } = parse(schemas.updateRoom, req.body);
+      return withFlags(app, acknowledge, async (tx, flags) => {
+        const room = await activeRoom(tx, req.auth.orgId, id);
+        const labels = input.spotLabels !== undefined ? input.spotLabels : room.spotLabels;
+        const capacity = input.capacity !== undefined ? input.capacity : input.spotLabels ? input.spotLabels.length : room.capacity;
+        if (capacity != null && labels?.length && capacity > labels.length) throw badRequest("more_than_spots", `With named spots, the room holds as many people as it has spots (${labels.length}). Add spots or lower the number.`);
+        if (capacity != null) await warnIfSmaller(tx, flags, room.id, capacity, room.name);
+        if (input.spotLabels !== undefined) {
+          const keep = input.spotLabels?.length ?? 0;
+          const lost = await upcomingSpotBookings(tx, room.id, keep);
+          if (lost.length) {
+            flags.confirm({
+              code: "spots_removed",
+              message: `${lost.length} upcoming ${lost.length === 1 ? "booking has a spot" : "bookings have spots"} that won't exist any more. ${lost.length === 1 ? "It keeps its place" : "They keep their places"} in class, just without a spot number.`,
+            });
+            await tx.update(bookings).set({ spot: null }).where(inArray(bookings.id, lost));
+          }
+        }
+        const [row] = await tx
+          .update(rooms)
+          .set({ ...input, ...(capacity !== room.capacity ? { capacity } : {}), ...(input.spotLabels === null ? { spotColumns: null } : {}) })
+          .where(eq(rooms.id, id))
+          .returning();
+        return { room: row! };
+      });
+    });
+
+    /**
+     * Remove a room. Past classes keep it in their history. Upcoming classes (and the templates and
+     * repeating classes that use it) move to `moveToRoomId` at the same location, or are left
+     * without a room, after a warning either way.
+     */
+    admin.post("/rooms/:id/remove", async (req) => {
+      const { id } = parse(idParam, req.params);
+      const { moveToRoomId, acknowledge } = parse(schemas.removeRoom, req.body ?? {});
+      return withFlags(app, acknowledge, async (tx, flags) => {
+        const room = await activeRoom(tx, req.auth.orgId, id);
+        let target: typeof room | null = null;
+        if (moveToRoomId) {
+          if (moveToRoomId === id) throw badRequest("same_room", "Choose a different room to move the classes to.");
+          target = await activeRoom(tx, req.auth.orgId, moveToRoomId);
+          if (target.locationId !== room.locationId) throw badRequest("room_wrong_location", "Classes can only move to a room at the same location.");
+        }
+        const upcoming = await tx
+          .select({ id: classSessions.id, capacity: classSessions.capacity })
+          .from(classSessions)
+          .where(and(eq(classSessions.roomId, id), eq(classSessions.status, "scheduled"), gt(classSessions.startsAt, new Date())));
+        if (upcoming.length) {
+          if (target) {
+            flags.info({ code: "room_has_classes", message: `${upcoming.length} upcoming ${upcoming.length === 1 ? "class moves" : "classes move"} to ${target.name}, with ${upcoming.length === 1 ? "its" : "their"} bookings.` });
+            if (target.capacity != null) await warnIfSmaller(tx, flags, null, target.capacity, target.name, upcoming.map((u) => u.id));
+          } else {
+            flags.confirm({ code: "room_has_classes", message: `${upcoming.length} upcoming ${upcoming.length === 1 ? "class is" : "classes are"} in ${room.name}. ${upcoming.length === 1 ? "It stays" : "They stay"} on the schedule with bookings, but without a room. Choose a room to move ${upcoming.length === 1 ? "it" : "them"} to instead?` });
+          }
+          const ids = upcoming.map((u) => u.id);
+          await tx.update(classSessions).set({ roomId: target?.id ?? null }).where(inArray(classSessions.id, ids));
+          // Spot numbers only carry over if the new room has that many named spots.
+          const keep = target?.spotLabels?.length ?? 0;
+          await tx.update(bookings).set({ spot: null }).where(and(inArray(bookings.sessionId, ids), sql`${bookings.spot} > ${keep}`));
+        }
+        await tx.update(classTemplates).set({ roomId: target?.id ?? null }).where(and(eq(classTemplates.roomId, id), eq(classTemplates.orgId, req.auth.orgId)));
+        await tx.update(classSeries).set({ roomId: target?.id ?? null }).where(and(eq(classSeries.roomId, id), eq(classSeries.orgId, req.auth.orgId)));
+        await tx.update(rooms).set({ archivedAt: new Date() }).where(eq(rooms.id, id));
+        return { removed: room.name, classesMoved: upcoming.length, movedTo: target?.name ?? null };
+      });
     });
 
     admin.post("/class-types", async (req, reply) => {
@@ -118,7 +228,7 @@ export async function catalogRoutes(app: FastifyInstance) {
 
     admin.patch("/templates/:id", async (req) => {
       const { id } = parse(idParam, req.params);
-      const input = parse(schemas.updateTemplate, req.body);
+      const input = parsePatch(schemas.updateTemplate, req.body);
       await checkTemplateRefs(req.auth.orgId, input);
       const [row] = await db.update(classTemplates).set(input).where(and(eq(classTemplates.id, id), eq(classTemplates.orgId, req.auth.orgId))).returning();
       if (!row) throw notFound("template");

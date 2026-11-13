@@ -303,13 +303,20 @@ describe("banners and announcements", () => {
     expect(b.status, JSON.stringify(b.body)).toBe(201);
     await s.owner.call("POST", "/banners", { title: "Later", imageFileId: img.id, startsAt: new Date(Date.now() + DAY).toISOString() });
     await attend(s.c2.id);
-    expect((await s.c1.call("GET", "/me/banners?placement=home")).body.map((x: { title: string }) => x.title)).toEqual(["Intro offer"]);
-    expect((await s.c2.call("GET", "/me/banners")).body).toEqual([]);
+    expect((await s.c1.call("GET", "/me/banners?placement=home")).body.banners.map((x: { title: string }) => x.title)).toEqual(["Intro offer"]);
+    expect((await s.c2.call("GET", "/me/banners")).body).toEqual({ rotateSeconds: 6, banners: [] });
     expect((await s.c1.call("POST", `/me/banners/${b.body.id}/click`)).body.link).toEqual({ type: "url", target: "https://studio.example.com/intro" });
     const admin = (await s.owner.call("GET", "/banners")).body;
     expect(admin.find((x: { title: string }) => x.title === "Intro offer")).toMatchObject({ views: 1, clicks: 1, state: "live" });
     expect(admin.find((x: { title: string }) => x.title === "Later").state).toBe("scheduled");
     expect((await s.owner.call("POST", "/banners", { title: "Bad", imageFileId: img.id, linkType: "url", linkTarget: "javascript:x" })).status).toBe(400);
+
+    // Several banners in one place take turns, in the studio's order, each for the chosen time.
+    const second = (await s.owner.call("POST", "/banners", { title: "Gift cards", imageFileId: img.id })).body;
+    await s.owner.call("PUT", "/banners/order", { ids: [second.id, b.body.id] });
+    expect((await s.owner.call("PATCH", "/banners/settings", { bannerRotateSeconds: 2 })).body.error.fields.bannerRotateSeconds).toMatch(/At least 3/);
+    await s.owner.call("PATCH", "/banners/settings", { bannerRotateSeconds: 8 });
+    expect((await s.c1.call("GET", "/me/banners?placement=home")).body).toMatchObject({ rotateSeconds: 8, banners: [{ title: "Gift cards" }, { title: "Intro offer" }] });
   });
 
   it("posts announcements with a push to everyone affected, for as long as chosen, and can end them early", async () => {

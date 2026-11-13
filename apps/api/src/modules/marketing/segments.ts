@@ -22,6 +22,7 @@ import {
 import { getOrg } from "../sessions/context.js";
 import { packageState } from "../packages/service.js";
 import { waiverStatuses } from "../clients/waivers.js";
+import { loyaltyBalances } from "./loyalty.js";
 
 type Org = Awaited<ReturnType<typeof getOrg>>;
 const DAY = 86_400_000;
@@ -185,6 +186,8 @@ async function matchRule(db: DbOrTx, org: Org, rule: SegmentRule, universe: stri
     }
     case "studioCredit":
       return byNumber(await creditBalances(db, orgId, now), rule as never);
+    case "loyaltyPoints":
+      return byNumber(await loyaltyBalances(db, orgId, now), rule as never);
     case "daysSinceJoined": {
       const rows = await memberRows();
       return byNumber(new Map(rows.map((m) => [m.userId, Math.floor((now.getTime() - m.createdAt.getTime()) / DAY)])), rule as never, null);

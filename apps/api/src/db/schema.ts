@@ -117,7 +117,7 @@ export const journeyStatusEnum = pgEnum("journey_status", ["draft", "live", "pau
 export const enrollmentStatusEnum = pgEnum("enrollment_status", ["active", "completed", "exited"]);
 export const giftCardStatusEnum = pgEnum("gift_card_status", GIFT_CARD_STATUSES);
 export const creditReasonEnum = pgEnum("credit_reason", ["granted", "used", "returned", "expired", "adjusted"]);
-export const creditSourceEnum = pgEnum("credit_source", ["gift_card", "referral", "journey", "studio"]);
+export const creditSourceEnum = pgEnum("credit_source", ["gift_card", "referral", "journey", "studio", "loyalty"]);
 export const referralStatusEnum = pgEnum("referral_status", ["pending", "rewarded", "capped", "expired", "void"]);
 export const orderKindEnum = pgEnum("order_kind", ["package", "gift_card"]);
 export const bannerPlacementEnum = pgEnum("banner_placement", BANNER_PLACEMENTS);
@@ -186,6 +186,18 @@ export const organizations = pgTable("organizations", {
   rolloverMode: rolloverModeEnum("rollover_mode").notNull().default("off"),
   rolloverMaxCredits: integer("rollover_max_credits"),
   rolloverWithinDays: integer("rollover_within_days").notNull().default(30),
+  // Loyalty
+  loyaltyEnabled: boolean("loyalty_enabled").notNull().default(false),
+  loyaltyName: text("loyalty_name").notNull().default("Point"),
+  loyaltyNamePlural: text("loyalty_name_plural").notNull().default("Points"),
+  loyaltyEarn: text("loyalty_earn").notNull().default("classes"),
+  loyaltyPointsPerClass: integer("loyalty_points_per_class").notNull().default(10),
+  loyaltyPointsPerUnit: integer("loyalty_points_per_unit").notNull().default(1),
+  loyaltyExpiry: text("loyalty_expiry").notNull().default("inactivity"),
+  loyaltyExpiryMonths: integer("loyalty_expiry_months").notNull().default(12),
+  loyaltyIncludeClasspass: boolean("loyalty_include_classpass").notNull().default(false),
+  /** When several banners show in the same place, each stays this long before the next. */
+  bannerRotateSeconds: integer("banner_rotate_seconds").notNull().default(6),
   // Gift cards
   giftCardsEnabled: boolean("gift_cards_enabled").notNull().default(false),
   giftCardAmounts: integer("gift_card_amounts").array().notNull().default(sql`'{5000,10000,20000}'::integer[]`),
@@ -247,6 +259,10 @@ export const memberships = pgTable(
     unsubscribeToken: text("unsubscribe_token").notNull().default(sql`replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '')`),
     referralCode: text("referral_code"),
     acquisition: acquisitionEnum("acquisition").notNull().default("direct"),
+    /** Loyalty: last time they came to a class, earned or redeemed (for "expire after a stretch without visits"). */
+    loyaltyActiveAt: ts("loyalty_active_at"),
+    /** Loyalty: when we last warned them their points were about to expire. */
+    loyaltyWarnedAt: ts("loyalty_warned_at"),
     attribution: jsonb("attribution").$type<Record<string, string>>(),
     createdAt: createdAt(),
   },
@@ -290,6 +306,8 @@ export const rooms = pgTable("rooms", {
   capacity: integer("capacity"),
   /** Named spots ("Reformer 1", "Bike 12"…). When set, clients pick a spot when booking. */
   spotLabels: text("spot_labels").array(),
+  /** Spots per row in the booking screen's room layout (null = worked out automatically). */
+  spotColumns: integer("spot_columns"),
   archivedAt: ts("archived_at"),
   createdAt: createdAt(),
 });
@@ -1214,4 +1232,82 @@ export const referrals = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("referrals_one_per_referee").on(t.orgId, t.refereeId), index("referrals_referrer_idx").on(t.orgId, t.referrerId)],
+);
+
+// ---------------------------------------------------------------------------
+// Loyalty
+// ---------------------------------------------------------------------------
+/** Points earned together (a class, a purchase, an adjustment). Spent oldest first. */
+export const loyaltyLots = pgTable(
+  "loyalty_lots",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    remaining: integer("remaining").notNull(),
+    earnedAt: ts("earned_at").notNull().defaultNow(),
+  },
+  (t) => [index("loyalty_lots_client_idx").on(t.orgId, t.clientId), check("loyalty_remaining_ok", sql`${t.remaining} >= 0 and ${t.remaining} <= ${t.amount}`)],
+);
+
+/** Every change to a client's points, with what caused it. */
+export const loyaltyLedger = pgTable(
+  "loyalty_ledger",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    change: integer("change").notNull(),
+    /** earned, reversed, redeemed, refunded, expired, adjusted */
+    reason: text("reason").notNull(),
+    /** What it was for: booking, package, order, refund, redemption. */
+    refType: text("ref_type"),
+    refId: uuid("ref_id"),
+    note: text("note"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("loyalty_ledger_client_idx").on(t.orgId, t.clientId, t.createdAt), index("loyalty_ledger_ref_idx").on(t.refType, t.refId)],
+);
+
+export const loyaltyRewards = pgTable("loyalty_rewards", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  photoFileId: uuid("photo_file_id").references(() => files.id, { onDelete: "set null" }),
+  cost: integer("cost").notNull(),
+  kind: text("kind").notNull(),
+  reward: jsonb("reward").$type<Reward | null>(),
+  giftCardCents: integer("gift_card_cents"),
+  /** How many are left to redeem (null = no limit). */
+  stock: integer("stock"),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  archivedAt: ts("archived_at"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const loyaltyRedemptions = pgTable(
+  "loyalty_redemptions",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    rewardId: uuid("reward_id").references(() => loyaltyRewards.id, { onDelete: "set null" }),
+    rewardName: text("reward_name").notNull(),
+    kind: text("kind").notNull(),
+    cost: integer("cost").notNull(),
+    /** done (given automatically), waiting (to hand over in person), given, cancelled (points returned) */
+    status: text("status").notNull(),
+    /** Short code to show at the desk for in-person rewards. */
+    code: text("code"),
+    handledBy: uuid("handled_by").references(() => users.id, { onDelete: "set null" }),
+    handledAt: ts("handled_at"),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("loyalty_redemptions_idx").on(t.orgId, t.status, t.createdAt)],
 );

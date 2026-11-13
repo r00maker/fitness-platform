@@ -19,6 +19,7 @@ import { userName } from "../sessions/context.js";
 import { paidRunFor } from "../payroll/service.js";
 import { DateTime } from "luxon";
 import { attendedEvent, bookedEvent } from "../marketing/events.js";
+import { loyaltyForAttendance, loyaltyForRefund } from "../marketing/loyalty.js";
 
 export type BookingRow = typeof bookings.$inferSelect;
 /** Admins (and owners) can book, cancel, move and refund for clients, and go outside booking rules. */
@@ -230,6 +231,7 @@ async function recordRefund(
     reason: opts.reason ?? null,
     createdBy: auth.userId,
   });
+  if (method === "original_payment" && opts.amountCents) await loyaltyForRefund(tx, auth.orgId, booking.clientId, opts.amountCents, booking.id);
 }
 
 export async function cancelBooking(
@@ -408,6 +410,7 @@ export async function markAttendance(tx: DbOrTx, auth: AuthContext, bookingId: s
     await syncNoShowFee(tx, auth, b!, session, attendance, flags);
     await warnIfPaid(tx, auth, session, flags);
     if (attendance === "present") await attendedEvent(tx, auth.orgId, b!.clientId, b!.id, now);
+    if (attendance === "present" || booking.attendance === "present") await loyaltyForAttendance(tx, auth.orgId, b!.clientId, b!.id, attendance === "present", now);
   }
   return b!;
 }
@@ -457,6 +460,7 @@ export async function markAllAttendance(
     .where(inArray(bookings.id, before.map((b) => b.id)));
   for (const b of before) if (b.attendance !== input.attendance) await syncNoShowFee(tx, auth, b, session, input.attendance, flags);
   if (input.attendance === "present") for (const b of before) if (b.attendance !== "present") await attendedEvent(tx, auth.orgId, b.clientId, b.id, now);
+  for (const b of before) if ((b.attendance === "present") !== (input.attendance === "present")) await loyaltyForAttendance(tx, auth.orgId, b.clientId, b.id, input.attendance === "present", now);
   if (before.some((b) => b.attendance !== input.attendance)) await warnIfPaid(tx, auth, session, flags);
   return { updated: before.length };
 }

@@ -47,7 +47,7 @@ import {
 import { audit } from "../../lib/audit.js";
 import { conflict, notFound } from "../../lib/errors.js";
 import { inTx, withFlags } from "../../lib/route.js";
-import { parse } from "../../lib/validate.js";
+import { parse, parsePatch } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { money } from "../bookings/rules.js";
 import { getOrg } from "../sessions/context.js";
@@ -184,7 +184,7 @@ export async function marketingRoutes(app: FastifyInstance) {
   });
   app.patch("/segments/:id", async (req) => {
     const { id } = parse(idParam, req.params);
-    const input = parse(segmentInput.partial(), req.body);
+    const input = parsePatch(segmentInput.partial(), req.body);
     const [s] = await db.update(segments).set(input).where(and(eq(segments.id, id), eq(segments.orgId, req.auth.orgId))).returning();
     if (!s) throw notFound("segment");
     return { ...s, count: (await matchSegment(db, req.auth.orgId, s.definition)).length };
@@ -223,7 +223,7 @@ export async function marketingRoutes(app: FastifyInstance) {
   });
   app.patch("/emails/:id", async (req) => {
     const { id } = parse(idParam, req.params);
-    const input = parse(emailDesignInput.partial(), req.body);
+    const input = parsePatch(emailDesignInput.partial(), req.body);
     if (input.design) await checkDesign(db, req.auth.orgId, input.design);
     const [e] = await db.update(emailDesigns).set(input).where(and(eq(emailDesigns.id, id), eq(emailDesigns.orgId, req.auth.orgId))).returning();
     if (!e) throw notFound("email");
@@ -332,7 +332,7 @@ export async function marketingRoutes(app: FastifyInstance) {
   });
   app.patch("/campaigns/:id", async (req) => {
     const { id } = parse(idParam, req.params);
-    const input = parse(campaignInput.partial(), req.body);
+    const input = parsePatch(campaignInput.partial(), req.body);
     let emailName: string | undefined;
     if (input.emailId) {
       const [e] = await db.select({ name: emailDesigns.name }).from(emailDesigns).where(and(eq(emailDesigns.id, input.emailId), eq(emailDesigns.orgId, req.auth.orgId), isNull(emailDesigns.archivedAt)));
@@ -441,7 +441,7 @@ export async function marketingRoutes(app: FastifyInstance) {
   /** Changes apply to people who start from now on; anyone part-way through finishes the version they started. */
   app.patch("/journeys/:id", async (req) => {
     const { id } = parse(idParam, req.params);
-    const input = parse(journeyInput.partial(), req.body);
+    const input = parsePatch(journeyInput.partial(), req.body);
     const j = await getJourney(req.auth.orgId, id);
     if (input.definition) await checkJourney(db, req.auth.orgId, input.definition);
     const changed = input.definition && JSON.stringify(input.definition) !== JSON.stringify(j.definition);

@@ -11,6 +11,7 @@ import { extendSeries } from "./series.js";
 import { renewDuePackages } from "../modules/packages/lifecycle.js";
 import { runDueJourneys, scanJourneyTriggers } from "../modules/marketing/journeys.js";
 import { keepOverdueGiftCards } from "../modules/marketing/giftcards.js";
+import { expireLoyalty } from "../modules/marketing/loyalty.js";
 import { sendScheduledCampaigns } from "../modules/marketing/campaigns.js";
 
 const config = loadConfig();
@@ -44,6 +45,7 @@ every(60_000, "journeys", async () => {
 every(60 * 60_000, "journey triggers", () => scanJourneyTriggers(db));
 every(60_000, "campaigns", () => sendScheduledCampaigns(db, urls));
 every(60 * 60_000, "gift cards", () => keepOverdueGiftCards(db));
+every(6 * 60 * 60_000, "loyalty expiry", () => expireLoyalty(db));
 
 const stop = async () => {
   running = false;

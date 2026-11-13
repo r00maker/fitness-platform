@@ -14,6 +14,7 @@
 import { and, asc, count, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { clientEvent } from "../marketing/events.js";
+import { loyaltyForSpend } from "../marketing/loyalty.js";
 import { OPTION_LABELS, describePackage, type PackageState } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
 import { bookings, classSessions, classTypes, clientPackageMembers, clientPackages, memberships, organizations, packageLedger, packagePlans, users } from "../../db/schema.js";
@@ -416,6 +417,7 @@ export async function sellPackage(
     await notify(tx, { orgId: auth.orgId, userIds: [clientId], template: "package.added", data: { packageName: p!.name, terms: shown!.terms.join(". ") } });
   }
   await clientEvent(tx, auth.orgId, clientId, { type: "package_bought", planId: plan.id, ref: p!.id }, now);
+  await loyaltyForSpend(tx, auth.orgId, clientId, p!.pricePaidCents, "package", p!.id, p!.name, now);
   return (await presentPackages(tx, org, [p!], undefined, now))[0]!;
 }
 

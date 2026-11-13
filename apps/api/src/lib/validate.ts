@@ -12,3 +12,13 @@ export function parse<S extends z.ZodType>(schema: S, input: unknown): z.output<
   }
   throw badRequest("invalid_input", "Some details need fixing.", { fields });
 }
+
+/**
+ * For PATCH requests: validate, then keep only the fields the request actually sent. (A partial
+ * schema still fills in defaults, which would quietly reset settings the person didn't touch.)
+ */
+export function parsePatch<S extends z.ZodType>(schema: S, input: unknown): Partial<z.output<S>> {
+  const data = parse(schema, input) as Record<string, unknown>;
+  const sent = input && typeof input === "object" ? Object.keys(input) : [];
+  return Object.fromEntries(Object.entries(data).filter(([k]) => sent.includes(k))) as Partial<z.output<S>>;
+}
