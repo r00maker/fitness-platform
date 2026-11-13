@@ -152,6 +152,12 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: "Referral reward earned",
     pushBody: `${s(d.friendName)} qualified: you've got ${s(d.reward)}.`,
   }),
+  "lead.new": (d) => ({
+    subject: `New lead: ${s(d.name)}`,
+    body: `${s(d.name)} asked about classes through ${s(d.source)}${d.campaign ? ` (${s(d.campaign)})` : ""}. ${d.contact ? `Reach them on ${s(d.contact)}. ` : ""}They've been sent your welcome email if you've set one up. See Marketing → Ads & leads.`,
+    pushTitle: "New lead",
+    pushBody: `${s(d.name)} asked about classes through ${s(d.source)}.`,
+  }),
   "reward.given": (d) => ({
     subject: "A little something from us",
     body: `You've got ${s(d.reward)}.`,

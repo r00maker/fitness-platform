@@ -9,6 +9,7 @@ import auth from "./plugins/auth.js";
 import { marketingRoutes } from "./modules/marketing/routes.js";
 import { marketingAppRoutes } from "./modules/marketing/app-routes.js";
 import { loyaltyRoutes } from "./modules/marketing/loyalty.js";
+import { adsRoutes } from "./modules/marketing/ads.js";
 import { bookingRoutes } from "./modules/bookings/routes.js";
 import { catalogRoutes } from "./modules/catalog/routes.js";
 import { clientRoutes } from "./modules/clients/routes.js";
@@ -40,6 +41,9 @@ export async function buildApp(opts: { config: Config; db: Db }) {
   app.decorate("db", opts.db);
   app.decorate("config", opts.config);
 
+  // Plain HTML forms (the unsubscribe pages) and one-click unsubscribe from mail apps post form
+  // data. Nothing reads a form body, so it's accepted and ignored.
+  app.addContentTypeParser("application/x-www-form-urlencoded", { parseAs: "string", bodyLimit: 4096 }, (_req, _body, done) => done(null, {}));
   await app.register(helmet);
   await app.register(cors, { origin: opts.config.CORS_ORIGINS.split(",").map((o) => o.trim()), credentials: false });
   await app.register(rateLimit, {
@@ -91,6 +95,7 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(marketingRoutes);
       await v1.register(marketingAppRoutes);
       await v1.register(loyaltyRoutes);
+      await v1.register(adsRoutes);
     },
     { prefix: "/v1" },
   );

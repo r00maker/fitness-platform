@@ -141,6 +141,7 @@ export const MERGE_TAGS = {
   studio_credit: "Their studio credit",
   referral_code: "Their referral code",
   referral_link: "Their referral link",
+  join_link: "A link to join the studio (in emails to leads, it's their own sign-up link)",
 } as const;
 export type MergeTag = keyof typeof MERGE_TAGS;
 
@@ -148,7 +149,7 @@ const safeUrl = z
   .string()
   .trim()
   .max(2000)
-  .refine((u) => /^(https?:\/\/|mailto:)/i.test(u) || /^\{\{referral_link\}\}$/.test(u), "Links need to start with https://, http:// or mailto:.");
+  .refine((u) => /^(https?:\/\/|mailto:)/i.test(u) || /^\{\{(referral|join)_link\}\}$/.test(u), "Links need to start with https://, http:// or mailto:.");
 const align = z.enum(["left", "center", "right"]).default("left");
 const text = z.string().max(5000);
 
@@ -482,6 +483,8 @@ export const joinStudio = z.object({
   marketingPush: z.boolean().default(false),
   /** From the link they arrived on: utm_source, utm_medium, utm_campaign, utm_content, utm_term, gclid, fbclid. */
   attribution: z.record(z.string().max(40), z.string().max(200)).optional(),
+  /** From a lead form follow-up email's sign-up link (?lead=...), so the enquiry is matched. */
+  leadToken: z.string().regex(/^[a-f0-9]{32}$/).nullish(),
 });
 export const marketingPrefs = z.object({ marketingEmail: z.boolean().optional(), marketingPush: z.boolean().optional() });
 
@@ -574,3 +577,51 @@ export const loyaltyRewardInput = z
   });
 export const loyaltyAdjust = z.object({ points: z.number().int().min(-1_000_000).max(1_000_000).refine((n) => n !== 0, "Enter a number of points."), reason: z.string().trim().min(1, "Add a reason.").max(200) });
 export const pointsText = (n: number, name: string, plural: string) => `${n.toLocaleString("en")} ${Math.abs(n) === 1 ? name : plural}`;
+
+// ---------------------------------------------------------------------------
+// Ads funnel: leads from Meta and Google lead forms, follow-up, and reporting sign-ups and
+// first purchases back to the ad platforms so they find more people who actually pay.
+// ---------------------------------------------------------------------------
+export const LEAD_SOURCES = { meta: "Meta (Facebook, Instagram)", google: "Google", manual: "Added by the studio" } as const;
+export type LeadSource = keyof typeof LEAD_SOURCES;
+export const LEAD_STATUSES = {
+  new: "New",
+  contacted: "Contacted",
+  joined: "Joined",
+  bought: "Bought",
+  lost: "Not interested",
+} as const;
+export type LeadStatus = keyof typeof LEAD_STATUSES;
+export const leadInput = z
+  .object({
+    firstName: z.string().trim().max(60).nullish(),
+    lastName: z.string().trim().max(60).nullish(),
+    email: z.email("That email doesn't look right.").max(200).nullish(),
+    phone: z.string().trim().max(30).nullish(),
+    note: z.string().trim().max(500).nullish(),
+  })
+  .refine((l) => l.email || l.phone, "Add an email address or a phone number.");
+export const leadUpdate = z.object({ status: z.enum(["new", "contacted", "lost"]).optional(), note: z.string().trim().max(500).nullish() });
+export const adsSettings = z
+  .object({
+    /** Meta: the Facebook Page that runs the lead ads, and a token that can read its leads. */
+    metaPageId: z.string().regex(/^\d{5,30}$/, "Page IDs are numbers.").nullable(),
+    metaPageToken: z.string().trim().min(20).max(1000).nullable(),
+    /** Meta: the dataset (pixel) ID and a Conversions API token, for reporting results back. */
+    metaPixelId: z.string().regex(/^\d{5,30}$/, "Dataset IDs are numbers.").nullable(),
+    metaCapiToken: z.string().trim().min(20).max(1000).nullable(),
+    metaSendConversions: z.boolean(),
+    /** Google: offline conversions are read from a private address you give Google Ads. */
+    googleFeedEnabled: z.boolean(),
+    googleSignupName: z.string().trim().min(1).max(100),
+    googlePurchaseName: z.string().trim().min(1).max(100),
+    /** Used to add the country code to phone numbers before they're hashed. */
+    phoneCountryCode: z.string().regex(/^\d{1,4}$/),
+    /** Follow-up for new leads. */
+    leadFollowUp: z.boolean(),
+    leadFirstEmailId: id.nullable(),
+    leadReminderEmailId: id.nullable(),
+    leadReminderDays: z.number().int().min(1).max(30),
+    leadNotifyTeam: z.boolean(),
+  })
+  .partial();

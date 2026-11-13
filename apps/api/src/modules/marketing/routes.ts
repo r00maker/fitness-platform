@@ -273,7 +273,7 @@ export async function marketingRoutes(app: FastifyInstance) {
     await checkDesign(db, req.auth.orgId, body.design);
     const org = await getOrg(db, req.auth.orgId);
     const urls = urlsOf(app);
-    const sample = { first_name: "Chloe", last_name: "Ng", classes_attended: "24", credits_left: "6", studio_credit: money(5000, org.currency), referral_code: "CHLOE-7K2P", referral_link: `${urls.app}/join` };
+    const sample = { first_name: "Chloe", last_name: "Ng", classes_attended: "24", credits_left: "6", studio_credit: money(5000, org.currency), referral_code: "CHLOE-7K2P", referral_link: `${urls.app}/join`, join_link: `${urls.app}/join` };
     const values = body.clientId ? (await mergeValues(db, org.id, [body.clientId], urls)).get(body.clientId) ?? sample : sample;
     return renderEmail(body.design, { studioName: org.name, publicApiUrl: urls.api, appUrl: urls.app, values, plans: await plansFor(db, org.id, org.currency, body.design), unsubscribeUrl: body.purpose === "marketing" ? `${urls.api}/v1/unsubscribe/preview` : null });
   });

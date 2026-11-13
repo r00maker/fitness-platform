@@ -42,6 +42,7 @@ Mobile apps are built and published with **Expo EAS** (React Native) to the App 
 | Card details | **Not stored by us.** Stripe | Cards never touch our servers, which keeps PCI compliance to the lightest level (SAQ-A). |
 | Photos, waivers, documents (later) | Private object storage (S3 / Cloudflare R2) | Not publicly readable; the API hands out short-lived signed links. |
 | Secrets (DB password, API keys) | The host's secret manager / environment variables | Never in code or git. The app refuses to start if production config is unsafe (e.g. a dev secret is set). |
+| Studio access tokens (Meta, ads) | Encrypted in the database with `SECRETS_KEY` | Generate with `openssl rand -hex 32` and keep it in the secret manager. Losing it means studios reconnect their ad accounts; changing it needs a re-encrypt. |
 | Who changed what | `audit_log` table | For support, disputes and data-protection requests. |
 | Logs | Host log service (+ Sentry for errors) | Tokens, emails and phone numbers are redacted before logging. |
 

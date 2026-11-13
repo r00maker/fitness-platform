@@ -24,6 +24,8 @@ export interface RenderContext {
   plans: Map<string, PlanInfo>;
   /** Marketing emails: the unsubscribe link (required). Service emails: null. */
   unsubscribeUrl: string | null;
+  /** Emails to leads (people who asked about classes but have no account): a matching footer. */
+  lead?: boolean;
 }
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -143,10 +145,12 @@ export function renderEmail(design: EmailDesign, ctx: RenderContext): { subject:
   const body = design.blocks.map((b) => block(b)).join("");
   const subject = fillPlain(design.subject, v);
   const preheader = fillPlain(design.preheader, v);
+  const why = ctx.lead ? `You're getting this because you asked ${ctx.studioName} about classes.` : `You're getting this because you said yes to news from ${ctx.studioName}.`;
+  const stop = ctx.lead ? "Stop these emails" : "Unsubscribe";
   const footer = ctx.unsubscribeUrl
-    ? `You're getting this because you said yes to news from ${esc(ctx.studioName)}. <a href="${esc(ctx.unsubscribeUrl)}" style="color:inherit;text-decoration:underline">Unsubscribe</a>`
+    ? `${esc(why)} <a href="${esc(ctx.unsubscribeUrl)}" style="color:inherit;text-decoration:underline">${stop}</a>`
     : `This email is about your account with ${esc(ctx.studioName)}.`;
-  text.push("", ctx.unsubscribeUrl ? `You're getting this because you said yes to news from ${ctx.studioName}. Unsubscribe: ${ctx.unsubscribeUrl}` : `This email is about your account with ${ctx.studioName}.`);
+  text.push("", ctx.unsubscribeUrl ? `${why} ${stop}: ${ctx.unsubscribeUrl}` : `This email is about your account with ${ctx.studioName}.`);
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting">${fontLink([t.font, t.headingFont])}<title>${esc(subject)}</title>
 <style>@media (max-width:620px){.wrap{width:100%!important}.col{display:block!important;width:100%!important;padding:0!important}}</style></head>
 <body style="margin:0;padding:0;background:${t.background}">

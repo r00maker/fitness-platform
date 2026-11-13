@@ -41,6 +41,7 @@ export async function mergeValues(db: DbOrTx, orgId: string, clientIds: string[]
       studio_credit: money(credit.get(r.id) ?? 0, org.currency),
       referral_code: code,
       referral_link: code ? referralLink(urls.app, orgId, code) : urls.app,
+      join_link: `${urls.app.replace(/\/$/, "")}/join/${orgId}`,
       email: r.email,
       unsubscribeToken: r.token,
       marketingEmail: r.mEmail,
