@@ -45,7 +45,7 @@ import {
 import { audit } from "../../lib/audit.js";
 import { badRequest, conflict, forbidden, notFound } from "../../lib/errors.js";
 import { inTx } from "../../lib/route.js";
-import { parse } from "../../lib/validate.js";
+import { parse, parsePatch } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { money } from "../bookings/rules.js";
 import { publicFileUrl } from "../files/routes.js";
@@ -241,13 +241,29 @@ export async function marketingAppRoutes(app: FastifyInstance) {
     if (!b) throw notFound("banner");
     return reply.code(204).send();
   });
+  /** How long each banner shows before the next, when several share a place. */
+  app.get("/banners/settings", async (req) => {
+    requirePermission(req, "manageMarketing");
+    const org = await getOrg(db, req.auth.orgId);
+    return { bannerRotateSeconds: org.bannerRotateSeconds };
+  });
+  app.patch("/banners/settings", async (req) => {
+    requirePermission(req, "manageMarketing");
+    const { bannerRotateSeconds } = parse(z.object({ bannerRotateSeconds: z.number().int().min(3, "At least 3 seconds, so people can read it.").max(30) }), req.body);
+    await db.update(organizations).set({ bannerRotateSeconds }).where(eq(organizations.id, req.auth.orgId));
+    return { bannerRotateSeconds };
+  });
   app.put("/banners/order", async (req) => {
     requirePermission(req, "manageMarketing");
     const { ids } = parse(orderBody, req.body);
     await inTx(app, async (tx) => { for (const [i, id] of ids.entries()) await tx.update(banners).set({ sortOrder: i }).where(and(eq(banners.id, id), eq(banners.orgId, req.auth.orgId))); });
     return { ok: true };
   });
-  /** Client app: banners to show now, for this person. Each fetch counts as a view. */
+  /**
+   * Client app: banners to show now, for this person, in the studio's order. When a place has more
+   * than one, the app shows them in turn, each for `rotateSeconds` (pausing while someone is
+   * touching or reading it). Each fetch counts as a view.
+   */
   app.get("/me/banners", async (req) => {
     const { placement } = parse(placementQuery, req.query);
     const now = new Date();
@@ -268,7 +284,11 @@ export async function marketingAppRoutes(app: FastifyInstance) {
       shown.push(b);
     }
     if (shown.length) await db.update(banners).set({ views: sql`${banners.views} + 1` }).where(inArray(banners.id, shown.map((b) => b.id)));
-    return shown.map((b) => ({ id: b.id, title: b.title, subtitle: b.subtitle, placement: b.placement, imageUrl: publicFileUrl(app.config.PUBLIC_API_URL, b.imageFileId), link: { type: b.linkType, target: b.linkTarget } }));
+    const org = await getOrg(db, req.auth.orgId);
+    return {
+      rotateSeconds: org.bannerRotateSeconds,
+      banners: shown.map((b) => ({ id: b.id, title: b.title, subtitle: b.subtitle, placement: b.placement, imageUrl: publicFileUrl(app.config.PUBLIC_API_URL, b.imageFileId), link: { type: b.linkType, target: b.linkTarget } })),
+    };
   });
   app.post("/me/banners/:id/click", async (req) => {
     const { id } = parse(idParam, req.params);
@@ -413,7 +433,7 @@ export async function marketingAppRoutes(app: FastifyInstance) {
   app.patch("/gift-cards/designs/:id", async (req) => {
     requirePermission(req, "manageMarketing");
     const { id } = parse(idParam, req.params);
-    const input = parse(giftCardDesignInput.partial(), req.body);
+    const input = parsePatch(giftCardDesignInput.partial(), req.body);
     if (input.fileId) {
       const [f] = await db.select({ id: files.id }).from(files).where(and(eq(files.id, input.fileId), eq(files.orgId, req.auth.orgId), eq(files.purpose, "gift_card_design")));
       if (!f) throw badRequest("missing_image", "Upload the new photo first.");

@@ -104,7 +104,13 @@ export const createRoom = z.object({
   capacity: capacity.optional(),
   /** Named spots (e.g. "Reformer 1"); clients choose one when booking. */
   spotLabels: z.array(z.string().trim().min(1).max(40)).min(1).max(200).nullish(),
+  /** How many spots sit side by side in the booking screen's room layout. */
+  spotColumns: z.number().int().min(1).max(20).nullish(),
 });
+/** Change a room. Leaving out spotLabels keeps them; null removes spot selection for the room. */
+export const updateRoom = createRoom.omit({ locationId: true }).partial().extend({ acknowledge: z.array(z.string()).default([]) });
+/** Remove a room. Its upcoming classes move to another room at the same location, or are left without one. */
+export const removeRoom = z.object({ moveToRoomId: id.nullish(), acknowledge: z.array(z.string()).default([]) });
 export const createClassType = z.object({
   name,
   color: hexColor,

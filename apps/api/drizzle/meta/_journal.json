@@ -99,6 +99,13 @@
       "when": 1794509725480,
       "tag": "0013_marketing_categories_deletes",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794540885209,
+      "tag": "0014_room_edits_banner_rotation",
+      "breakpoints": true
     }
   ]
 }

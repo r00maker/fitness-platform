@@ -186,6 +186,8 @@ export const organizations = pgTable("organizations", {
   rolloverMode: rolloverModeEnum("rollover_mode").notNull().default("off"),
   rolloverMaxCredits: integer("rollover_max_credits"),
   rolloverWithinDays: integer("rollover_within_days").notNull().default(30),
+  /** When several banners show in the same place, each stays this long before the next. */
+  bannerRotateSeconds: integer("banner_rotate_seconds").notNull().default(6),
   // Gift cards
   giftCardsEnabled: boolean("gift_cards_enabled").notNull().default(false),
   giftCardAmounts: integer("gift_card_amounts").array().notNull().default(sql`'{5000,10000,20000}'::integer[]`),
@@ -290,6 +292,8 @@ export const rooms = pgTable("rooms", {
   capacity: integer("capacity"),
   /** Named spots ("Reformer 1", "Bike 12"…). When set, clients pick a spot when booking. */
   spotLabels: text("spot_labels").array(),
+  /** Spots per row in the booking screen's room layout (null = worked out automatically). */
+  spotColumns: integer("spot_columns"),
   archivedAt: ts("archived_at"),
   createdAt: createdAt(),
 });
