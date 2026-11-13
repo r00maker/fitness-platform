@@ -135,3 +135,31 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
   - Conversion: are new people turning into paying clients?
   
   Every number is compared with the period before ("Up 12%", marked good or worth watching), has one plain sentence explaining it, and sits under a one-line summary. Money is nett: packages, gift cards and fees, minus money refunded. Appointments are counted apart from classes. Charts use one colour, show their amount on hover, and can be shown as a table.
+
+## Bookings without a package, bulk changes, instructor reports and the Communication inbox
+
+- **Bookings without a package.** A new Studio rule, "Allow bookings without a package" (on by default, which is how it worked before), applies to classes and appointments alike.
+  - On: staff are asked first, then the booking shows as "Pay at studio".
+  - Off: a covering package is always needed. Staff can still book someone in for free as complimentary, and clients booking themselves always need a package.
+- **Changing many classes.** Choose classes picked on the calendar, or any filter covering up to 13 months:
+  - dates
+  - classes or appointments
+  - class types
+  - instructors (including TBC)
+  - location, rooms, weekdays and start times
+  - one repeating schedule
+
+  A live count shows how many classes match and how many people are booked. You can then change anything the class creator can: class, instructor (or cover), location and room, start time, length, spots, waitlist, ClassPass, auto-cancel and notes. Each field defaults to "Keep as is". The same filter can cancel classes. The usual checks still apply: clashes, rooms too small, spots below the number already booked, and booked clients being told. The limit is 2,000 classes at a time.
+- **Instructor reports.** A new Instructors tab lists everyone who teaches: classes, booked per class, how full, no-shows, covers and appointments, with the change on the period before. Clicking someone opens their numbers, a weekly trend, their classes by type, their regular slots and their regulars. Instructors can see their own report only. The Classes report can also be narrowed to one instructor, class type or location.
+- **Communication inbox.** A new menu item for owners, admins and Front of House, covering WhatsApp now and email next.
+  - **Coexistence.** The studio keeps its WhatsApp Business app number and app. It connects through Meta's sign-up window, scanning a code in the app, and chats from the last 6 months can be brought across. Replies sent from the phone appear in the thread too.
+  - **Using the inbox.** Threads are linked to clients by phone number; unknown numbers can be added as leads. Threads can be assigned, closed and searched.
+  - **Paying Meta comes first.** Before anything can be sent, the studio chooses how Meta's charges are paid:
+    - **Pay Meta directly:** the studio adds a card in WhatsApp Manager and confirms it here. Meta bills the studio.
+    - **Buy message credits:** the studio buys credits here and we pay Meta. Credits are added only once the payment goes through, each charged message uses them at the platform's rate card, and failed messages are refunded. This option only appears once the platform is set up to pay Meta for studios: it needs a rate card, and in practice Meta Solution Partner status or a partner BSP with a credit line. Until then, studios pay Meta directly.
+  - **What's charged.** Free replies are allowed for 24 hours after the client's last message. After that only approved templates can be sent, and the app shows what Meta will charge before anything goes out. Marketing templates need the client's yes to WhatsApp messages.
+  - **Journeys** use the same payment check and credits, and their messages appear in the client's thread.
+  - **Platform setup:**
+    - A Meta app (`META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN`) with Embedded Signup configured for coexistence.
+    - The webhook at `/v1/public/comms/whatsapp/webhook`, subscribed to `messages` and `smb_message_echoes`.
+    - Meta's Tech Provider review, so other businesses can connect through the app.
