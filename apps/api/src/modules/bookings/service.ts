@@ -1,14 +1,14 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { can, type Attendance, type RefundMethod } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
-import { bookings, refunds, waitlistEntries } from "../../db/schema.js";
+import { bookings, classTypes, refunds, waitlistEntries } from "../../db/schema.js";
 import type { Flags } from "../../lib/flags.js";
 import { checkClientOverlap, clock } from "../checks/session-checks.js";
 import { badRequest, conflict, forbidden, notFound } from "../../lib/errors.js";
 import { audit } from "../../lib/audit.js";
 import type { AuthContext } from "../../plugins/auth.js";
 import { notify } from "../notifications/outbox.js";
-import { assertMemberWithRole, confirmedCount, describeSession, getOrg, getSession, heldOfferCount, locationZone, lockSession, type SessionRow } from "../sessions/context.js";
+import { assertMemberWithRole, classpassBooked, confirmedCount, describeSession, getOrg, getSession, heldOfferCount, locationZone, lockSession, type SessionRow } from "../sessions/context.js";
 import { fillOpenSpots } from "../waitlist/engine.js";
 import { applyFee, bookingWindow, feeFor, waivePendingFees, weeklyBookings, windowMessage, windowStatus } from "./rules.js";
 import { pickSpot } from "./spots.js";
@@ -116,13 +116,14 @@ export async function choosePayment(
 export async function createBooking(
   tx: DbOrTx,
   auth: AuthContext,
-  input: { sessionId: string; clientId?: string; spot?: number; waiver?: { signedName: string }; clientPackageId?: string; complimentary?: boolean; notifyClient?: boolean },
+  input: { sessionId: string; clientId?: string; spot?: number; waiver?: { signedName: string }; clientPackageId?: string; complimentary?: boolean; notifyClient?: boolean; viaClasspass?: boolean },
   flags?: Flags,
   now = new Date(),
   opts: { ignoreSessionId?: string; preferPackageId?: string | null; silent?: boolean } = {},
 ) {
   const clientId = await resolveClient(tx, auth, input.clientId);
   const isClient = auth.role === "client";
+  if (input.viaClasspass && isClient) throw forbidden("ClassPass bookings are added by the studio.");
   const session = await lockSession(tx, auth.orgId, input.sessionId);
   if (session.status !== "scheduled") throw conflict("class_cancelled", "This class has been cancelled.");
   // Admins can add walk-ins until the class ends.
@@ -133,6 +134,16 @@ export async function createBooking(
     .from(bookings)
     .where(and(eq(bookings.sessionId, session.id), eq(bookings.clientId, clientId), eq(bookings.status, "confirmed")));
   if (existing) throw conflict("already_booked", isClient ? "You're already booked into this class." : "This client is already booked into this class.");
+
+  // Appointments are private: the studio books people in.
+  const [type] = await tx.select({ kind: classTypes.kind }).from(classTypes).where(eq(classTypes.id, session.classTypeId));
+  if (type?.kind === "appointment" && isClient) throw forbidden("Appointments are booked by the studio. Get in touch with them to arrange one.");
+  // ClassPass: only on classes that take ClassPass, and only up to the spots opened to it.
+  if (input.viaClasspass) {
+    if (!session.classpassEnabled) throw conflict("classpass_off", "ClassPass isn't switched on for this class. Turn it on in the class's settings first.");
+    const cpTaken = await classpassBooked(tx, session.id);
+    if (cpTaken >= (session.classpassSpots ?? 0)) throw conflict("classpass_full", `All ${session.classpassSpots} ClassPass ${session.classpassSpots === 1 ? "spot is" : "spots are"} taken. Raise the number in the class's settings to add more.`);
+  }
 
   const [entry] = await tx
     .select()
@@ -186,7 +197,8 @@ export async function createBooking(
   // First booking: studio members sign the waiver (in the same step if they've sent it).
   await requireWaiver(tx, auth, org, clientId, input.waiver, flags, session.id);
 
-  const pay = await choosePayment(tx, auth, org, clientId, session, input, flags, now, opts);
+  // ClassPass clients pay ClassPass, so there's nothing to take from a package.
+  const pay: Payment = input.viaClasspass ? { payment: "classpass" } : await choosePayment(tx, auth, org, clientId, session, input, flags, now, opts);
 
   const spot = await pickSpot(tx, session, input.spot);
   const [booking] = await tx
@@ -196,7 +208,7 @@ export async function createBooking(
       sessionId: session.id,
       clientId,
       spot,
-      source: holdingOffer ? "waitlist_claimed" : isClient ? "client" : "staff",
+      source: input.viaClasspass ? "classpass" : holdingOffer ? "waitlist_claimed" : isClient ? "client" : "staff",
       bookedBy: auth.userId,
       payment: pay.payment,
       clientPackageId: pay.option?.pkg.id ?? null,
@@ -207,7 +219,7 @@ export async function createBooking(
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "booking.created", entityType: "booking", entityId: booking!.id, details: { payment: pay.payment, packageId: pay.option?.pkg.id } });
   // Booked in by staff: let the client know (moves send their own message).
   if (!isClient && !opts.silent && input.notifyClient !== false) {
-    const paymentNote = pay.payment === "package" ? `It uses your ${pay.option!.pkg.name}.` : pay.payment === "complimentary" ? "This one's on us." : "Please pay at the studio.";
+    const paymentNote = pay.payment === "package" ? `It uses your ${pay.option!.pkg.name}.` : pay.payment === "complimentary" ? "This one's on us." : pay.payment === "classpass" ? "Booked through ClassPass." : "Please pay at the studio.";
     await notify(tx, { orgId: auth.orgId, userIds: [clientId], template: "booking.confirmed", data: { ...(await describeSession(tx, session)), bookingId: booking!.id, paymentNote } });
   }
   await bookedEvent(tx, auth.orgId, clientId, booking!.id, now);
@@ -283,6 +295,9 @@ export async function cancelBooking(
     }
   }
 
+  // ClassPass handles its own late-cancellation fees, and nothing was paid to the studio to give back.
+  if (booking.source === "classpass") { lateFee = false; refund = "none"; }
+
   const [updated] = await tx
     .update(bookings)
     .set({ status, cancelledAt: now })
@@ -311,6 +326,7 @@ export async function moveBooking(tx: DbOrTx, auth: AuthContext, bookingId: stri
   assertOwnOrManager(auth, booking);
   if (booking.status !== "confirmed") throw conflict("not_active", "Only active bookings can be moved.");
   if (booking.sessionId === input.targetSessionId) throw badRequest("same_class", "Pick a different class to move to.");
+  if (booking.source === "classpass") throw conflict("classpass_move", "ClassPass bookings are changed in ClassPass. Cancel this one, then add the new class as a ClassPass booking.");
 
   // Lock both classes in a fixed order so two simultaneous moves can't deadlock.
   const [firstId, secondId] = [booking.sessionId, input.targetSessionId].sort();

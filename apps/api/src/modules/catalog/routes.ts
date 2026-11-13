@@ -165,12 +165,31 @@ export async function catalogRoutes(app: FastifyInstance) {
       return (await db.insert(classTypes).values({ ...input, orgId: req.auth.orgId }).returning())[0];
     });
 
+    /**
+     * Change a class type: name, colour, description, usual length, or whether it's a class or an
+     * appointment. Turning it into an appointment switches ClassPass off for its upcoming classes
+     * (ClassPass is only for classes) and says how many changed.
+     */
     admin.patch("/class-types/:id", async (req) => {
       const { id } = parse(idParam, req.params);
-      const input = parse(schemas.updateClassType, req.body);
-      const [row] = await db.update(classTypes).set(input).where(and(eq(classTypes.id, id), eq(classTypes.orgId, req.auth.orgId))).returning();
-      if (!row) throw notFound("class type");
-      return row;
+      const input = parsePatch(schemas.updateClassType, req.body);
+      return db.transaction(async (tx) => {
+        const [row] = await tx.update(classTypes).set(input).where(and(eq(classTypes.id, id), eq(classTypes.orgId, req.auth.orgId))).returning();
+        if (!row) throw notFound("class type");
+        let classpassSwitchedOff = 0;
+        if (input.kind === "appointment") {
+          const off = { classpassEnabled: false, classpassSpots: null };
+          const changed = await tx
+            .update(classSessions)
+            .set(off)
+            .where(and(eq(classSessions.classTypeId, id), eq(classSessions.classpassEnabled, true), eq(classSessions.status, "scheduled"), gt(classSessions.startsAt, new Date())))
+            .returning({ id: classSessions.id });
+          classpassSwitchedOff = changed.length;
+          await tx.update(classSeries).set({ ...off, waitlistEnabled: false }).where(eq(classSeries.classTypeId, id));
+          await tx.update(classTemplates).set({ ...off, waitlistEnabled: false }).where(eq(classTemplates.classTypeId, id));
+        }
+        return { ...row, classpassSwitchedOff };
+      });
     });
 
     /** Set who teaches (and covers) this class type. An empty list means anyone who teaches. */
@@ -218,18 +237,32 @@ export async function catalogRoutes(app: FastifyInstance) {
       }
       if (t.instructorId) await assertMemberWithRole(db, orgId, t.instructorId, ["owner", "admin", "instructor"], "instructor");
     }
+    /** ClassPass on a template: only for classes, with spots that fit. */
+    async function checkTemplateClasspass(orgId: string, t: { classTypeId: string; capacity: number; classpassEnabled: boolean; classpassSpots: number | null }) {
+      if (!t.classpassEnabled) return;
+      const [type] = await db.select({ kind: classTypes.kind }).from(classTypes).where(and(eq(classTypes.id, t.classTypeId), eq(classTypes.orgId, orgId)));
+      if (type?.kind === "appointment") throw badRequest("classpass_appointment", "ClassPass is only for classes, not appointments.");
+      if (!t.classpassSpots) throw badRequest("invalid_input", "Some details need fixing.", { fields: { classpassSpots: "Choose how many spots to open to ClassPass." } });
+      if (t.classpassSpots > t.capacity) throw badRequest("invalid_input", "Some details need fixing.", { fields: { classpassSpots: `ClassPass can have at most all ${t.capacity} spots in the class.` } });
+    }
 
     admin.post("/templates", async (req, reply) => {
       const input = parse(schemas.createTemplate, req.body);
       await checkTemplateRefs(req.auth.orgId, input);
+      await checkTemplateClasspass(req.auth.orgId, { ...input, classpassSpots: input.classpassSpots ?? null });
       reply.code(201);
-      return (await db.insert(classTemplates).values({ ...input, orgId: req.auth.orgId }).returning())[0];
+      return (await db.insert(classTemplates).values({ ...input, classpassSpots: input.classpassEnabled ? input.classpassSpots : null, orgId: req.auth.orgId }).returning())[0];
     });
 
     admin.patch("/templates/:id", async (req) => {
       const { id } = parse(idParam, req.params);
       const input = parsePatch(schemas.updateTemplate, req.body);
       await checkTemplateRefs(req.auth.orgId, input);
+      const [cur] = await db.select().from(classTemplates).where(and(eq(classTemplates.id, id), eq(classTemplates.orgId, req.auth.orgId)));
+      if (!cur) throw notFound("template");
+      const next = { ...cur, ...input };
+      await checkTemplateClasspass(req.auth.orgId, next);
+      if (!next.classpassEnabled) input.classpassSpots = null;
       const [row] = await db.update(classTemplates).set(input).where(and(eq(classTemplates.id, id), eq(classTemplates.orgId, req.auth.orgId))).returning();
       if (!row) throw notFound("template");
       return row;

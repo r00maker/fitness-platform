@@ -39,6 +39,7 @@ import {
   SHARING_MODES,
   VALIDITY_UNITS,
   type PayTier,
+  type ClassTypeKind,
   EXTENSION_ATTACHMENT,
   EXTENSION_FEE_MODES,
   EXTENSION_MODES,
@@ -319,6 +320,8 @@ export const classTypes = pgTable("class_types", {
   description: text("description"),
   color: text("color").notNull(),
   defaultDurationMinutes: integer("default_duration_minutes"),
+  /** "class" (public schedule, clients book) or "appointment" (private: hidden, the studio books the client in). */
+  kind: text("kind").$type<ClassTypeKind>().notNull().default("class"),
   archivedAt: ts("archived_at"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -501,6 +504,8 @@ export const classTemplates = pgTable("class_templates", {
   startTime: time("start_time"),
   waitlistEnabled: boolean("waitlist_enabled").notNull().default(true),
   waitlistCapacity: integer("waitlist_capacity"),
+  classpassEnabled: boolean("classpass_enabled").notNull().default(false),
+  classpassSpots: integer("classpass_spots"),
   archivedAt: ts("archived_at"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -528,6 +533,13 @@ export const classSeries = pgTable("class_series", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
   occurrences: integer("occurrences"),
+  classpassEnabled: boolean("classpass_enabled").notNull().default(false),
+  classpassSpots: integer("classpass_spots"),
+  /** Appointments: clients booked into every session the series makes. */
+  clientIds: uuid("client_ids").array().notNull().default(sql`'{}'::uuid[]`),
+  notes: text("notes"),
+  /** Who set it up: repeating appointments book clients in on their behalf as new dates are added. */
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   /** Sessions have been generated up to (and including) this local date. */
   generatedThrough: date("generated_through"),
   endedAt: ts("ended_at"),
@@ -560,6 +572,9 @@ export const classSessions = pgTable(
     notes: text("notes"),
     /** True once this occurrence was edited on its own, so series-wide edits skip it. */
     detachedFromSeries: boolean("detached_from_series").notNull().default(false),
+    /** ClassPass clients can book this class, up to classpassSpots of them. Unused ClassPass spots stay open to members. */
+    classpassEnabled: boolean("classpass_enabled").notNull().default(false),
+    classpassSpots: integer("classpass_spots"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

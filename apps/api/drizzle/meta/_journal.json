@@ -120,6 +120,13 @@
       "when": 1794544757270,
       "tag": "0016_ads_funnel",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794548497826,
+      "tag": "0017_appointments_classpass",
+      "breakpoints": true
     }
   ]
 }
