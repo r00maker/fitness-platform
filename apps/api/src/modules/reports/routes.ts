@@ -29,10 +29,26 @@ const query = z.object({ days: z.coerce.number().int().refine((d) => [7, 30, 90,
 const section = z.object({ section: z.enum(["overview", "sales", "classes", "clients", "conversion"]) });
 
 interface Period { from: Date; to: Date; prevFrom: Date; days: number }
-/** Narrow class numbers to one instructor, class type or location. */
-interface Scope { instructorId?: string; classTypeId?: string; locationId?: string }
-const scopeSql = (sc: Scope = {}) =>
-  sql.join([sql``, ...(sc.instructorId ? [sql`and cs.instructor_id = ${sc.instructorId}`] : []), ...(sc.classTypeId ? [sql`and cs.class_type_id = ${sc.classTypeId}`] : []), ...(sc.locationId ? [sql`and cs.location_id = ${sc.locationId}`] : [])], sql` `);
+/**
+ * Zoom in: narrow class numbers to one instructor, class type or location, to certain days of the
+ * week, and/or a time of day. Times are worked out in the studio's own time zone.
+ */
+export const TIMES_OF_DAY = { morning: "Mornings (before 12pm)", afternoon: "Afternoons (12pm to 5pm)", evening: "Evenings (5pm on)" } as const;
+type TimeOfDay = keyof typeof TIMES_OF_DAY;
+interface Scope { instructorId?: string; classTypeId?: string; locationId?: string; weekdays?: number[]; timeOfDay?: TimeOfDay; tz?: string }
+const HOURS: Record<TimeOfDay, [number, number]> = { morning: [0, 12], afternoon: [12, 17], evening: [17, 24] };
+const scopeSql = (sc: Scope = {}) => {
+  const tz = sc.tz ?? "UTC";
+  const parts = [
+    ...(sc.instructorId ? [sql`and cs.instructor_id = ${sc.instructorId}`] : []),
+    ...(sc.classTypeId ? [sql`and cs.class_type_id = ${sc.classTypeId}`] : []),
+    ...(sc.locationId ? [sql`and cs.location_id = ${sc.locationId}`] : []),
+    ...(sc.weekdays?.length ? [sql`and extract(isodow from cs.starts_at at time zone ${tz})::int in (${sql.join(sc.weekdays.map((d) => sql`${d}`), sql`, `)})`] : []),
+    ...(sc.timeOfDay ? [sql`and extract(hour from cs.starts_at at time zone ${tz}) >= ${HOURS[sc.timeOfDay][0]} and extract(hour from cs.starts_at at time zone ${tz}) < ${HOURS[sc.timeOfDay][1]}`] : []),
+  ];
+  return sql.join([sql``, ...parts], sql` `);
+};
+const isScoped = (sc: Scope) => !!(sc.instructorId || sc.classTypeId || sc.locationId || sc.weekdays?.length || sc.timeOfDay);
 const n = (v: unknown) => Number(v ?? 0);
 const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 1000) / 10 : 0);
 
@@ -225,6 +241,38 @@ async function byClassType(db: DbOrTx, org: Org, p: Period, sc: Scope = {}) {
   return types.rows.map((t) => ({ name: t.name, color: t.color, classes: n(t.classes), averageBooked: Math.round((n(t.booked) / n(t.classes)) * 10) / 10, fill: pct(n(t.booked), n(t.capacity)), noShow: pct(n(t.no_show), n(t.present) + n(t.no_show)) }));
 }
 
+/** How full each location was. */
+async function byLocation(db: DbOrTx, org: Org, p: Period, sc: Scope = {}) {
+  const r = await db.execute<{ id: string; name: string; classes: string; capacity: string; booked: string }>(sql`
+    select l.id, l.name, count(*) as classes, sum(cs.capacity) as capacity,
+      sum((select count(*) from bookings b where b.session_id = cs.id and b.status = 'confirmed')) as booked
+    from class_sessions cs join class_types ct on ct.id = cs.class_type_id join locations l on l.id = cs.location_id
+    where cs.org_id = ${org.id} and cs.status = 'scheduled' and ct.kind = 'class' and cs.starts_at >= ${p.from} and cs.starts_at < ${p.to} and cs.ends_at < now() ${scopeSql(sc)}
+    group by l.id, l.name order by count(*) desc`);
+  return r.rows.map((x) => ({ id: x.id, name: x.name, classes: n(x.classes), averageBooked: Math.round((n(x.booked) / n(x.classes)) * 10) / 10, fill: pct(n(x.booked), n(x.capacity)) }));
+}
+
+/** How full classes were by day of the week and time of day: a simple "when are we busiest?" grid. */
+async function byTime(db: DbOrTx, org: Org, p: Period, sc: Scope = {}) {
+  const r = await db.execute<{ dow: string; band: TimeOfDay; classes: string; capacity: string; booked: string }>(sql`
+    select extract(isodow from cs.starts_at at time zone ${org.timezone})::int as dow,
+      case when extract(hour from cs.starts_at at time zone ${org.timezone}) < 12 then 'morning' when extract(hour from cs.starts_at at time zone ${org.timezone}) < 17 then 'afternoon' else 'evening' end as band,
+      count(*) as classes, sum(cs.capacity) as capacity,
+      sum((select count(*) from bookings b where b.session_id = cs.id and b.status = 'confirmed')) as booked
+    from class_sessions cs join class_types ct on ct.id = cs.class_type_id
+    where cs.org_id = ${org.id} and cs.status = 'scheduled' and ct.kind = 'class' and cs.starts_at >= ${p.from} and cs.starts_at < ${p.to} and cs.ends_at < now() ${scopeSql(sc)}
+    group by 1, 2`);
+  const day = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const cells = r.rows.map((x) => ({ weekday: n(x.dow), day: day[n(x.dow)]!, timeOfDay: x.band, classes: n(x.classes), fill: pct(n(x.booked), n(x.capacity)) }));
+  const best = [...cells].filter((c) => c.classes >= 2).sort((a, b) => b.fill - a.fill)[0];
+  const worst = [...cells].filter((c) => c.classes >= 2).sort((a, b) => a.fill - b.fill)[0];
+  const label = (c: (typeof cells)[number]) => `${c.day} ${c.timeOfDay}s`;
+  return {
+    cells,
+    explain: best && worst && best !== worst ? `Busiest: ${label(best)} (${best.fill}% full). Quietest: ${label(worst)} (${worst.fill}% full).` : "Not enough classes yet to compare times.",
+  };
+}
+
 async function classes(db: DbOrTx, org: Org, p: Period, sc: Scope = {}) {
   const cur = await classStats(db, org.id, p.from, p.to, "class", sc), prev = await classStats(db, org.id, p.prevFrom, p.from, "class", sc);
   const appts = await classStats(db, org.id, p.from, p.to, "appointment", sc), apptsPrev = await classStats(db, org.id, p.prevFrom, p.from, "appointment", sc);
@@ -242,6 +290,8 @@ async function classes(db: DbOrTx, org: Org, p: Period, sc: Scope = {}) {
     metrics,
     summary: summaryLine(metrics, p.days),
     byClassType: await byClassType(db, org, p, sc),
+    byLocation: await byLocation(db, org, p, sc),
+    byTime: await byTime(db, org, p, sc),
     fullest: slots.slice(0, 5),
     quietest: slots.length > 5 ? slots.slice(-5).reverse() : [],
     cancelled: { total: cur.cancelled, automatic: cur.autoCancelled, text: cur.cancelled ? `${cur.cancelled} ${cur.cancelled === 1 ? "class was" : "classes were"} cancelled${cur.autoCancelled ? `, ${cur.autoCancelled} of them automatically for low bookings` : ""}.` : "No classes were cancelled." },
@@ -357,7 +407,7 @@ async function instructorDetail(db: DbOrTx, org: Org, p: Period, instructorId: s
     metric({ key: "noshow", label: "No-shows", value: c.noShow, previous: b.noShow, display: `${c.noShow}%`, isPercent: true, goodWhenUp: false, explain: `Out of every 100 people booked with them, about ${Math.round(c.noShow)} didn't turn up.` }),
     metric({ key: "appointments", label: "Appointments", value: c.appointments, previous: b.appointments, display: String(c.appointments), explain: "Private sessions, counted separately." }),
   ];
-  const sc = { instructorId };
+  const sc: Scope = { instructorId, tz: org.timezone };
   const unit = p.days > 90 ? "month" : "week";
   const trend = await db.execute<{ bucket: string; classes: string; booked: string }>(sql`
     select to_char(date_trunc(${unit}, cs.starts_at at time zone ${org.timezone}), 'YYYY-MM-DD') as bucket, count(*) as classes,
@@ -377,6 +427,8 @@ async function instructorDetail(db: DbOrTx, org: Org, p: Period, instructorId: s
     summary: summaryLine(metrics, p.days),
     trend: { unit, title: `Booked per class, each ${unit}`, series: trend.rows.map((t) => ({ start: t.bucket, classes: n(t.classes), averageBooked: Math.round((n(t.booked) / n(t.classes)) * 10) / 10 })) },
     byClassType: await byClassType(db, org, p, sc),
+    byLocation: await byLocation(db, org, p, sc),
+    byTime: await byTime(db, org, p, sc),
     fullest: slots.slice(0, 5),
     quietest: slots.length > 5 ? slots.slice(-5).reverse() : [],
     regulars: regulars.rows.map((r) => ({ name: `${r.first_name} ${r.last_name}`, visits: n(r.visits) })),
@@ -424,12 +476,24 @@ export async function reportRoutes(app: FastifyInstance) {
   app.get("/reports/:section", async (req) => {
     requirePermission(req, "viewReports");
     const { section: which } = parse(section, req.params);
-    const { days, instructorId, classTypeId, locationId } = parse(query.extend({ instructorId: z.uuid().optional(), classTypeId: z.uuid().optional(), locationId: z.uuid().optional() }), req.query);
+    const q = parse(
+      query.extend({
+        instructorId: z.uuid().optional(),
+        classTypeId: z.uuid().optional(),
+        locationId: z.uuid().optional(),
+        /** Days of the week, 1 = Monday … 7 = Sunday, comma-separated. */
+        weekdays: z.string().regex(/^[1-7](,[1-7])*$/, "Use 1 (Monday) to 7 (Sunday), separated by commas.").optional().transform((v) => (v ? [...new Set(v.split(",").map(Number))].sort() : undefined)),
+        timeOfDay: z.enum(["morning", "afternoon", "evening"]).optional(),
+      }),
+      req.query,
+    );
+    const { days } = q;
     const org = await getOrg(app.db, req.auth.orgId);
     const p = periodOf(days);
-    // Filters (one instructor, class type or location) narrow the Classes tab.
-    const sc: Scope = { instructorId, classTypeId, locationId };
+    // Zooming in (instructor, class type, location, days, time of day) narrows the Classes tab.
+    const sc: Scope = { instructorId: q.instructorId, classTypeId: q.classTypeId, locationId: q.locationId, weekdays: q.weekdays, timeOfDay: q.timeOfDay, tz: org.timezone };
     const out = which === "classes" ? await classes(app.db, org, p, sc) : await { overview, sales, clients, conversion }[which](app.db, org, p);
-    return { section: which, period: periodView(p), currency: org.currency, ...(which === "classes" && (instructorId || classTypeId || locationId) ? { filters: sc } : {}), ...out };
+    const { tz: _tz, ...shown } = sc;
+    return { section: which, period: periodView(p), currency: org.currency, ...(which === "classes" && isScoped(sc) ? { filters: { ...shown, ...(sc.timeOfDay ? { timeOfDayLabel: TIMES_OF_DAY[sc.timeOfDay] } : {}) } } : {}), ...out };
   });
 }

@@ -36,6 +36,18 @@ const envSchema = z
     META_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default("v21.0"),
     /** The client app's web address (used for referral links and buttons in emails). */
     PUBLIC_APP_URL: z.string().url().default("http://localhost:5173"),
+    /**
+     * Support assistant (Claude API). One key for the whole platform, kept on the server only.
+     * Without it, the assistant says it isn't set up yet; everything else works as normal.
+     */
+    ANTHROPIC_API_KEY: z.string().min(10).optional(),
+    ASSISTANT_MODEL: z.string().default("claude-opus-5-5"),
+    /** Assistant replies included per studio per month (studios can buy top-ups for more). */
+    ASSISTANT_MONTHLY_REPLIES: z.coerce.number().int().min(0).default(300),
+    /** Kill switch: turn the assistant off for every studio at once. */
+    ASSISTANT_DISABLED: z.stringbool().default(false),
+    /** Where the help guide lives (the assistant reads it). Defaults to ./docs next to the app. */
+    HELP_DOCS_DIR: z.string().optional(),
     /** How far ahead recurring classes are created on the calendar. */
     SERIES_HORIZON_DAYS: z.coerce.number().int().min(7).max(730).default(120),
   })

@@ -60,6 +60,8 @@ export const PERMISSIONS = {
   useInbox: ["owner", "admin", "front_desk"],
   /** Connect WhatsApp, choose how messages are paid for, buy message credits. */
   manageComms: ["owner", "admin"],
+  /** Set up agents (name them, choose what they see and who they tell) and the support assistant. */
+  manageAgents: ["owner", "admin"],
   /** Revenue, sales, attendance and conversion reports. */
   viewReports: ["owner", "admin"],
   /** Segments, emails, campaigns, journeys, banners, gift cards and referral settings. */

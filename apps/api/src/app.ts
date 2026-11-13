@@ -14,6 +14,8 @@ import { staffRoutes } from "./modules/staff/routes.js";
 import { whatsappRoutes } from "./modules/marketing/whatsapp.js";
 import { reportRoutes } from "./modules/reports/routes.js";
 import { commsRoutes } from "./modules/comms/routes.js";
+import { agentRoutes } from "./modules/agents/routes.js";
+import { assistantRoutes } from "./modules/assistant/routes.js";
 import { bookingRoutes } from "./modules/bookings/routes.js";
 import { catalogRoutes } from "./modules/catalog/routes.js";
 import { clientRoutes } from "./modules/clients/routes.js";
@@ -104,6 +106,8 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(whatsappRoutes);
       await v1.register(reportRoutes);
       await v1.register(commsRoutes);
+      await v1.register(agentRoutes);
+      await v1.register(assistantRoutes);
     },
     { prefix: "/v1" },
   );
