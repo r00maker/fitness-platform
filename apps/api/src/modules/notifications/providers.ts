@@ -15,7 +15,7 @@ export interface PushMessage { tokens: string[]; title: string; body: string; da
 export interface EmailProvider { send(msg: EmailMessage): Promise<void> }
 export interface PushProvider { send(msg: PushMessage): Promise<void> }
 /** WhatsApp template messages, sent with each studio's own connected number. */
-export interface WhatsappProvider { send(db: DbOrTx, orgId: string, msg: { to: string; template: string; language: string; params: string[] }): Promise<void> }
+export interface WhatsappProvider { send(db: DbOrTx, orgId: string, msg: { to: string; template: string; language: string; params: string[]; messageId?: string }): Promise<void> }
 
 /** Development: print instead of sending. */
 export const consoleEmail: EmailProvider = { async send(m) { console.log(`[email] to=${m.to} subject="${m.subject}"`); } };

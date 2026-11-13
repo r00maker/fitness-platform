@@ -11,6 +11,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   smallint,
@@ -171,6 +172,8 @@ export const organizations = pgTable("organizations", {
   spotBookingEnabled: boolean("spot_booking_enabled").notNull().default(true),
   /** Clients need a package that covers the class to book it (off = book now, pay at the studio). */
   clientsNeedPackage: boolean("clients_need_package").notNull().default(true),
+  /** Staff may book someone without a package that covers it (as "pay at studio"). Off = a package (or complimentary) is always needed. */
+  allowBookingWithoutPackage: boolean("allow_booking_without_package").notNull().default(true),
   // Payroll
   payPeriod: payPeriodEnum("pay_period").notNull().default("monthly"),
   /** Fortnightly pay: any date a pay fortnight starts on. */
@@ -1465,6 +1468,93 @@ export const whatsappSettings = pgTable("whatsapp_settings", {
   defaultCountryCode: text("default_country_code").notNull().default("65"),
   /** Approved message templates the studio can use: [{ name, language, body, category, variables }]. */
   templates: jsonb("templates").$type<{ name: string; language: string; body: string; category: string; variables: number }[]>().notNull().default([]),
+  /** Connected through Meta's sign-up window, keeping the WhatsApp Business app on the phone (coexistence). */
+  coexistence: boolean("coexistence").notNull().default(false),
+  connectedAt: ts("connected_at"),
   lastError: text("last_error"),
   updatedAt: updatedAt(),
+});
+
+// ---------------------------------------------------------------------------
+// Communication inbox
+// ---------------------------------------------------------------------------
+/** One thread with one person on one channel (a WhatsApp number, later an email address). */
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    channel: text("channel").$type<"whatsapp" | "email">().notNull(),
+    /** WhatsApp: the number in international form, digits only. */
+    contact: text("contact").notNull(),
+    contactName: text("contact_name"),
+    clientId: uuid("client_id").references(() => users.id, { onDelete: "set null" }),
+    status: text("status").$type<"open" | "closed">().notNull().default("open"),
+    assignedTo: uuid("assigned_to").references(() => users.id, { onDelete: "set null" }),
+    unread: integer("unread").notNull().default(0),
+    /** WhatsApp: free replies are allowed for 24 hours after their last message. */
+    lastInboundAt: ts("last_inbound_at"),
+    lastMessageAt: ts("last_message_at"),
+    lastPreview: text("last_preview"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("conversations_contact_uq").on(t.orgId, t.channel, t.contact), index("conversations_recent_idx").on(t.orgId, t.lastMessageAt)],
+);
+
+export const commsMessages = pgTable(
+  "comms_messages",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+    direction: text("direction").$type<"in" | "out">().notNull(),
+    /** Who sent it: the client, staff here, staff on the phone app (coexistence), or a journey. */
+    origin: text("origin").$type<"contact" | "platform" | "phone_app" | "journey">().notNull(),
+    kind: text("kind").$type<"text" | "template" | "media" | "other">().notNull().default("text"),
+    body: text("body"),
+    template: jsonb("template").$type<{ name: string; language: string; category: string; variables: string[] } | null>(),
+    externalId: text("external_id"),
+    status: text("status").$type<"queued" | "sent" | "delivered" | "read" | "failed" | "received">().notNull(),
+    error: text("error"),
+    sentBy: uuid("sent_by").references(() => users.id, { onDelete: "set null" }),
+    /** Message credits used (US cents); 0 when free or paid to Meta directly. */
+    costCents: numeric("cost_cents", { precision: 10, scale: 2 }).notNull().default("0"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("comms_messages_conv_idx").on(t.conversationId, t.createdAt), uniqueIndex("comms_messages_external_uq").on(t.orgId, t.externalId).where(sql`${t.externalId} is not null`)],
+);
+
+/** How a studio pays for WhatsApp, and its message credit balance (US cents). */
+export const commsBilling = pgTable("comms_billing", {
+  orgId: uuid("org_id").primaryKey().references(() => organizations.id, { onDelete: "cascade" }),
+  mode: text("mode").$type<"none" | "meta_direct" | "credits">().notNull().default("none"),
+  metaPaymentConfirmedAt: ts("meta_payment_confirmed_at"),
+  metaPaymentConfirmedBy: uuid("meta_payment_confirmed_by").references(() => users.id, { onDelete: "set null" }),
+  balanceCents: numeric("balance_cents", { precision: 12, scale: 2 }).notNull().default("0"),
+  updatedAt: updatedAt(),
+});
+
+export const messageCreditLedger = pgTable("message_credit_ledger", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  changeCents: numeric("change_cents", { precision: 12, scale: 2 }).notNull(),
+  balanceAfterCents: numeric("balance_after_cents", { precision: 12, scale: 2 }).notNull(),
+  reason: text("reason").$type<"purchase" | "message" | "refund" | "adjustment">().notNull(),
+  note: text("note"),
+  messageId: uuid("message_id").references(() => commsMessages.id, { onDelete: "set null" }),
+  purchaseId: uuid("purchase_id"),
+  createdAt: createdAt(),
+});
+
+/** A studio buying message credits from the platform. Credits are added only once payment is confirmed. */
+export const creditPurchases = pgTable("message_credit_purchases", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  amountCents: integer("amount_cents").notNull(),
+  status: text("status").$type<"pending" | "paid" | "cancelled">().notNull().default("pending"),
+  provider: text("provider"),
+  providerRef: text("provider_ref"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  paidAt: ts("paid_at"),
+  createdAt: createdAt(),
 });

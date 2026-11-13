@@ -1,6 +1,7 @@
 import { and, eq, lte, sql } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
-import { notifications, pushTokens, users } from "../../db/schema.js";
+import { commsMessages, notifications, pushTokens, users } from "../../db/schema.js";
+import { refundCredits } from "../comms/billing.js";
 import type { EmailProvider, PushProvider, WhatsappProvider } from "./providers.js";
 import { render } from "./templates.js";
 
@@ -32,7 +33,7 @@ export async function deliverPending(db: Db, providers: { email: EmailProvider; 
         }
         if (n.channel === "whatsapp") {
           if (!providers.whatsapp) throw new Error("WhatsApp sending isn't set up on this server");
-          const d = n.data as { to: string; template: string; language: string; params: string[] };
+          const d = n.data as { to: string; template: string; language: string; params: string[]; messageId?: string };
           await providers.whatsapp.send(tx, n.orgId, d);
           await tx.update(notifications).set({ status: "sent", sentAt: new Date(), attempts: n.attempts + 1 }).where(eq(notifications.id, n.id));
           continue;
@@ -58,6 +59,12 @@ export async function deliverPending(db: Db, providers: { email: EmailProvider; 
         await tx.update(notifications).set({ status: "sent", sentAt: new Date(), attempts: n.attempts + 1 }).where(eq(notifications.id, n.id));
       } catch (err) {
         const attempts = n.attempts + 1;
+        // A WhatsApp message that's given up on: show it as failed in the inbox, and return any credits.
+        const waId = n.channel === "whatsapp" ? (n.data as { messageId?: string }).messageId : undefined;
+        if (waId && attempts >= MAX_ATTEMPTS) {
+          const [m] = await tx.update(commsMessages).set({ status: "failed", error: String(err instanceof Error ? err.message : err).slice(0, 300) }).where(eq(commsMessages.id, waId)).returning();
+          if (m && Number(m.costCents) > 0) await refundCredits(tx, n.orgId, Number(m.costCents), m.id, "Message failed to send");
+        }
         await tx
           .update(notifications)
           .set({

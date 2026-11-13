@@ -56,6 +56,10 @@ export const PERMISSIONS = {
   managePayroll: ["owner", "admin"],
   /** Add staff (they get an email to set their password), change roles, remove access. */
   manageStaff: ["owner", "admin"],
+  /** Read and answer client messages in the Communication inbox (Front of House answer messages too). */
+  useInbox: ["owner", "admin", "front_desk"],
+  /** Connect WhatsApp, choose how messages are paid for, buy message credits. */
+  manageComms: ["owner", "admin"],
   /** Revenue, sales, attendance and conversion reports. */
   viewReports: ["owner", "admin"],
   /** Segments, emails, campaigns, journeys, banners, gift cards and referral settings. */
@@ -302,6 +306,7 @@ export const FLAG_CODES = [
   // Appointments and ClassPass
   "appointment_no_client",
   "delete_class_type",
+  "whatsapp_charge",
   "classpass_reduced",
   // Packages and payroll
   "no_package",

@@ -12,6 +12,7 @@ export default defineConfig({
       SECRETS_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       META_APP_SECRET: "test-meta-app-secret",
       META_VERIFY_TOKEN: "test-verify-token",
+      META_APP_ID: "1234567890",
     },
   },
 });

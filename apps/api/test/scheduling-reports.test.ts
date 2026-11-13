@@ -186,6 +186,7 @@ describe("WhatsApp", () => {
     const before = await s.owner.call("POST", "/journeys", { name: "WA", definition: { trigger: { type: "package_used_up" }, steps: [{ id: "wa", type: "send_whatsapp", template: "top_up", language: "en", variables: ["{{first_name}}"] }] } });
     expect(before.body.error.code).toBe("whatsapp_not_connected");
 
+    await s.owner.call("PUT", "/comms/billing", { mode: "meta_direct", paymentMethodAdded: true });
     const conn = await s.owner.call("PATCH", "/whatsapp/settings", { phoneNumberId: "1234567890", businessAccountId: "9876543210", accessToken: "EAAG-whatsapp-token-0123456789" });
     expect(conn.body).toMatchObject({ connected: true });
     expect(JSON.stringify(conn.body)).not.toContain("whatsapp-token");

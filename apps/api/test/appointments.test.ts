@@ -79,9 +79,17 @@ describe("appointments", () => {
     const { s, appt } = await setup();
     const groupPack = (await s.owner.call("POST", "/package-plans", { name: "10-class pack", kind: "credits", credits: 10, priceCents: 28000, validityValue: 3, validityUnit: "months" })).body;
     await s.owner.call("POST", `/clients/${s.c3.id}/packages`, { planId: groupPack.id });
-    const r = await appt({ clientIds: [s.c3.id] });
+    // Studios that allow bookings without a package (the default): staff are asked first; it shows as pay at studio.
+    const ask = await appt({ clientIds: [s.c3.id] });
+    expect(ask.body.error.flags.map((f: { code: string }) => f.code)).toEqual(["no_package"]);
+    expect(ask.body.error.flags[0].message).toMatch(/doesn't have a package that covers Private reformer appointments/);
+    const anyway = await appt({ clientIds: [s.c3.id], startTime: "13:00", acknowledge: [...ACK, "no_package"] });
+    expect((await db.select().from(bookings).where(eq(bookings.sessionId, anyway.body.id)))[0]!.payment).toBe("pay_later");
+    // Studios that don't: no booking without a package (or complimentary).
+    await s.owner.call("PATCH", "/settings", { allowBookingWithoutPackage: false });
+    const r = await appt({ clientIds: [s.c3.id], acknowledge: [...ACK, "no_package"] });
     expect(r.status).toBe(409);
-    expect(r.body.error).toMatchObject({ code: "appointment_package_needed", message: expect.stringMatching(/needs a package that covers Private reformer appointments.*complimentary/) });
+    expect(r.body.error).toMatchObject({ code: "appointment_package_needed", message: expect.stringMatching(/only allows bookings with a package.*complimentary/) });
     expect(r.body.error.packages[0].reason).toMatch(/covers group classes, not Private reformer appointments/);
     // An open slot, then booked in for free.
     const open = await appt({ acknowledge: [...ACK, "appointment_no_client"] });

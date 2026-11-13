@@ -24,6 +24,15 @@ const envSchema = z
     /** Meta (Facebook/Instagram) app: verifies lead webhooks. Set both to receive Lead Ads. */
     META_APP_SECRET: z.string().min(8).optional(),
     META_VERIFY_TOKEN: z.string().min(8).optional(),
+  /** Meta app id, used to finish WhatsApp sign-up (Embedded Signup) for studios. */
+  META_APP_ID: z.string().regex(/^\d{5,25}$/).optional(),
+  /**
+   * WhatsApp prices the platform charges studios that buy message credits, in US cents per message,
+   * by country calling code and category, e.g. {"65":{"marketing":6.5,"utility":2.2}}. Copy from Meta's
+   * current rate card (plus any margin). Leave unset until the platform pays Meta on studios' behalf:
+   * without it, studios can only pay Meta directly.
+   */
+  WHATSAPP_RATE_CARD: z.string().optional(),
     META_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default("v21.0"),
     /** The client app's web address (used for referral links and buttons in emails). */
     PUBLIC_APP_URL: z.string().url().default("http://localhost:5173"),

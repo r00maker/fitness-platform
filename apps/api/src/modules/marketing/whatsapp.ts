@@ -18,7 +18,10 @@ import { whatsappSettings as whatsappSettingsInput, whatsappTemplateInput, whats
 import { z } from "zod";
 import type { Config } from "../../config.js";
 import type { DbOrTx } from "../../db/client.js";
-import { memberships, notifications, users, whatsappSettings } from "../../db/schema.js";
+import { commsMessages, memberships, notifications, users, whatsappSettings } from "../../db/schema.js";
+import { WINDOW_MS, billingFor, billingReady, chargeCredits, messageCost } from "../comms/billing.js";
+import { conversationFor, recordMessage } from "../comms/threads.js";
+import { sendTemplateMessage, waRaw } from "../comms/wa-api.js";
 import { audit } from "../../lib/audit.js";
 import { badRequest, conflict, notFound } from "../../lib/errors.js";
 import { decryptSecret, encryptSecret } from "../../lib/secrets.js";
@@ -29,8 +32,7 @@ import { mergeValues, type Urls } from "./messages.js";
 type Settings = typeof whatsappSettings.$inferSelect;
 
 /** The HTTP client for WhatsApp (swapped in tests). */
-let waFetch: typeof fetch = (...a) => fetch(...a);
-export const setWhatsappFetch = (f: typeof fetch) => (waFetch = f);
+export { setWhatsappFetch } from "../comms/wa-api.js";
 
 export async function whatsappFor(db: DbOrTx, orgId: string): Promise<Settings> {
   const [s] = await db.select().from(whatsappSettings).where(eq(whatsappSettings.orgId, orgId));
@@ -55,8 +57,10 @@ function fill(text: string, values: Record<string, string>) {
 }
 
 /**
- * Queue a template message to clients. Skips anyone who hasn't agreed to WhatsApp messages or
- * has no mobile number; says how many were sent and skipped.
+ * Queue a template message to clients (journeys). Skips anyone who hasn't agreed to WhatsApp messages
+ * or has no mobile number, and sends nothing until the studio has set up how Meta is paid. On credits,
+ * each charged message uses credits when it's queued (and gets them back if it fails).
+ * Each message also appears in the client's thread in the Communication inbox.
  */
 export async function queueWhatsapp(
   tx: DbOrTx,
@@ -65,50 +69,60 @@ export async function queueWhatsapp(
   msg: { template: string; language: string; variables: string[] },
   urls: Urls,
   ref: Record<string, unknown> = {},
+  cfg: Pick<Config, "WHATSAPP_RATE_CARD"> = {},
 ): Promise<{ sent: number; skipped: number; reason?: string }> {
   const s = await whatsappFor(tx, orgId);
   if (!whatsappConnected(s)) return { sent: 0, skipped: clientIds.length, reason: "WhatsApp isn't connected" };
+  const billing = await billingFor(tx, orgId);
+  if (!billingReady(billing)) return { sent: 0, skipped: clientIds.length, reason: "WhatsApp payment isn't set up" };
   const t = s.templates.find((x) => x.name === msg.template && x.language === msg.language);
   if (!t) return { sent: 0, skipped: clientIds.length, reason: "That WhatsApp template has been removed" };
   if (!clientIds.length) return { sent: 0, skipped: 0 };
   const rows = await tx
-    .select({ id: users.id, phone: users.phone, ok: memberships.marketingWhatsapp })
+    .select({ id: users.id, phone: users.phone, ok: memberships.marketingWhatsapp, first: users.firstName, last: users.lastName })
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))
     .where(and(eq(memberships.orgId, orgId), inArray(memberships.userId, clientIds)));
   const merged = await mergeValues(tx, orgId, rows.map((r) => r.id), urls);
   let sent = 0;
+  let reason: string | undefined;
   for (const r of rows) {
     const to = waNumber(r.phone, s.defaultCountryCode);
-    if (!r.ok || !to) continue;
+    if (!r.ok || !to) { reason ??= "They haven't agreed to WhatsApp messages or have no mobile number"; continue; }
     const values = (merged.get(r.id) ?? {}) as Record<string, string>;
+    const params = msg.variables.map((v) => fill(v, values).slice(0, 200));
+    const conv = await conversationFor(tx, orgId, to, `${r.first} ${r.last}`);
+    const inWindow = !!conv.lastInboundAt && Date.now() - conv.lastInboundAt.getTime() < WINDOW_MS;
+    const cost = billing.mode === "credits" ? messageCost(cfg, to, { template: t, inWindow }) : 0;
+    if (cost === null) { reason = "No message price for that country"; continue; }
+    const m = (await recordMessage(tx, conv, { direction: "out", origin: "journey", kind: "template", body: t.body.replace(/\{\{(\d+)\}\}/g, (_, i) => params[Number(i) - 1] ?? ""), template: { name: t.name, language: t.language, category: t.category, variables: params }, status: "queued", costCents: String(cost) }))!;
+    if (cost) {
+      try {
+        await tx.transaction((sp) => chargeCredits(sp, orgId, cost, m.id, `WhatsApp ${t.category} message (journey)`));
+      } catch {
+        await tx.update(commsMessages).set({ status: "failed", error: "Not enough message credits" }).where(eq(commsMessages.id, m.id));
+        reason = "Not enough message credits";
+        continue;
+      }
+    }
     await tx.insert(notifications).values({
       orgId, userId: r.id, channel: "whatsapp", template: "custom",
-      data: { to, template: t.name, language: t.language, params: msg.variables.map((v) => fill(v, values).slice(0, 200)), preview: t.body, ref },
+      data: { to, template: t.name, language: t.language, params, preview: t.body, ref, messageId: m.id },
     });
     sent++;
   }
-  return { sent, skipped: clientIds.length - sent, ...(sent < clientIds.length ? { reason: "They haven't agreed to WhatsApp messages or have no mobile number" } : {}) };
+  return { sent, skipped: clientIds.length - sent, ...(reason && sent < clientIds.length ? { reason } : {}) };
 }
 
 /** Delivery (called by the notifications worker): send one template message with the studio's own number. */
-export async function sendWhatsapp(db: DbOrTx, cfg: Pick<Config, "META_GRAPH_VERSION">, orgId: string, d: { to: string; template: string; language: string; params: string[] }) {
+export async function sendWhatsapp(db: DbOrTx, cfg: Pick<Config, "META_GRAPH_VERSION" | "META_APP_ID" | "META_APP_SECRET">, orgId: string, d: { to: string; template: string; language: string; params: string[]; messageId?: string }) {
   const s = await whatsappFor(db, orgId);
   if (!whatsappConnected(s)) throw new Error("WhatsApp isn't connected");
-  const res = await waFetch(`https://graph.facebook.com/${cfg.META_GRAPH_VERSION}/${s.phoneNumberId}/messages`, {
-    method: "POST",
-    signal: AbortSignal.timeout(15_000),
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${decryptSecret(s.accessToken!)}` },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to: d.to,
-      type: "template",
-      template: { name: d.template, language: { code: d.language }, ...(d.params.length ? { components: [{ type: "body", parameters: d.params.map((text) => ({ type: "text", text })) }] } : {}) },
-    }),
-  });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: { message: string } };
-    const msg = body.error?.message ?? `WhatsApp responded ${res.status}`;
+  try {
+    const wamid = await sendTemplateMessage(cfg, s.phoneNumberId!, decryptSecret(s.accessToken!), d.to, { name: d.template, language: d.language, params: d.params });
+    if (d.messageId) await db.update(commsMessages).set({ status: "sent", externalId: wamid }).where(eq(commsMessages.id, d.messageId));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "WhatsApp didn't respond";
     await db.update(whatsappSettings).set({ lastError: msg.slice(0, 300) }).where(eq(whatsappSettings.orgId, orgId));
     throw new Error(msg);
   }
@@ -167,7 +181,7 @@ export async function whatsappRoutes(app: FastifyInstance) {
     admin.post("/whatsapp/templates/sync", async (req) => {
       const s = await whatsappFor(db, req.auth.orgId);
       if (!s.businessAccountId || !s.accessToken) throw badRequest("not_connected", "Connect your WhatsApp Business account first.");
-      const res = await waFetch(`https://graph.facebook.com/${config.META_GRAPH_VERSION}/${s.businessAccountId}/message_templates?fields=name,language,status,category,components&limit=200`, {
+      const res = await waRaw(`https://graph.facebook.com/${config.META_GRAPH_VERSION}/${s.businessAccountId}/message_templates?fields=name,language,status,category,components&limit=200`, {
         signal: AbortSignal.timeout(15_000),
         headers: { Authorization: `Bearer ${decryptSecret(s.accessToken)}` },
       });

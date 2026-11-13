@@ -228,6 +228,12 @@ export async function sessionRoutes(app: FastifyInstance) {
       return withFlags(app, input.acknowledge, (tx, flags) => svc.updateSession(tx, req.auth, id, input, flags));
     });
 
+    /** Which upcoming classes a filter matches, before a bulk change or cancel. */
+    admin.post("/sessions/bulk-preview", async (req) => {
+      const { filter } = parse(schemas.bulkPreview, req.body);
+      return svc.previewBulk(app.db, req.auth.orgId, filter);
+    });
+
     admin.post("/sessions/bulk-update", async (req) => {
       const input = parse(schemas.bulkUpdateSessions, req.body);
       return withFlags(app, input.acknowledge, (tx, flags) => svc.bulkUpdateSessions(tx, req.auth, input, flags));

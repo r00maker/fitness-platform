@@ -76,6 +76,7 @@ export const updateOrgSettings = z.object({
   waiverText: z.string().trim().min(20, "Paste in your full waiver.").max(20_000).nullable().optional(),
   spotBookingEnabled: z.boolean().optional(),
   clientsNeedPackage: z.boolean().optional(),
+  allowBookingWithoutPackage: z.boolean().optional(),
   payPeriod: z.enum(PAY_PERIODS).optional(),
   /** Fortnightly pay: the first day of any one pay fortnight. */
   payPeriodAnchor: localDate.optional(),
@@ -231,6 +232,8 @@ export const sessionChanges = z
     classpassEnabled,
     classpassSpots: classpassSpots.nullable(),
     autoCancel,
+    /** Move to another location: give the room there too (or null for none). */
+    locationId: id,
   })
   .partial()
   .refine((c) => Object.keys(c).length > 0, "Nothing to change.")
@@ -246,13 +249,41 @@ export const updateSession = z.object({
   acknowledge,
 });
 
+/**
+ * Which classes a bulk change applies to: everything matching, across any span of dates (up to
+ * 13 months), not just what's on screen. Only classes that haven't started are included.
+ */
+export const sessionFilter = z
+  .object({
+    from: localDate,
+    to: localDate,
+    classTypeIds: z.array(id).max(100).optional(),
+    /** null in the list = classes with no instructor yet (TBC). */
+    instructorIds: z.array(id.nullable()).max(100).optional(),
+    locationId: id.optional(),
+    roomIds: z.array(id).max(100).optional(),
+    /** ISO weekdays: 1 = Monday … 7 = Sunday */
+    weekdays: z.array(z.number().int().min(1).max(7)).max(7).optional(),
+    /** Local start times, e.g. ["07:00", "18:30"]. */
+    startTimes: z.array(localTime).max(48).optional(),
+    seriesId: id.optional(),
+    kind: z.enum(["class", "appointment", "all"]).default("class"),
+  })
+  .refine((f) => f.to >= f.from, { message: "The end date must be on or after the start date.", path: ["to"] })
+  .refine((f) => (Date.parse(f.to) - Date.parse(f.from)) / 86_400_000 <= 400, { message: "Choose up to 13 months at a time.", path: ["to"] });
+export type SessionFilter = z.infer<typeof sessionFilter>;
+export const bulkPreview = z.object({ filter: sessionFilter });
+
 export const bulkUpdateSessions = z.object({
-  sessionIds: z.array(id).min(1).max(500),
+  /** Either the classes picked on the calendar, or a filter. */
+  sessionIds: z.array(id).min(1).max(2000).optional(),
+  filter: sessionFilter.optional(),
   changes: sessionChanges.refine((c) => c.date === undefined, "Dates can't be bulk-edited. Use duplicate instead."),
   notifyClients: z.boolean().default(true),
   asCover: z.boolean().default(false),
   acknowledge,
-});
+})
+  .refine((b) => !!b.sessionIds !== !!b.filter, "Pick classes on the calendar or choose them with filters, not both.");
 
 export const cancelSession = z.object({
   /** Shared with booked clients in the cancellation email and push. */
@@ -262,7 +293,10 @@ export const cancelSession = z.object({
   scope: z.enum(EDIT_SCOPES).default("this"),
   acknowledge,
 });
-export const bulkCancelSessions = cancelSession.omit({ scope: true }).extend({ sessionIds: z.array(id).min(1).max(500) });
+export const bulkCancelSessions = cancelSession
+  .omit({ scope: true })
+  .extend({ sessionIds: z.array(id).min(1).max(2000).optional(), filter: sessionFilter.optional() })
+  .refine((b) => !!b.sessionIds !== !!b.filter, "Pick classes on the calendar or choose them with filters, not both.");
 
 export const duplicateSession = z.object({ dates: z.array(localDate).min(1).max(100), acknowledge });
 export const duplicateRange = z.object({
