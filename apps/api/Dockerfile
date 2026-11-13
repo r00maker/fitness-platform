@@ -15,6 +15,9 @@ WORKDIR /app
 COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /app/apps/api/dist ./dist
 COPY --from=build /app/apps/api/drizzle ./drizzle
+# The help guide the support assistant reads.
+COPY --from=build /app/docs/help ./docs/help
+COPY --from=build /app/docs/PRODUCT_NOTES.md ./docs/PRODUCT_NOTES.md
 ENV MIGRATIONS_DIR=/app/drizzle
 # Run as an unprivileged user, never root.
 USER node

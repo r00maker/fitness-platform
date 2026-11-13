@@ -141,6 +141,13 @@
       "when": 1794567465118,
       "tag": "0019_comms_inbox",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794590710906,
+      "tag": "0020_agents_assistant",
+      "breakpoints": true
     }
   ]
 }

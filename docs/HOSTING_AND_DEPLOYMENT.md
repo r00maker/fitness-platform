@@ -39,7 +39,7 @@ Mobile apps are built and published with **Expo EAS** (React Native) to the App 
 | What | Where | Protection |
 |---|---|---|
 | Studios, classes, bookings, waitlists, client names/emails | PostgreSQL | Encrypted at rest (managed DB default) and in transit (TLS). Every row is tagged with its studio (`org_id`) and every query is filtered by the signed-in user's studio. Tests check that one studio can't see another's classes. |
-| Passwords, 2FA, social login | **Not stored by us.** A sign-in provider (Clerk, Auth0, AWS Cognito or Supabase Auth) | The API only accepts tokens signed by that provider, then looks up the person's role in *our* database, so a token can't grant itself admin rights. |
+| Passwords, 2FA, social login | **Not stored by us.** A sign-in provider (Clerk, Auth0, AWS Cognito or Supabase Auth) | The API only accepts tokens signed by that provider for this app (`AUTH_JWKS_URL`, `AUTH_ISSUER` and `AUTH_AUDIENCE` are all required in production), then looks up the person's role in *our* database, so a token can't grant itself admin rights. New sign-ups need a confirmed email: set the provider to include `email_verified` in its tokens. |
 | Staff invites | Our own invite link → the sign-in provider | The invite email links to the app's “set your password” page, which creates the sign-in with the provider for that email (linked to our user id), then marks the invite accepted. Turn 2FA off for staff in the provider. |
 | Card details | **Not stored by us.** Stripe | Cards never touch our servers, which keeps PCI compliance to the lightest level (SAQ-A). |
 | Photos, waivers, documents (later) | Private object storage (S3 / Cloudflare R2) | Not publicly readable; the API hands out short-lived signed links. |
@@ -51,7 +51,7 @@ Mobile apps are built and published with **Expo EAS** (React Native) to the App 
 
 **Backups:** turn on daily automated backups with **point-in-time recovery** (restore to any minute in the last 7–35 days). Test a restore into staging once a quarter; a backup you've never restored is only a hope.
 
-**Already built:** strict input validation on every request, parameterised SQL only (no string-built queries), role checks on every endpoint, row locking for capacity, security headers (Helmet), rate limiting, CORS allow-list, non-root container, dependency vulnerability audit in CI.
+**Already built:** strict input validation on every request, rate limits per address (set `TRUST_PROXY_HOPS` to the number of load balancers in front of the API, usually 1, so the real address is used), parameterised SQL only (no string-built queries), role checks on every endpoint, row locking for capacity, security headers (Helmet), rate limiting, CORS allow-list, non-root container, dependency vulnerability audit in CI.
 
 **Next hardening steps (before real client data):**
 1. PostgreSQL Row-Level Security as a second lock on studio isolation (protects even against a missed filter in code).
@@ -102,7 +102,7 @@ Agents run on the **Claude API**, Anthropic's pay-as-you-go developer platform. 
 
 1. Create an organisation on the **Claude Console** (platform.claude.com) and add a payment method. You can pay as you go from prepaid credit, and move to invoicing later.
 2. Create two **workspaces**, `staging` and `production`. Each gets its own API key and a **monthly spend limit**. The spend limit is a backstop in case the platform's own caps fail.
-3. Put each key in that environment's secret manager as `ANTHROPIC_API_KEY`. Never commit it, and never put it in the web or mobile app.
+3. Put each key in that environment's secret manager as `ANTHROPIC_API_KEY`. Never commit it, and never put it in the web or mobile app. Optional settings: `ASSISTANT_MODEL` (default `claude-opus-5-5`), `ASSISTANT_MONTHLY_REPLIES` (replies included per studio each month, default 300) and `ASSISTANT_DISABLED=true` (a kill switch for every studio).
 4. Accept Anthropic's **data processing agreement** for the organisation. Add "AI processing (Anthropic)" to the platform's list of subprocessors, and tell studios so their own privacy notices can mention it. This matters under data-protection laws such as PDPA in Singapore, Malaysia and Thailand. By default, data sent through the API under the commercial terms is not used to train models.
 
 ### How usage and cost are tracked
@@ -127,3 +127,8 @@ Claude only sees what our tools return. Every tool runs with the requesting stud
 - **Prompt caching:** the fixed instructions sent with every run cost about a tenth of the normal price after the first time.
 - **Batch runs:** checks that don't need an instant answer (e.g. overnight reports) cost half price through the batch API.
 - **Run on a schedule or an event**, not constantly, and keep answers short.
+
+### What's built
+
+- **Reminder agents** (`apps/api/src/modules/agents/`) don't use the Claude API at all: they're rules over the studio's schedule, so they cost nothing per run and don't count towards the allowance. The worker runs them every minute.
+- **The assistant** (`apps/api/src/modules/assistant/`) uses the Claude API with tool use. It reads the help guide (`docs/help/` and `docs/PRODUCT_NOTES.md`, copied into the image) and has six tools, all limited to the asker's studio and role. It only *offers* actions; the person confirms each one. If the model declines a request, the API retries on its default fallback model (server-side fallback).

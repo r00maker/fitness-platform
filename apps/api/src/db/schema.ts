@@ -14,6 +14,8 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
+  bigserial,
   smallint,
   text,
   timestamp,
@@ -73,6 +75,7 @@ import {
   type Reward,
   type SegmentDefinition,
 } from "@studio/shared";
+import type { AgentDefinition } from "@studio/shared";
 
 export const roleEnum = pgEnum("role", ROLES);
 export const sessionStatusEnum = pgEnum("session_status", SESSION_STATUSES);
@@ -213,6 +216,8 @@ export const organizations = pgTable("organizations", {
   giftCardGiveWithinDays: integer("gift_card_give_within_days").notNull().default(90),
   // Referrals
   referralsEnabled: boolean("referrals_enabled").notNull().default(false),
+  /** Pause every agent at once (each agent can also be switched off on its own). */
+  agentsPaused: boolean("agents_paused").notNull().default(false),
   referralQualify: text("referral_qualify").notNull().default("classes_attended"),
   referralQualifyValue: integer("referral_qualify_value").notNull().default(3),
   referralQualifyWithinDays: integer("referral_qualify_within_days").notNull().default(60),
@@ -1551,6 +1556,181 @@ export const creditPurchases = pgTable("message_credit_purchases", {
   id: pk(),
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   amountCents: integer("amount_cents").notNull(),
+  status: text("status").$type<"pending" | "paid" | "cancelled">().notNull().default("pending"),
+  provider: text("provider"),
+  providerRef: text("provider_ref"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  paidAt: ts("paid_at"),
+  createdAt: createdAt(),
+});
+
+// ---------------------------------------------------------------------------
+// Agents
+// ---------------------------------------------------------------------------
+/** A reminder agent a studio has set up (e.g. "Agnes" checks tomorrow's bookings at 10pm). */
+export const agents = pgTable(
+  "agents",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Which ready-made agent it started from, if any. */
+    starter: text("starter"),
+    definition: jsonb("definition").$type<AgentDefinition>().notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    /** Daily agents: when it next runs. Before-class agents are checked every few minutes instead. */
+    nextRunAt: ts("next_run_at"),
+    lastRunAt: ts("last_run_at"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("agents_org_name_uq").on(t.orgId, sql`lower(${t.name})`), index("agents_due_idx").on(t.nextRunAt)],
+);
+
+/** Each time an agent ran: what it found and how many people it told. */
+export const agentRuns = pgTable(
+  "agent_runs",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    agentId: uuid("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
+    status: text("status").$type<"sent" | "nothing" | "failed">().notNull(),
+    summary: text("summary").notNull(),
+    recipients: integer("recipients").notNull().default(0),
+    error: text("error"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("agent_runs_agent_idx").on(t.agentId, t.createdAt)],
+);
+
+/** What an agent told each person (their in-app list of agent messages, alongside the push). */
+export const agentMessages = pgTable(
+  "agent_messages",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    agentId: uuid("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
+    runId: uuid("run_id").references(() => agentRuns.id, { onDelete: "set null" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    /** Where tapping it goes, e.g. { screen: "schedule", date: "2026-11-14" }. */
+    link: jsonb("link").$type<Record<string, unknown>>(),
+    readAt: ts("read_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("agent_messages_user_idx").on(t.userId, t.createdAt)],
+);
+
+/** Before-class agents: which classes each has already reminded about, so nobody is told twice. */
+export const agentSessionLog = pgTable(
+  "agent_session_log",
+  {
+    agentId: uuid("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id").notNull().references(() => classSessions.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.agentId, t.sessionId] })],
+);
+
+/** A staff member who's turned off one agent's messages for themselves. */
+export const agentMutes = pgTable(
+  "agent_mutes",
+  {
+    agentId: uuid("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.agentId, t.userId] })],
+);
+
+/** The support assistant: on or off, who can use it, whether it may do simple things for people. */
+export const assistantSettings = pgTable("assistant_settings", {
+  orgId: uuid("org_id").primaryKey().references(() => organizations.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").notNull().default(true),
+  roles: text("roles").array().notNull().default(sql`'{owner,admin,front_desk,instructor}'::text[]`),
+  allowActions: boolean("allow_actions").notNull().default(true),
+  /** Replies included each month. Null = the platform default for the studio's plan. */
+  monthlyAllowance: integer("monthly_allowance"),
+  /** Bought top-ups: used after the month's allowance, and don't expire. */
+  extraReplies: integer("extra_replies").notNull().default(0),
+  updatedAt: updatedAt(),
+});
+
+export const assistantChats = pgTable(
+  "assistant_chats",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    /** Who's asking and about which studio, fixed when the chat starts. */
+    context: text("context").notNull(),
+    turns: integer("turns").notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("assistant_chats_user_idx").on(t.userId, t.updatedAt)],
+);
+
+/** Every message in a chat, exactly as sent to and from the model (so the chat can carry on). */
+export const assistantMessages = pgTable(
+  "assistant_messages",
+  {
+    id: pk(),
+    /** Keeps messages in the exact order they happened (several are saved at once). */
+    seq: bigserial("seq", { mode: "number" }).notNull(),
+    chatId: uuid("chat_id").notNull().references(() => assistantChats.id, { onDelete: "cascade" }),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    role: text("role").$type<"user" | "assistant">().notNull(),
+    content: jsonb("content").$type<unknown>().notNull(),
+    /** What the person sees; null for behind-the-scenes steps (looking things up). */
+    text: text("text"),
+    actionId: uuid("action_id"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("assistant_messages_chat_idx").on(t.chatId, t.seq)],
+);
+
+/** Something the assistant offered to do. Nothing happens until the person confirms it. */
+export const assistantActions = pgTable("assistant_actions", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  chatId: uuid("chat_id").notNull().references(() => assistantChats.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").$type<"book_client" | "join_waitlist" | "cancel_booking">().notNull(),
+  input: jsonb("input").$type<Record<string, string>>().notNull(),
+  summary: text("summary").notNull(),
+  status: text("status").$type<"proposed" | "done" | "declined" | "failed" | "expired">().notNull().default("proposed"),
+  result: jsonb("result").$type<Record<string, unknown>>(),
+  expiresAt: ts("expires_at").notNull(),
+  createdAt: createdAt(),
+});
+
+/** Assistant replies and model usage per studio per month (the plan allowance is counted in replies). */
+export const assistantUsage = pgTable(
+  "assistant_usage",
+  {
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    month: text("month").notNull(),
+    replies: integer("replies").notNull().default(0),
+    /** Of those, how many came out of bought top-ups. */
+    fromTopUps: integer("from_top_ups").notNull().default(0),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    cachedTokens: integer("cached_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    warnedAt80: ts("warned_at_80"),
+    warnedAt100: ts("warned_at_100"),
+  },
+  (t) => [primaryKey({ columns: [t.orgId, t.month] })],
+);
+
+export const assistantTopUps = pgTable("assistant_top_ups", {
+  id: pk(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  replies: integer("replies").notNull(),
+  priceCents: integer("price_cents").notNull(),
   status: text("status").$type<"pending" | "paid" | "cancelled">().notNull().default("pending"),
   provider: text("provider"),
   providerRef: text("provider_ref"),

@@ -115,6 +115,10 @@ export async function marketingAppRoutes(app: FastifyInstance) {
       let [u] = await tx.select().from(users).where(eq(users.id, req.auth.userId));
       if (!u) {
         if (!req.auth.email || !input.firstName || !input.lastName) throw badRequest("details_needed", "Add your first and last name to join.");
+        // A new account takes the email the sign-in provider gives us, so it must be one the person
+        // has confirmed. Otherwise someone could sign up with another person's address and later
+        // be matched to things sent to it (like a staff invite).
+        if (!req.auth.emailVerified) throw forbidden("Please confirm your email address first (check your inbox for a link), then try again.");
         [u] = await tx.insert(users).values({ id: req.auth.userId, email: req.auth.email, firstName: input.firstName, lastName: input.lastName, phone: input.phone ?? null }).returning();
       } else if (input.phone && !u.phone) {
         await tx.update(users).set({ phone: input.phone }).where(eq(users.id, u.id));

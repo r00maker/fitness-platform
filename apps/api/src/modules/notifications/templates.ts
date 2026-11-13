@@ -20,6 +20,22 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: "Class cancelled",
     pushBody: `${when(d)} has been cancelled.`,
   }),
+  /** Reminder agents: push to the staff app only (the agent's name is the title). */
+  "agent.message": (d) => ({
+    subject: s(d.agentName),
+    body: s(d.body),
+    pushTitle: s(d.agentName),
+    pushBody: s(d.body),
+  }),
+  /** The support assistant's monthly allowance is nearly used, or used up. */
+  "assistant.usage": (d) => ({
+    subject: d.full ? "Your assistant replies for this month are used up" : `You've used ${s(d.percent)}% of this month's assistant replies`,
+    body: d.full
+      ? `Your studio has used all ${s(d.allowance)} assistant replies included this month. The assistant will be back on ${s(d.resetsOn)}, or you can buy a top-up under Agents → Usage.`
+      : `Your studio has used ${s(d.used)} of the ${s(d.allowance)} assistant replies included this month. If you need more before ${s(d.resetsOn)}, you can buy a top-up under Agents → Usage.`,
+    pushTitle: d.full ? "Assistant replies used up" : "Assistant replies running low",
+    pushBody: d.full ? `All ${s(d.allowance)} replies for this month are used. Top up under Agents → Usage.` : `${s(d.used)} of ${s(d.allowance)} replies used this month.`,
+  }),
   "staff.invite": (d) => ({
     subject: `You've been added to ${s(d.studioName)}`,
     body: `Hi ${s(d.firstName)}, ${s(d.invitedBy)} has added you to ${s(d.studioName)} as ${s(d.roleLabel)}. To sign in, set your password here: ${s(d.link)} The link works for 7 days. After that, ask them to send a new one. Your sign-in email is ${s(d.email)}.`,
