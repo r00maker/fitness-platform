@@ -1,5 +1,5 @@
 {
-  "id": "34316dfd-fe8b-45a5-9dd1-684c926e83cc",
+  "id": "71b7dc16-948b-4de0-aca9-9663a720ecff",
   "prevId": "1f69caaa-5fae-41c4-a858-1f9c519372d7",
   "version": "7",
   "dialect": "postgresql",
@@ -6043,6 +6043,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": 12
+        },
+        "loyalty_include_classpass": {
+          "name": "loyalty_include_classpass",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "banner_rotate_seconds": {
           "name": "banner_rotate_seconds",

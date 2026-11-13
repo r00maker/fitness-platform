@@ -66,6 +66,7 @@ ALTER TABLE "organizations" ADD COLUMN "loyalty_points_per_class" integer DEFAUL
 ALTER TABLE "organizations" ADD COLUMN "loyalty_points_per_unit" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
 ALTER TABLE "organizations" ADD COLUMN "loyalty_expiry" text DEFAULT 'inactivity' NOT NULL;--> statement-breakpoint
 ALTER TABLE "organizations" ADD COLUMN "loyalty_expiry_months" integer DEFAULT 12 NOT NULL;--> statement-breakpoint
+ALTER TABLE "organizations" ADD COLUMN "loyalty_include_classpass" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "loyalty_ledger" ADD CONSTRAINT "loyalty_ledger_org_id_organizations_id_fk" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "loyalty_ledger" ADD CONSTRAINT "loyalty_ledger_client_id_users_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "loyalty_ledger" ADD CONSTRAINT "loyalty_ledger_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint

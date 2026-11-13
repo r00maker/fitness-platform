@@ -195,6 +195,7 @@ export const organizations = pgTable("organizations", {
   loyaltyPointsPerUnit: integer("loyalty_points_per_unit").notNull().default(1),
   loyaltyExpiry: text("loyalty_expiry").notNull().default("inactivity"),
   loyaltyExpiryMonths: integer("loyalty_expiry_months").notNull().default(12),
+  loyaltyIncludeClasspass: boolean("loyalty_include_classpass").notNull().default(false),
   /** When several banners show in the same place, each stays this long before the next. */
   bannerRotateSeconds: integer("banner_rotate_seconds").notNull().default(6),
   // Gift cards

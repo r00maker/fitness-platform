@@ -129,6 +129,10 @@ export async function loyaltyForAttendance(tx: DbOrTx, orgId: string, clientId: 
   if (!org.loyaltyEnabled) return;
   if (present) await touch(tx, orgId, clientId, now);
   if (org.loyaltyEarn !== "classes") return;
+  if (!org.loyaltyIncludeClasspass) {
+    const [m] = await tx.select({ source: memberships.source }).from(memberships).where(and(eq(memberships.orgId, orgId), eq(memberships.userId, clientId)));
+    if (m?.source === "classpass") return;
+  }
   const net = await netFor(tx, orgId, "booking", bookingId);
   if (present && net <= 0) await addPoints(tx, org, clientId, org.loyaltyPointsPerClass, { reason: "earned", refType: "booking", refId: bookingId, note: "Class attended" }, now);
   if (!present && net > 0) await takePoints(tx, org, clientId, net, { reason: "reversed", refType: "booking", refId: bookingId, note: "Attendance corrected" }, now, true);
@@ -244,7 +248,7 @@ export async function loyaltyRoutes(app: FastifyInstance) {
 
   const settingsView = (org: Org) => ({
     loyaltyEnabled: org.loyaltyEnabled, loyaltyName: org.loyaltyName, loyaltyNamePlural: org.loyaltyNamePlural, loyaltyEarn: org.loyaltyEarn,
-    loyaltyPointsPerClass: org.loyaltyPointsPerClass, loyaltyPointsPerUnit: org.loyaltyPointsPerUnit, loyaltyExpiry: org.loyaltyExpiry, loyaltyExpiryMonths: org.loyaltyExpiryMonths,
+    loyaltyPointsPerClass: org.loyaltyPointsPerClass, loyaltyPointsPerUnit: org.loyaltyPointsPerUnit, loyaltyExpiry: org.loyaltyExpiry, loyaltyExpiryMonths: org.loyaltyExpiryMonths, loyaltyIncludeClasspass: org.loyaltyIncludeClasspass,
     earnOptions: LOYALTY_EARN, expiryOptions: LOYALTY_EXPIRY, rewardKinds: LOYALTY_REWARD_KINDS,
     example: `You've got ${fmtPoints(org, 120)}. ${loyaltyRules(org).earn}`,
     rules: loyaltyRules(org),

@@ -540,6 +540,8 @@ export const loyaltySettings = z
     loyaltyPointsPerUnit: z.number().int().min(1).max(1_000),
     loyaltyExpiry: z.enum(Object.keys(LOYALTY_EXPIRY) as [LoyaltyExpiry, ...LoyaltyExpiry[]]),
     loyaltyExpiryMonths: z.number().int().min(1).max(60),
+    /** ClassPass clients pay ClassPass, not the studio, so they don't earn unless the studio wants them to. */
+    loyaltyIncludeClasspass: z.boolean(),
   })
   .partial();
 

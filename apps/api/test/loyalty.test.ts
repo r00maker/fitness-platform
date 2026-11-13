@@ -46,6 +46,13 @@ describe("loyalty points", () => {
     expect(view.history.map((h: { text: string; what: string }) => `${h.what} ${h.text}`)).toEqual(["Earned +10 Petals", "Taken back −10 Petals", "Earned +10 Petals"]);
     expect(view.rules.expiry).toMatch(/expire only if you don't come to a class, earn or redeem for 12 months/);
     expect((await s.c1.call("PATCH", "/loyalty/settings", { loyaltyEnabled: false })).status).toBe(403);
+    // ClassPass clients don't earn unless the studio switches it on.
+    await db.update(memberships).set({ source: "classpass" }).where(eq(memberships.userId, s.c2.id));
+    await mark(await book(s.c2.id), "present");
+    expect((await me(s.c2)).balance).toBe(0);
+    await s.owner.call("PATCH", "/loyalty/settings", { loyaltyIncludeClasspass: true });
+    await mark(await book(s.c2.id), "present");
+    expect((await me(s.c2)).balance).toBe(10);
   });
 
   it("earns per amount spent, including gift cards bought", async () => {
