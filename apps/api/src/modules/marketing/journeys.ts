@@ -16,9 +16,9 @@
  *    the steps it started with, so editing a journey never strands people part-way through.
  *  - Emails and pushes due overnight wait until 8am studio time (if the journey has quiet hours on).
  */
-import { and, asc, count, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import { DateTime } from "luxon";
-import { JOURNEY_TRIGGERS, durationMs, type JourneyDefinition, type JourneyStep, type JourneyTriggerDef } from "@studio/shared";
+import { JOURNEY_TRIGGERS, durationMs, type JourneyDefinition, type JourneyGoal, type JourneyStep, type JourneyTriggerDef } from "@studio/shared";
 import type { Db, DbOrTx } from "../../db/client.js";
 import {
   bookings,
@@ -43,6 +43,7 @@ import { packageState } from "../packages/service.js";
 import { giveReward } from "./credit.js";
 import { queueDesignEmail, queuePush, type Urls } from "./messages.js";
 import { clientMatches, matchSegment } from "./segments.js";
+import { queueWhatsapp, whatsappConnected, whatsappFor } from "./whatsapp.js";
 
 type Path = (number | string)[];
 type Journey = typeof journeys.$inferSelect;
@@ -116,6 +117,18 @@ export async function checkJourney(db: DbOrTx, orgId: string, def: JourneyDefini
     if (s.type === "send_email") emails.add(s.emailId);
     if (s.type === "add_tag" || s.type === "remove_tag") tags.add(s.tagId);
     if (s.type === "wait_for") s.planIds?.forEach((p) => plans.add(p));
+    if (s.type === "send_whatsapp") {
+      const wa = await whatsappFor(db, orgId);
+      if (!whatsappConnected(wa)) throw badRequest("whatsapp_not_connected", "Connect WhatsApp (Marketing → WhatsApp) before adding WhatsApp steps.");
+      const tpl = wa.templates.find((x) => x.name === s.template && x.language === s.language);
+      if (!tpl) throw badRequest("missing", `The WhatsApp template “${s.template}” isn't in your list. Add or sync it first.`);
+      if (s.variables.length !== tpl.variables) throw badRequest("whatsapp_blanks", `“${s.template}” has ${tpl.variables} ${tpl.variables === 1 ? "blank" : "blanks"} to fill in; this step fills ${s.variables.length}.`);
+    }
+  }
+  def.goal?.planIds?.forEach((p) => plans.add(p));
+  // A goal ends the journey, so a "wait for" the same thing would never reach its Yes side.
+  if (def.goal && [...allSteps(def.steps)].some((s) => s.type === "wait_for" && s.event === def.goal!.event)) {
+    throw badRequest("goal_clash", "The goal is the same thing a “Wait for” step waits for. Reaching the goal ends the journey, so that step's Yes side would never run. Change the goal or the step.");
   }
   const exists = async (table: typeof emailDesigns | typeof clientTags | typeof packagePlans, set: Set<string>, what: string) => {
     if (!set.size) return;
@@ -168,8 +181,22 @@ function triggerMatches(t: JourneyTriggerDef, ev: ClientEvent): boolean {
   }
 }
 
-/** Something happened to a client: start matching journeys and answer "wait for" steps. */
+/** Does this event reach a journey's goal? */
+function goalMet(goal: JourneyGoal | null | undefined, ev: ClientEvent): boolean {
+  if (!goal) return false;
+  if (goal.event === "package_bought") return ev.type === "package_bought" && (!goal.planIds?.length || (!!ev.planId && goal.planIds.includes(ev.planId)));
+  return ev.type === goal.event;
+}
+
+/** Something happened to a client: end journeys whose goal they've reached, start matching journeys, and answer "wait for" steps. */
 export async function journeyEvent(tx: DbOrTx, orgId: string, clientId: string, ev: ClientEvent, now = new Date()) {
+  // Goals first, so the event that starts a journey can't also count as reaching its goal.
+  const mine = await tx.select().from(journeyEnrollments).where(and(eq(journeyEnrollments.orgId, orgId), eq(journeyEnrollments.clientId, clientId), eq(journeyEnrollments.status, "active"))).for("update");
+  for (const e of mine) {
+    if (!goalMet(e.definition.goal, ev)) continue;
+    await tx.insert(journeyStepLog).values({ orgId, journeyId: e.journeyId, enrollmentId: e.id, clientId, stepId: "goal", outcome: "done", createdAt: now });
+    await tx.update(journeyEnrollments).set({ status: "completed", convertedAt: now, waitingFor: null, nextRunAt: null, finishedAt: now, exitReason: "Reached the goal" }).where(eq(journeyEnrollments.id, e.id));
+  }
   const live = await tx.select().from(journeys).where(and(eq(journeys.orgId, orgId), eq(journeys.status, "live")));
   for (const j of live) if (triggerMatches(j.definition.trigger, ev)) await enroll(tx, j, clientId, "ref" in ev ? `${ev.type}:${ev.ref}` : ev.type, now);
 
@@ -220,7 +247,7 @@ async function advance(tx: DbOrTx, j: Journey, e: Enrollment, urls: Urls, now: D
   for (let guard = 0; path && guard < 60; guard++) {
     const step = stepAt(steps, path);
     if (!step) { path = null; break; }
-    if ((step.type === "send_email" || step.type === "send_push") && j.quietHours) {
+    if ((step.type === "send_email" || step.type === "send_push" || step.type === "send_whatsapp") && j.quietHours) {
       const until = quietUntil(now, org.timezone);
       if (until) return save({ path, nextRunAt: until, waitingFor: null });
     }
@@ -253,6 +280,11 @@ async function advance(tx: DbOrTx, j: Journey, e: Enrollment, urls: Urls, now: D
       case "send_push": {
         const r = await queuePush(tx, j.orgId, [e.clientId], { title: step.title, body: step.body, marketing: true, ref: { journeyId: j.id } });
         await log(step.id, r.sent ? "done" : "skipped", r.sent ? undefined : "They haven't agreed to marketing notifications");
+        break;
+      }
+      case "send_whatsapp": {
+        const r = await queueWhatsapp(tx, j.orgId, [e.clientId], step, urls, { journeyId: j.id });
+        await log(step.id, r.sent ? "done" : "skipped", r.sent ? undefined : r.reason);
         break;
       }
       case "add_tag":
@@ -368,11 +400,18 @@ export async function journeyStats(db: DbOrTx, j: Journey) {
     .groupBy(journeyStepLog.stepId, journeyStepLog.outcome);
   const active = await db.select({ path: journeyEnrollments.path, definition: journeyEnrollments.definition }).from(journeyEnrollments).where(and(eq(journeyEnrollments.journeyId, j.id), eq(journeyEnrollments.status, "active")));
   const [done] = await db.select({ n: count() }).from(journeyEnrollments).where(and(eq(journeyEnrollments.journeyId, j.id), eq(journeyEnrollments.status, "completed")));
+  const [conv] = await db.select({ n: count() }).from(journeyEnrollments).where(and(eq(journeyEnrollments.journeyId, j.id), isNotNull(journeyEnrollments.convertedAt)));
   const steps: Record<string, Record<string, number>> = {};
   for (const r of log) (steps[r.stepId] ??= {})[r.outcome] = Number(r.n);
   const waitingAt: Record<string, number> = {};
   for (const a of active) { const s = stepAt(a.definition.steps, a.path); if (s) waitingAt[s.id] = (waitingAt[s.id] ?? 0) + 1; }
-  return { started: steps.start?.done ?? 0, inProgress: active.length, finished: Number(done!.n), steps, waitingAt };
+  const started = steps.start?.done ?? 0;
+  const converted = Number(conv!.n);
+  return {
+    started, inProgress: active.length, finished: Number(done!.n), steps, waitingAt,
+    // Goal: how many reached it while on the journey, as a share of everyone who started.
+    ...(j.definition.goal ? { converted, conversionRate: started ? Math.round((converted / started) * 1000) / 10 : 0 } : {}),
+  };
 }
 
 /** The trigger in plain English, e.g. "When a client attends their 50th class". */

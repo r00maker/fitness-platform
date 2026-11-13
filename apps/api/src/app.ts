@@ -10,6 +10,9 @@ import { marketingRoutes } from "./modules/marketing/routes.js";
 import { marketingAppRoutes } from "./modules/marketing/app-routes.js";
 import { loyaltyRoutes } from "./modules/marketing/loyalty.js";
 import { adsRoutes } from "./modules/marketing/ads.js";
+import { staffRoutes } from "./modules/staff/routes.js";
+import { whatsappRoutes } from "./modules/marketing/whatsapp.js";
+import { reportRoutes } from "./modules/reports/routes.js";
 import { bookingRoutes } from "./modules/bookings/routes.js";
 import { catalogRoutes } from "./modules/catalog/routes.js";
 import { clientRoutes } from "./modules/clients/routes.js";
@@ -96,6 +99,9 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(marketingAppRoutes);
       await v1.register(loyaltyRoutes);
       await v1.register(adsRoutes);
+      await v1.register(staffRoutes);
+      await v1.register(whatsappRoutes);
+      await v1.register(reportRoutes);
     },
     { prefix: "/v1" },
   );

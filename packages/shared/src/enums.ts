@@ -54,6 +54,10 @@ export const PERMISSIONS = {
   managePackages: ["owner", "admin"],
   /** Pay rates, adjustments, pay reports and marking pay as paid. */
   managePayroll: ["owner", "admin"],
+  /** Add staff (they get an email to set their password), change roles, remove access. */
+  manageStaff: ["owner", "admin"],
+  /** Revenue, sales, attendance and conversion reports. */
+  viewReports: ["owner", "admin"],
   /** Segments, emails, campaigns, journeys, banners, gift cards and referral settings. */
   manageMarketing: ["owner", "admin"],
   /** Post an announcement to clients, e.g. "The lift is out of order". Front desk can too, since they're first to know. */
@@ -61,6 +65,13 @@ export const PERMISSIONS = {
 } as const satisfies Record<string, readonly Role[]>;
 export type Permission = keyof typeof PERMISSIONS;
 export const can = (role: Role, permission: Permission): boolean => (PERMISSIONS[permission] as readonly Role[]).includes(role);
+
+/**
+ * Class: on the public schedule, clients book themselves.
+ * Appointment: private sessions (e.g. one-to-ones). Not on the public schedule; the studio books the client in.
+ */
+export const CLASS_TYPE_KINDS = ["class", "appointment"] as const;
+export type ClassTypeKind = (typeof CLASS_TYPE_KINDS)[number];
 
 export const SESSION_STATUSES = ["scheduled", "cancelled"] as const;
 export type SessionStatus = (typeof SESSION_STATUSES)[number];
@@ -71,7 +82,7 @@ export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 export const ATTENDANCE = ["unmarked", "present", "no_show"] as const;
 export type Attendance = (typeof ATTENDANCE)[number];
 
-export const BOOKING_SOURCES = ["client", "staff", "waitlist_automatic", "waitlist_claimed", "moved"] as const;
+export const BOOKING_SOURCES = ["client", "staff", "waitlist_automatic", "waitlist_claimed", "moved", "classpass"] as const;
 export type BookingSource = (typeof BOOKING_SOURCES)[number];
 
 export const WAITLIST_MODES = ["automatic", "manual"] as const;
@@ -148,7 +159,8 @@ export const PACKAGE_LEDGER_REASONS = [
 ] as const;
 export type PackageLedgerReason = (typeof PACKAGE_LEDGER_REASONS)[number];
 /** How a booking is paid for. "pay_later" = settled at the studio (or once payments are switched on). */
-export const BOOKING_PAYMENTS = ["package", "complimentary", "pay_later"] as const;
+/** "classpass": the client paid ClassPass, so no package or payment is taken by the studio. */
+export const BOOKING_PAYMENTS = ["package", "complimentary", "pay_later", "classpass"] as const;
 export type BookingPayment = (typeof BOOKING_PAYMENTS)[number];
 export const MAX_PACKAGE_SHARERS = 10;
 /** One-time: bought once. Recurring: a membership that renews every period until it's cancelled. */
@@ -233,7 +245,7 @@ export const TIME_OF_DAY_HOURS: Record<TimeOfDay, [number, number]> = {
   evening: [17, 24],
 };
 
-export const NOTIFICATION_CHANNELS = ["email", "push"] as const;
+export const NOTIFICATION_CHANNELS = ["email", "push", "whatsapp"] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 /**
@@ -287,6 +299,10 @@ export const FLAG_CODES = [
   // Waivers
   "waiver_missing",
   "confirm_waiver_complete",
+  // Appointments and ClassPass
+  "appointment_no_client",
+  "delete_class_type",
+  "classpass_reduced",
   // Packages and payroll
   "no_package",
   "package_expired",

@@ -25,6 +25,7 @@ import {
   ROLLOVER_MODES,
   EARLY_CANCEL_FEE_MODES,
   CALENDAR_VIEWS,
+  CLASS_TYPE_KINDS,
   EDIT_SCOPES,
   REFUND_METHODS,
   SUB_APPROVAL_MODES,
@@ -111,13 +112,62 @@ export const createRoom = z.object({
 export const updateRoom = createRoom.omit({ locationId: true }).partial().extend({ acknowledge: z.array(z.string()).default([]) });
 /** Remove a room. Its upcoming classes move to another room at the same location, or are left without one. */
 export const removeRoom = z.object({ moveToRoomId: id.nullish(), acknowledge: z.array(z.string()).default([]) });
+/**
+ * Colours to choose from for class types: each is dark enough for white text on the calendar,
+ * and they're spread around the colour wheel so neighbouring classes look different.
+ * Studios can also type their own hex colour.
+ */
+export const CLASS_COLORS = [
+  { hex: "#4F46E5", name: "Indigo" },
+  { hex: "#2563EB", name: "Blue" },
+  { hex: "#0E7490", name: "Teal" },
+  { hex: "#047857", name: "Green" },
+  { hex: "#4D7C0F", name: "Olive" },
+  { hex: "#B45309", name: "Amber" },
+  { hex: "#C2410C", name: "Orange" },
+  { hex: "#B91C1C", name: "Red" },
+  { hex: "#BE185D", name: "Pink" },
+  { hex: "#A21CAF", name: "Magenta" },
+  { hex: "#7C3AED", name: "Violet" },
+  { hex: "#475569", name: "Slate" },
+] as const;
+
+/** Contrast of white text on a colour (WCAG). Under 3 means calendar labels would be hard to read. */
+export function whiteTextContrast(hex: string): number {
+  const ch = (i: number) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const l = 0.2126 * ch(1) + 0.7152 * ch(3) + 0.0722 * ch(5);
+  return 1.05 / (l + 0.05);
+}
+
 export const createClassType = z.object({
   name,
-  color: hexColor,
+  color: hexColor.refine((c) => whiteTextContrast(c) >= 3, "That colour is too light for white text on the calendar. Pick a darker shade."),
   description: z.string().max(2000).optional(),
   defaultDurationMinutes: duration.optional(),
+  /** Appointments are private sessions: hidden from the public schedule, and the studio books the client in. */
+  kind: z.enum(CLASS_TYPE_KINDS).default("class"),
 });
 export const updateClassType = createClassType.partial();
+
+/**
+ * Auto-cancel: if fewer than `minBookings` people are booked `hoursBefore` hours before the
+ * class, it's cancelled and everyone booked is told and given their class back. Null = off.
+ */
+export const autoCancel = z
+  .object({
+    hoursBefore: z.number().int().min(1, "At least 1 hour before.").max(72, "At most 72 hours (3 days) before."),
+    minBookings: z.number().int().min(1, "At least 1 person.").max(1000),
+  })
+  .nullable();
+
+/** ClassPass: whether ClassPass clients can book, and the most spots they can take. */
+const classpassEnabled = z.boolean();
+const classpassSpots = z.number().int().min(1, "Open at least 1 spot to ClassPass, or switch it off.").max(1000);
+/** Appointments: clients to book in straight away (optional). */
+const clientIds = z.array(id).max(20).refine((a) => new Set(a).size === a.length, "Each client can only be added once.");
 export const setClassTypeInstructors = z.object({ instructorIds: z.array(id).max(200) });
 
 // ---- Templates --------------------------------------------------------------
@@ -132,6 +182,9 @@ export const createTemplate = z.object({
   startTime: localTime.nullish(),
   waitlistEnabled: z.boolean().default(true),
   waitlistCapacity: z.number().int().min(1).max(1000).nullish(),
+  classpassEnabled: classpassEnabled.default(false),
+  classpassSpots: classpassSpots.nullish(),
+  autoCancel: autoCancel.optional(),
 });
 export const updateTemplate = createTemplate.partial();
 
@@ -152,6 +205,12 @@ export const createSession = z.object({
   waitlistEnabled: z.boolean().optional(),
   waitlistCapacity: z.number().int().min(1).max(1000).nullish(),
   notes: z.string().max(2000).nullish(),
+  classpassEnabled: classpassEnabled.optional(),
+  classpassSpots: classpassSpots.nullish(),
+  /** Left out = the template's setting. */
+  autoCancel: autoCancel.optional(),
+  /** Appointments only: book these clients in as it's created. */
+  clientIds: clientIds.optional(),
   acknowledge,
 });
 export type CreateSessionInput = z.infer<typeof createSession>;
@@ -169,6 +228,9 @@ export const sessionChanges = z
     waitlistCapacity: z.number().int().min(1).max(1000).nullable(),
     notes: z.string().max(2000).nullable(),
     classTypeId: id,
+    classpassEnabled,
+    classpassSpots: classpassSpots.nullable(),
+    autoCancel,
   })
   .partial()
   .refine((c) => Object.keys(c).length > 0, "Nothing to change.")
@@ -231,6 +293,12 @@ export const createSeries = z
     startDate: localDate,
     endDate: localDate.optional(),
     occurrences: z.number().int().min(1).max(520).optional(),
+    classpassEnabled: classpassEnabled.optional(),
+    classpassSpots: classpassSpots.nullish(),
+    autoCancel: autoCancel.optional(),
+    /** Appointments only: book these clients into every session in the series. */
+    clientIds: clientIds.optional(),
+    notes: z.string().max(2000).nullish(),
     acknowledge,
   })
   .refine((s) => !(s.endDate && s.occurrences), "Choose an end date or a number of classes, not both.");
@@ -289,6 +357,8 @@ export const createBooking = z.object({
   complimentary: z.boolean().optional(),
   /** Staff booking someone in: send them a confirmation. */
   notifyClient: z.boolean().default(true),
+  /** Staff only: a booking that came through ClassPass (uses one of the class's ClassPass spots; nothing to pay the studio). */
+  viaClasspass: z.boolean().optional(),
   acknowledge,
 });
 export const cancelBooking = z.object({
@@ -559,3 +629,15 @@ export const registerPushToken = z.object({
   token: z.string().min(10).max(500),
   platform: z.enum(["ios", "android", "web"]),
 });
+
+// ---- Staff ------------------------------------------------------------------
+/** Add a staff member. They get an email with a link to set their password; no 2FA is required for staff. */
+export const inviteStaff = z.object({
+  email: z.email("Enter a valid email address.").max(200),
+  firstName: z.string().trim().min(1, "Add their first name.").max(60),
+  lastName: z.string().trim().min(1, "Add their last name.").max(60),
+  role: z.enum(["admin", "front_desk", "instructor"]),
+  phone: z.string().trim().max(30).nullish(),
+});
+export const changeStaffRole = z.object({ role: z.enum(["admin", "front_desk", "instructor"]) });
+export const deleteClassType = z.object({ acknowledge });

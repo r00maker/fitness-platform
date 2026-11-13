@@ -174,3 +174,9 @@ export async function findOverlaps(
     .limit(10);
   return rows.map(({ first, last, ...r }) => ({ ...r, instructorName: first ? `${first} ${last}` : null }));
 }
+
+/** How many people are booked into a class through ClassPass. */
+export async function classpassBooked(db: DbOrTx, sessionId: string): Promise<number> {
+  const [r] = await db.select({ n: count() }).from(bookings).where(and(eq(bookings.sessionId, sessionId), eq(bookings.status, "confirmed"), eq(bookings.source, "classpass")));
+  return Number(r?.n ?? 0);
+}

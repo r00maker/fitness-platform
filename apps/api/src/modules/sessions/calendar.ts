@@ -60,6 +60,9 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
       and o.starts_at < ${classSessions.endsAt} and o.ends_at > ${classSessions.startsAt})`;
 
   const booked = sql<number>`(select count(*)::int from bookings b where b.session_id = ${classSessions.id} and b.status = 'confirmed')`;
+  const classpassTaken = sql<number>`(select count(*)::int from bookings b where b.session_id = ${classSessions.id} and b.status = 'confirmed' and b.source = 'classpass')`;
+  // Appointments are private: clients only see the ones they're booked into.
+  const ownBooking = sql<boolean>`exists (select 1 from bookings b where b.session_id = ${classSessions.id} and b.client_id = ${auth.userId} and b.status = 'confirmed')`;
   const waiting = sql<number>`(select count(*)::int from waitlist_entries w where w.session_id = ${classSessions.id} and w.status in ('waiting','offered'))`;
   const search = q.q ? `%${q.q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
 
@@ -73,7 +76,10 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
       capacity: classSessions.capacity,
       waitlistEnabled: classSessions.waitlistEnabled,
       notes: classSessions.notes,
-      classType: { id: classTypes.id, name: classTypes.name, color: classTypes.color },
+      classType: { id: classTypes.id, name: classTypes.name, color: classTypes.color, kind: classTypes.kind },
+      classpassEnabled: classSessions.classpassEnabled,
+      classpassSpots: classSessions.classpassSpots,
+      classpassTaken,
       location: { id: locations.id, name: locations.name, timezone: locations.timezone },
       roomName: rooms.name,
       instructorId: classSessions.instructorId,
@@ -106,6 +112,7 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
         q.instructorId ? eq(classSessions.instructorId, q.instructorId) : undefined,
         // Filtering by favourite but they don't have one yet: nothing matches.
         favouriteOnly && !favourite ? sql`false` : undefined,
+        isClient ? or(eq(classTypes.kind, "class"), ownBooking) : undefined,
         search
           ? or(
               ilike(classTypes.name, search),
@@ -173,8 +180,20 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
         bookingOpensAt: win.opensAt.toISOString(),
         bookingClosesAt: win.closesAt.toISOString(),
         bookingWindow: windowStatus(now, win),
+        isAppointment: r.classType.kind === "appointment",
+        ...(isClient ? {} : { classpass: classpassView(r) }),
         ...(isClient ? {} : { notes: r.notes, flags: flags.map((code) => ({ code, title: FLAG_TITLES[code] })) }),
       };
     }),
   };
+}
+
+/**
+ * ClassPass for a class: how many spots are open to it, taken, and still available.
+ * Available is what ClassPass can still sell: the ClassPass spots left, but never more than the class has free.
+ */
+export function classpassView(r: { classpassEnabled: boolean; classpassSpots: number | null; classpassTaken: number; capacity: number; booked: number }) {
+  if (!r.classpassEnabled) return { enabled: false as const };
+  const spots = r.classpassSpots ?? 0;
+  return { enabled: true as const, spots, taken: r.classpassTaken, available: Math.max(0, Math.min(spots - r.classpassTaken, r.capacity - r.booked)) };
 }

@@ -182,6 +182,28 @@ export async function adsOnJoin(tx: DbOrTx, orgId: string, clientId: string, inf
   if (lead || info.attribution?.fbclid || info.attribution?.gclid) await queueConversion(tx, org, await settingsFor(tx, orgId), { event: "signup", clientId, lead: lead ?? null, attribution: info.attribution ?? null }, now);
 }
 
+/**
+ * A ClassPass booking: ClassPass clients are leads (they're not studio members yet). The first
+ * ClassPass booking adds them to Leads, marked as booking through ClassPass. No follow-up emails:
+ * they haven't agreed to hear from the studio directly.
+ */
+export async function classpassLead(tx: DbOrTx, orgId: string, clientId: string, now = new Date()) {
+  const [m] = await tx.select({ id: memberships.id, source: memberships.source }).from(memberships).where(and(eq(memberships.orgId, orgId), eq(memberships.userId, clientId)));
+  if (m && m.source === "direct") {
+    // Someone who's never bought a studio package books through ClassPass: that's how they come to the studio.
+    const [paid] = await tx.select({ n: sql<number>`count(*)` }).from(clientPackages).where(and(eq(clientPackages.orgId, orgId), eq(clientPackages.ownerId, clientId), sql`${clientPackages.pricePaidCents} > 0`));
+    if (Number(paid!.n) === 0) await tx.update(memberships).set({ source: "classpass" }).where(eq(memberships.id, m.id));
+  }
+  const [existing] = await tx.select({ id: leads.id }).from(leads).where(and(eq(leads.orgId, orgId), eq(leads.clientId, clientId), eq(leads.source, "classpass")));
+  if (existing) return;
+  const [u] = await tx.select().from(users).where(eq(users.id, clientId));
+  if (!u) return;
+  await tx.insert(leads).values({
+    orgId, source: "classpass", status: "new", firstName: u.firstName, lastName: u.lastName, email: u.email.toLowerCase(), phone: u.phone,
+    note: "Books through ClassPass. Becomes a member when they buy one of your packages.", token: randomToken(16), clientId, joinedAt: now, createdAt: now,
+  });
+}
+
 /** Money paid: if this is the first purchase of someone who came from an ad, mark the lead and report it. */
 export async function adsOnPurchase(tx: DbOrTx, orgId: string, clientId: string, cents: number, now = new Date()) {
   if (cents <= 0) return;
@@ -189,6 +211,8 @@ export async function adsOnPurchase(tx: DbOrTx, orgId: string, clientId: string,
   if (Number(paidBefore!.n) > 1) return; // the package that triggered this is already counted
   const [lead] = await tx.select().from(leads).where(and(eq(leads.orgId, orgId), eq(leads.clientId, clientId))).orderBy(desc(leads.createdAt)).limit(1);
   const [m] = await tx.select({ attribution: memberships.attribution }).from(memberships).where(and(eq(memberships.orgId, orgId), eq(memberships.userId, clientId)));
+  // A ClassPass client buying their own package has become a studio member.
+  await tx.update(memberships).set({ source: "direct" }).where(and(eq(memberships.orgId, orgId), eq(memberships.userId, clientId), eq(memberships.source, "classpass")));
   if (!lead && !m?.attribution?.fbclid && !m?.attribution?.gclid) return;
   if (lead && !lead.boughtAt) await tx.update(leads).set({ status: "bought", boughtAt: now, firstPurchaseCents: cents }).where(eq(leads.id, lead.id));
   await queueConversion(tx, await getOrg(tx, orgId), await settingsFor(tx, orgId), { event: "purchase", clientId, lead: lead ?? null, attribution: m?.attribution ?? null, valueCents: cents }, now);
@@ -308,7 +332,7 @@ export async function funnel(db: DbOrTx, orgId: string, days: number, now = new 
     const joined = joinedLeads + d.length, bought = boughtLeads.length + dBought.length;
     return { source, label, leads: mine.length, joinedFromAdWithoutForm: d.length, joined, bought, revenueCents: revenue, revenue: money(revenue, org.currency), leadToJoin: rate(joinedLeads, mine.length), joinToBuy: rate(bought, joined) };
   };
-  const sources = [row("meta", LEAD_SOURCES.meta), row("google", LEAD_SOURCES.google), row("manual", LEAD_SOURCES.manual)];
+  const sources = [row("meta", LEAD_SOURCES.meta), row("google", LEAD_SOURCES.google), row("classpass", LEAD_SOURCES.classpass), row("manual", LEAD_SOURCES.manual)];
   const campaigns = [...new Set(ls.map((l) => l.campaignName).filter(Boolean))].map((name) => {
     const m = ls.filter((l) => l.campaignName === name);
     const rev = m.reduce((a, l) => a + (l.firstPurchaseCents ?? 0), 0);

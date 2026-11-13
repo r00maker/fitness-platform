@@ -312,10 +312,14 @@ export const journeyTrigger = z.object({
 export type JourneyTriggerDef = z.infer<typeof journeyTrigger>;
 
 const stepId = z.string().regex(/^[a-zA-Z0-9_-]{1,40}$/);
+/** WhatsApp template names are lower-case letters, numbers and underscores, as WhatsApp requires. */
+const whatsappTemplateName = z.string().regex(/^[a-z0-9_]{1,512}$/, "Use the template's exact name from WhatsApp Manager (lower case, e.g. intro_offer_reminder).");
+const whatsappLanguage = z.string().regex(/^[a-z]{2,3}(_[A-Z]{2})?$/, "Use a WhatsApp language code, e.g. en or en_GB.");
 type StepShape =
   | { id: string; type: "wait"; for: Duration }
   | { id: string; type: "send_email"; emailId: string }
   | { id: string; type: "send_push"; title: string; body: string }
+  | { id: string; type: "send_whatsapp"; template: string; language: string; variables: string[] }
   | { id: string; type: "add_tag" | "remove_tag"; tagId: string }
   | { id: string; type: "give_reward"; reward: Reward }
   | { id: string; type: "notify_staff"; message: string }
@@ -327,6 +331,7 @@ export const journeyStep: z.ZodType<StepShape> = z.lazy(() =>
     z.object({ id: stepId, type: z.literal("wait"), for: duration }),
     z.object({ id: stepId, type: z.literal("send_email"), emailId: id }),
     z.object({ id: stepId, type: z.literal("send_push"), title: z.string().trim().min(1).max(60), body: z.string().trim().min(1).max(180) }),
+    z.object({ id: stepId, type: z.literal("send_whatsapp"), template: whatsappTemplateName, language: whatsappLanguage, variables: z.array(z.string().trim().min(1, "Fill in every blank in the message.").max(200)).max(10).default([]) }),
     z.object({ id: stepId, type: z.enum(["add_tag", "remove_tag"]), tagId: id }),
     z.object({ id: stepId, type: z.literal("give_reward"), reward }),
     z.object({ id: stepId, type: z.literal("notify_staff"), message: z.string().trim().min(1).max(500) }),
@@ -338,6 +343,7 @@ export const JOURNEY_STEP_TYPES = {
   wait: { label: "Wait", help: "Pause for a while before the next step." },
   send_email: { label: "Send an email", help: "One of your saved emails. Marketing emails are skipped for people who haven't agreed to them." },
   send_push: { label: "Send a push notification", help: "A short message to their phone, if they have the app." },
+  send_whatsapp: { label: "Send a WhatsApp message", help: "One of your WhatsApp message templates (WhatsApp approves these first). Only sent to clients who've agreed to WhatsApp messages and have a mobile number." },
   add_tag: { label: "Add a tag", help: "Label them, e.g. “Intro offer lead”, so staff can see it and you can filter by it." },
   remove_tag: { label: "Remove a tag", help: "Take a tag off them." },
   give_reward: { label: "Give a reward", help: "Studio credit, free classes or a one-time discount." },
@@ -347,8 +353,19 @@ export const JOURNEY_STEP_TYPES = {
 } as const;
 
 export const JOURNEY_REENTRY = ["once", "every_time"] as const;
+/**
+ * What the journey is for, e.g. "buys a package". Reaching it ends their journey straight away
+ * (so nobody gets a "we miss you" message the day after they book) and counts as a conversion.
+ */
+export const journeyGoal = z.object({
+  event: z.enum(Object.keys(JOURNEY_EVENTS) as [JourneyEvent, ...JourneyEvent[]]),
+  /** package_bought: which package types count (empty = any). */
+  planIds: z.array(id).max(50).optional(),
+});
+export type JourneyGoal = z.infer<typeof journeyGoal>;
 export const journeyDefinition = z.object({
   trigger: journeyTrigger,
+  goal: journeyGoal.nullish(),
   steps: z.array(journeyStep).min(1, "Add at least one step.").max(50),
 });
 export type JourneyDefinition = z.infer<typeof journeyDefinition>;
@@ -481,12 +498,14 @@ export const joinStudio = z.object({
   referralCode: z.string().trim().max(20).nullish(),
   marketingEmail: z.boolean().default(false),
   marketingPush: z.boolean().default(false),
+  /** WhatsApp messages from the studio (offers, reminders). Off unless they say yes. */
+  marketingWhatsapp: z.boolean().default(false),
   /** From the link they arrived on: utm_source, utm_medium, utm_campaign, utm_content, utm_term, gclid, fbclid. */
   attribution: z.record(z.string().max(40), z.string().max(200)).optional(),
   /** From a lead form follow-up email's sign-up link (?lead=...), so the enquiry is matched. */
   leadToken: z.string().regex(/^[a-f0-9]{32}$/).nullish(),
 });
-export const marketingPrefs = z.object({ marketingEmail: z.boolean().optional(), marketingPush: z.boolean().optional() });
+export const marketingPrefs = z.object({ marketingEmail: z.boolean().optional(), marketingPush: z.boolean().optional(), marketingWhatsapp: z.boolean().optional() });
 
 /** Work out where a new client came from, from the tags on the link they arrived on. */
 export function acquisitionFrom(attribution: Record<string, string> | undefined, referred: boolean): AcquisitionChannel {
@@ -582,7 +601,11 @@ export const pointsText = (n: number, name: string, plural: string) => `${n.toLo
 // Ads funnel: leads from Meta and Google lead forms, follow-up, and reporting sign-ups and
 // first purchases back to the ad platforms so they find more people who actually pay.
 // ---------------------------------------------------------------------------
-export const LEAD_SOURCES = { meta: "Meta (Facebook, Instagram)", google: "Google", manual: "Added by the studio" } as const;
+/**
+ * Where a lead came from. ClassPass clients are leads too: they book through ClassPass rather than
+ * as studio members, and become members when they buy one of the studio's own packages.
+ */
+export const LEAD_SOURCES = { meta: "Meta (Facebook, Instagram)", google: "Google", classpass: "ClassPass", manual: "Added by the studio" } as const;
 export type LeadSource = keyof typeof LEAD_SOURCES;
 export const LEAD_STATUSES = {
   new: "New",
@@ -625,3 +648,27 @@ export const adsSettings = z
     leadNotifyTeam: z.boolean(),
   })
   .partial();
+
+// ---- WhatsApp ----------------------------------------------------------------
+/**
+ * The studio's WhatsApp Business connection (WhatsApp Cloud API). The access token is stored
+ * encrypted and never sent back; "connected" shows instead.
+ */
+export const whatsappSettings = z
+  .object({
+    phoneNumberId: z.string().regex(/^\d{5,25}$/, "The phone number ID is a long number from WhatsApp Manager."),
+    businessAccountId: z.string().regex(/^\d{5,25}$/, "The WhatsApp Business Account ID is a long number from WhatsApp Manager."),
+    accessToken: z.string().trim().min(20, "Paste the whole access token.").max(1000).nullable(),
+    displayPhone: z.string().trim().max(30).nullable(),
+    defaultCountryCode: z.string().regex(/^\d{1,3}$/),
+  })
+  .partial();
+/** A template the studio can use in journeys: name and language as approved in WhatsApp Manager. */
+export const whatsappTemplateInput = z.object({
+  name: whatsappTemplateName,
+  language: whatsappLanguage,
+  /** The approved wording with {{1}}, {{2}} blanks, shown in the journey editor. */
+  body: z.string().trim().min(1).max(1024),
+  category: z.enum(["marketing", "utility"]).default("marketing"),
+});
+export const whatsappVariableCount = (body: string) => new Set([...body.matchAll(/\{\{(\d+)\}\}/g)].map((m) => m[1])).size;

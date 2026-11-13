@@ -1,6 +1,6 @@
-import { and, asc, count, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, asc, count, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, sql } from "drizzle-orm";
 import type { CreateSessionInput, EditScope, RefundMethod, SessionChanges } from "@studio/shared";
-import type { DbOrTx } from "../../db/client.js";
+import type { Db, DbOrTx } from "../../db/client.js";
 import {
   bookings,
   refunds,
@@ -8,16 +8,17 @@ import {
   classSessions,
   classTemplates,
   classTypes,
+  memberships,
   rooms,
   substituteRequests,
   waitlistEntries,
 } from "../../db/schema.js";
 import { audit } from "../../lib/audit.js";
 import { badRequest, conflict, notFound } from "../../lib/errors.js";
-import type { Flags } from "../../lib/flags.js";
+import { Flags } from "../../lib/flags.js";
 import { addMinutes, daysBetween, localToUtc, minutesBetweenTimes, recurrenceDates, shiftDate, utcToLocal } from "../../lib/time.js";
 import type { AuthContext } from "../../plugins/auth.js";
-import { refundNote } from "../bookings/service.js";
+import { createBooking, refundNote } from "../bookings/service.js";
 import {
   checkBulk,
   checkCancellation,
@@ -35,6 +36,7 @@ import { closeWaitlist, fillOpenSpots } from "../waitlist/engine.js";
 import {
   assertMemberWithRole,
   bookedClientIds,
+  classpassBooked,
   confirmedCount,
   describeSession,
   getOrg,
@@ -53,8 +55,22 @@ type Room = typeof rooms.$inferSelect;
 // Validation shared by create / edit (only true impossibilities are refused)
 // ---------------------------------------------------------------------------
 async function assertClassType(db: DbOrTx, orgId: string, classTypeId: string) {
-  const [c] = await db.select({ id: classTypes.id }).from(classTypes).where(and(eq(classTypes.id, classTypeId), eq(classTypes.orgId, orgId)));
+  const [c] = await db.select({ id: classTypes.id, kind: classTypes.kind, name: classTypes.name }).from(classTypes).where(and(eq(classTypes.id, classTypeId), eq(classTypes.orgId, orgId)));
   if (!c) throw notFound("class type");
+  return c;
+}
+
+/** Auto-cancel needs a minimum the class can actually reach. */
+function checkAutoCancel(min: number | null, capacity: number) {
+  if (min != null && min > capacity) throw badRequest("invalid_input", "Some details need fixing.", { fields: { autoCancel: `The class only has ${capacity} spots, so the minimum can be at most ${capacity}.` } });
+}
+
+/** ClassPass settings that can work: on with a number of spots no bigger than the class, and never for appointments. */
+function checkClasspassSettings(kind: string, enabled: boolean, spots: number | null, capacity: number) {
+  if (!enabled) return;
+  if (kind === "appointment") throw badRequest("classpass_appointment", "ClassPass is only for classes, not appointments.");
+  if (!spots) throw badRequest("invalid_input", "Some details need fixing.", { fields: { classpassSpots: "Choose how many spots to open to ClassPass." } });
+  if (spots > capacity) throw badRequest("invalid_input", "Some details need fixing.", { fields: { classpassSpots: `ClassPass can have at most all ${capacity} spots in the class.` } });
 }
 
 async function getRoom(db: DbOrTx, orgId: string, roomId: string, locationId: string): Promise<Room> {
@@ -87,6 +103,12 @@ interface ResolvedFields {
   templateId: string | null;
   startTime: string | null;
   room: Room | null;
+  classpassEnabled: boolean;
+  classpassSpots: number | null;
+  autoCancelHours: number | null;
+  autoCancelMin: number | null;
+  /** Of the class type: "class" or "appointment". */
+  kind: string;
 }
 
 type FieldInput = Omit<CreateSessionInput, "date" | "acknowledge">;
@@ -99,6 +121,11 @@ async function resolveFields(db: DbOrTx, orgId: string, input: FieldInput): Prom
     if (!t) throw notFound("template");
   }
   const startTime = input.startTime ?? t?.startTime?.slice(0, 5) ?? null;
+  const typeId = input.classTypeId ?? t?.classTypeId ?? "";
+  const type = typeId ? await assertClassType(db, orgId, typeId) : null;
+  const isAppointment = type?.kind === "appointment";
+  const clients = input.clientIds ?? [];
+  if (clients.length && type && !isAppointment) throw badRequest("clients_only_for_appointments", "Clients can be added when creating an appointment. For a class, book them in from the class once it's created.");
   const f: ResolvedFields = {
     templateId: t?.id ?? null,
     classTypeId: input.classTypeId ?? t?.classTypeId ?? "",
@@ -106,13 +133,25 @@ async function resolveFields(db: DbOrTx, orgId: string, input: FieldInput): Prom
     roomId: input.roomId !== undefined ? input.roomId : (t?.roomId ?? null),
     instructorId: input.instructorId !== undefined ? input.instructorId : (t?.instructorId ?? null),
     durationMinutes: resolveDuration(input, startTime, t?.durationMinutes) ?? 0,
-    capacity: input.capacity ?? t?.capacity ?? 0,
-    waitlistEnabled: input.waitlistEnabled ?? t?.waitlistEnabled ?? true,
+    // Appointments are usually for one person (or everyone added).
+    capacity: input.capacity ?? t?.capacity ?? (isAppointment ? Math.max(1, clients.length) : 0),
+    // Appointments have no waitlist: the studio books people in.
+    waitlistEnabled: isAppointment ? false : (input.waitlistEnabled ?? t?.waitlistEnabled ?? true),
     waitlistCapacity: input.waitlistCapacity !== undefined ? input.waitlistCapacity : (t?.waitlistCapacity ?? null),
     notes: input.notes ?? null,
     startTime,
     room: null,
+    classpassEnabled: input.classpassEnabled ?? t?.classpassEnabled ?? false,
+    classpassSpots: input.classpassSpots !== undefined ? input.classpassSpots : (t?.classpassSpots ?? null),
+    kind: type?.kind ?? "class",
+    autoCancelHours: null,
+    autoCancelMin: null,
   };
+  // Auto-cancel: from the class if given, else the template. Appointments are never auto-cancelled.
+  const ac = input.autoCancel !== undefined ? input.autoCancel : t?.autoCancelHours ? { hoursBefore: t.autoCancelHours, minBookings: t.autoCancelMin! } : null;
+  if (ac && !isAppointment) { f.autoCancelHours = ac.hoursBefore; f.autoCancelMin = ac.minBookings; }
+  if (isAppointment && t?.classpassEnabled && input.classpassEnabled === undefined) f.classpassEnabled = false;
+  if (!f.classpassEnabled) f.classpassSpots = null;
   const missing: Record<string, string> = {};
   if (!f.classTypeId) missing.classTypeId = "Choose a class type.";
   if (!f.locationId) missing.locationId = "Choose a location.";
@@ -121,7 +160,9 @@ async function resolveFields(db: DbOrTx, orgId: string, input: FieldInput): Prom
   if (!f.startTime) missing.startTime = "Set a start time.";
   if (Object.keys(missing).length) throw badRequest("invalid_input", "Some details need fixing.", { fields: missing });
 
-  await assertClassType(db, orgId, f.classTypeId);
+  if (clients.length > f.capacity) throw badRequest("invalid_input", "Some details need fixing.", { fields: { capacity: `You've added ${clients.length} clients, so it needs at least ${clients.length} spots.` } });
+  checkClasspassSettings(f.kind, f.classpassEnabled, f.classpassSpots, f.capacity);
+  checkAutoCancel(f.autoCancelMin, f.capacity);
   await locationZone(db, orgId, f.locationId);
   if (f.roomId) f.room = await getRoom(db, orgId, f.roomId, f.locationId);
   if (f.instructorId) await assertMemberWithRole(db, orgId, f.instructorId, TEACHER_ROLES, "instructor");
@@ -150,12 +191,13 @@ export async function createSession(tx: DbOrTx, auth: AuthContext, input: Create
   const endsAt = addMinutes(startsAt, f.durationMinutes);
   await checkNewClass(tx, auth.orgId, flags, f, startsAt, now);
 
-  const { startTime: _st, durationMinutes: _d, room: _r, ...cols } = f;
+  const { startTime: _st, durationMinutes: _d, room: _r, kind: _k, ...cols } = f;
   const [s] = await tx.insert(classSessions).values({ orgId: auth.orgId, ...cols, startsAt, endsAt }).returning();
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "session.created", entityType: "session", entityId: s!.id });
   if (s!.instructorId && s!.instructorId !== auth.userId) {
     await notify(tx, { orgId: auth.orgId, userIds: [s!.instructorId], template: "instructor.assigned", data: await describeSession(tx, s!) });
   }
+  if (f.kind === "appointment") await bookAppointmentClients(tx, auth, [s!], input.clientIds ?? [], flags, now);
   return s!;
 }
 
@@ -167,7 +209,7 @@ type SeriesRow = typeof classSeries.$inferSelect;
 export async function createSeries(
   tx: DbOrTx,
   auth: AuthContext,
-  input: FieldInput & { daysOfWeek: number[]; everyNWeeks: number; startDate: string; endDate?: string; occurrences?: number },
+  input: FieldInput & { daysOfWeek: number[]; everyNWeeks: number; startDate: string; endDate?: string; occurrences?: number; clientIds?: string[] },
   horizonDays: number,
   flags: Flags,
   now = new Date(),
@@ -192,11 +234,18 @@ export async function createSeries(
       startDate: input.startDate,
       endDate: input.endDate ?? null,
       occurrences: input.occurrences ?? null,
+      classpassEnabled: f.classpassEnabled,
+      classpassSpots: f.classpassSpots,
+      autoCancelHours: f.autoCancelHours,
+      autoCancelMin: f.autoCancelMin,
+      clientIds: f.kind === "appointment" ? (input.clientIds ?? []) : [],
+      notes: f.notes,
+      createdBy: auth.userId,
     })
     .returning();
   const zone = await locationZone(tx, auth.orgId, f.locationId);
   const through = shiftDate(utcToLocal(now, zone).date, horizonDays);
-  const created = await generateSeriesSessions(tx, series!, through, flags);
+  const created = await generateSeriesSessions(tx, series!, through, flags, auth, now);
   if (created.length === 0) throw badRequest("no_dates", "Those settings don't produce any classes. Check the days and dates.");
 
   // Time, length and capacity are the same for every class, so check them once.
@@ -217,7 +266,7 @@ export async function createSeries(
  * `flags` when a person is creating the series; when the worker tops up an
  * open-ended series, clashes still get created and show as warnings on the calendar.
  */
-export async function generateSeriesSessions(tx: DbOrTx, series: SeriesRow, throughDate: string, flags?: Flags): Promise<SessionRow[]> {
+export async function generateSeriesSessions(tx: DbOrTx, series: SeriesRow, throughDate: string, flags?: Flags, auth?: AuthContext, now = new Date()): Promise<SessionRow[]> {
   if (series.endedAt) return [];
   const from = series.generatedThrough ? shiftDate(series.generatedThrough, 1) : series.startDate;
   if (from > throughDate) return [];
@@ -247,13 +296,63 @@ export async function generateSeriesSessions(tx: DbOrTx, series: SeriesRow, thro
       capacity: series.capacity,
       waitlistEnabled: series.waitlistEnabled,
       waitlistCapacity: series.waitlistCapacity,
+      classpassEnabled: series.classpassEnabled,
+      classpassSpots: series.classpassSpots,
+      autoCancelHours: series.autoCancelHours,
+      autoCancelMin: series.autoCancelMin,
+      notes: series.notes,
       startsAt,
       endsAt,
     });
   }
   const created = rows.length ? await tx.insert(classSessions).values(rows).returning() : [];
   await tx.update(classSeries).set({ generatedThrough: throughDate }).where(eq(classSeries.id, series.id));
+  // Repeating appointments: the same clients are booked into each new one.
+  const [type] = await tx.select({ kind: classTypes.kind }).from(classTypes).where(eq(classTypes.id, series.classTypeId));
+  if (created.length && type?.kind === "appointment") {
+    if (auth) await bookAppointmentClients(tx, auth, created, series.clientIds, flags!, now, true);
+    else if (series.clientIds.length) await bookSeriesClientsInBackground(tx, series, created, now);
+  }
   return created;
+}
+
+// ---------------------------------------------------------------------------
+// Appointments: booking the client in as it's created
+// ---------------------------------------------------------------------------
+/**
+ * Book the chosen clients into new appointments, with the usual checks (packages, clashes,
+ * weekly limit). With no client, ask first: appointments are usually only booked once confirmed.
+ * Repeats send one confirmation for the first appointment rather than one per date.
+ */
+async function bookAppointmentClients(tx: DbOrTx, auth: AuthContext, sessions: SessionRow[], clientIds: string[], flags: Flags, now: Date, repeating = false) {
+  if (!clientIds.length) {
+    flags.confirm({
+      code: "appointment_no_client",
+      message: `No client has been added${repeating ? " to these appointments" : ""}. Appointments are usually booked once a client has confirmed. Save ${repeating ? "them" : "it"} as an open slot anyway? You can book someone in later.`,
+    });
+    return;
+  }
+  for (const [i, s] of sessions.entries()) {
+    for (const clientId of clientIds) {
+      await createBooking(tx, auth, { sessionId: s.id, clientId, notifyClient: i === 0 }, flags, now, { silent: i > 0 });
+    }
+  }
+}
+
+/** The worker topping up a repeating appointment: book its clients in quietly, skipping any that can't be. */
+async function bookSeriesClientsInBackground(tx: DbOrTx, series: SeriesRow, sessions: SessionRow[], now: Date) {
+  const actor = series.createdBy ?? (await tx.select({ id: memberships.userId }).from(memberships).where(and(eq(memberships.orgId, series.orgId), eq(memberships.role, "owner"))).limit(1))[0]?.id;
+  if (!actor) return;
+  const auth: AuthContext = { orgId: series.orgId, userId: actor, role: "owner" };
+  for (const s of sessions) {
+    for (const clientId of series.clientIds) {
+      try {
+        await tx.transaction((sp) => createBooking(sp, auth, { sessionId: s.id, clientId, notifyClient: false }, undefined, now, { silent: true }));
+      } catch {
+        // e.g. they're no longer a client: the appointment stays, open for staff to fill.
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -316,6 +415,25 @@ async function applyChanges(
   }
   if (changes.capacity !== undefined || changes.roomId !== undefined) checkCapacity(flags, { ...ref, capacity, room });
 
+  // ClassPass: on with a sensible number of spots; warn if fewer than already booked through ClassPass.
+  const classpassEnabled = changes.classpassEnabled ?? s.classpassEnabled;
+  const classpassSpots = !classpassEnabled ? null : changes.classpassSpots !== undefined ? changes.classpassSpots : s.classpassSpots;
+  const type = await assertClassType(tx, auth.orgId, classTypeId);
+  checkClasspassSettings(type.kind, classpassEnabled, classpassSpots, capacity);
+  // Auto-cancel: a new rule (or a different time) is checked afresh.
+  const autoCancelSet =
+    changes.autoCancel !== undefined
+      ? { autoCancelHours: changes.autoCancel?.hoursBefore ?? null, autoCancelMin: changes.autoCancel?.minBookings ?? null, autoCancelCheckedAt: null }
+      : timeChanged ? { autoCancelCheckedAt: null } : {};
+  if (type.kind === "appointment" && changes.autoCancel) throw badRequest("auto_cancel_appointment", "Appointments aren't auto-cancelled: you book people into them.");
+  checkAutoCancel(changes.autoCancel !== undefined ? (changes.autoCancel?.minBookings ?? null) : s.autoCancelMin, capacity);
+  if (classpassEnabled !== s.classpassEnabled || classpassSpots !== s.classpassSpots) {
+    const cp = await classpassBooked(tx, s.id);
+    if (cp > (classpassSpots ?? 0)) {
+      flags.confirm({ code: "classpass_reduced", ...ref, message: `${cp} ${cp === 1 ? "person has" : "people have"} already booked through ClassPass. They keep their ${cp === 1 ? "spot" : "spots"}; ClassPass just can't take any more.` });
+    }
+  }
+
   let waitlistClosed: string[] = [];
   if (!waitlistEnabled && s.waitlistEnabled) {
     waitlistClosed = await closeWaitlist(tx, s.id);
@@ -337,6 +455,9 @@ async function applyChanges(
       waitlistEnabled,
       waitlistCapacity: changes.waitlistCapacity !== undefined ? changes.waitlistCapacity : s.waitlistCapacity,
       notes: changes.notes !== undefined ? changes.notes : s.notes,
+      classpassEnabled,
+      classpassSpots,
+      ...autoCancelSet,
       detachedFromSeries: s.detachedFromSeries || (opts.detach && !!s.seriesId),
     })
     .where(eq(classSessions.id, s.id))
@@ -432,6 +553,10 @@ export async function updateSession(
       ...(input.changes.classTypeId && { classTypeId: input.changes.classTypeId }),
       ...(input.changes.waitlistEnabled !== undefined && { waitlistEnabled: input.changes.waitlistEnabled }),
       ...(input.changes.waitlistCapacity !== undefined && { waitlistCapacity: input.changes.waitlistCapacity }),
+      ...(input.changes.classpassEnabled !== undefined && { classpassEnabled: input.changes.classpassEnabled, ...(!input.changes.classpassEnabled && { classpassSpots: null }) }),
+      ...(input.changes.classpassSpots !== undefined && { classpassSpots: input.changes.classpassSpots }),
+      ...(input.changes.autoCancel !== undefined && { autoCancelHours: input.changes.autoCancel?.hoursBefore ?? null, autoCancelMin: input.changes.autoCancel?.minBookings ?? null }),
+      ...(input.changes.notes !== undefined && { notes: input.changes.notes }),
     })
     .where(eq(classSeries.id, seriesId));
 
@@ -582,6 +707,51 @@ export async function deleteSession(tx: DbOrTx, auth: AuthContext, sessionId: st
 }
 
 // ---------------------------------------------------------------------------
+// Auto-cancel
+// ---------------------------------------------------------------------------
+/**
+ * Worker: classes with an auto-cancel rule are checked once, at the cut-off. If fewer than the
+ * minimum are booked, the class is cancelled: everyone booked gets their class back and is told
+ * why, the waitlist closes, and the instructor and admins are told. Otherwise it simply runs.
+ */
+export async function autoCancelDue(db: Db, now = new Date()): Promise<{ checked: number; cancelled: string[] }> {
+  const due = await db
+    .select({ id: classSessions.id, orgId: classSessions.orgId })
+    .from(classSessions)
+    .where(
+      and(
+        eq(classSessions.status, "scheduled"),
+        isNotNull(classSessions.autoCancelHours),
+        isNull(classSessions.autoCancelCheckedAt),
+        gt(classSessions.startsAt, now),
+        lte(sql`${classSessions.startsAt} - make_interval(hours => ${classSessions.autoCancelHours})`, now),
+      ),
+    )
+    .limit(200);
+  const cancelled: string[] = [];
+  for (const d of due) {
+    await db.transaction(async (tx) => {
+      const s = await lockSession(tx, d.orgId, d.id);
+      if (s.status !== "scheduled" || s.autoCancelCheckedAt || s.autoCancelMin == null) return;
+      await tx.update(classSessions).set({ autoCancelCheckedAt: now }).where(eq(classSessions.id, s.id));
+      const booked = await confirmedCount(tx, s.id);
+      if (booked >= s.autoCancelMin) return;
+      const [owner] = await tx.select({ id: memberships.userId }).from(memberships).where(and(eq(memberships.orgId, s.orgId), eq(memberships.role, "owner"))).limit(1);
+      if (!owner) return;
+      const auth: AuthContext = { orgId: s.orgId, userId: owner.id, role: "owner" };
+      const reason = `Not enough people booked (${booked} of the ${s.autoCancelMin} needed), so the studio has cancelled it`;
+      await cancelOne(tx, auth, s, { reason, refund: "credit", notifyClients: true }, new Flags(), now);
+      await tx.update(classSessions).set({ autoCancelled: true }).where(eq(classSessions.id, s.id));
+      const team = await tx.select({ id: memberships.userId }).from(memberships).where(and(eq(memberships.orgId, s.orgId), inArray(memberships.role, ["owner", "admin"]), eq(memberships.active, true)));
+      const info = await describeSession(tx, s);
+      await notify(tx, { orgId: s.orgId, userIds: [...new Set([...team.map((t) => t.id), ...(s.instructorId ? [s.instructorId] : [])])], template: "session.auto_cancelled", data: { ...info, booked, needed: s.autoCancelMin } });
+      cancelled.push(s.id);
+    });
+  }
+  return { checked: due.length, cancelled };
+}
+
+// ---------------------------------------------------------------------------
 // Duplicate
 // ---------------------------------------------------------------------------
 async function copyTo(tx: DbOrTx, auth: AuthContext, s: SessionRow, date: string, flags: Flags, now: Date): Promise<SessionRow> {
@@ -605,6 +775,10 @@ async function copyTo(tx: DbOrTx, auth: AuthContext, s: SessionRow, date: string
       waitlistEnabled: s.waitlistEnabled,
       waitlistCapacity: s.waitlistCapacity,
       notes: s.notes,
+      classpassEnabled: s.classpassEnabled,
+      classpassSpots: s.classpassSpots,
+      autoCancelHours: s.autoCancelHours,
+      autoCancelMin: s.autoCancelMin,
       startsAt,
       endsAt,
     })

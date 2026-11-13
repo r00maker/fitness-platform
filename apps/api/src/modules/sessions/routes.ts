@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, lt } from "drizzle-orm";
 import { can, schemas } from "@studio/shared";
 import { z } from "zod";
-import { bookings, classSessions, memberships, substituteRequests, users, waitlistEntries } from "../../db/schema.js";
+import { bookings, classSessions, classTypes, memberships, substituteRequests, users, waitlistEntries } from "../../db/schema.js";
 import { spotLabels } from "../bookings/spots.js";
 import { attendedCounts, instructorHistory, publicName, tagsFor } from "./people.js";
 import { forbidden, notFound } from "../../lib/errors.js";
@@ -10,8 +10,8 @@ import { withFlags } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { canSeeRequest } from "../substitutes/service.js";
-import { getCalendar } from "./calendar.js";
-import { describeSession, getOrg, getSession } from "./context.js";
+import { classpassView, getCalendar } from "./calendar.js";
+import { classpassBooked, confirmedCount, describeSession, getOrg, getSession } from "./context.js";
 import { waiverStatuses } from "../clients/waivers.js";
 import { activeHealthNotes } from "../clients/health.js";
 
@@ -28,6 +28,14 @@ export async function sessionRoutes(app: FastifyInstance) {
   async function visibleSession(auth: { role: string; userId: string; orgId: string }, id: string) {
     const s = await getSession(app.db, auth.orgId, id);
     const ownClass = auth.role === "instructor" && s.instructorId === auth.userId;
+    // Appointments are private: a client only sees one they're booked into.
+    if (auth.role === "client") {
+      const [type] = await app.db.select({ kind: classTypes.kind }).from(classTypes).where(eq(classTypes.id, s.classTypeId));
+      if (type?.kind === "appointment") {
+        const [mine] = await app.db.select({ id: bookings.id }).from(bookings).where(and(eq(bookings.sessionId, s.id), eq(bookings.clientId, auth.userId), eq(bookings.status, "confirmed")));
+        if (!mine) throw notFound("class");
+      }
+    }
     if (auth.role === "instructor" && !ownClass) {
       const requests = await app.db
         .select()
@@ -97,10 +105,17 @@ export async function sessionRoutes(app: FastifyInstance) {
           .orderBy(asc(waitlistEntries.createdAt))
       : [];
 
+    const { classpassEnabled: _cpe, classpassSpots: _cps, ...session } = s;
+    const [type] = await app.db.select({ kind: classTypes.kind }).from(classTypes).where(eq(classTypes.id, s.classTypeId));
+    const confirmed = rows.filter((r) => r.status === "confirmed");
     return {
-      ...s,
+      ...session,
       ...info,
+      isAppointment: type?.kind === "appointment",
       notes: isClient ? undefined : s.notes,
+      ...(isClient
+        ? {}
+        : { classpass: classpassView({ ...s, classpassTaken: await classpassBooked(app.db, s.id), booked: fullRoster ? confirmed.length : await confirmedCount(app.db, s.id) }) }),
       spotSelection: !!labels,
       waiverRequired: org.waiverRequired,
       instructor: await person(s.instructorId),
@@ -249,6 +264,29 @@ export async function sessionRoutes(app: FastifyInstance) {
       reply.code(201);
       return result;
     });
+  });
+
+  /**
+   * ClassPass spots: upcoming classes open to ClassPass, with how many spots ClassPass can still
+   * take. Until the ClassPass connection is live, this is the list staff keep ClassPass in step with.
+   */
+  app.get("/classpass/spots", async (req) => {
+    if (!can(req.auth.role, "manageBookings")) throw forbidden();
+    const { days } = parse(z.object({ days: z.coerce.number().int().min(1).max(60).default(14) }), req.query);
+    const now = new Date();
+    const rows = await app.db
+      .select({ s: classSessions, typeName: classTypes.name, color: classTypes.color })
+      .from(classSessions)
+      .innerJoin(classTypes, eq(classTypes.id, classSessions.classTypeId))
+      .where(and(eq(classSessions.orgId, req.auth.orgId), eq(classSessions.status, "scheduled"), eq(classSessions.classpassEnabled, true), gt(classSessions.startsAt, now), lt(classSessions.startsAt, new Date(now.getTime() + days * 86_400_000))))
+      .orderBy(asc(classSessions.startsAt))
+      .limit(500);
+    return Promise.all(
+      rows.map(async ({ s, typeName, color }) => ({
+        sessionId: s.id, className: typeName, color, startsAt: s.startsAt.toISOString(), capacity: s.capacity,
+        ...classpassView({ ...s, classpassTaken: await classpassBooked(app.db, s.id), booked: await confirmedCount(app.db, s.id) }),
+      })),
+    );
   });
 
   // Instructors' own upcoming classes (handy for the mobile "My schedule" tab).
