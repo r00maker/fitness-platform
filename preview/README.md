@@ -4,7 +4,7 @@
 
 ## How it's built
 
-The HTML file is both the base and the output. `inject.py` puts the feature code from `src/` into it between markers, then applies small, repeatable edits to the base code (`patch9.py`, `patch10.py`):
+The HTML file is both the base and the output. `inject.py` puts the feature code from `src/` into it between markers, then applies small, repeatable edits to the base code (`patch9.py`, `patch10.py`, `patch11.py`):
 
 - `src/mkt.css`: styles for everything added in `src/` (light and dark).
 - `src/*.js`: concatenated in the order listed in `inject.py`, into one shared scope. Later files can wrap earlier pages (`PAGES.x` / `BIND.x`) or override function declarations.
@@ -12,6 +12,7 @@ The HTML file is both the base and the output. `inject.py` puts the feature code
   - `mkt10.js` calendar double-click and drag, rooms optional, class types split, Categories window.
   - `mkt11.js` Sales (invoices, receipts, refunds, invoice design) and membership payment holds.
   - `mkt12.js` Shop, Pickups, writing agents, report exports, menu entries.
+  - `mkt13.js` Closures and holidays (with `patch11.py`, which shades closed days on the calendar and teaches the class form about them).
 
 Rebuild after editing anything in `src/` or the patches (run it from this folder; it's safe to run repeatedly):
 
@@ -30,6 +31,7 @@ node s10check.cjs
 ```
 
 - `s10check.cjs` sales, holds, shop, calendar, rooms, goals, class types, categories, writers, email, exports.
+- `clcheck.cjs` closures and holidays: the page, adding one, the calendar for staff and clients, repeats, the closed-day warning, editing and removing.
 - `agcheck` agents and assistant, `cmcheck` communication, `apcheck` appointments and class types, `adcheck` ads and leads, `upcheck` earlier upgrades.
 - `uiaudit.cjs <width>` walks every page in every role, light and dark, and reports contrast, overflow and sideways scrolling (`node uiaudit.cjs 1360`, `node uiaudit.cjs 390`).
 - `selaudit.cjs` checks every dropdown renders correctly in both themes.

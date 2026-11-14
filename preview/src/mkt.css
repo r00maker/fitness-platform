@@ -753,3 +753,14 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 .vreport .vrheat td { background: color-mix(in srgb, var(--vr) calc(var(--f) * 85%), #f3f5f4); }
 .vreport .vrheat th { color: #5b6660; }
 .ivform input, .ivform textarea, .ivform select { min-width: 0; max-width: 100%; }
+
+/* --- Closures and holidays ---------------------------------------------------- */
+.dcol.closed { background-color: color-mix(in srgb, var(--warn) 7%, transparent); background-image: repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--warn) 10%, transparent) 9px 11px), repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour) - 1px), var(--line-soft) calc(var(--hour) - 1px), var(--line-soft) var(--hour)); }
+.dh { flex-wrap: wrap; }
+.closedtag, .ag-day .closedtag { flex-basis: 100%; order: 9; font-family: var(--ui); font-size: 11px; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 5px; padding: 1px 6px; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; cursor: help; }
+.ag-day { flex-wrap: wrap; }
+.ag-day .closedtag { flex-basis: auto; order: 0; margin-left: auto; }
+.mc.closed { background: color-mix(in srgb, var(--warn) 7%, transparent); }
+.closedchip { font-size: 11px; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 5px; padding: 1px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cllist { margin: 6px 0 0; font-size: 12.5px; }
+.clcard b { font-size: 14.5px; }

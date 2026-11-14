@@ -79,7 +79,11 @@ export interface RecurrenceRule {
  * Local dates a recurring class falls on, from `fromDate` through `throughDate` (inclusive).
  * `alreadyGenerated` lets an occurrence-limited series continue counting where it left off.
  */
-export function recurrenceDates(rule: RecurrenceRule, fromDate: string, throughDate: string, alreadyGenerated = 0): string[] {
+/**
+ * The dates a rule produces between two dates. `skip` leaves dates out (e.g. closures) without
+ * counting them, so a course with a set number of classes still gets all of them, just later.
+ */
+export function recurrenceDates(rule: RecurrenceRule, fromDate: string, throughDate: string, alreadyGenerated = 0, skip?: (date: string) => boolean): string[] {
   const days = new Set(rule.daysOfWeek);
   const firstWeek = DateTime.fromISO(rule.startDate).startOf("week");
   const start = DateTime.max(DateTime.fromISO(rule.startDate), DateTime.fromISO(fromDate));
@@ -93,6 +97,7 @@ export function recurrenceDates(rule: RecurrenceRule, fromDate: string, throughD
     if (!days.has(d.weekday)) continue;
     const weeksSinceStart = Math.round(d.startOf("week").diff(firstWeek, "weeks").weeks);
     if (weeksSinceStart % rule.everyNWeeks !== 0) continue;
+    if (skip?.(d.toISODate()!)) continue;
     out.push(d.toISODate()!);
     count++;
   }

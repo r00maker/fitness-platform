@@ -86,6 +86,8 @@ fs.mkdirSync(out, { recursive: true });
     await p.click("#bellBtn"); await p.waitForTimeout(100); await scan("bell"); await p.click("#bellBtn");
     await p.evaluate(() => (location.hash = "agents")); await p.waitForTimeout(100); await p.click('[data-agtab="agents"]'); await p.click("#agNew"); await p.waitForTimeout(100); await p.click('[data-agst="1"]'); await p.waitForTimeout(150); await scan("agent editor");
     await p.evaluate(() => (document.querySelector("#modalRoot").innerHTML = ""));
+    await p.evaluate(() => (location.hash = "closures")); await p.waitForTimeout(100); await p.click("#clNew"); await p.waitForTimeout(150); await scan("closure window"); await p.locator(".modal").first().screenshot({ path: path.join(out, `${scheme}-modal-closure.png`) });
+    await p.evaluate(() => (document.querySelector("#modalRoot").innerHTML = ""));
     await role("client"); await p.evaluate(() => (location.hash = "schedule")); await p.waitForTimeout(100);
     await p.locator("[data-open]").first().click(); await p.waitForTimeout(150); await scan("client class drawer"); await p.screenshot({ path: path.join(out, `${scheme}-client-drawer.png`) });
     if (errs.length) report.push(`[${scheme}] page errors: ${errs.slice(0, 3).join(" | ")}`);

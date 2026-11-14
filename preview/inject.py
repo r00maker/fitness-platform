@@ -2,7 +2,7 @@
 p = "studio-calendar-preview.html"
 s = open(p).read()
 css = open("src/mkt.css").read()
-js = open("src/social.js").read() + open("src/mkt.js").read() + open("src/mkt3.js").read() + open("src/mkt4.js").read() + open("src/mkt5.js").read() + open("src/mkt6.js").read() + open("src/mkt7.js").read() + open("src/mkt8.js").read() + open("src/mkt9.js").read() + open("src/mkt2.js").read() + open("src/mkt10.js").read() + open("src/mkt11.js").read() + open("src/mkt12.js").read()
+js = open("src/social.js").read() + open("src/mkt.js").read() + open("src/mkt3.js").read() + open("src/mkt4.js").read() + open("src/mkt5.js").read() + open("src/mkt6.js").read() + open("src/mkt7.js").read() + open("src/mkt8.js").read() + open("src/mkt9.js").read() + open("src/mkt2.js").read() + open("src/mkt10.js").read() + open("src/mkt11.js").read() + open("src/mkt12.js").read() + open("src/mkt13.js").read()
 CS, CE = "/* MKT-CSS-START */", "/* MKT-CSS-END */"
 JS, JE = "  // MKT-JS-START", "  // MKT-JS-END"
 if CS in s:
@@ -63,5 +63,6 @@ once("    comms: '<path", PREF_ICON,
      "    comms: '<path d=\"M4 5h16v11H9l-5 4z\"/><path d=\"M8 9.5h8M8 12.5h5\"/>',\n")
 exec(open("patch9.py").read())
 exec(open("patch10.py").read())
+exec(open("patch11.py").read())
 open(p, "w").write(s)
 print("ok")

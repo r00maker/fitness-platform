@@ -42,6 +42,11 @@ export const FIELDS = {
   startDate: { label: "First class", help: "The date of the first class in the series." },
   endDate: { label: "Last class", help: "The series stops after this date. Leave empty to repeat until you stop it." },
   occurrences: { label: "Number of classes", help: "Stop after this many classes instead of on a date." },
+  closureName: { label: "Name", help: "What clients will see, like “Hari Raya” or “Studio renovation”." },
+  closureDates: { label: "Closed from … to", help: "The first and last days you're closed. Recurring classes skip these days." },
+  closureLocation: { label: "Location", help: "Close one location, or all of them." },
+  closureMessage: { label: "Message to clients", help: "Optional. Shown on the schedule and in the email, e.g. “Back on Monday!”." },
+  closureCancelClasses: { label: "Cancel classes on these days", help: "Cancel the classes already on the schedule and tell everyone booked. Turn off to keep them, e.g. for a special event." },
   editScope: { label: "Apply changes to", help: "Change just this class, this and all later classes in the series, or the whole series." },
 
   // Bookings
@@ -209,6 +214,9 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   no_refund: "No refund",
   already_happened: "Class has already happened",
   many_classes: "Lots of classes at once",
+  closed_day: "The studio is closed that day",
+  closure_cancels_classes: "Classes will be cancelled",
+  closure_skips_classes: "Some dates skipped",
   no_instructor: "No instructor yet",
   instructor_not_listed: "Not on this class's teaching list",
   late_booking: "Class has already started",

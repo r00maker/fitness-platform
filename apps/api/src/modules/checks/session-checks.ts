@@ -11,6 +11,7 @@ import { bookings, classSessions, classTemplates, classTypeInstructors, classTyp
 import type { Flags } from "../../lib/flags.js";
 import { utcToLocal, type TZ } from "../../lib/time.js";
 import { findOverlaps } from "../sessions/context.js";
+import { closureCovering, closuresFor } from "../closures/days.js";
 
 const HOUR = 3_600_000;
 
@@ -34,8 +35,16 @@ export async function checkSlot(
   orgId: string,
   flags: Flags,
   zone: TZ,
-  slot: { sessionId?: string; instructorId?: string | null; roomId?: string | null; classTypeId?: string; locationId?: string; startsAt: Date; endsAt: Date; excludeIds?: string[] },
+  slot: { sessionId?: string; instructorId?: string | null; roomId?: string | null; classTypeId?: string; locationId?: string; startsAt: Date; endsAt: Date; excludeIds?: string[]; checkClosed?: boolean },
 ) {
+  // A class kept on a closed day isn't flagged again for unrelated edits, like a new instructor.
+  if (slot.locationId && slot.checkClosed !== false) {
+    const date = utcToLocal(slot.startsAt, zone).date;
+    const closed = closureCovering(await closuresFor(db, orgId, slot.locationId, date, date), date);
+    if (closed) {
+      flags.confirm({ code: "closed_day", sessionId: slot.sessionId, details: { closureId: closed.id, date }, message: `The studio is closed on ${day(slot.startsAt, zone)} (${closed.name}). ${slot.sessionId ? "Move the class there" : "Add the class"} anyway?` });
+    }
+  }
   const overlaps = await findOverlaps(db, orgId, slot);
   if (!overlaps.length) return;
   const when = (o: { startsAt: Date }) => `${clock(o.startsAt, zone)} on ${day(o.startsAt, zone)}`;

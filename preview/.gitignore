@@ -1,3 +1,4 @@
 # Screenshots and test copies the checks write
 checks/*/
 checks/s10-test.html
+checks/*-test.html

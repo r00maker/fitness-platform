@@ -8,6 +8,7 @@ import type { AuthContext } from "../../plugins/auth.js";
 import { getOrg } from "./context.js";
 import { instructorHistory } from "./people.js";
 import { bookingWindow, windowStatus } from "../bookings/rules.js";
+import { closuresInRange } from "../closures/service.js";
 
 export interface CalendarQuery {
   view: CalendarView;
@@ -136,9 +137,13 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
       })
     : rows;
 
+  // Closed days, so the calendar can shade them and show the name (and any message to clients).
+  const closed = await closuresInRange(db, auth.orgId, q.locationId, utcToLocal(from, zone(tzName)).date, utcToLocal(new Date(to.getTime() - 1), zone(tzName)).date);
+
   return {
     view: q.view,
     timezone: tzName,
+    closures: closed,
     daylightSaving: org.observesDaylightSaving,
     ...(isClient ? { favouriteInstructorId: favourite?.instructorId ?? null, favouriteOnly } : {}),
     from: from.toISOString(),

@@ -337,6 +337,42 @@ export const createSeries = z
   })
   .refine((s) => !(s.endDate && s.occurrences), "Choose an end date or a number of classes, not both.");
 
+// ---- Closures and holidays ------------------------------------------------
+/** Days the studio is closed. Dates are inclusive and in each location's own time. */
+const closureDates = z
+  .object({
+    /** Leave out for every location. */
+    locationId: id.nullish(),
+    startDate: localDate,
+    endDate: localDate,
+  })
+  .refine((c) => c.endDate >= c.startDate, { message: "The last day can't be before the first day.", path: ["endDate"] });
+export const closurePreview = closureDates;
+export const createClosure = z
+  .object({
+    locationId: id.nullish(),
+    startDate: localDate,
+    endDate: localDate,
+    name: z.string().trim().min(1, "Give the closure a name, like “Hari Raya”.").max(80, "Keep the name under 80 characters."),
+    /** Shown to clients on the schedule and in the email. */
+    message: z.string().trim().max(500, "Keep the message under 500 characters.").nullish(),
+    /** Cancel the classes already on these days (default). Off keeps them, e.g. for a special event. */
+    cancelClasses: z.boolean().default(true),
+    refund: z.enum(REFUND_METHODS).default("credit"),
+    notifyClients: z.boolean().default(true),
+    acknowledge,
+  })
+  .refine((c) => c.endDate >= c.startDate, { message: "The last day can't be before the first day.", path: ["endDate"] });
+export const updateClosure = z.object({
+  name: z.string().trim().min(1, "Give the closure a name, like “Hari Raya”.").max(80, "Keep the name under 80 characters.").optional(),
+  message: z.string().trim().max(500, "Keep the message under 500 characters.").nullish(),
+});
+export const deleteClosure = z.object({
+  /** Put back recurring classes that were left out because of this closure. */
+  restoreClasses: z.boolean().default(true),
+});
+export const closureList = z.object({ include: z.enum(["upcoming", "all"]).default("upcoming") });
+
 // ---- Calendar ---------------------------------------------------------------
 export const calendarQuery = z.object({
   view: z.enum(CALENDAR_VIEWS).default("week"),

@@ -1297,6 +1297,17 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 .vreport .vrheat th { color: #5b6660; }
 .ivform input, .ivform textarea, .ivform select { min-width: 0; max-width: 100%; }
 
+/* --- Closures and holidays ---------------------------------------------------- */
+.dcol.closed { background-color: color-mix(in srgb, var(--warn) 7%, transparent); background-image: repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--warn) 10%, transparent) 9px 11px), repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour) - 1px), var(--line-soft) calc(var(--hour) - 1px), var(--line-soft) var(--hour)); }
+.dh { flex-wrap: wrap; }
+.closedtag, .ag-day .closedtag { flex-basis: 100%; order: 9; font-family: var(--ui); font-size: 11px; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 5px; padding: 1px 6px; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; cursor: help; }
+.ag-day { flex-wrap: wrap; }
+.ag-day .closedtag { flex-basis: auto; order: 0; margin-left: auto; }
+.mc.closed { background: color-mix(in srgb, var(--warn) 7%, transparent); }
+.closedchip { font-size: 11px; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 5px; padding: 1px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cllist { margin: 6px 0 0; font-size: 12.5px; }
+.clcard b { font-size: 14.5px; }
+
 /* MKT-CSS-END */
 </style>
 
@@ -2035,6 +2046,13 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const ok = flipped.getHours() >= 5 && flipped.getHours() < 22;
       f.push({ level: "confirm", title: "Unusual start time", msg: `This class starts at ${clock(c.start)}.${ok ? ` Did you mean ${clock(flipped)}?` : " Is that right?"}`, fix: ok ? { label: `Change start to ${short(flipped)}`, field: "start", value: hhmm(flipped) } : null });
     }
+    {
+      const cl = closureOn(c.loc, ymd(c.start));
+      const was = opts.excludeId ? SESSIONS.find((x) => x.id === opts.excludeId) : null;
+      if (cl && (!was || ymd(was.start) !== ymd(c.start) || was.loc !== c.loc)) {
+        f.push({ level: "confirm", title: "The studio is closed that day", msg: `The studio is closed on ${fmtDay(c.start)} (${cl.name}). ${was ? "Move the class there" : "Add the class"} anyway?` });
+      }
+    }
     if (opts.isNew && c.start < NOW) f.push({ level: "confirm", title: "Date is in the past", msg: `This class is in the past (${fmtDay(c.start)} at ${clock(c.start)}).` });
     if (c.start - NOW > 365 * 864e5) f.push({ level: "confirm", title: "Date is over a year away", msg: `This class is on ${c.start.getDate()} ${MON[c.start.getMonth()]} ${c.start.getFullYear()}, over a year away. Is the year right?` });
     const room = c.room && ROOMS[c.room];
@@ -2223,16 +2241,16 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     const cols = days.map((d) => {
       const evts = layoutLanes(list.filter((s) => sameDay(s.start, d)));
       const nowLine = sameDay(d, NOW) ? `<div class="nowline" style="top:${((NOW.getHours() - HOURS[0]) * 60 + NOW.getMinutes()) * (HOUR_PX / 60)}px" aria-hidden="true"></div>` : "";
-      return `<div class="dcol ${sameDay(d, NOW) ? "today" : ""}" data-date="${ymd(d)}" style="height:${(HOURS[1] - HOURS[0]) * HOUR_PX}px">${nowLine}${evts.map((e) => eventBlock(e, single)).join("")}</div>`;
+      return `<div class="dcol ${sameDay(d, NOW) ? "today" : ""} ${closedCls(d)}" data-date="${ymd(d)}" style="height:${(HOURS[1] - HOURS[0]) * HOUR_PX}px">${nowLine}${evts.map((e) => eventBlock(e, single)).join("")}</div>`;
     });
     const heads = days.map((d) => {
       const n = list.filter((s) => sameDay(s.start, d)).length;
-      return `<div class="dh ${sameDay(d, NOW) ? "today" : ""}"><span class="dow">${DOW[d.getDay()]}</span><span class="dnum">${d.getDate()}</span><span class="dcount">${n ? plural(n, "class", "classes") : ""}</span></div>`;
+      return `<div class="dh ${sameDay(d, NOW) ? "today" : ""}"><span class="dow">${DOW[d.getDay()]}</span><span class="dnum">${d.getDate()}</span><span class="dcount">${n ? plural(n, "class", "classes") : ""}</span>${closedTag(d)}</div>`;
     });
     const empty = single && !list.some((s) => sameDay(s.start, days[0]));
     return `<div class="gridscroll"><div class="wgrid ${single ? "single" : ""}" style="--cols:${days.length}">
       <div class="wg-head"><div></div>${heads.join("")}</div>
-      ${empty ? `<div class="empty">No classes match on this day. Try clearing the filters.</div>` : ""}
+      ${empty ? `<div class="empty">${closedEmpty(days[0]) || "No classes match on this day. Try clearing the filters."}</div>` : ""}
       <div class="wg-body"><div class="gutter">${hours.join("")}</div>${cols.join("")}</div>
     </div></div>${state.role === "admin" && !narrow() ? '<p class="calhint">Double-click an empty time to add a class. Drag a class to move it to another time.</p>' : ""}`;
   }
@@ -2241,7 +2259,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     const list = visibleSessions();
     const html = days.map((d) => {
       const items = list.filter((s) => sameDay(s.start, d));
-      return `<div class="ag-day ${sameDay(d, NOW) ? "today" : ""}">${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}<span>${items.length ? plural(items.length, "class", "classes") : "No classes"}</span></div>` +
+      return `<div class="ag-day ${sameDay(d, NOW) ? "today" : ""}">${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}<span>${items.length ? plural(items.length, "class", "classes") : "No classes"}</span>${closedTag(d)}</div>` +
         items.map((s) => {
           const flags = isStaff() ? calendarFlags(s) : [];
           return `<button type="button" class="ag-row ${state.selected.has(s.id) ? "selected" : ""}" data-open="${s.id}" style="--t:var(--t-${s.type})">
@@ -2264,8 +2282,8 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       if (i >= 35 && d.getMonth() !== a.getMonth()) break;
       const items = list.filter((s) => sameDay(s.start, d));
       const shown = items.slice(0, 3);
-      cells.push(`<button type="button" class="mc ${d.getMonth() !== a.getMonth() ? "out" : ""} ${sameDay(d, NOW) ? "today" : ""}" data-day="${ymd(d)}" aria-label="${fmtDay(d)}, ${plural(items.length, "class", "classes")}">
-        <span class="n">${d.getDate()}</span>
+      cells.push(`<button type="button" class="mc ${d.getMonth() !== a.getMonth() ? "out" : ""} ${sameDay(d, NOW) ? "today" : ""} ${closedCls(d)}" data-day="${ymd(d)}" aria-label="${fmtDay(d)}, ${closedFor(d).length ? `${closedLabel(closedFor(d)[0])}, ` : ""}${plural(items.length, "class", "classes")}">
+        <span class="n">${d.getDate()}</span>${closedChip(d)}
         ${shown.map((s) => `<span class="mchip" style="--t:var(--t-${s.type})"><i></i><span>${short(s.start)} ${esc(TYPES[s.type].name)}</span></span>`).join("")}
         ${items.length > 3 ? `<span class="more">+${items.length - 3} more</span>` : ""}
         <span class="dots">${items.map((s) => `<i style="--t:var(--t-${s.type})"></i>`).join("")}</span>
@@ -2990,6 +3008,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     const DOW = [[1, "Mon"], [2, "Tue"], [3, "Wed"], [4, "Thu"], [5, "Fri"], [6, "Sat"], [0, "Sun"]];
     const repDates = () => {
       const r = draft.rep, first = $("#fDate").value;
+      REP_SKIPPED.length = 0;
       if (!r.freq || !first) return first ? [first] : [];
       const days = r.days.length ? r.days : [fromYmdHm(first, "00:00").getDay()];
       const out = [], start = fromYmdHm(first, "00:00"), wk0 = startOfWeek(start);
@@ -2997,7 +3016,10 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const until = r.end === "until" && r.until ? fromYmdHm(r.until, "23:59") : r.end === "never" ? addDays(start, 8 * 7) : addDays(start, 365);
       for (let d = start; d <= until && out.length < limit; d = addDays(d, 1)) {
         const wk = Math.round((startOfWeek(d) - wk0) / (7 * 864e5));
-        if (wk % r.freq === 0 && days.includes(d.getDay())) out.push(ymd(d));
+        if (wk % r.freq === 0 && days.includes(d.getDay())) {
+          if (closureOn(ROOMS[$("#fRoom")?.value]?.loc, ymd(d))) { REP_SKIPPED.push(ymd(d)); continue; }
+          out.push(ymd(d));
+        }
       }
       return out;
     };
@@ -3109,6 +3131,10 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const tooSmall = plans.find((p) => p.t && p.t.roster.length > v.cap);
       if (tooSmall) { toast(`${tooSmall.t.roster.length} people are already booked on ${fmtDay(tooSmall.t.start)}, so spots can't go below ${tooSmall.t.roster.length}.`); return; }
       let flags = [...flagsCp];
+      if (dates && dates.length && v.rep.freq && REP_SKIPPED.length) {
+        const sk = REP_SKIPPED.slice(0, 5).map((x) => `${clDay(x)} (${closureOn(ROOMS[v.room].loc, x)?.name || "closed"})`).join(", ");
+        flags.push({ level: "info", title: "Some dates skipped", msg: `${REP_SKIPPED.length === 1 ? "1 date is" : `${REP_SKIPPED.length} dates are`} left out because the studio is closed: ${sk}${REP_SKIPPED.length > 5 ? " and more" : ""}.` });
+      }
       const noPkg = appt && !existing ? v.clients.filter((ci) => !apptPkgFor(ci, v.type)) : [];
       if (noPkg.length && !STUDIO.allowNoPkg) { toast(`${noPkg.map((ci) => CLIENTS[ci].name).join(" and ")} ${noPkg.length > 1 ? "don't" : "doesn't"} have a ${TYPES[v.type].name} package, and your studio only allows bookings with a package. Sell one first, or remove them and book them in as complimentary from the appointment.`); return; }
       if (noPkg.length) flags.push({ level: "confirm", title: "No appointment package", msg: `${noPkg.map((ci) => CLIENTS[ci].name).join(" and ")} ${noPkg.length > 1 ? "don't" : "doesn't"} have a package that covers ${TYPES[v.type].name} appointments. Book anyway as “Pay at studio”, or go back and sell a package first.` });
@@ -9400,6 +9426,183 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     const cm = NAV.find((n) => n.id === "comms"); if (cm) cm.help = "Read and answer client messages from WhatsApp and email (Gmail or Outlook), in one inbox.";
     const mk = NAV.find((n) => n.id === "marketing"); if (mk) mk.help = "Journeys that run by themselves, emails, campaigns, segments, banners and referrals.";
   }
+  for (const n of NAV) { const id = n.id; n.group = (role) => navGroup(id, role); }
+  NAV.sort((a, b) => navRank(a.id, "admin") - navRank(b.id, "admin"));
+  // ===========================================================================
+  // Closures and holidays: days a location (or the whole studio) is closed.
+  // Same rules as apps/api/src/modules/closures: adding one cancels the classes on those days
+  // (after asking) and tells each person once; repeats skip closed days; adding or moving a
+  // class onto a closed day asks first; removing a closure leaves cancelled classes cancelled.
+  // ===========================================================================
+  const CLOSURES = [
+    { id: "cl1", name: "Floor repairs", loc: "hv", start: "2026-11-28", end: "2026-11-29", msg: "Tanjong Pagar is open as usual.", cancelled: 0 },
+    { id: "cl2", name: "Christmas Day", loc: null, start: "2026-12-25", end: "2026-12-25", msg: "Merry Christmas! Back on the 26th.", cancelled: 0 },
+    { id: "cl3", name: "New Year's Day", loc: null, start: "2027-01-01", end: "2027-01-01", msg: "", cancelled: 0 },
+  ];
+  let nextClId = 4;
+  /** Repeat dates the class form left out because of a closure (filled in by repDates). */
+  const REP_SKIPPED = [];
+  const CL_MAX_DAYS = 366;
+  const clDay = (x) => fmtDay(fromYmdHm(x, "00:00"));
+  const clDates = (c) => (c.start === c.end ? clDay(c.start) : `${clDay(c.start)} – ${clDay(c.end)}`);
+  const clWhere = (c) => (c.loc ? LOCS[c.loc] : "All locations");
+  const clDaysLong = (c) => Math.round((fromYmdHm(c.end, "00:00") - fromYmdHm(c.start, "00:00")) / 864e5) + 1;
+  /** The closure covering a location on a date (a studio-wide one covers every location). */
+  function closureOn(loc, date) {
+    return CLOSURES.find((c) => (!c.loc || !loc || c.loc === loc) && c.start <= date && c.end >= date) || null;
+  }
+  /** Upcoming classes on the closed days. */
+  const clClasses = (span) => SESSIONS.filter((s) => s.status === "scheduled" && s.start > NOW && (!span.loc || s.loc === span.loc) && ymd(s.start) >= span.start && ymd(s.start) <= span.end);
+  function clCancel(c, list) {
+    for (const s of list) { s.status = "cancelled"; s.cancelReason = `Studio closed: ${c.name}`; s.closure = c.id; }
+    c.cancelled += list.length;
+  }
+  // The sample closure at Holland Village has already cancelled that weekend's classes there.
+  clCancel(CLOSURES[0], clClasses({ loc: "hv", start: "2026-11-28", end: "2026-11-29" }));
+
+  // --- On the calendar: closed days are shaded, with the name in the day heading ---------
+  /** Closures to show on the calendar for a day, given the location filter. Clients see them too. */
+  const closedFor = (d) => CLOSURES.filter((c) => c.start <= ymd(d) && c.end >= ymd(d) && (!state.loc || !c.loc || c.loc === state.loc));
+  function closedCls(d) { return closedFor(d).length ? "closed" : ""; }
+  function closedLabel(c) { return `Closed${c.loc && !state.loc ? ` at ${LOCS[c.loc]}` : ""}: ${c.name}`; }
+  function closedTag(d) {
+    return closedFor(d).map((c) => `<span class="closedtag" data-help="${esc(`${clDates(c)} · ${clWhere(c)}${c.msg ? ` · ${c.msg}` : ""}`)}">${esc(closedLabel(c))}</span>`).join("");
+  }
+  function closedChip(d) {
+    return closedFor(d).map((c) => `<span class="closedchip">${esc(closedLabel(c))}</span>`).join("");
+  }
+  /** The day view's empty message on a closed day. */
+  function closedEmpty(d) {
+    const c = closedFor(d)[0];
+    return c ? `${esc(closedLabel(c))}.${c.msg ? ` ${esc(c.msg)}` : ""}` : "";
+  }
+
+  // --- The Closures page ----------------------------------------------------------------
+  PAGES.closures = function () {
+    const today = ymd(NOW);
+    const upcoming = CLOSURES.filter((c) => c.end >= today).sort((a, b) => (a.start < b.start ? -1 : 1));
+    const past = CLOSURES.filter((c) => c.end < today);
+    const card = (c) => {
+      const now = c.start <= today;
+      return `<article class="card clcard"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px">
+        <div class="stack" style="gap:4px;min-width:0"><div class="row" style="gap:8px"><b>${esc(c.name)}</b><span class="status ${now ? "open" : "wait"}">${now ? "Closed now" : "Coming up"}</span></div>
+          <span style="font-size:13.5px">${clDates(c)}${clDaysLong(c) > 1 ? ` (${plural(clDaysLong(c), "day")})` : ""} · ${esc(clWhere(c))}</span>
+          ${c.msg ? `<span class="muted" style="font-size:13px">Clients see: “${esc(c.msg)}”</span>` : ""}
+          <span class="muted" style="font-size:12.5px">${c.cancelled ? `${plural(c.cancelled, "class", "classes")} cancelled for this closure` : "No classes were cancelled"} · recurring classes skip these days</span></div>
+        <span class="inline2" style="flex-wrap:nowrap"><button type="button" class="btn" data-cledit="${c.id}">Edit</button><button type="button" class="btn ghost danger" data-cldel="${c.id}">Remove</button></span></div></article>`;
+    };
+    return head("Closures & holidays", "Days you're closed, like public holidays or repairs. Recurring classes skip them, and clients see them on the schedule.", `<button type="button" class="btn primary" id="clNew">+ Add closure</button>`) +
+      (upcoming.length ? `<div class="stack">${upcoming.map(card).join("")}</div>` : `<div class="card"><span class="muted">No closures coming up. Add one when you know you'll be closed, and the classes on those days are cancelled in one go.</span></div>`) +
+      `<span class="hint">Open on a public holiday? There's nothing to do: classes run as normal unless you add a closure.</span>` +
+      (past.length ? `<details class="card"><summary>Past closures (${past.length})</summary><div class="stack" style="margin-top:8px">${past.map((c) => `<span style="font-size:13px">${esc(c.name)} · ${clDates(c)} · ${esc(clWhere(c))}</span>`).join("")}</div></details>` : "");
+  };
+  BIND.closures = function () {
+    $("#clNew").onclick = () => openClosure(null);
+    document.querySelectorAll("[data-cledit]").forEach((b) => (b.onclick = () => openClosure(b.dataset.cledit)));
+    document.querySelectorAll("[data-cldel]").forEach((b) => (b.onclick = () => removeClosure(CLOSURES.find((c) => c.id === b.dataset.cldel))));
+  };
+
+  /** What the new closure will do, shown live in the window as details change. */
+  function clSummary(d) {
+    if (!d.start || !d.end || d.end < d.start) return "";
+    const list = clClasses(d);
+    const people = list.reduce((a, s) => a + s.roster.length, 0);
+    const other = CLOSURES.filter((c) => c.id !== d.id && c.start <= d.end && c.end >= d.start && (!c.loc || !d.loc || c.loc === d.loc));
+    const lines = [];
+    if (!list.length) lines.push("No classes are on the schedule for these days.");
+    else {
+      lines.push(`${plural(list.length, "class is", "classes are")} on the schedule for these days${people ? ` (${plural(people, "person", "people")} booked)` : ", none booked yet"}.`);
+      lines.push(d.cancel ? `They'll be cancelled. ${d.notify ? "Everyone booked or on the waitlist gets one message listing their classes." : "Clients will NOT be told."}` : "They stay on the schedule.");
+    }
+    lines.push("Recurring classes skip these days from now on.");
+    if (other.length) lines.push(`Already closed on some of these days: ${other.map((c) => `${esc(c.name)} (${clDates(c)})`).join(", ")}.`);
+    return alertBox(list.length && d.cancel ? "warn" : "info", "What will happen", `<span>${lines.join(" ")}</span>${list.length ? `<ul class="terms cllist">${list.slice(0, 6).map((s) => `<li>${esc(TYPES[s.type].name)}, ${fmtDay(s.start)} ${clock(s.start)}${state.loc || d.loc ? "" : ` · ${esc(LOCS[s.loc])}`} · ${s.roster.length} booked</li>`).join("")}${list.length > 6 ? `<li>and ${list.length - 6} more</li>` : ""}</ul>` : ""}`);
+  }
+
+  function openClosure(id) {
+    const cur = id ? CLOSURES.find((c) => c.id === id) : null;
+    const d = cur ? { ...cur } : { name: "", loc: null, start: ymd(addDays(NOW, 7)), end: ymd(addDays(NOW, 7)), msg: "", cancel: true, refund: "credit", notify: true };
+    const paint = () => {
+      $("#modalRoot").innerHTML = `<div class="modal-wrap" data-mclose><form class="modal" id="clForm" role="dialog" aria-modal="true" aria-labelledby="clTitle" style="width:min(560px,100%)"><header><h2 id="clTitle">${cur ? "Edit closure" : "Add a closure"}</h2></header><div class="mb mform">
+        <label class="fl">Name ${tip("closureName")}<input id="clN" maxlength="80" value="${esc(d.name)}" placeholder="e.g. Hari Raya Puasa"></label>
+        ${cur ? `<div class="fl">When<span style="font-weight:400;font-size:13.5px">${clDates(cur)} · ${esc(clWhere(cur))}</span><span class="h">To change the days or location, remove this closure and add it again.</span></div>` : `
+        <label class="fl">Location ${tip("closureLocation")}<select id="clL"><option value="">All locations</option>${Object.entries(LOCS).map(([k, l]) => `<option value="${k}" ${d.loc === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
+        <div class="two" style="grid-template-columns:1fr 1fr"><label class="fl">First day closed<input type="date" id="clS" value="${d.start}" min="${ymd(NOW)}"></label><label class="fl">Last day closed<input type="date" id="clE" value="${d.end}" min="${d.start || ymd(NOW)}"></label></div>`}
+        <label class="fl">Message to clients <span class="h">(optional)</span> ${tip("closureMessage")}<textarea id="clM" rows="2" maxlength="500" placeholder="e.g. Back on Monday!">${esc(d.msg || "")}</textarea></label>
+        ${cur ? "" : `<label class="check"><input type="checkbox" id="clC" ${d.cancel ? "checked" : ""}> Cancel the classes already on these days ${tip("closureCancel")}</label>
+        ${d.cancel ? `<div class="two" style="grid-template-columns:1fr 1fr;margin-left:26px"><label class="fl">Refund ${tip("refund")}<select id="clR"><option value="credit" ${d.refund === "credit" ? "selected" : ""}>Return class credit</option><option value="payment" ${d.refund === "payment" ? "selected" : ""}>Refund payment</option><option value="none" ${d.refund === "none" ? "selected" : ""}>No refund</option></select></label>
+          <label class="check" style="align-self:end"><input type="checkbox" id="clT" ${d.notify ? "checked" : ""}> Tell clients</label></div>` : ""}
+        <div id="clSum">${clSummary(d)}</div>`}
+      </div><footer><button type="button" class="btn ghost" data-mclose>Cancel</button><button type="submit" class="btn primary">${cur ? "Save" : "Add closure"}</button></footer></form></div>`;
+      const keep = () => {
+        d.name = $("#clN").value; d.msg = $("#clM").value;
+        if (cur) return;
+        d.loc = $("#clL").value || null; d.start = $("#clS").value; d.end = $("#clE").value;
+        d.cancel = $("#clC").checked;
+        if ($("#clR")) { d.refund = $("#clR").value; d.notify = $("#clT").checked; }
+      };
+      if (!cur) {
+        const live = () => { keep(); $("#clSum").innerHTML = clSummary(d); };
+        $("#clL").onchange = live;
+        // A one-day closure moves as one day; a longer one only moves its end if it would be before the start.
+        $("#clS").onchange = () => { const single = d.start === d.end; keep(); if (!d.end || d.end < d.start || single) d.end = d.start; paint(); };
+        $("#clE").onchange = live;
+        $("#clC").onchange = () => { keep(); paint(); };
+        if ($("#clR")) $("#clR").onchange = $("#clT").onchange = live;
+      }
+      $("#clForm").onsubmit = (e) => {
+        e.preventDefault(); keep();
+        d.name = d.name.trim(); d.msg = d.msg.trim();
+        if (!d.name) { $("#clN").focus(); return toast("Give the closure a name, like “Hari Raya”."); }
+        if (cur) { cur.name = d.name; cur.msg = d.msg; closeModal(); render(); return toast("Closure saved."); }
+        if (!d.start || !d.end) return toast("Choose the first and last days you're closed.");
+        if (d.end < d.start) return toast("The last day can't be before the first day.");
+        if (d.end < ymd(NOW)) return toast("Those days have already passed. Choose today or a later date.");
+        if (clDaysLong(d) > CL_MAX_DAYS) return toast("A closure can be up to a year long.");
+        const list = clClasses(d);
+        const booked = list.reduce((a, s) => a + s.roster.length, 0);
+        const go = () => {
+          const c = { id: `cl${nextClId++}`, name: d.name, loc: d.loc, start: d.start, end: d.end, msg: d.msg, cancelled: 0 };
+          CLOSURES.push(c);
+          const people = new Set(), staff = new Set();
+          if (d.cancel) {
+            for (const s of list) { if (d.notify) { s.roster.forEach((r) => people.add(r.ci)); s.waitlist.forEach((w) => people.add(w.ci)); } if (s.instr) staff.add(s.instr); }
+            clCancel(c, list);
+          }
+          closeModal(); renderNav(); render();
+          const told = [people.size ? plural(people.size, "client") : "", staff.size ? plural(staff.size, "instructor") : ""].filter(Boolean).join(" and ");
+          toast(d.cancel && list.length ? `Closure added. ${plural(list.length, "class", "classes")} cancelled.${told ? ` ${told} told, one message each.` : ""}` : `Closure added for ${clDates(c)}.${list.length ? ` ${plural(list.length, "class stays", "classes stay")} on the schedule.` : ""}`);
+        };
+        if (!d.cancel || !list.length) return go();
+        confirmFlags([{ level: "confirm", title: "Classes will be cancelled", msg: `This will cancel ${plural(list.length, "class", "classes")}${booked ? ` and ${plural(booked, "booking")}` : ""}.${booked && d.refund === "none" ? " Clients will NOT get their class back." : ""} ${d.notify ? "Everyone booked and on the waitlist will get one message about it." : "Clients will NOT be told."}` }], {
+          title: "Please check before closing",
+          proceedLabel: `Cancel ${plural(list.length, "class", "classes")} and close`,
+          back: () => paint(),
+          proceed: go,
+        });
+      };
+    };
+    paint();
+  }
+
+  function removeClosure(c) {
+    const still = SESSIONS.filter((s) => s.closure === c.id && s.status === "cancelled" && s.start > NOW).length;
+    confirmFlags([{ level: "confirm", title: `Remove “${c.name}”?`, msg: `Recurring classes it left out come back on the schedule.${still ? ` The ${plural(still, "class", "classes")} it cancelled ${still === 1 ? "stays" : "stay"} cancelled, because people were already told and given their class back. Add ${still === 1 ? "it" : "them"} again from the calendar if you need to.` : ""}` }], {
+      proceedLabel: "Remove closure",
+      proceed: () => { CLOSURES.splice(CLOSURES.indexOf(c), 1); render(); toast(`“${c.name}” removed.`); },
+    });
+  }
+
+  // --- Menu and help --------------------------------------------------------------------
+  Object.assign(FIELD_HELP, {
+    closureName: "What clients will see, like “Hari Raya” or “Studio renovation”.",
+    closureLocation: "Close one location, or all of them.",
+    closureMessage: "Shown on the schedule and in the email, e.g. “Back on Monday!”.",
+    closureCancel: "Cancel the classes already on the schedule and tell everyone booked. Turn off to keep them, e.g. for a special event.",
+  });
+  ICONS.closures = '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9.5 13.5l5 5M14.5 13.5l-5 5"/>';
+  NAV_ORDER.find(([g]) => g === "Setup")[1].splice(3, 0, "closures");
+  NAV.push({ id: "closures", roles: ["admin"], label: "Closures & holidays", help: "Days you're closed. Recurring classes skip them and the classes on those days are cancelled in one go." });
   for (const n of NAV) { const id = n.id; n.group = (role) => navGroup(id, role); }
   NAV.sort((a, b) => navRank(a.id, "admin") - navRank(b.id, "admin"));
 

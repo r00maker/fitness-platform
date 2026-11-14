@@ -10,7 +10,7 @@ A booking platform for fitness studios in Southeast Asia (in the space of Momenc
 2. **Plain English:** short, everyday words that travel across the region. No jargon, no idioms. This applies to UI text, errors, emails, docs and PR descriptions.
 3. **Security:** studios' data stays separate, roles are enforced on the server, secrets are encrypted, and AI features never see more than they need.
 
-## What's built (all merged to `main`)
+## What's built (merged to `main` unless marked)
 
 | PR | What |
 |----|------|
@@ -23,6 +23,7 @@ A booking platform for fitness studios in Southeast Asia (in the space of Momenc
 | #12 | Claude API setup documented (`docs/HOSTING_AND_DEPLOYMENT.md`, section 5) |
 | #13 | Report zoom, "Edit many", grouped menu, reminder agents, support assistant, light/dark UI audit, security audit |
 | #14 | Sales (invoices, receipts, refunds, invoice design), membership payment holds, shop (gift cards moved here), writing agents, Gmail and Outlook inbox, report exports (CSV and visual), rooms optional, simpler journey goals, class types split, calendar double-click/drag, tidier Categories window |
+| Not merged yet | Closures and holidays: recurring classes skip closed days, adding one cancels the classes on those days with one message per person, closed days shaded on the calendar, closed-day check when adding or moving a class |
 
 Details of how each area works, and the decisions behind them, are in `docs/PRODUCT_NOTES.md`. The staff-facing guide (also what the support assistant reads) is `docs/help/STUDIO_GUIDE.md`.
 
@@ -38,7 +39,7 @@ Details of how each area works, and the decisions behind them, are in `docs/PROD
 - **Online payments** (Stripe or similar): no money moves yet. Membership payment holds are wired through `setRenewalCharger` in `apps/api/src/modules/packages/payments.ts` and only switch on once a provider is connected; until then renewals are "pay at the desk".
 - **Email inbox going live:** needs a Google OAuth app (Google verification before more than 100 users) and a Microsoft app. Steps in `docs/HOSTING_AND_DEPLOYMENT.md`, section 6.
 - **No web or mobile app yet:** the preview stands in for them.
-- Suggested next features, roughly in priority order, are listed in `docs/PRODUCT_NOTES.md` ("Suggested next features"): closures and holidays, self check-in, notification preferences, calendar sync, and more.
+- Suggested next features, roughly in priority order, are listed in `docs/PRODUCT_NOTES.md` ("Suggested next features"): self check-in, notification preferences (closures already send one combined message per person), calendar sync, and more.
 
 ## The owner's rules
 
@@ -78,8 +79,10 @@ Details of how each area works, and the decisions behind them, are in `docs/PROD
 ```bash
 pnpm install
 service postgresql start   # if tests fail with ECONNREFUSED
+# Fresh container? Tests need a "studio" user and "studio_test" database:
+# su postgres -c "psql -c \"create user studio with password 'studio' superuser;\"" && su postgres -c "createdb -O studio studio_test"
 pnpm typecheck
-pnpm test                  # 248 API tests at the time of writing
+pnpm test                  # 256 API tests at the time of writing
 ```
 
 - New migration: edit `apps/api/src/db/schema.ts`, then `cd apps/api && npx drizzle-kit generate --name <name>`. To regenerate one that isn't merged yet, delete its SQL file and snapshot and remove its entry from `drizzle/meta/_journal.json` first.

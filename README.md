@@ -8,6 +8,7 @@ The booking and scheduling backend for class-based studios. One API serves the w
 apps/api/            The API server and background worker (TypeScript, Fastify, PostgreSQL)
   src/modules/
     sessions/        Calendar, classes, recurring series, bulk edit, duplicate, cancel/delete
+    closures/        Closures and holidays: recurring classes skip them, one action cancels the days
     bookings/        Book, cancel, move (reschedule), refund, attendance
     waitlist/        Join/leave/claim, auto vs "ask me first", hold timers, cut-offs
     substitutes/     Cover requests, accept/decline, automatic or admin-approved
@@ -91,6 +92,7 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Bulk edit / bulk cancel | `POST /sessions/bulk-update`, `POST /sessions/bulk-cancel` | owner, admin |
 | Cancel / delete | `POST /sessions/:id/cancel`, `DELETE /sessions/:id` | owner, admin |
 | Duplicate a class / copy a week | `POST /sessions/:id/duplicate`, `POST /sessions/duplicate-range` | owner, admin |
+| Closures and holidays (cancels classes on those days after confirming) | `GET /closures`, `POST /closures/preview`, `POST /closures`, `PATCH\|DELETE /closures/:id` | read: all · write: owner, admin |
 | Templates, class types, locations, rooms | `/templates`, `/class-types`, `/locations`, `/rooms` | read: all · write: owner, admin |
 | Book | `POST /bookings` | client (self), admin (any client) |
 | Cancel / move / refund a booking | `POST /bookings/:id/cancel\|move\|refund` | client (own, within rules), admin |

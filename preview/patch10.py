@@ -1,9 +1,9 @@
 # Run from inject.py after patch9 (uses its `s`, `once`, `swap`): calendar shortcuts, rooms optional,
 # membership holds, class type kinds, goal help, menu icons.
 
-# Calendar columns know their date (for double-click to add and drag to move).
+# Calendar columns know their date (for double-click to add and drag to move), and whether it's a closed day (see mkt13.js).
 swap('''      return `<div class="dcol ${sameDay(d, NOW) ? "today" : ""}" style="height:''',
-     '''      return `<div class="dcol ${sameDay(d, NOW) ? "today" : ""}" data-date="${ymd(d)}" style="height:''')
+     '''      return `<div class="dcol ${sameDay(d, NOW) ? "today" : ""} ${closedCls(d)}" data-date="${ymd(d)}" style="height:''')
 swap('''      <div class="wg-body"><div class="gutter">${hours.join("")}</div>${cols.join("")}</div>
     </div></div>`;''', '''      <div class="wg-body"><div class="gutter">${hours.join("")}</div>${cols.join("")}</div>
     </div></div>${state.role === "admin" && !narrow() ? '<p class="calhint">Double-click an empty time to add a class. Drag a class to move it to another time.</p>' : ""}`;''')

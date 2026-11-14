@@ -28,7 +28,7 @@ The menu on the left is grouped by what you're doing. Staff see:
 - **Clients & sales:** Clients, Leads, Sales, Packages, Shop, Fees.
 - **Growth:** Marketing, Reports.
 - **Team:** Staff & pay, Payroll, Agents.
-- **Setup:** Class types, Templates, Locations & rooms, Studio rules.
+- **Setup:** Class types, Templates, Locations & rooms, Closures & holidays, Studio rules.
 - **Account:** My pay (instructors), Preferences.
 
 Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My packages, Rewards, Refer a friend, and Shop when there's something in it) and **Account** (Injuries & conditions, Profile & privacy, Preferences).
@@ -47,6 +47,19 @@ The **Ask** button (bottom right) opens the assistant. The **bell** at the top s
 - **Auto-cancel:** a class can cancel itself if fewer than a set number of people are booked a set number of hours before. Set it on a template or on the class.
 - **ClassPass:** in the class's settings, switch on ClassPass bookings and choose how many spots ClassPass can have. Unused ClassPass spots stay open to members.
 
+## Closures and holidays
+
+Owners and admins add days the studio is closed under **Setup**, **Closures & holidays**.
+
+- **Add a closure:** **+ Add closure**. Give it a name clients will see (like "Hari Raya"), choose one location or all of them, the first and last days you're closed, and an optional message ("Back on Monday!"). The window shows what will happen before you save: how many classes are on those days and how many people are booked.
+- **Classes already on those days** are cancelled in one go, after you confirm. Everyone booked or on the waitlist gets **one** message listing all their cancelled classes, not one per class, and instructors are told about the classes they were teaching. You choose the refund (class credit back is the usual choice). To keep the classes (for example a special event on a holiday), untick **Cancel the classes already on these days**.
+- **Recurring classes skip closed days** from then on. A course with a set number of classes still gets all of them: the missed class is added at the end.
+- **On the schedule,** closed days are shaded and named, for staff and clients.
+- **Adding or moving a class onto a closed day** asks you first, in case it's a mistake. You can still go ahead.
+- **Edit** a closure to change its name or message. To change the days or location, remove it and add it again.
+- **Remove a closure:** recurring classes it left out come back on the schedule. Classes it cancelled stay cancelled, because people were already told and given their class back. Add them again from the calendar if you need to.
+- **Open on a public holiday?** There's nothing to do: classes run as normal unless you add a closure.
+
 ## Booking clients in
 
 Owners and admins book clients from the class: tap the class, then **Book a client**.
@@ -60,7 +73,7 @@ Common reasons a booking can't be made:
 - **They haven't signed the waiver.** Studio members sign in the app at their first booking. Front of House or an admin can mark a paper waiver as done.
 - **Weekly limit:** the studio limits classes per week, and they've reached it. Admins can go over it after a warning.
 - **The booking window:** clients can only book between the window opening (e.g. 14 days before) and closing (e.g. 1 hour before). Admins can still book people in outside it, after a warning.
-- **The class has finished or was cancelled.**
+- **The class has finished or was cancelled** (for example by a closure).
 - **ClassPass:** the class doesn't take ClassPass, or all its ClassPass spots are taken.
 - **Your role:** only owners and admins can book clients in.
 

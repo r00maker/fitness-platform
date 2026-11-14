@@ -155,6 +155,13 @@
       "when": 1794663517813,
       "tag": "0021_sales_shop_email",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794671488233,
+      "tag": "0022_closures",
+      "breakpoints": true
     }
   ]
 }

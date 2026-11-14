@@ -28,7 +28,7 @@ export const PERMISSIONS = {
   viewAllRosters: ["owner", "admin", "front_desk"],
   /** Take attendance on any class. */
   takeAttendanceAnyClass: ["owner", "admin", "front_desk"],
-  /** Create, edit, cancel and duplicate classes; manage templates, rooms and class types. */
+  /** Create, edit, cancel and duplicate classes; manage templates, rooms, class types and closures. */
   editSchedule: ["owner", "admin"],
   /** Book, cancel, move, waitlist and refund on a client's behalf, and override booking rules. */
   manageBookings: ["owner", "admin"],
@@ -285,6 +285,9 @@ export const FLAG_CODES = [
   "no_refund",
   "already_happened",
   "many_classes",
+  "closed_day",
+  "closure_cancels_classes",
+  "closure_skips_classes",
   "no_instructor",
   "instructor_not_listed",
   // Bookings, refunds and attendance

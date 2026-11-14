@@ -69,7 +69,7 @@ describe("changing many classes", () => {
     // Moving location needs a room there.
     const [hv] = await db.insert(locations).values({ orgId: s.orgId, name: "Holland Village", timezone: "Asia/Singapore" }).returning();
     const [hvRoom] = await db.insert(rooms).values({ orgId: s.orgId, locationId: hv!.id, name: "Main Studio", capacity: 20 }).returning();
-    const wed = { from: dayOffset(0), to: dayOffset(120), weekdays: [3] };
+    const wed = { from: dayOffset(0), to: dayOffset(120), weekdays: [3], startTimes: ["07:00"] };
     expect((await s.owner.call("POST", "/sessions/bulk-update", { filter: wed, changes: { locationId: hv!.id }, acknowledge: ACK })).body.error.code).toBe("room_needed");
     const moved = await s.owner.call("POST", "/sessions/bulk-update", { filter: wed, changes: { locationId: hv!.id, roomId: hvRoom!.id }, acknowledge: ACK });
     expect(moved.status, JSON.stringify(moved.body)).toBe(200);

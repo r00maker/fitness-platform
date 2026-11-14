@@ -38,7 +38,7 @@
 
 1. **Online payments** (on hold): Stripe checkout so clients can buy packages and drop-ins themselves. Packages, prices, refunds and fees are all recorded today; no money moves until this exists.
 2. ~~Booking rules~~: built (booking window, optional weekly limit, late-cancel and no-show fees).
-3. **Closures & holidays**: block out dates so recurring classes skip them, with one action to cancel a whole day and notify everyone.
+3. ~~Closures & holidays~~: built (see below).
 4. ~~Spot / equipment selection~~: built, and studios can switch it off.
 5. ~~Instructor qualifications~~: built as teaching lists.
 6. **Self check-in**: a QR code at the front desk or a tablet kiosk that marks attendance automatically.
@@ -189,3 +189,14 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
 - **Report exports:** CSV follows the current tab, period and zoom (formula-safe, opens in Excel with the right characters); the visual report is a one-page summary to print or save as PDF.
 - **Calendar:** double-click an empty time to add a class, drag a class to move it; both ask first. Classes can have **no room** (for one-space studios). Class types list classes and appointments separately. The Categories window is now one row per category; open one to edit it.
 - **Journey goals** are simplified to three choices (books a class, comes to a class, buys a package). A goal no longer clashes with a matching "Wait for" step: reaching it carries the person down that step's Yes side.
+
+## Closures and holidays: how they work
+
+- **A closure** is a name, a first and last day (inclusive, in each location's own dates) and either one location or all of them, with an optional message for clients. Admins manage them under Setup, Closures & holidays (`/closures`). Up to a year long; days that have already passed are refused.
+- **Adding one cancels the classes already on those days** in one transaction, after a single "Classes will be cancelled" confirmation that says how many classes and bookings are affected (instead of one warning per class). Only classes that haven't started are touched. The refund choice and "Tell clients" work as for any cancellation. Studios can untick "Cancel the classes" to keep them (a special event); recurring classes still skip the days.
+- **One message per person.** Each client gets one email and push listing every class of theirs that was cancelled (or the waitlists they were taken off); each instructor gets one listing what they were teaching. This is the first step towards the "single digest" idea under notification preferences.
+- **Recurring classes skip closed days,** both when a series is created (with a note listing the dates left out) and when the worker tops up open-ended series later. Skipped days don't count towards a set number of classes, so a 6-class course still gets 6.
+- **Adding or moving a single class onto a closed day** raises a "closed_day" check rather than refusing it. Editing something else about a class kept on a closed day (like the instructor) doesn't ask again.
+- **Removing a closure** puts back the recurring classes it left out (from today on, unless another closure still covers the day). Classes it cancelled stay cancelled: people were told and refunded, so silently bringing classes back would confuse them. Courses with a set number of classes already made up the missed class at the end, so nothing is added to those. Editing a closure only changes its name and message; changing dates is remove-and-add, so what happens to classes is always clear.
+- **The calendar** returns the closures in view, so the apps shade closed days and show the name and message, for clients too.
+

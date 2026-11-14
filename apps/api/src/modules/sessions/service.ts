@@ -1,4 +1,5 @@
 import { and, asc, count, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, sql } from "drizzle-orm";
+import { DateTime } from "luxon";
 import type { CreateSessionInput, EditScope, RefundMethod, SessionChanges, SessionFilter } from "@studio/shared";
 import type { Db, DbOrTx } from "../../db/client.js";
 import {
@@ -17,7 +18,7 @@ import {
 import { audit } from "../../lib/audit.js";
 import { badRequest, conflict, notFound } from "../../lib/errors.js";
 import { Flags } from "../../lib/flags.js";
-import { addMinutes, daysBetween, localToUtc, minutesBetweenTimes, recurrenceDates, shiftDate, utcToLocal } from "../../lib/time.js";
+import { addMinutes, daysBetween, localToUtc, minutesBetweenTimes, recurrenceDates, shiftDate, utcToLocal, type TZ } from "../../lib/time.js";
 import type { AuthContext } from "../../plugins/auth.js";
 import { createBooking, refundNote } from "../bookings/service.js";
 import {
@@ -33,6 +34,7 @@ import {
   usualDuration,
 } from "../checks/session-checks.js";
 import { notify } from "../notifications/outbox.js";
+import { closureCovering, closuresFor } from "../closures/days.js";
 import { closeWaitlist, fillOpenSpots } from "../waitlist/engine.js";
 import {
   assertMemberWithRole,
@@ -205,7 +207,7 @@ export async function createSession(tx: DbOrTx, auth: AuthContext, input: Create
 // ---------------------------------------------------------------------------
 // Recurring classes
 // ---------------------------------------------------------------------------
-type SeriesRow = typeof classSeries.$inferSelect;
+export type SeriesRow = typeof classSeries.$inferSelect;
 
 export async function createSeries(
   tx: DbOrTx,
@@ -272,39 +274,26 @@ export async function generateSeriesSessions(tx: DbOrTx, series: SeriesRow, thro
   const from = series.generatedThrough ? shiftDate(series.generatedThrough, 1) : series.startDate;
   if (from > throughDate) return [];
   const [{ n } = { n: 0 }] = await tx.select({ n: count() }).from(classSessions).where(eq(classSessions.seriesId, series.id));
-  const dates = recurrenceDates(
-    { daysOfWeek: series.daysOfWeek, everyNWeeks: series.everyNWeeks, startDate: series.startDate, endDate: series.endDate, occurrences: series.occurrences },
-    from,
-    throughDate,
-    n,
-  );
+  // Closed days are left out. They don't count towards a set number of classes, so a course still gets all of them.
+  const closed = await closuresFor(tx, series.orgId, series.locationId, from, throughDate);
+  const skipped: { date: string; name: string }[] = [];
+  const dates = recurrenceDates(seriesRule(series), from, throughDate, n, (date) => {
+    const c = closureCovering(closed, date);
+    if (c) skipped.push({ date, name: c.name });
+    return !!c;
+  });
   const zone = await locationZone(tx, series.orgId, series.locationId);
   const rows = [];
   for (const date of dates) {
-    const startsAt = localToUtc(date, series.startTime, zone);
-    const endsAt = addMinutes(startsAt, series.durationMinutes);
+    const row = seriesSessionRow(series, date, zone);
     if (flags) {
-      await checkSlot(tx, series.orgId, flags, zone, { instructorId: series.instructorId, roomId: series.roomId, classTypeId: series.classTypeId, locationId: series.locationId, startsAt, endsAt });
+      await checkSlot(tx, series.orgId, flags, zone, { instructorId: series.instructorId, roomId: series.roomId, classTypeId: series.classTypeId, locationId: series.locationId, startsAt: row.startsAt, endsAt: row.endsAt, checkClosed: false });
     }
-    rows.push({
-      orgId: series.orgId,
-      seriesId: series.id,
-      templateId: series.templateId,
-      classTypeId: series.classTypeId,
-      locationId: series.locationId,
-      roomId: series.roomId,
-      instructorId: series.instructorId,
-      capacity: series.capacity,
-      waitlistEnabled: series.waitlistEnabled,
-      waitlistCapacity: series.waitlistCapacity,
-      classpassEnabled: series.classpassEnabled,
-      classpassSpots: series.classpassSpots,
-      autoCancelHours: series.autoCancelHours,
-      autoCancelMin: series.autoCancelMin,
-      notes: series.notes,
-      startsAt,
-      endsAt,
-    });
+    rows.push(row);
+  }
+  if (flags && skipped.length) {
+    const list = skipped.slice(0, 5).map((x) => `${DateTime.fromISO(x.date).toFormat("ccc d LLL")} (${x.name})`).join(", ");
+    flags.info({ code: "closure_skips_classes", details: { dates: skipped.map((x) => x.date) }, message: `${skipped.length === 1 ? "1 date is" : `${skipped.length} dates are`} left out because the studio is closed: ${list}${skipped.length > 5 ? " and more" : ""}.` });
   }
   const created = rows.length ? await tx.insert(classSessions).values(rows).returning() : [];
   await tx.update(classSeries).set({ generatedThrough: throughDate }).where(eq(classSeries.id, series.id));
@@ -315,6 +304,32 @@ export async function generateSeriesSessions(tx: DbOrTx, series: SeriesRow, thro
     else if (series.clientIds.length) await bookSeriesClientsInBackground(tx, series, created, now);
   }
   return created;
+}
+
+export const seriesRule = (series: SeriesRow) => ({ daysOfWeek: series.daysOfWeek, everyNWeeks: series.everyNWeeks, startDate: series.startDate, endDate: series.endDate, occurrences: series.occurrences });
+
+/** One class of a series on a local date. */
+export function seriesSessionRow(series: SeriesRow, date: string, zone: TZ) {
+  const startsAt = localToUtc(date, series.startTime, zone);
+  return {
+    orgId: series.orgId,
+    seriesId: series.id,
+    templateId: series.templateId,
+    classTypeId: series.classTypeId,
+    locationId: series.locationId,
+    roomId: series.roomId,
+    instructorId: series.instructorId,
+    capacity: series.capacity,
+    waitlistEnabled: series.waitlistEnabled,
+    waitlistCapacity: series.waitlistCapacity,
+    classpassEnabled: series.classpassEnabled,
+    classpassSpots: series.classpassSpots,
+    autoCancelHours: series.autoCancelHours,
+    autoCancelMin: series.autoCancelMin,
+    notes: series.notes,
+    startsAt,
+    endsAt: addMinutes(startsAt, series.durationMinutes),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -341,7 +356,7 @@ async function bookAppointmentClients(tx: DbOrTx, auth: AuthContext, sessions: S
 }
 
 /** The worker topping up a repeating appointment: book its clients in quietly, skipping any that can't be. */
-async function bookSeriesClientsInBackground(tx: DbOrTx, series: SeriesRow, sessions: SessionRow[], now: Date) {
+export async function bookSeriesClientsInBackground(tx: DbOrTx, series: SeriesRow, sessions: SessionRow[], now: Date) {
   const actor = series.createdBy ?? (await tx.select({ id: memberships.userId }).from(memberships).where(and(eq(memberships.orgId, series.orgId), eq(memberships.role, "owner"))).limit(1))[0]?.id;
   if (!actor) return;
   const auth: AuthContext = { orgId: series.orgId, userId: actor, role: "owner" };
@@ -400,7 +415,7 @@ async function applyChanges(
   // Warnings.
   const ref = { sessionId: s.id };
   if (timeChanged || locChanged || instructorId !== s.instructorId || roomId !== s.roomId || classTypeId !== s.classTypeId) {
-    await checkSlot(tx, auth.orgId, flags, newZone, { ...ref, instructorId, roomId, classTypeId, locationId, startsAt, endsAt, excludeIds: [s.id] });
+    await checkSlot(tx, auth.orgId, flags, newZone, { ...ref, instructorId, roomId, classTypeId, locationId, startsAt, endsAt, excludeIds: [s.id], checkClosed: timeChanged || locChanged });
   }
   if (timeChanged) {
     if (checkTiming(flags, zone, { ...ref, startsAt, durationMinutes: duration, ...(await usualDuration(tx, classTypeId, s.templateId)), isNew: false, now })) flags.drop(CLASH_CODES, s.id);
@@ -693,7 +708,14 @@ export async function bulkUpdateSessions(
 // ---------------------------------------------------------------------------
 type CancelOpts = { reason?: string; refund: RefundMethod; notifyClients: boolean };
 
-async function cancelOne(tx: DbOrTx, auth: AuthContext, s: SessionRow, opts: CancelOpts, flags: Flags, now: Date) {
+/** Who a cancellation affected, for callers that send one combined message instead (closures). */
+export interface CancelledInfo {
+  session: SessionRow;
+  clientIds: string[];
+  waitlisted: string[];
+}
+
+export async function cancelOne(tx: DbOrTx, auth: AuthContext, s: SessionRow, opts: CancelOpts & { silent?: (info: CancelledInfo) => void }, flags: Flags, now: Date) {
   await lockSession(tx, auth.orgId, s.id);
   if (s.status === "cancelled") return s;
   const [{ waiting } = { waiting: 0 }] = await tx
@@ -723,6 +745,11 @@ async function cancelOne(tx: DbOrTx, auth: AuthContext, s: SessionRow, opts: Can
     .set({ status: "cancelled", resolvedAt: now })
     .where(and(eq(substituteRequests.sessionId, s.id), inArray(substituteRequests.status, ["open", "awaiting_approval"])));
 
+  if (opts.silent) {
+    opts.silent({ session: updated!, clientIds: cancelled.map((b) => b.clientId), waitlisted });
+    await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "session.cancelled", entityType: "session", entityId: s.id, details: { reason: opts.reason, refund: opts.refund, bookings: cancelled.length } });
+    return updated!;
+  }
   const info = { ...(await describeSession(tx, s)), reason: opts.reason };
   await notify(tx, { orgId: auth.orgId, userIds: [s.instructorId], template: "session.cancelled", data: info });
   if (opts.notifyClients) {
