@@ -102,7 +102,7 @@ Agents run on the **Claude API**, Anthropic's pay-as-you-go developer platform. 
 
 1. Create an organisation on the **Claude Console** (platform.claude.com) and add a payment method. You can pay as you go from prepaid credit, and move to invoicing later.
 2. Create two **workspaces**, `staging` and `production`. Each gets its own API key and a **monthly spend limit**. The spend limit is a backstop in case the platform's own caps fail.
-3. Put each key in that environment's secret manager as `ANTHROPIC_API_KEY`. Never commit it, and never put it in the web or mobile app. Optional settings: `ASSISTANT_MODEL` (default `claude-opus-5-5`), `ASSISTANT_MONTHLY_REPLIES` (replies included per studio each month, default 300) and `ASSISTANT_DISABLED=true` (a kill switch for every studio).
+3. Put each key in that environment's secret manager as `ANTHROPIC_API_KEY`. Never commit it, and never put it in the web or mobile app. Optional settings: `ASSISTANT_MODEL` (default `claude-opus-5-5`), `ASSISTANT_MONTHLY_REPLIES` (AI credits included per studio each month, default 300; an answer costs 1, an announcement draft 1, a campaign draft 3) and `ASSISTANT_DISABLED=true` (a kill switch for every studio).
 4. Accept Anthropic's **data processing agreement** for the organisation. Add "AI processing (Anthropic)" to the platform's list of subprocessors, and tell studios so their own privacy notices can mention it. This matters under data-protection laws such as PDPA in Singapore, Malaysia and Thailand. By default, data sent through the API under the commercial terms is not used to train models.
 
 ### How usage and cost are tracked
@@ -132,3 +132,17 @@ Claude only sees what our tools return. Every tool runs with the requesting stud
 
 - **Reminder agents** (`apps/api/src/modules/agents/`) don't use the Claude API at all: they're rules over the studio's schedule, so they cost nothing per run and don't count towards the allowance. The worker runs them every minute.
 - **The assistant** (`apps/api/src/modules/assistant/`) uses the Claude API with tool use. It reads the help guide (`docs/help/` and `docs/PRODUCT_NOTES.md`, copied into the image) and has six tools, all limited to the asker's studio and role. It only *offers* actions; the person confirms each one. If the model declines a request, the API retries on its default fallback model (server-side fallback).
+
+## 6. Email inbox (Gmail and Outlook)
+
+Studios connect their own mailbox by signing in with Google or Microsoft. The platform needs one OAuth app with each:
+
+1. **Google:** in Google Cloud Console, create an OAuth client (Web application). Add the redirect URI `https://<api-host>/v1/public/comms/email/callback/gmail`. Enable the Gmail API. The app asks for the `gmail.modify` scope, which Google treats as restricted: before going public, the app needs Google's verification (and a security assessment). Until then it works for up to 100 test users.
+2. **Microsoft:** in Microsoft Entra (Azure) App registrations, register a multi-tenant app with the redirect URI `https://<api-host>/v1/public/comms/email/callback/outlook`, and add the delegated permissions `offline_access`, `Mail.ReadWrite`, `Mail.Send` and `User.Read`. Create a client secret.
+3. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` and optionally `MICROSOFT_TENANT` (default `common`) in the secret manager. Leave a pair empty to hide that provider.
+
+Refresh tokens are stored encrypted with `SECRETS_KEY`. The worker checks connected mailboxes every 2 minutes. Disconnecting deletes the stored tokens.
+
+## 7. Membership renewals and card payments
+
+Recurring memberships renew through a **renewal charger** (`setRenewalCharger` in `modules/packages/payments.ts`). Without a payment provider connected, renewals stay "pay at the desk" and nothing is put on hold. Once a provider (e.g. Stripe, which supports PayNow, GrabPay and cards in the region) is connected, a declined renewal puts the membership on hold for 7 days, retries on days 3 and 7, and then ends it and charges any early termination fee. The worker runs the retries every 15 minutes.
