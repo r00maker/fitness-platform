@@ -45,3 +45,45 @@ export function modelFor(cfg: Pick<Config, "ANTHROPIC_API_KEY" | "ASSISTANT_MODE
       tools: req.tools,
     });
 }
+
+// --- Writers (announcements, campaign drafts) ---------------------------------------------
+export interface WriterRequest {
+  system: string;
+  prompt: string;
+  /** JSON schema the answer must follow (structured output). */
+  schema: Record<string, unknown>;
+}
+export type WriterCall = (req: WriterRequest) => Promise<{ json: unknown; stop_reason: string | null; usage: ModelResponse["usage"] }>;
+let writerOverride: WriterCall | null = null;
+/** Tests: answer with a script instead of calling the real API. */
+export const setWriterModel = (fn: WriterCall | null) => (writerOverride = fn);
+
+/**
+ * Writing is a short, well-specified job, so it runs at low effort: quick and cheap, with the
+ * writing guide doing the heavy lifting. Answers come back as JSON in a fixed shape.
+ */
+export function writerFor(cfg: Pick<Config, "ANTHROPIC_API_KEY" | "ASSISTANT_MODEL">): WriterCall | null {
+  if (writerOverride) return writerOverride;
+  if (!cfg.ANTHROPIC_API_KEY) return null;
+  client ??= new Anthropic({ apiKey: cfg.ANTHROPIC_API_KEY, maxRetries: 2, timeout: 60_000 });
+  const c = client;
+  return async (req) => {
+    const res = await c.beta.messages.create({
+      model: cfg.ASSISTANT_MODEL,
+      max_tokens: 4000,
+      output_config: { effort: "low", format: { type: "json_schema", schema: req.schema } },
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      system: [{ type: "text", text: req.system, cache_control: { type: "ephemeral" } }],
+      messages: [{ role: "user", content: req.prompt }],
+    });
+    const text = res.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text").map((b) => b.text).join("");
+    let json: unknown = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+    return { json, stop_reason: res.stop_reason, usage: res.usage };
+  };
+}

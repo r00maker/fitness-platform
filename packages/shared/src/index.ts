@@ -9,3 +9,4 @@ export * from "./pay.js";
 export * from "./marketing.js";
 export * from "./comms.js";
 export * from "./agents.js";
+export * from "./sales.js";

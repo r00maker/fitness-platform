@@ -16,6 +16,10 @@ import { reportRoutes } from "./modules/reports/routes.js";
 import { commsRoutes } from "./modules/comms/routes.js";
 import { agentRoutes } from "./modules/agents/routes.js";
 import { assistantRoutes } from "./modules/assistant/routes.js";
+import { salesRoutes } from "./modules/sales/routes.js";
+import { shopRoutes } from "./modules/shop/routes.js";
+import { writerRoutes } from "./modules/assistant/writer.js";
+import { emailRoutes } from "./modules/comms/email.js";
 import { bookingRoutes } from "./modules/bookings/routes.js";
 import { catalogRoutes } from "./modules/catalog/routes.js";
 import { clientRoutes } from "./modules/clients/routes.js";
@@ -111,6 +115,10 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(commsRoutes);
       await v1.register(agentRoutes);
       await v1.register(assistantRoutes);
+      await v1.register(salesRoutes);
+      await v1.register(shopRoutes);
+      await v1.register(writerRoutes);
+      await v1.register(emailRoutes);
     },
     { prefix: "/v1" },
   );

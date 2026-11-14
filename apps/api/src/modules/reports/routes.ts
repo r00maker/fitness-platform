@@ -14,7 +14,7 @@
  * Group classes and appointments are kept apart so private sessions don't skew class numbers.
  */
 import type { FastifyInstance } from "fastify";
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import type { DbOrTx } from "../../db/client.js";
 import { parse } from "../../lib/validate.js";
@@ -22,6 +22,8 @@ import { requirePermission } from "../../plugins/auth.js";
 import { money } from "../bookings/rules.js";
 import { funnel } from "../marketing/ads.js";
 import { assertMemberWithRole, getOrg } from "../sessions/context.js";
+import { charts, csvFor, listTable, points, toCsv, visualReport } from "./export.js";
+import { DateTime } from "luxon";
 
 type Org = Awaited<ReturnType<typeof getOrg>>;
 const DAY = 86_400_000;
@@ -473,27 +475,119 @@ export async function reportRoutes(app: FastifyInstance) {
     return { section: "instructor", period: periodView(p), ...(await instructorDetail(app.db, org, p, id)) };
   });
 
+  const filtersQuery = query.extend({
+    instructorId: z.uuid().optional(),
+    classTypeId: z.uuid().optional(),
+    locationId: z.uuid().optional(),
+    /** Days of the week, 1 = Monday … 7 = Sunday, comma-separated. */
+    weekdays: z.string().regex(/^[1-7](,[1-7])*$/, "Use 1 (Monday) to 7 (Sunday), separated by commas.").optional().transform((v) => (v ? [...new Set(v.split(",").map(Number))].sort() : undefined)),
+    timeOfDay: z.enum(["morning", "afternoon", "evening"]).optional(),
+  });
+  type Filters = z.infer<typeof filtersQuery>;
+  const scopeOf = (q: Filters, org: Org): Scope => ({ instructorId: q.instructorId, classTypeId: q.classTypeId, locationId: q.locationId, weekdays: q.weekdays, timeOfDay: q.timeOfDay, tz: org.timezone });
+  async function compute(which: z.infer<typeof section>["section"], org: Org, p: Period, sc: Scope) {
+    return which === "classes" ? classes(app.db, org, p, sc) : { overview, sales, clients, conversion }[which](app.db, org, p);
+  }
+
   app.get("/reports/:section", async (req) => {
     requirePermission(req, "viewReports");
     const { section: which } = parse(section, req.params);
-    const q = parse(
-      query.extend({
-        instructorId: z.uuid().optional(),
-        classTypeId: z.uuid().optional(),
-        locationId: z.uuid().optional(),
-        /** Days of the week, 1 = Monday … 7 = Sunday, comma-separated. */
-        weekdays: z.string().regex(/^[1-7](,[1-7])*$/, "Use 1 (Monday) to 7 (Sunday), separated by commas.").optional().transform((v) => (v ? [...new Set(v.split(",").map(Number))].sort() : undefined)),
-        timeOfDay: z.enum(["morning", "afternoon", "evening"]).optional(),
-      }),
-      req.query,
-    );
-    const { days } = q;
+    const q = parse(filtersQuery, req.query);
     const org = await getOrg(app.db, req.auth.orgId);
-    const p = periodOf(days);
+    const p = periodOf(q.days);
     // Zooming in (instructor, class type, location, days, time of day) narrows the Classes tab.
-    const sc: Scope = { instructorId: q.instructorId, classTypeId: q.classTypeId, locationId: q.locationId, weekdays: q.weekdays, timeOfDay: q.timeOfDay, tz: org.timezone };
-    const out = which === "classes" ? await classes(app.db, org, p, sc) : await { overview, sales, clients, conversion }[which](app.db, org, p);
+    const sc = scopeOf(q, org);
+    const out = await compute(which, org, p, sc);
     const { tz: _tz, ...shown } = sc;
     return { section: which, period: periodView(p), currency: org.currency, ...(which === "classes" && isScoped(sc) ? { filters: { ...shown, ...(sc.timeOfDay ? { timeOfDayLabel: TIMES_OF_DAY[sc.timeOfDay] } : {}) } } : {}), ...out };
+  });
+
+  /**
+   * Export a report: ?format=csv for the raw rows (same period and filters), or ?format=visual for
+   * a one-page summary to print or save as PDF.
+   */
+  const exportSection = z.object({ section: z.enum(["overview", "sales", "classes", "clients", "conversion", "instructors"]) });
+  app.get("/reports/export/:section", { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (req, reply) => {
+    requirePermission(req, "viewReports");
+    const { section: which } = parse(exportSection, req.params);
+    const q = parse(filtersQuery.extend({ format: z.enum(["csv", "visual"]).default("csv") }), req.query);
+    const org = await getOrg(app.db, req.auth.orgId);
+    const p = periodOf(q.days);
+    const sc = scopeOf(q, org);
+    const pv = periodView(p);
+    const stamp = DateTime.now().setZone(org.timezone);
+    const base = `${which}-${DateTime.fromJSDate(p.from, { zone: org.timezone }).toISODate()}-to-${stamp.toISODate()}`;
+    reply.header("cache-control", "private, no-store");
+    if (q.format === "csv") {
+      const { header, rows } = await csvFor(app.db, org, which, p.from, p.to, which === "classes" ? scopeSql(sc) : sql``);
+      reply.header("content-type", "text/csv; charset=utf-8").header("content-disposition", `attachment; filename="${base}.csv"`);
+      return toCsv(header, rows);
+    }
+    // Plain-language labels for the filters in use.
+    const one = async (q: SQL) => (await app.db.execute<{ name: string }>(q)).rows[0]?.name ?? null;
+    const typeName = q.classTypeId ? await one(sql`select name from class_types where id = ${q.classTypeId} and org_id = ${org.id}`) : null;
+    const locName = q.locationId ? await one(sql`select name from locations where id = ${q.locationId} and org_id = ${org.id}`) : null;
+    const instName = q.instructorId ? await one(sql`select u.first_name || ' ' || u.last_name as name from users u join memberships m on m.user_id = u.id and m.org_id = ${org.id} where u.id = ${q.instructorId}`) : null;
+    const filters = which === "classes"
+      ? [typeName, locName, instName ? `Taught by ${instName}` : null, q.weekdays?.length ? q.weekdays.map((d) => ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][d]).join(", ") : null, q.timeOfDay ? TIMES_OF_DAY[q.timeOfDay] : null].filter((x): x is string => !!x)
+      : [];
+    const titles = { overview: "Studio overview", sales: "Sales report", classes: "Classes report", clients: "Clients report", conversion: "Conversion report", instructors: "Instructors report" } as const;
+    const { hbars, columns, heat } = charts;
+    let metrics: Parameters<typeof visualReport>[0]["metrics"] = [];
+    let summary: string | undefined;
+    let sections: Parameters<typeof visualReport>[0]["sections"] = [];
+    if (which === "instructors") {
+      const d = await instructorList(app.db, org, p);
+      summary = d.explain;
+      sections = [
+        { title: "How full each instructor's classes were", wide: true, body: hbars(d.instructors.map((i) => ({ label: i.name, value: i.fill, display: `${i.fill}%`, note: `${i.classes} classes · ${i.averageBooked} booked on average` }))) },
+        { title: "Everyone who teaches", wide: true, body: listTable(["Instructor", "Classes", "Appointments", "Covers", "Booked per class", "How full", "No-shows"], d.instructors.map((i) => [i.name, i.classes, i.appointments, i.covers, i.averageBooked, `${i.fill}%`, `${i.noShow}%`]), [1, 2, 3, 4, 5, 6]) },
+      ];
+    } else {
+      const d = (await compute(which, org, p, sc)) as Record<string, unknown> & { metrics: NonNullable<typeof metrics>; summary: string };
+      metrics = d.metrics;
+      summary = d.summary;
+      if (which === "overview") {
+        sections = [{ title: "Worth knowing", wide: true, body: points(d.highlights as string[]) }];
+      } else if (which === "sales") {
+        const chart = d.chart as { title: string; series: { label: string; cents: number; display: string }[] };
+        const breakdown = d.breakdown as { label: string; cents: number; display: string; share: number }[];
+        const top = d.topPackages as { name: string; sold: number; display: string; share: number }[];
+        sections = [
+          { title: chart.title, wide: true, body: columns(chart.series.map((x) => ({ label: x.label, value: x.cents, display: x.display })), chart.title) },
+          { title: "Where the money came from", body: hbars(breakdown.map((b) => ({ label: b.label, value: b.cents, display: b.display, note: `${b.share}% of sales` }))) },
+          { title: "Best-selling packages", body: listTable(["Package", "Sold", "Money in"], top.map((t) => [t.name, t.sold, t.display]), [1, 2]) },
+        ];
+      } else if (which === "classes") {
+        const byType = d.byClassType as { name: string; classes: number; averageBooked: number; fill: number }[];
+        const byLoc = d.byLocation as { name: string; classes: number; averageBooked: number; fill: number }[];
+        const byTime = d.byTime as { cells: { weekday: number; timeOfDay: string; fill: number; classes: number }[]; explain: string };
+        const slot = (x: { label: string; fill: number; classes: number; averageBooked: number }) => ({ label: x.label, value: x.fill, display: `${x.fill}%`, note: `${x.classes} classes · ${x.averageBooked} booked on average` });
+        sections = [
+          { title: "How full each class was", body: hbars(byType.map((t) => ({ label: t.name, value: t.fill, display: `${t.fill}%`, note: `${t.classes} held · ${t.averageBooked} booked on average` })), 100) },
+          { title: "By location", body: hbars(byLoc.map((t) => ({ label: t.name, value: t.fill, display: `${t.fill}%`, note: `${t.classes} held` })), 100) },
+          { title: "When classes are busiest", wide: true, body: `${heat(byTime.cells)}<p class="empty" style="margin-top:6px">${byTime.explain}</p>` },
+          { title: "Fullest regular classes", body: hbars((d.fullest as Parameters<typeof slot>[0][]).map(slot), 100) },
+          { title: "Quietest regular classes", body: hbars((d.quietest as Parameters<typeof slot>[0][]).map(slot), 100) },
+        ];
+      } else if (which === "clients") {
+        const risk = d.atRisk as { explain: string; clients: { name: string; visits: number; lastVisit: string }[] };
+        const regs = d.regulars as { name: string; visits: number }[];
+        sections = [
+          { title: "Regulars you might be losing", body: `<p class="empty" style="margin-bottom:6px">${risk.explain}</p>${listTable(["Client", "Visits", "Last came"], risk.clients.map((c) => [c.name, c.visits, DateTime.fromISO(c.lastVisit, { zone: org.timezone }).toFormat("d LLL")]), [1])}` },
+          { title: "Most visits", body: hbars(regs.map((r) => ({ label: r.name, value: r.visits, display: String(r.visits) }))) },
+        ];
+      } else if (which === "conversion") {
+        const f = d.funnel as { sources: { label: string; leads: number; joined: number; bought: number; revenue: string }[] };
+        const js = d.journeys as { name: string; started: number; converted: number; rate: number }[];
+        sections = [
+          { title: "Leads by where they came from", wide: true, body: listTable(["Source", "Came in", "Joined", "Bought", "First purchases"], f.sources.filter((x) => x.leads + x.joined).map((x) => [x.label, x.leads, x.joined, x.bought, x.revenue]), [1, 2, 3, 4]) },
+          { title: "Journeys that reached their goal", wide: true, body: hbars(js.map((j) => ({ label: j.name, value: j.rate, display: `${j.rate}%`, note: `${j.converted} of ${j.started}` })), 100) },
+        ];
+      }
+    }
+    const html = visualReport({ studio: org.name, title: titles[which], period: pv, filters, generatedAt: stamp.toFormat("d LLL yyyy, h:mm a"), metrics, summary, sections });
+    reply.header("content-type", "text/html; charset=utf-8").header("content-disposition", `inline; filename="${base}.html"`);
+    return html;
   });
 }

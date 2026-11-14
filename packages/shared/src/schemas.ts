@@ -599,6 +599,8 @@ export const sellPackage = z.object({
   startDate: localDate.optional(),
   /** What the client paid. Left out = the package's price. */
   pricePaidCents: money.optional(),
+  /** How they paid at the desk (for the invoice and receipt). */
+  paymentMethod: z.enum(["card", "cash", "qr", "bank_transfer", "online", "credit", "other"]).default("card"),
   note: z.string().trim().max(500).optional(),
   notifyClient: z.boolean().default(true),
 });

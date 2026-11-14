@@ -25,6 +25,7 @@ import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { whatsappFor } from "../marketing/whatsapp.js";
 import { clientByPhone, conversationFor, recordMessage } from "./threads.js";
+import { replyByEmail } from "./email.js";
 import { NOT_READY, WINDOW_MS, billingFor, billingReady, chargeCredits, creditsAvailable, messageCost, refundCredits } from "./billing.js";
 import { WhatsappError, exchangeSignupCode, phoneDetails, sendTemplateMessage, sendText, subscribeApp } from "./wa-api.js";
 
@@ -136,7 +137,7 @@ export async function commsRoutes(app: FastifyInstance) {
         ))
         .orderBy(desc(conversations.lastMessageAt))
         .limit(200);
-      return rows.map(({ c, clientName }) => ({ ...c, name: clientName ?? c.contactName ?? `+${c.contact}`, isClient: !!c.clientId, replyWindowOpen: windowOpen(c), replyWindowEndsAt: c.lastInboundAt ? new Date(c.lastInboundAt.getTime() + WINDOW_MS).toISOString() : null }));
+      return rows.map(({ c, clientName }) => ({ ...c, name: clientName ?? c.contactName ?? (c.channel === "email" ? c.contact : `+${c.contact}`), isClient: !!c.clientId, replyWindowOpen: c.channel === "email" || windowOpen(c), replyWindowEndsAt: c.lastInboundAt ? new Date(c.lastInboundAt.getTime() + WINDOW_MS).toISOString() : null }));
     });
 
     inbox.get("/comms/conversations/:id", async (req) => {
@@ -150,7 +151,7 @@ export async function commsRoutes(app: FastifyInstance) {
         conversation: { ...c, replyWindowOpen: open, replyWindowEndsAt: c.lastInboundAt ? new Date(c.lastInboundAt.getTime() + WINDOW_MS).toISOString() : null },
         messages: msgs.reverse().map((m) => ({ ...m, costCents: Number(m.costCents) })),
         // Outside the window only templates can be sent; say so plainly.
-        canReply: open ? { freeText: true, why: null } : { freeText: false, why: "It's been more than 24 hours since their last message, so WhatsApp only allows one of your approved templates. Meta charges for these." },
+        canReply: c.channel === "email" || open ? { freeText: true, why: null } : { freeText: false, why: "It's been more than 24 hours since their last message, so WhatsApp only allows one of your approved templates. Meta charges for these." },
         templates: wa.templates,
       };
     });
@@ -181,6 +182,8 @@ export async function commsRoutes(app: FastifyInstance) {
       const out = await inTx(app, async (tx) => {
         const [c] = await tx.select().from(conversations).where(and(eq(conversations.id, id), eq(conversations.orgId, req.auth.orgId))).for("update");
         if (!c) throw notFound("conversation");
+        // Email: free to send, no reply window.
+        if (c.channel === "email") return replyByEmail(tx, config, c, req.auth.userId, text);
         if (!billingReady(await billingFor(tx, req.auth.orgId))) throw conflict("billing_not_set_up", NOT_READY);
         if (!windowOpen(c)) throw conflict("window_closed", "It's been more than 24 hours since their last message, so WhatsApp only allows one of your approved templates. Choose a template instead.");
         const { wa, token } = await connection(tx, req.auth.orgId);

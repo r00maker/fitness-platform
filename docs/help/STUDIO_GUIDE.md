@@ -24,20 +24,22 @@ Owners can do everything admins can. Only the owner can add or remove admins.
 
 The menu on the left is grouped by what you're doing. Staff see:
 
-- **Day to day:** Schedule (or My schedule), Cover requests, Communication, Announcements, Reward pickups (Front of House).
-- **Clients & sales:** Clients, Leads, Packages, Fees.
+- **Day to day:** Schedule (or My schedule), Cover requests, Communication, Announcements, Pickups (Front of House: shop orders and rewards to hand over).
+- **Clients & sales:** Clients, Leads, Sales, Packages, Shop, Fees.
 - **Growth:** Marketing, Reports.
 - **Team:** Staff & pay, Payroll, Agents.
 - **Setup:** Class types, Templates, Locations & rooms, Studio rules.
 - **Account:** My pay (instructors), Preferences.
 
-Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My packages, Gift cards, Rewards, Refer a friend) and **Account** (Injuries & conditions, Profile & privacy, Preferences).
+Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My packages, Rewards, Refer a friend, and Shop when there's something in it) and **Account** (Injuries & conditions, Profile & privacy, Preferences).
 
 The **Ask** button (bottom right) opens the assistant. The **bell** at the top shows messages from your studio's agents.
 
 ## The schedule
 
-- **Add a class:** Schedule, then **+ New class**. Start from a template to fill most details in. Choose "Repeats" to make it recurring.
+- **Add a class:** Schedule, then **+ New class**. Start from a template to fill most details in. Choose "Repeats" to make it recurring. Shortcut: double-click an empty time on the calendar (owners and admins, on a computer). You're asked first, so a stray double-click doesn't start anything.
+- **Move a class to another time:** drag it to the new time or day on the calendar. You're asked to confirm before anything changes, and told about any clashes. Everyone booked or waiting is told about the new time. For a recurring class, only that one moves.
+- **No room?** If a location is one open space, choose **No room** in the room list. The class shows at the location, with no room clashes to worry about.
 - **Add an appointment** (a private session, not on the public schedule): **+ New appointment**. You can add the client straight away. You'll be warned if you leave the client empty, because appointments are usually only booked once confirmed.
 - **Change one class:** tap it, then **Edit**. For recurring classes you choose "this class", "this and later" or "the whole series".
 - **Change or cancel many classes at once:** **Edit many**. Either pick classes on the calendar, or choose them with filters (dates up to a year ahead, class types, instructors, location, days of the week and start time). Then change anything you could set when creating a class, or cancel them all.
@@ -66,8 +68,25 @@ Common reasons a booking can't be made:
 
 - **Cancel a booking:** tap the class, find the client in the class list, then **Cancel**. Outside the late-cancellation window, the class goes back to their package. Inside it, it counts as late: the class isn't given back and a late fee may apply (owners and admins can change both).
 - **Move a booking:** the client's booking, then **Move**. It keeps the same package.
-- **Refunds** are done by owners and admins only. For a class, use **Refund** on the booking in the class list (gives the class back). For a package, open the client (Clients, then their name), go to their packages and choose **Refund**. Card refunds go through once online payments are switched on.
+- **Refunds** are done by owners and admins only. For a class, use **Refund** on the booking in the class list (gives the class back). For money (a package, gift card, shop order or fee), go to **Sales**, open the sale and choose **Refund**: choose the amount, the reason, and whether it goes back the way they paid or as studio credit. You can also cancel what was bought (for example the package) at the same time. Card refunds go through your card terminal or payment provider; the app records them and emails the client.
 - **Fees** (late cancellation, no-show) are listed under **Fees**, where admins collect or waive them.
+
+## Sales: invoices, receipts and refunds
+
+Every sale gets an invoice (packages, membership renewals, gift cards, shop orders and fees). Once it's paid, it gets a receipt too. Owners and admins find them all under **Sales**:
+
+- **Transactions:** what's been taken in, refunded and is still to collect, with search and filters. Open a sale to view or print its invoice or receipt, **Email receipt**, **Mark as paid** (choose how: card, cash, QR payment such as PayNow, bank transfer) or **Refund**.
+- **Invoice design:** your business name, address, registration number (e.g. UEN), contact details, logo, accent colour, invoice and receipt numbering, sales tax (e.g. GST, shown as "includes"), how to pay, a note at the bottom, and whether receipts are emailed automatically. The preview updates as you type. Invoices already issued keep the details they were issued with.
+
+Clients can see and print their own receipts under **My packages**, **Receipts and invoices**.
+
+## Membership payments that fail
+
+When a membership's renewal payment doesn't go through, the membership is **on hold**: the client can't book with it until it's paid. The card is tried again 3 and 7 days later, and the client is asked to update their card (they can pay straight away in the app). Owners and admins can also take the payment at the desk. If it still hasn't been paid after 7 days, the membership ends: upcoming bookings made with it are cancelled, any early termination fee applies (if it's within the minimum term), and to carry on the client buys a new membership, starting a new minimum term.
+
+## Shop
+
+Owners and admins add studio merch under **Shop**: name, price, photo, sizes or colours and how many you have. Gift card settings are here too. Clients see **Shop** in their menu once something's on sale (or gift cards are on); it disappears when the shop is empty. They order in the app and collect at the front desk, paying then (or with studio credit). Front of House hands orders over under **Pickups**, taking payment first if it isn't paid.
 
 ## Waitlists
 
@@ -88,11 +107,15 @@ Instructors ask for cover from their class ("Ask for cover"). The request goes t
 
 ## Communication
 
-Read and reply to WhatsApp messages from clients, alongside the WhatsApp Business app on your phone. Meta charges for some messages (marketing templates always; service updates outside 24 hours of the client's last message). Before using it, an owner or admin chooses how messages are paid for under Communication, Settings: pay Meta directly, or buy message credits. Replies within 24 hours of a client's message are free.
+Read and reply to WhatsApp messages and emails from clients in one inbox. Filter by **All**, **WhatsApp** or **Email**. To bring in email, an owner or admin connects the studio's **Gmail** (or Google Workspace) or **Outlook** (or Microsoft 365) account under Communication, Settings, by signing in with Google or Microsoft. Replies go from that address, in the same email thread. Other email providers aren't supported yet.
+
+WhatsApp works alongside the WhatsApp Business app on your phone. Meta charges for some messages (marketing templates always; service updates outside 24 hours of the client's last message). Before using it, an owner or admin chooses how messages are paid for under Communication, Settings: pay Meta directly, or buy message credits. Replies within 24 hours of a client's message are free.
 
 ## Reports
 
 **Reports** has tabs: Overview, Sales, Classes, Clients, Conversion and Instructors. Each number is compared with the period before. On the **Classes** tab, **Zoom in** narrows everything to a class type, location, instructor, days of the week or time of day (mornings, afternoons, evenings), and shows how full each location and time slot was.
+
+**Export** (top right) gives you either **Raw data (CSV)**, every row behind the numbers for a spreadsheet or your accountant, or a **Visual report**, a one-page summary with the key numbers and charts to print or save as a PDF. Both follow the tab, period and zoom you're looking at. Client exports never include contact details.
 
 ## Agents
 
@@ -105,13 +128,26 @@ Agents are helpers that send reminders to staff (never clients) as push notifica
 
 Agents never see client names, contact details, health notes, payments, prices, packages or pay, and they never change anything. They tell a person, who decides. Instructors only hear about their own classes. Anyone can mute an agent for themselves (Agents in the bell menu). **Pause all** stops every agent at once. **Preview** shows exactly what an agent would send right now, without sending it.
 
+## Writers
+
+Two writing agents save time on words:
+
+- **Announcement writer:** on **Announcements**, use **Write it for me**. Describe it in a sentence ("lift broken at Tanjong Pagar, use the stairs") and it fills in the form for you to check. 1 AI credit.
+- **Campaign drafter:** on **Marketing**, **Campaigns**, choose **Draft with AI**. It writes a marketing email in your studio's look and makes a draft campaign. Open the email to check it, then **Send…**. 3 AI credits.
+
+They write in your studio's voice, only use facts you give them (anything missing becomes a [placeholder] to fill in), and never post or send anything themselves. They see class and location names, never client details.
+
 ## The assistant
 
 The assistant (the **Ask** button) answers questions about using the app and about your studio: for example, why a client can't be booked into a class. It only sees what your role can see. It can offer to book a client in, add them to a waitlist or cancel a booking that's free to cancel, and does it only once you press **Confirm**.
 
 It can't do anything involving money (refunds, payments, prices, selling packages, fees, pay), change settings, staff or the schedule, delete anything, or share client contact details or health notes. For those, it tells you who can and where.
 
-Owners and admins can switch it off, choose which roles can use it, and stop it doing things for people, under **Agents**, then **Assistant**. Each plan includes a number of assistant replies a month (see **Agents**, then **Usage**). Owners and admins are told at 80% and when they're used up, and can buy a top-up.
+Owners and admins can switch it off, choose which roles can use it, and stop it doing things for people, under **Agents**, then **Assistant**. Each plan includes a number of AI credits a month, shared by the assistant (1 per answer) and the writers (see **Agents**, then **Usage**). Reminder agents are free. Owners and admins are told at 80% and when they're used up, and can buy a top-up.
+
+## Class types
+
+**Class types** lists your group **Classes** and private **Appointments** separately, each with its own **+ New** button. Appointments show which packages cover them.
 
 ## Studio rules
 

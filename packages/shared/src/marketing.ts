@@ -354,11 +354,14 @@ export const JOURNEY_STEP_TYPES = {
 
 export const JOURNEY_REENTRY = ["once", "every_time"] as const;
 /**
- * What the journey is for, e.g. "buys a package". Reaching it ends their journey straight away
- * (so nobody gets a "we miss you" message the day after they book) and counts as a conversion.
+ * What the journey is for: one of three simple outcomes. Reaching it counts as a conversion and
+ * stops the journey (so nobody gets a "we miss you" message the day after they book). If they're
+ * waiting at a "Wait for" step for that same thing, they carry on down its Yes side instead, so
+ * a thank-you step still runs.
  */
+export const GOAL_EVENTS = { class_booked: "Books a class", class_attended: "Comes to a class", package_bought: "Buys a package" } as const;
 export const journeyGoal = z.object({
-  event: z.enum(Object.keys(JOURNEY_EVENTS) as [JourneyEvent, ...JourneyEvent[]]),
+  event: z.enum(Object.keys(GOAL_EVENTS) as [keyof typeof GOAL_EVENTS, ...(keyof typeof GOAL_EVENTS)[]], { message: "Choose a goal: books a class, comes to a class, or buys a package." }),
   /** package_bought: which package types count (empty = any). */
   planIds: z.array(id).max(50).optional(),
 });

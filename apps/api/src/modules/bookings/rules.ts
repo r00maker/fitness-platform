@@ -7,9 +7,10 @@ import { and, count, eq, gte, lt, ne } from "drizzle-orm";
 import { DateTime } from "luxon";
 import type { FeeType } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
-import { bookings, classSessions, fees, organizations } from "../../db/schema.js";
+import { bookings, classSessions, classTypes, fees, organizations } from "../../db/schema.js";
 import type { TZ } from "../../lib/time.js";
 import { notify } from "../notifications/outbox.js";
+import { issueInvoice, voidFor } from "../sales/invoices.js";
 import { clock } from "../checks/session-checks.js";
 import { describeSession, type SessionRow } from "../sessions/context.js";
 
@@ -86,6 +87,8 @@ export async function applyFee(tx: DbOrTx, org: Org, booking: Booking, session: 
     .onConflictDoNothing()
     .returning();
   if (row) {
+    const [cls] = await tx.select({ name: classTypes.name }).from(classTypes).where(eq(classTypes.id, session.classTypeId));
+    await issueInvoice(tx, { orgId: org.id, clientId: booking.clientId, source: "fee", feeId: row.id, lines: [{ description: type === "no_show" ? "No-show fee" : "Late cancellation fee", detail: cls?.name, quantity: 1, unitCents: fee.amountCents }] });
     await notify(tx, {
       orgId: org.id,
       userIds: [booking.clientId],
@@ -98,9 +101,11 @@ export async function applyFee(tx: DbOrTx, org: Org, booking: Booking, session: 
 
 /** Remove a pending fee, e.g. when a no-show is corrected to attended. */
 export async function waivePendingFees(tx: DbOrTx, bookingId: string, type: FeeType, by: string, reason: string) {
-  return tx
+  const rows = await tx
     .update(fees)
     .set({ status: "waived", waivedBy: by, waivedAt: new Date(), waivedReason: reason })
     .where(and(eq(fees.bookingId, bookingId), eq(fees.type, type), eq(fees.status, "pending")))
     .returning();
+  for (const f of rows) await voidFor(tx, { feeId: f.id });
+  return rows;
 }

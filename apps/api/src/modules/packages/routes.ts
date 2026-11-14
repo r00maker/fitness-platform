@@ -2,12 +2,13 @@ import type { FastifyInstance } from "fastify";
 import { and, asc, eq, inArray, isNull, isNotNull } from "drizzle-orm";
 import { EXTENSION_STATUSES, can, describePackage, schemas } from "@studio/shared";
 import { z } from "zod";
-import { classTypes, packageCategories, packagePlans } from "../../db/schema.js";
+import { classTypes, clientPackages, packageCategories, packagePlans } from "../../db/schema.js";
 import { forbidden, notFound } from "../../lib/errors.js";
 import { inTx, withFlags } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { assertFile } from "../files/routes.js";
+import { issueInvoice } from "../sales/invoices.js";
 import { money } from "../bookings/rules.js";
 import { getOrg, getSession } from "../sessions/context.js";
 import * as life from "./lifecycle.js";
@@ -174,6 +175,11 @@ export async function packageRoutes(app: FastifyInstance) {
     reply.code(201);
     return inTx(app, async (tx) => {
       const sold = await svc.sellPackage(tx, req.auth, id, input);
+      // Sold at the desk: paid there and then, so the invoice and receipt are issued together.
+      const [row] = await tx.select({ price: clientPackages.pricePaidCents, name: clientPackages.name }).from(clientPackages).where(eq(clientPackages.id, sold.id));
+      if (row && row.price > 0) {
+        await issueInvoice(tx, { orgId: req.auth.orgId, clientId: id, source: "desk_sale", clientPackageId: sold.id, createdBy: req.auth.userId, lines: [{ description: row.name, quantity: 1, unitCents: row.price }], paid: { method: input.paymentMethod } });
+      }
       if (!input.rolloverFromPackageId) return sold;
       const r = await life.rolloverInto(tx, req.auth, sold.id, { fromPackageId: input.rolloverFromPackageId });
       const org = await getOrg(tx, req.auth.orgId);

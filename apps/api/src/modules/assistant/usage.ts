@@ -1,6 +1,7 @@
 /**
- * The assistant's allowance. Each studio's plan includes a number of replies a month (counted per
- * answer, however many look-ups it took). After that, bought top-ups are used; they don't expire.
+ * AI credits. Each studio's plan includes a number a month. An assistant answer or an announcement
+ * draft uses 1 (however many look-ups it took); a campaign draft uses 3. After the month's credits,
+ * bought top-ups are used; they don't expire.
  * Owners and admins are told at 80% and at 100%. Reminder agents don't use the allowance: they
  * don't use AI, so they cost next to nothing to run.
  */
@@ -45,33 +46,43 @@ export async function usageFor(db: DbOrTx, cfg: Pick<Config, "ASSISTANT_MONTHLY_
   };
 }
 
-/** Before asking the model: is there a reply left? */
-export async function assertCanAsk(db: DbOrTx, cfg: Pick<Config, "ASSISTANT_MONTHLY_REPLIES">, orgId: string, now = new Date()) {
+/** What each AI job uses. */
+export const AI_CREDITS = { answer: 1, announcement: 1, campaign: 3 } as const;
+
+/** Before asking the model: are there enough credits left? */
+export async function assertCanAsk(db: DbOrTx, cfg: Pick<Config, "ASSISTANT_MONTHLY_REPLIES">, orgId: string, now = new Date(), cost = 1) {
   const u = await usageFor(db, cfg, orgId, now);
-  if (!u.canAsk) {
-    throw conflict("assistant_limit", `Your studio has used all ${u.allowance} assistant replies included this month. It'll be back on ${u.resetsOn}, or an owner or admin can buy a top-up under Agents → Usage.`, { resetsOn: u.resetsOn });
+  if (u.leftThisMonth + u.topUpsLeft < cost) {
+    throw conflict(
+      "assistant_limit",
+      u.leftThisMonth + u.topUpsLeft > 0
+        ? `This needs ${cost} AI credits and your studio has ${u.leftThisMonth + u.topUpsLeft} left this month. They're topped up on ${u.resetsOn}, or an owner or admin can buy more under Agents → Usage.`
+        : `Your studio has used all ${u.allowance} AI credits included this month. They're topped up on ${u.resetsOn}, or an owner or admin can buy more under Agents → Usage.`,
+      { resetsOn: u.resetsOn },
+    );
   }
   return u;
 }
 
-/** After a reply: count it (from the month's allowance, then top-ups) and warn at 80% and 100%. */
-export async function recordReply(tx: DbOrTx, cfg: Pick<Config, "ASSISTANT_MONTHLY_REPLIES">, orgId: string, tokens: { input: number; cached: number; output: number }, now = new Date()) {
+/** After an AI job: count its credits (the month's first, then top-ups) and warn at 80% and 100%. */
+export async function recordReply(tx: DbOrTx, cfg: Pick<Config, "ASSISTANT_MONTHLY_REPLIES">, orgId: string, tokens: { input: number; cached: number; output: number }, now = new Date(), cost = 1) {
   const before = await usageFor(tx, cfg, orgId, now);
-  const fromTopUp = before.leftThisMonth <= 0 && before.topUpsLeft > 0;
+  const fromMonth = Math.min(Math.max(0, before.leftThisMonth), cost);
+  const fromTopUps = Math.min(before.topUpsLeft, cost - fromMonth);
   await tx
     .insert(assistantUsage)
-    .values({ orgId, month: before.month, replies: 1, fromTopUps: fromTopUp ? 1 : 0, inputTokens: tokens.input, cachedTokens: tokens.cached, outputTokens: tokens.output })
+    .values({ orgId, month: before.month, replies: cost, fromTopUps, inputTokens: tokens.input, cachedTokens: tokens.cached, outputTokens: tokens.output })
     .onConflictDoUpdate({
       target: [assistantUsage.orgId, assistantUsage.month],
       set: {
-        replies: sql`${assistantUsage.replies} + 1`,
-        fromTopUps: sql`${assistantUsage.fromTopUps} + ${fromTopUp ? 1 : 0}`,
+        replies: sql`${assistantUsage.replies} + ${cost}`,
+        fromTopUps: sql`${assistantUsage.fromTopUps} + ${fromTopUps}`,
         inputTokens: sql`${assistantUsage.inputTokens} + ${tokens.input}`,
         cachedTokens: sql`${assistantUsage.cachedTokens} + ${tokens.cached}`,
         outputTokens: sql`${assistantUsage.outputTokens} + ${tokens.output}`,
       },
     });
-  if (fromTopUp) await tx.update(assistantSettings).set({ extraReplies: sql`greatest(${assistantSettings.extraReplies} - 1, 0)` }).where(eq(assistantSettings.orgId, orgId));
+  if (fromTopUps) await tx.update(assistantSettings).set({ extraReplies: sql`greatest(${assistantSettings.extraReplies} - ${fromTopUps}, 0)` }).where(eq(assistantSettings.orgId, orgId));
   const after = await usageFor(tx, cfg, orgId, now);
   const [row] = await tx.select().from(assistantUsage).where(and(eq(assistantUsage.orgId, orgId), eq(assistantUsage.month, after.month)));
   const warn = async (full: boolean) => {

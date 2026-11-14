@@ -20,6 +20,42 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: "Class cancelled",
     pushBody: `${when(d)} has been cancelled.`,
   }),
+  "membership.payment_failed": (d) => ({
+    subject: `Payment didn't go through for ${s(d.packageName)}`,
+    body: `We couldn't take ${s(d.amount)} for your ${s(d.packageName)}${d.reason ? ` (${s(d.reason)})` : ""}. Your membership is on hold, so you can't book with it for now. We'll try your card again on ${s(d.nextTry)}, or you can update your card or pay at the studio. If it isn't paid by ${s(d.holdUntil)}, the membership will end.`,
+    pushTitle: "Payment didn't go through",
+    pushBody: `Your ${s(d.packageName)} is on hold. Update your card by ${s(d.holdUntil)} to keep it.`,
+  }),
+  "membership.payment_failed_staff": (d) => ({
+    subject: `Membership payment failed: ${s(d.packageName)}`,
+    body: `A renewal payment of ${s(d.amount)} for ${s(d.packageName)} failed${d.reason ? ` (${s(d.reason)})` : ""}. The membership is on hold until it's paid. The card will be tried again on ${s(d.nextTry)}; if it isn't paid by ${s(d.holdUntil)}, the membership ends.`,
+    pushTitle: "Membership payment failed",
+    pushBody: `${s(d.packageName)}: on hold until it's paid.`,
+  }),
+  "membership.payment_recovered": (d) => ({
+    subject: `Thanks, ${s(d.packageName)} is active again`,
+    body: `Your payment went through, so your ${s(d.packageName)} is active again and you can book as normal.`,
+    pushTitle: "Membership active again",
+    pushBody: `Your ${s(d.packageName)} is back on. Happy booking!`,
+  }),
+  "membership.forfeited": (d) => ({
+    subject: `Your ${s(d.packageName)} has ended`,
+    body: `We tried your card three times without success, so your ${s(d.packageName)} has ended.${d.cancelledClasses ? ` ${s(d.cancelledClasses)} upcoming ${d.cancelledClasses === 1 ? "class was" : "classes were"} cancelled.` : ""}${d.fee ? ` An early termination fee of ${s(d.fee)} applies, as the membership ended before its minimum term.` : ""} To come back, you can buy a new membership any time.`,
+    pushTitle: "Membership ended",
+    pushBody: `Your ${s(d.packageName)} ended after the payment failed.`,
+  }),
+  "membership.forfeited_staff": (d) => ({
+    subject: `Membership ended after failed payments: ${s(d.packageName)}`,
+    body: `The card was tried three times without success, so ${s(d.packageName)} has ended.${d.cancelledClasses ? ` ${s(d.cancelledClasses)} upcoming ${d.cancelledClasses === 1 ? "booking was" : "bookings were"} cancelled.` : ""}${d.fee ? ` An early termination fee of ${s(d.fee)} has been added.` : ""}`,
+    pushTitle: "Membership ended",
+    pushBody: `${s(d.packageName)} ended after 3 failed payments.`,
+  }),
+  "sale.refunded": (d) => ({
+    subject: `Refund: ${s(d.amount)}`,
+    body: d.toCredit ? `We've refunded ${s(d.amount)} for ${s(d.number)} as studio credit. You'll see it at checkout next time.` : `We've refunded ${s(d.amount)} for ${s(d.number)}. Depending on your bank, it can take a few days to appear.`,
+    pushTitle: "Refund on its way",
+    pushBody: d.toCredit ? `${s(d.amount)} added to your studio credit.` : `${s(d.amount)} refunded for ${s(d.number)}.`,
+  }),
   /** Reminder agents: push to the staff app only (the agent's name is the title). */
   "agent.message": (d) => ({
     subject: s(d.agentName),
@@ -27,14 +63,14 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: s(d.agentName),
     pushBody: s(d.body),
   }),
-  /** The support assistant's monthly allowance is nearly used, or used up. */
+  /** The monthly AI credits (assistant and writers) are nearly used, or used up. */
   "assistant.usage": (d) => ({
-    subject: d.full ? "Your assistant replies for this month are used up" : `You've used ${s(d.percent)}% of this month's assistant replies`,
+    subject: d.full ? "Your AI credits for this month are used up" : `You've used ${s(d.percent)}% of this month's AI credits`,
     body: d.full
-      ? `Your studio has used all ${s(d.allowance)} assistant replies included this month. The assistant will be back on ${s(d.resetsOn)}, or you can buy a top-up under Agents → Usage.`
-      : `Your studio has used ${s(d.used)} of the ${s(d.allowance)} assistant replies included this month. If you need more before ${s(d.resetsOn)}, you can buy a top-up under Agents → Usage.`,
-    pushTitle: d.full ? "Assistant replies used up" : "Assistant replies running low",
-    pushBody: d.full ? `All ${s(d.allowance)} replies for this month are used. Top up under Agents → Usage.` : `${s(d.used)} of ${s(d.allowance)} replies used this month.`,
+      ? `Your studio has used all ${s(d.allowance)} AI credits included this month (the assistant and the writers). They're topped up on ${s(d.resetsOn)}, or you can buy more under Agents → Usage.`
+      : `Your studio has used ${s(d.used)} of the ${s(d.allowance)} AI credits included this month. If you need more before ${s(d.resetsOn)}, you can buy a top-up under Agents → Usage.`,
+    pushTitle: d.full ? "AI credits used up" : "AI credits running low",
+    pushBody: d.full ? `All ${s(d.allowance)} AI credits for this month are used. Top up under Agents → Usage.` : `${s(d.used)} of ${s(d.allowance)} AI credits used this month.`,
   }),
   "staff.invite": (d) => ({
     subject: `You've been added to ${s(d.studioName)}`,
