@@ -225,3 +225,18 @@ describe("ClassPass spots", () => {
     expect(c.body).toMatchObject({ classpassEnabled: true, classpassSpots: 2 });
   });
 });
+
+describe("rooms are optional", () => {
+  it("creates classes at a location with no rooms, and lists classes and appointments apart", async () => {
+    const { locations: L, classTypes: CT } = await import("../src/db/schema.js");
+    const h = await import("./helpers.js");
+    const s = await h.studio();
+    const [loc] = await h.db.insert(L).values({ orgId: s.orgId, name: "Pop-up studio", timezone: "Asia/Singapore" }).returning();
+    const r = await s.owner.call("POST", "/sessions", { classTypeId: s.classTypeId, locationId: loc!.id, instructorId: s.ana.id, capacity: 12, durationMinutes: 50, date: h.dayOffset(3), startTime: "09:00" });
+    expect(r.status, JSON.stringify(r.body)).toBe(201);
+    expect(r.body.roomId).toBeNull();
+    await h.db.insert(CT).values({ orgId: s.orgId, name: "Private session", color: "#7C3AED", kind: "appointment" });
+    expect((await s.owner.call("GET", "/class-types?kind=appointment")).body.map((t: { name: string }) => t.name)).toEqual(["Private session"]);
+    expect((await s.owner.call("GET", "/class-types?kind=class")).body.map((t: { name: string }) => t.name)).toEqual(["Reformer Pilates"]);
+  });
+});

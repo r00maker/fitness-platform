@@ -75,7 +75,7 @@ import {
   type Reward,
   type SegmentDefinition,
 } from "@studio/shared";
-import type { AgentDefinition } from "@studio/shared";
+import type { AgentDefinition, InvoiceSettingsInput, InvoiceSource, InvoiceStatus, PaymentMethod } from "@studio/shared";
 
 export const roleEnum = pgEnum("role", ROLES);
 export const sessionStatusEnum = pgEnum("session_status", SESSION_STATUSES);
@@ -124,7 +124,7 @@ export const giftCardStatusEnum = pgEnum("gift_card_status", GIFT_CARD_STATUSES)
 export const creditReasonEnum = pgEnum("credit_reason", ["granted", "used", "returned", "expired", "adjusted"]);
 export const creditSourceEnum = pgEnum("credit_source", ["gift_card", "referral", "journey", "studio", "loyalty"]);
 export const referralStatusEnum = pgEnum("referral_status", ["pending", "rewarded", "capped", "expired", "void"]);
-export const orderKindEnum = pgEnum("order_kind", ["package", "gift_card"]);
+export const orderKindEnum = pgEnum("order_kind", ["package", "gift_card", "product"]);
 export const bannerPlacementEnum = pgEnum("banner_placement", BANNER_PLACEMENTS);
 export const bannerLinkEnum = pgEnum("banner_link", BANNER_LINKS);
 
@@ -475,6 +475,14 @@ export const clientPackages = pgTable(
     earlyCancelFeeMode: earlyCancelFeeModeEnum("early_cancel_fee_mode").notNull().default("none"),
     earlyCancelFeeCents: integer("early_cancel_fee_cents"),
     pricePaidCents: integer("price_paid_cents").notNull().default(0),
+    /**
+     * Recurring memberships whose renewal payment failed are held: they can't be used to book.
+     * The card is tried twice more over 7 days; if both fail, the membership is forfeited.
+     */
+    paymentHeldAt: ts("payment_held_at"),
+    paymentRetries: integer("payment_retries").notNull().default(0),
+    nextPaymentRetryAt: ts("next_payment_retry_at"),
+    forfeitedAt: ts("forfeited_at"),
     currency: text("currency").notNull(),
     soldBy: uuid("sold_by").references(() => users.id),
     note: text("note"),
@@ -897,6 +905,11 @@ export const orders = pgTable(
     discountCents: integer("discount_cents").notNull().default(0),
     creditCents: integer("credit_cents").notNull().default(0),
     voucherId: uuid("voucher_id"),
+    /** Shop orders: what was bought (a snapshot, so later price changes don't alter it). */
+    items: jsonb("items").$type<{ productId: string; name: string; option: string | null; quantity: number; unitCents: number }[]>(),
+    /** Shop orders: handed over at the studio. */
+    collectedAt: ts("collected_at"),
+    collectedBy: uuid("collected_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
   (t) => [index("orders_client_idx").on(t.orgId, t.clientId)],
@@ -1514,7 +1527,7 @@ export const commsMessages = pgTable(
     conversationId: uuid("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
     direction: text("direction").$type<"in" | "out">().notNull(),
     /** Who sent it: the client, staff here, staff on the phone app (coexistence), or a journey. */
-    origin: text("origin").$type<"contact" | "platform" | "phone_app" | "journey">().notNull(),
+    origin: text("origin").$type<"contact" | "platform" | "phone_app" | "journey" | "mailbox">().notNull(),
     kind: text("kind").$type<"text" | "template" | "media" | "other">().notNull().default("text"),
     body: text("body"),
     template: jsonb("template").$type<{ name: string; language: string; category: string; variables: string[] } | null>(),
@@ -1522,6 +1535,8 @@ export const commsMessages = pgTable(
     status: text("status").$type<"queued" | "sent" | "delivered" | "read" | "failed" | "received">().notNull(),
     error: text("error"),
     sentBy: uuid("sent_by").references(() => users.id, { onDelete: "set null" }),
+    /** Email: subject and the ids needed to reply in the same thread. */
+    meta: jsonb("meta").$type<{ subject?: string; threadId?: string; messageId?: string | null; providerId?: string }>(),
     /** Message credits used (US cents); 0 when free or paid to Meta directly. */
     costCents: numeric("cost_cents", { precision: 10, scale: 2 }).notNull().default("0"),
     createdAt: createdAt(),
@@ -1737,4 +1752,125 @@ export const assistantTopUps = pgTable("assistant_top_ups", {
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   paidAt: ts("paid_at"),
   createdAt: createdAt(),
+});
+
+// ---------------------------------------------------------------------------
+// Sales: invoices, receipts, refunds, and the shop
+// ---------------------------------------------------------------------------
+/** The studio's invoice design and its next invoice and receipt numbers. */
+export const invoiceSettings = pgTable("invoice_settings", {
+  orgId: uuid("org_id").primaryKey().references(() => organizations.id, { onDelete: "cascade" }),
+  settings: jsonb("settings").$type<InvoiceSettingsInput>().notNull().default({}),
+  nextInvoiceNo: integer("next_invoice_no").notNull().default(1),
+  nextReceiptNo: integer("next_receipt_no").notNull().default(1),
+  updatedAt: updatedAt(),
+});
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    number: text("number").notNull(),
+    clientId: uuid("client_id").notNull().references(() => users.id),
+    status: text("status").$type<InvoiceStatus>().notNull().default("open"),
+    source: text("source").$type<InvoiceSource>().notNull(),
+    orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+    clientPackageId: uuid("client_package_id").references(() => clientPackages.id, { onDelete: "set null" }),
+    feeId: uuid("fee_id").references(() => fees.id, { onDelete: "set null" }),
+    lines: jsonb("lines").$type<{ description: string; detail?: string; quantity: number; unitCents: number; amountCents: number }[]>().notNull(),
+    subtotalCents: integer("subtotal_cents").notNull(),
+    discountCents: integer("discount_cents").notNull().default(0),
+    creditCents: integer("credit_cents").notNull().default(0),
+    totalCents: integer("total_cents").notNull(),
+    /** Tax included in the total (when the studio shows tax). */
+    taxCents: integer("tax_cents").notNull().default(0),
+    taxLabel: text("tax_label"),
+    currency: text("currency").notNull(),
+    /** Who it's billed to and the studio's details, as they were when it was issued. */
+    billTo: jsonb("bill_to").$type<{ name: string; email: string | null }>().notNull(),
+    seller: jsonb("seller").$type<{ businessName: string; address: string; registrationLabel: string; registrationNumber: string; email: string; phone: string; website: string }>().notNull(),
+    issuedAt: ts("issued_at").notNull().defaultNow(),
+    paidAt: ts("paid_at"),
+    paymentMethod: text("payment_method").$type<PaymentMethod>(),
+    receiptNumber: text("receipt_number"),
+    receiptSentAt: ts("receipt_sent_at"),
+    refundedCents: integer("refunded_cents").notNull().default(0),
+    voidedAt: ts("voided_at"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("invoices_number_uq").on(t.orgId, t.number),
+    uniqueIndex("invoices_receipt_uq").on(t.orgId, t.receiptNumber).where(sql`${t.receiptNumber} is not null`),
+    uniqueIndex("invoices_order_uq").on(t.orderId).where(sql`${t.orderId} is not null`),
+    uniqueIndex("invoices_fee_uq").on(t.feeId).where(sql`${t.feeId} is not null`),
+    index("invoices_org_issued_idx").on(t.orgId, t.issuedAt),
+    index("invoices_client_idx").on(t.clientId),
+  ],
+);
+
+export const invoiceRefunds = pgTable(
+  "invoice_refunds",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    invoiceId: uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+    amountCents: integer("amount_cents").notNull(),
+    method: text("method").$type<"original_payment" | "credit">().notNull(),
+    reason: text("reason").notNull(),
+    undidSale: boolean("undid_sale").notNull().default(false),
+    /** The payment provider's reference once payments are connected. */
+    providerRef: text("provider_ref"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("invoice_refunds_invoice_idx").on(t.invoiceId)],
+);
+
+/** Things the studio sells in its shop (merch, drinks, mats). */
+export const products = pgTable(
+  "products",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    priceCents: integer("price_cents").notNull(),
+    photoFileId: uuid("photo_file_id").references(() => files.id, { onDelete: "set null" }),
+    /** Sizes or colours, each with its own stock (null = not tracked). */
+    options: jsonb("options").$type<{ name: string; stock: number | null }[]>().notNull().default([]),
+    /** Stock when there are no options (null = not tracked). */
+    stock: integer("stock"),
+    onSale: boolean("on_sale").notNull().default(true),
+    category: text("category").notNull().default(""),
+    sortOrder: integer("sort_order").notNull().default(0),
+    archivedAt: ts("archived_at"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("products_org_idx").on(t.orgId)],
+);
+
+/** A studio's connected mailbox (Gmail or Outlook) for the Communication inbox. Tokens are encrypted. */
+export const emailAccounts = pgTable("email_accounts", {
+  orgId: uuid("org_id").primaryKey().references(() => organizations.id, { onDelete: "cascade" }),
+  provider: text("provider").$type<"gmail" | "outlook">().notNull(),
+  address: text("address").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  accessToken: text("access_token"),
+  accessExpiresAt: ts("access_expires_at"),
+  lastSyncAt: ts("last_sync_at"),
+  lastError: text("last_error"),
+  connectedBy: uuid("connected_by").references(() => users.id, { onDelete: "set null" }),
+  connectedAt: ts("connected_at").notNull().defaultNow(),
+});
+
+/** One-time "connect your mailbox" requests: a random value we check when the provider sends them back. */
+export const oauthStates = pgTable("oauth_states", {
+  tokenHash: text("token_hash").primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").$type<"gmail" | "outlook">().notNull(),
+  expiresAt: ts("expires_at").notNull(),
 });

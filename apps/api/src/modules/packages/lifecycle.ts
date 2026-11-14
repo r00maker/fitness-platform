@@ -34,6 +34,8 @@ import type { Flags } from "../../lib/flags.js";
 import type { AuthContext } from "../../plugins/auth.js";
 import { money } from "../bookings/rules.js";
 import { notify } from "../notifications/outbox.js";
+import { issueInvoice } from "../sales/invoices.js";
+import { chargeRenewal } from "./payments.js";
 import { getOrg, staffIds, userName } from "../sessions/context.js";
 import { commitmentEnd, earlyCancelFee, expiryFrom, getPackage, lastDay, orgZone, packageState, periodsLeftInTerm, presentPackages, renewalEnd, type Pkg } from "./service.js";
 import { assertFile } from "../files/routes.js";
@@ -243,6 +245,7 @@ async function decide(tx: DbOrTx, org: Org, r: Request, p: Pkg, input: { days: n
   let feeId: string | null = null;
   if (input.feeCents > 0) {
     const [f] = await tx.insert(fees).values({ orgId: org.id, clientId: r.requestedBy, clientPackageId: p.id, type: "package_extension", amountCents: input.feeCents, currency: org.currency }).returning({ id: fees.id });
+    await issueInvoice(tx, { orgId: org.id, clientId: r.requestedBy, source: "fee", feeId: f!.id, clientPackageId: p.id, lines: [{ description: "Package extension fee", detail: p.name, quantity: 1, unitCents: input.feeCents }] });
     feeId = f!.id;
   }
   const [u] = await tx
@@ -416,9 +419,11 @@ export async function renewDuePackages(db: Db, now = new Date()) {
   const due = await db
     .select({ id: clientPackages.id, orgId: clientPackages.orgId })
     .from(clientPackages)
-    .where(and(eq(clientPackages.billing, "recurring"), isNull(clientPackages.cancelledAt), sql`${clientPackages.expiresAt} <= ${now}`))
+    // Memberships on hold for a failed payment don't renew again until that's sorted.
+    .where(and(eq(clientPackages.billing, "recurring"), isNull(clientPackages.cancelledAt), isNull(clientPackages.paymentHeldAt), sql`${clientPackages.expiresAt} <= ${now}`))
     .limit(500);
   let renewed = 0;
+  const toCharge: string[] = [];
   for (const { id, orgId } of due) {
     await db.transaction(async (tx) => {
       const org = await getOrg(tx, orgId);
@@ -442,14 +447,20 @@ export async function renewDuePackages(db: Db, now = new Date()) {
         });
         if (p.pricePaidCents > 0) {
           // Once payments are connected, the provider charges this; until then it's due at the studio.
-          await tx.insert(orders).values({ orgId, clientId: p.ownerId, planId: p.planId, amountCents: p.pricePaidCents, currency: p.currency, status: "pending", clientPackageId: p.id });
+          const [o] = await tx.insert(orders).values({ orgId, clientId: p.ownerId, planId: p.planId, amountCents: p.pricePaidCents, currency: p.currency, status: "pending", clientPackageId: p.id }).returning();
+          await issueInvoice(tx, { orgId, clientId: p.ownerId, source: "renewal", orderId: o!.id, clientPackageId: p.id, lines: [{ description: p.name, detail: `Renewal: until ${nice(lastDay(next, zone))}`, quantity: 1, unitCents: p.pricePaidCents }] });
+          toCharge.push(p.id);
         }
         await notify(tx, { orgId, userIds: [p.ownerId], template: "package.renewed", data: { packageName: p.name, validUntil: nice(lastDay(next, zone)), classes: fresh, carried } });
         p = u!;
         renewed++;
+        // One renewal at a time: it's charged before the next period can renew.
+        if (toCharge.includes(p.id)) break;
       }
     });
   }
+  // Charge the saved card for each renewal (with a payment provider connected).
+  for (const id of new Set(toCharge)) await chargeRenewal(db, id, now);
   return renewed;
 }
 
@@ -502,7 +513,8 @@ export async function stopRenewing(tx: DbOrTx, auth: AuthContext, id: string, in
   const endsOn = lastDay(renewalEnd({ ...p, stopsRenewingAt: now, endsEarly: early }, zone), zone)!;
   await tx.update(clientPackages).set({ stopsRenewingAt: now, endsEarly: early }).where(eq(clientPackages.id, p.id));
   if (feeCents > 0) {
-    await tx.insert(fees).values({ orgId: org.id, clientId: p.ownerId, clientPackageId: p.id, type: "early_cancellation", amountCents: feeCents, currency: org.currency });
+    const [ef] = await tx.insert(fees).values({ orgId: org.id, clientId: p.ownerId, clientPackageId: p.id, type: "early_cancellation", amountCents: feeCents, currency: org.currency }).returning({ id: fees.id });
+    await issueInvoice(tx, { orgId: org.id, clientId: p.ownerId, source: "fee", feeId: ef!.id, clientPackageId: p.id, lines: [{ description: "Early cancellation fee", detail: p.name, quantity: 1, unitCents: feeCents }] });
   }
   await tx.insert(packageLedger).values({
     orgId: org.id, packageId: p.id, change: 0, reason: "cancelled", note: input.reason ?? null, createdBy: auth.userId,

@@ -54,6 +54,16 @@ const envSchema = z
     ASSISTANT_DISABLED: z.stringbool().default(false),
     /** Where the help guide lives (the assistant reads it). Defaults to ./docs next to the app. */
     HELP_DOCS_DIR: z.string().optional(),
+    /**
+     * Email in the Communication inbox. Register an OAuth app with Google (Gmail API) and/or
+     * Microsoft (Graph, Mail.ReadWrite + Mail.Send), with the redirect address
+     * <PUBLIC_API_URL>/v1/public/comms/email/callback/gmail (or /outlook).
+     */
+    GOOGLE_CLIENT_ID: z.string().min(10).optional(),
+    GOOGLE_CLIENT_SECRET: z.string().min(10).optional(),
+    MICROSOFT_CLIENT_ID: z.string().min(10).optional(),
+    MICROSOFT_CLIENT_SECRET: z.string().min(10).optional(),
+    MICROSOFT_TENANT: z.string().regex(/^[a-zA-Z0-9.-]+$/).default("common"),
     /** How far ahead recurring classes are created on the calendar. */
     SERIES_HORIZON_DAYS: z.coerce.number().int().min(7).max(730).default(120),
   })

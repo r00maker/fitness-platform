@@ -8,6 +8,7 @@ import { audit } from "../../lib/audit.js";
 import { conflict, notFound } from "../../lib/errors.js";
 import { inTx } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
+import { voidFor } from "../sales/invoices.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { money } from "../bookings/rules.js";
 import { tagsFor } from "../sessions/people.js";
@@ -95,6 +96,7 @@ export async function clientRoutes(app: FastifyInstance) {
       if (!fee) throw notFound("fee");
       if (fee.status !== "pending") throw conflict("fee_not_pending", fee.status === "waived" ? "This fee has already been waived." : "This fee has already been paid. Refund it instead.");
       const [updated] = await tx.update(fees).set({ status: "waived", waivedBy: req.auth.userId, waivedAt: new Date(), waivedReason: reason }).where(eq(fees.id, id)).returning();
+      await voidFor(tx, { feeId: id });
       await audit(tx, { orgId: req.auth.orgId, actorId: req.auth.userId, action: "fee.waived", entityType: "fee", entityId: id, details: { reason } });
       return updated;
     });

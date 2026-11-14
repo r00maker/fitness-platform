@@ -16,6 +16,8 @@ import { leadFollowUps, sendMetaConversions } from "../modules/marketing/ads.js"
 import { autoCancelDue } from "../modules/sessions/service.js";
 import { sendScheduledCampaigns } from "../modules/marketing/campaigns.js";
 import { runDueAgents } from "../modules/agents/engine.js";
+import { retryHeldRenewals } from "../modules/packages/payments.js";
+import { syncAllEmail } from "../modules/comms/email.js";
 
 const config = loadConfig();
 const { db, pool } = createDb(config.DATABASE_URL);
@@ -53,6 +55,8 @@ every(15 * 60_000, "lead follow-ups", () => leadFollowUps(db, urls));
 every(5 * 60_000, "meta conversions", () => sendMetaConversions(db, config));
 every(60_000, "auto-cancel", () => autoCancelDue(db));
 every(60_000, "agents", () => runDueAgents(db));
+every(15 * 60_000, "membership payment retries", () => retryHeldRenewals(db));
+every(2 * 60_000, "email inbox", () => syncAllEmail(db, config));
 
 const stop = async () => {
   running = false;

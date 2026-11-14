@@ -19,20 +19,34 @@ export async function clientByPhone(tx: DbOrTx, orgId: string, phone: string) {
   return c ?? null;
 }
 
-/** The thread with this number, created if new (and linked to the client with that number). */
-export async function conversationFor(tx: DbOrTx, orgId: string, contact: string, name?: string | null): Promise<Conversation> {
-  const [found] = await tx.select().from(conversations).where(and(eq(conversations.orgId, orgId), eq(conversations.channel, "whatsapp"), eq(conversations.contact, contact)));
+/** Find the client with this email address. */
+export async function clientByEmail(tx: DbOrTx, orgId: string, email: string) {
+  const [c] = await tx
+    .select({ id: users.id, name: sql<string>`${users.firstName} || ' ' || ${users.lastName}` })
+    .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(and(eq(memberships.orgId, orgId), eq(memberships.role, "client"), sql`lower(${users.email}) = ${email.toLowerCase()}`))
+    .limit(1);
+  return c ?? null;
+}
+
+/**
+ * The thread with this contact, created if new (and linked to the client with that number or email).
+ * WhatsApp contacts are numbers (digits only); email contacts are lower-case addresses.
+ */
+export async function conversationFor(tx: DbOrTx, orgId: string, contact: string, name?: string | null, channel: "whatsapp" | "email" = "whatsapp"): Promise<Conversation> {
+  const [found] = await tx.select().from(conversations).where(and(eq(conversations.orgId, orgId), eq(conversations.channel, channel), eq(conversations.contact, contact)));
   if (found) {
     if (name && !found.contactName) await tx.update(conversations).set({ contactName: name }).where(eq(conversations.id, found.id));
     return found;
   }
-  const client = await clientByPhone(tx, orgId, contact);
+  const client = channel === "email" ? await clientByEmail(tx, orgId, contact) : await clientByPhone(tx, orgId, contact);
   const [c] = await tx
     .insert(conversations)
-    .values({ orgId, channel: "whatsapp", contact, contactName: name ?? client?.name ?? null, clientId: client?.id ?? null })
+    .values({ orgId, channel, contact, contactName: name ?? client?.name ?? null, clientId: client?.id ?? null })
     .onConflictDoNothing()
     .returning();
-  return c ?? (await tx.select().from(conversations).where(and(eq(conversations.orgId, orgId), eq(conversations.channel, "whatsapp"), eq(conversations.contact, contact))))[0]!;
+  return c ?? (await tx.select().from(conversations).where(and(eq(conversations.orgId, orgId), eq(conversations.channel, channel), eq(conversations.contact, contact))))[0]!;
 }
 
 /** Add a message to a thread and keep the thread's summary (last message, unread, reply window) up to date. */

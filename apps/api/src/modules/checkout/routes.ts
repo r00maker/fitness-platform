@@ -11,13 +11,15 @@
  *     paid at the desk (POST /orders/:id/mark-paid). Cancelling puts credit and discounts back.
  */
 import type { FastifyInstance } from "fastify";
-import { and, desc, eq, isNull } from "drizzle-orm";
-import { can, giftCardCheckout, schemas } from "@studio/shared";
+import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { can, giftCardCheckout, markInvoicePaid, schemas, type PaymentMethod } from "@studio/shared";
 import { DateTime } from "luxon";
 import { z } from "zod";
 import type { AuthContext } from "../../plugins/auth.js";
 import type { DbOrTx } from "../../db/client.js";
-import { giftCardDesigns, giftCards, orders, packagePlans, users, vouchers } from "../../db/schema.js";
+import { clientPackages, giftCardDesigns, giftCards, invoices, orders, packagePlans, users, vouchers } from "../../db/schema.js";
+import { notify } from "../notifications/outbox.js";
+import { restock } from "../shop/stock.js";
 import { audit } from "../../lib/audit.js";
 import { badRequest, conflict, forbidden, notFound } from "../../lib/errors.js";
 import { inTx } from "../../lib/route.js";
@@ -30,6 +32,7 @@ import { orgZone, sellPackage } from "../packages/service.js";
 import { returnCredit, spendCredit, usableGrants, usableVouchers, voucherDiscount, voucherLabel } from "../marketing/credit.js";
 import { checkAmount, findRecipient, giftCardPaid, giftCode } from "../marketing/giftcards.js";
 import { loyaltyForSpend } from "../marketing/loyalty.js";
+import { issueInvoice, payFor, voidFor } from "../sales/invoices.js";
 
 /**
  * The seam for a payment provider (e.g. Stripe, HitPay, 2C2P). When one is configured it
@@ -60,10 +63,12 @@ async function pricing(db: DbOrTx, orgId: string, clientId: string, subtotal: nu
   return { subtotal, discount, voucher, credit, balance, due: subtotal - discount - credit };
 }
 
-/** Complete a paid order: the package is added (or the gift card released). */
-async function completeOrder(tx: DbOrTx, o: Order, by: AuthContext, how: string) {
+/** Complete a paid order: the package is added (or the gift card released, or the shop order made ready). */
+async function completeOrder(tx: DbOrTx, o: Order, by: AuthContext, how: string, method: PaymentMethod = "card") {
   let clientPackageId = o.clientPackageId;
-  if (o.kind === "gift_card") {
+  if (o.kind === "product") {
+    await loyaltyForSpend(tx, o.orgId, o.clientId, o.amountCents, "order", o.id, "Shop");
+  } else if (o.kind === "gift_card") {
     if (o.giftCardId) await giftCardPaid(tx, o.giftCardId);
     await loyaltyForSpend(tx, o.orgId, o.clientId, o.amountCents, "order", o.id, "Gift card");
   } else if (!clientPackageId) {
@@ -75,8 +80,24 @@ async function completeOrder(tx: DbOrTx, o: Order, by: AuthContext, how: string)
     if (o.rolloverFromPackageId) await rolloverInto(tx, studio, sold.id, { fromPackageId: o.rolloverFromPackageId }, { viaCheckout: true });
   }
   const [u] = await tx.update(orders).set({ status: "paid", paidAt: new Date(), clientPackageId }).where(eq(orders.id, o.id)).returning();
+  // A renewal paid at the desk lifts a hold from a failed card payment.
+  if (o.kind === "package" && o.clientPackageId) {
+    const [held] = await tx.update(clientPackages).set({ paymentHeldAt: null, paymentRetries: 0, nextPaymentRetryAt: null }).where(and(eq(clientPackages.id, o.clientPackageId), isNotNull(clientPackages.paymentHeldAt))).returning();
+    if (held) await notify(tx, { orgId: held.orgId, userIds: [held.ownerId], template: "membership.payment_recovered", data: { packageName: held.name } });
+  }
   await audit(tx, { orgId: o.orgId, actorId: by.userId, action: "order.paid", entityType: "order", entityId: o.id, details: { at: how } });
+  // The invoice is paid and gets its receipt.
+  const inv = await payFor(tx, { orderId: o.id }, method);
+  if (inv && clientPackageId && !inv.clientPackageId) await tx.update(invoices).set({ clientPackageId }).where(eq(invoices.id, inv.id));
   return u!;
+}
+
+/** Complete an order by id (paid at the desk, from Sales or the orders list). */
+export async function completeOrderById(tx: DbOrTx, by: AuthContext, orderId: string, method: PaymentMethod) {
+  const [o] = await tx.select().from(orders).where(and(eq(orders.id, orderId), eq(orders.orgId, by.orgId))).for("update");
+  if (!o) throw notFound("order");
+  if (o.status !== "pending") throw conflict("not_pending", `This order is already ${o.status}.`);
+  return completeOrder(tx, o, by, "desk", method);
 }
 
 export async function checkoutRoutes(app: FastifyInstance) {
@@ -149,7 +170,11 @@ export async function checkoutRoutes(app: FastifyInstance) {
       const credit = price.credit ? await spendCredit(tx, org.id, req.auth.userId, price.credit, o!.id) : 0;
       if (credit !== price.credit) throw conflict("credit_changed", "Your credit changed while checking out. Please try again.");
       const [withCredit] = await tx.update(orders).set({ creditCents: credit }).where(eq(orders.id, o!.id)).returning();
-      return price.due === 0 ? completeOrder(tx, withCredit!, req.auth, "fully paid with credit or discount") : withCredit!;
+      await issueInvoice(tx, {
+        orgId: org.id, clientId: req.auth.userId, source: "package", orderId: o!.id, discountCents: price.discount, creditCents: credit,
+        lines: [{ description: p.name, detail: p.billing === "recurring" ? "Membership: first payment" : (p.description ?? undefined) || undefined, quantity: 1, unitCents: price.subtotal }],
+      });
+      return price.due === 0 ? completeOrder(tx, withCredit!, req.auth, "fully paid with credit or discount", "credit") : withCredit!;
     });
     let payment: { online: boolean; redirectUrl?: string; message?: string } =
       result.status === "paid" ? { online: false, message: "All done! It's been added to your packages." } : { online: false, message: "Order placed. Pay at the front desk and your package will be ready straight away." };
@@ -196,6 +221,7 @@ export async function checkoutRoutes(app: FastifyInstance) {
         .insert(orders)
         .values({ orgId: org.id, clientId: req.auth.userId, kind: "gift_card", giftCardId: card!.id, subtotalCents: input.amountCents, amountCents: input.amountCents, currency: org.currency, provider: provider?.name ?? null })
         .returning();
+      await issueInvoice(tx, { orgId: org.id, clientId: req.auth.userId, source: "gift_card", orderId: o!.id, lines: [{ description: `Gift card (${money(input.amountCents, org.currency)})`, detail: input.give ? `For ${input.give.to}` : undefined, quantity: 1, unitCents: input.amountCents }] });
       return { card: card!, order: o! };
     });
     let payment: { online: boolean; redirectUrl?: string; message?: string } = {
@@ -236,12 +262,8 @@ export async function checkoutRoutes(app: FastifyInstance) {
   app.post("/orders/:id/mark-paid", async (req) => {
     requirePermission(req, "managePackages");
     const { id } = parse(idParam, req.params);
-    return inTx(app, async (tx) => {
-      const [o] = await tx.select().from(orders).where(and(eq(orders.id, id), eq(orders.orgId, req.auth.orgId))).for("update");
-      if (!o) throw notFound("order");
-      if (o.status !== "pending") throw conflict("not_pending", `This order is already ${o.status}.`);
-      return completeOrder(tx, o, req.auth, "desk");
-    });
+    const { method } = parse(markInvoicePaid, req.body ?? {});
+    return inTx(app, (tx) => completeOrderById(tx, req.auth, id, method));
   });
 
   app.post("/orders/:id/cancel", async (req) => {
@@ -253,7 +275,9 @@ export async function checkoutRoutes(app: FastifyInstance) {
       await returnCredit(tx, o.orgId, o.id);
       if (o.voucherId) await tx.update(vouchers).set({ usedAt: null, orderId: null }).where(eq(vouchers.id, o.voucherId));
       if (o.giftCardId) await tx.update(giftCards).set({ status: "cancelled" }).where(and(eq(giftCards.id, o.giftCardId), eq(giftCards.status, "pending_payment")));
+      if (o.kind === "product") for (const it of o.items ?? []) await restock(tx, it.productId, it.option, it.quantity);
       const [u] = await tx.update(orders).set({ status: "cancelled" }).where(eq(orders.id, o.id)).returning();
+      await voidFor(tx, { orderId: o.id });
       return u;
     });
   });

@@ -148,6 +148,13 @@
       "when": 1794590710906,
       "tag": "0020_agents_assistant",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794663517813,
+      "tag": "0021_sales_shop_email",
+      "breakpoints": true
     }
   ]
 }

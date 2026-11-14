@@ -13,6 +13,10 @@ export default defineConfig({
       META_APP_SECRET: "test-meta-app-secret",
       META_VERIFY_TOKEN: "test-verify-token",
       META_APP_ID: "1234567890",
+      GOOGLE_CLIENT_ID: "test-google-client-id",
+      GOOGLE_CLIENT_SECRET: "test-google-client-secret",
+      MICROSOFT_CLIENT_ID: "test-microsoft-client-id",
+      MICROSOFT_CLIENT_SECRET: "test-microsoft-secret",
     },
   },
 });

@@ -176,9 +176,21 @@ describe("journey goals", () => {
     const stats = (await s.owner.call("GET", `/journeys/${j.id}`)).body.stats;
     expect(stats).toMatchObject({ started: 2, converted: 1, conversionRate: 50 });
 
-    // A goal that's also a "wait for" would make the Yes side unreachable.
-    const clash = await s.owner.call("POST", "/journeys", { name: "Clash", definition: { trigger: { type: "account_created" }, goal: { event: "package_bought" }, steps: [{ id: "wf", type: "wait_for", event: "package_bought", within: { value: 3, unit: "days" }, yes: [], no: [] }] } });
-    expect(clash.body.error.code).toBe("goal_clash");
+    // A goal that's also what a "Wait for" step waits for: no error; reaching it follows the Yes side.
+    const thanks = await s.owner.call("POST", "/journeys", { name: "Thanks", quietHours: false, definition: { trigger: { type: "account_created" }, goal: { event: "package_bought" }, steps: [{ id: "wf", type: "wait_for", event: "package_bought", within: { value: 3, unit: "days" }, yes: [{ id: "ty", type: "send_push", title: "Thank you!", body: "Enjoy your classes." }], no: [] }] } });
+    expect(thanks.status, JSON.stringify(thanks.body)).toBe(201);
+    await s.owner.call("POST", `/journeys/${thanks.body.id}/go-live`, { acknowledge: ["journey_starts"] });
+    await db.transaction((tx) => journeyEvent(tx, s.orgId, s.c3.id, { type: "account_created" } as never));
+    await runDueJourneys(db, urls);
+    await s.owner.call("POST", `/clients/${s.c3.id}/packages`, { planId: plan.id });
+    await runDueJourneys(db, urls);
+    const [t] = await db.select().from(journeyEnrollments).where(and(eq(journeyEnrollments.clientId, s.c3.id), eq(journeyEnrollments.journeyId, thanks.body.id)));
+    expect(t!.convertedAt).not.toBeNull();
+    expect(t!.status).toBe("completed");
+    expect(t!.exitReason).not.toBe("Reached the goal");
+    expect((await s.owner.call("GET", `/journeys/${thanks.body.id}`)).body.stats).toMatchObject({ converted: 1 });
+    // Only the three simple goals are offered.
+    expect((await s.owner.call("POST", "/journeys", { name: "Odd", definition: { trigger: { type: "account_created" }, goal: { event: "account_created" }, steps: [{ id: "p", type: "send_push", title: "Hi", body: "Hi" }] } })).status).toBe(400);
   });
 });
 

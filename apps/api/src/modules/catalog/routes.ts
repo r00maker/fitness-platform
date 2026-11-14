@@ -58,8 +58,10 @@ export async function catalogRoutes(app: FastifyInstance) {
   app.get("/rooms", async (req) =>
     db.select().from(rooms).where(and(eq(rooms.orgId, req.auth.orgId), isNull(rooms.archivedAt))).orderBy(asc(rooms.name)),
   );
+  /** ?kind=class or ?kind=appointment lists just one kind (the Class types page shows them apart). */
   app.get("/class-types", async (req) => {
-    const types = await db.select().from(classTypes).where(and(eq(classTypes.orgId, req.auth.orgId), isNull(classTypes.archivedAt))).orderBy(asc(classTypes.name));
+    const { kind } = parse(z.object({ kind: z.enum(["class", "appointment"]).optional() }), req.query);
+    const types = await db.select().from(classTypes).where(and(eq(classTypes.orgId, req.auth.orgId), isNull(classTypes.archivedAt), kind ? eq(classTypes.kind, kind) : undefined)).orderBy(asc(classTypes.name));
     if (req.auth.role === "client") return types;
     const lists = await db.select().from(classTypeInstructors).where(eq(classTypeInstructors.orgId, req.auth.orgId));
     // instructorIds: who teaches and covers this class type (empty = anyone).

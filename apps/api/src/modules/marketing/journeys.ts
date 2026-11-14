@@ -126,10 +126,6 @@ export async function checkJourney(db: DbOrTx, orgId: string, def: JourneyDefini
     }
   }
   def.goal?.planIds?.forEach((p) => plans.add(p));
-  // A goal ends the journey, so a "wait for" the same thing would never reach its Yes side.
-  if (def.goal && [...allSteps(def.steps)].some((s) => s.type === "wait_for" && s.event === def.goal!.event)) {
-    throw badRequest("goal_clash", "The goal is the same thing a “Wait for” step waits for. Reaching the goal ends the journey, so that step's Yes side would never run. Change the goal or the step.");
-  }
   const exists = async (table: typeof emailDesigns | typeof clientTags | typeof packagePlans, set: Set<string>, what: string) => {
     if (!set.size) return;
     const found = await db.select({ id: table.id }).from(table).where(and(eq(table.orgId, orgId), inArray(table.id, [...set])));
@@ -195,6 +191,11 @@ export async function journeyEvent(tx: DbOrTx, orgId: string, clientId: string, 
   for (const e of mine) {
     if (!goalMet(e.definition.goal, ev)) continue;
     await tx.insert(journeyStepLog).values({ orgId, journeyId: e.journeyId, enrollmentId: e.id, clientId, stepId: "goal", outcome: "done", createdAt: now });
+    // Waiting for this very thing? Count the conversion and let the Yes side run (e.g. a thank-you).
+    if (e.waitingFor?.event === ev.type) {
+      await tx.update(journeyEnrollments).set({ convertedAt: now }).where(eq(journeyEnrollments.id, e.id));
+      continue;
+    }
     await tx.update(journeyEnrollments).set({ status: "completed", convertedAt: now, waitingFor: null, nextRunAt: null, finishedAt: now, exitReason: "Reached the goal" }).where(eq(journeyEnrollments.id, e.id));
   }
   const live = await tx.select().from(journeys).where(and(eq(journeys.orgId, orgId), eq(journeys.status, "live")));

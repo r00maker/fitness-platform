@@ -28,6 +28,7 @@ import { money } from "../bookings/rules.js";
 import { notify } from "../notifications/outbox.js";
 import { getOrg, userName, type SessionRow } from "../sessions/context.js";
 import { can } from "@studio/shared";
+import { holdReason } from "./payments.js";
 
 export type Pkg = typeof clientPackages.$inferSelect;
 type Member = typeof clientPackageMembers.$inferSelect;
@@ -130,6 +131,9 @@ export async function presentPackages(db: DbOrTx, org: Org, pkgs: Pkg[], viewerI
       kind: p.kind,
       state,
       stateLabel: OPTION_LABELS.packageState[state],
+      /** Renewal payment failed: can't be used to book until it's paid (or it's forfeited). */
+      paymentHold: holdReason(p, (d) => friendly(d, zone)),
+      forfeited: !!p.forfeitedAt,
       ownerId: p.ownerId,
       creditsTotal: p.creditsTotal,
       creditsLeft: p.creditsLeft,
@@ -243,7 +247,9 @@ export async function packageOptions(db: DbOrTx, org: Org, clientId: string, ses
     const state = packageState(p, now);
     const runsOutAt = p.startedAt ? p.expiresAt : p.validityValue && p.validityUnit ? expiryFrom(now, p.validityValue, p.validityUnit, zone) : null;
     const no = (reason: string) => out.push({ pkg: p, member: m, ok: false, reason, runsOutAt });
-    if (state === "cancelled") { no("It's been cancelled"); continue; }
+    if (state === "cancelled") { no(p.forfeitedAt ? "It ended because its payment failed" : "It's been cancelled"); continue; }
+    const held = holdReason(p, (d) => friendly(d, zone));
+    if (held) { no(held); continue; }
     if (state === "expired") {
       no(p.expiresAt && now >= p.expiresAt ? `It expired on ${friendly(new Date(p.expiresAt.getTime() - 1), zone)}` : `It expired because the first class wasn't booked by ${friendly(new Date(p.activateBy!.getTime() - 1), zone)}`);
       continue;

@@ -62,6 +62,10 @@ export const PERMISSIONS = {
   manageComms: ["owner", "admin"],
   /** Set up agents (name them, choose what they see and who they tell) and the support assistant. */
   manageAgents: ["owner", "admin"],
+  /** Set up the shop: products, prices, stock. */
+  manageShop: ["owner", "admin"],
+  /** Hand over shop orders at the desk (taking payment if it's still due). */
+  handOverOrders: ["owner", "admin", "front_desk"],
   /** Revenue, sales, attendance and conversion reports. */
   viewReports: ["owner", "admin"],
   /** Segments, emails, campaigns, journeys, banners, gift cards and referral settings. */
