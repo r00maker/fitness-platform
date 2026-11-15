@@ -25,9 +25,9 @@ A booking platform for fitness studios in Southeast Asia (in the space of Momenc
 | #14 | Sales (invoices, receipts, refunds, invoice design), membership payment holds, shop (gift cards moved here), writing agents, Gmail and Outlook inbox, report exports (CSV and visual), rooms optional, simpler journey goals, class types split, calendar double-click/drag, tidier Categories window |
 | #16 | Closures and holidays: recurring classes skip closed days, adding one cancels the classes on those days with one message per person, closed days shaded on the calendar, closed-day check when adding or moving a class. Also "Show cancelled" on the calendar, a Cancellations tab on each class, and Home (the staff front page) |
 | #17 | Waitlist setting (clients choose, or always automatic / always ask first) and a quick view for extension-request attachments. Also: attendance locks at midnight after each class (no-show fees final then), templates can be deleted, Studio rules save button no longer under Ask. Also reviews (with the Google offer), client feedback, celebration pop-ups for staff, and a fix for the sales chart dropping the current week just after local midnight |
-| Not merged yet | Full class names on the calendar: names like "Reformer - Intermediate" wrap instead of being cut short, in every view, on computers and phones |
+| #18 | Full class names on the calendar: names like "Reformer - Intermediate" wrap instead of being cut short, in every view, on computers and phones |
 
-Details of how each area works, and the decisions behind them, are in `docs/PRODUCT_NOTES.md`. The staff-facing guide (also what the support assistant reads) is `docs/help/STUDIO_GUIDE.md`.
+The market review, pricing and launch plan are in `docs/MARKET_AND_LAUNCH.md`. Details of how each area works, and the decisions behind them, are in `docs/PRODUCT_NOTES.md`. The staff-facing guide (also what the support assistant reads) is `docs/help/STUDIO_GUIDE.md`.
 
 ### Code layout
 
@@ -41,7 +41,7 @@ Details of how each area works, and the decisions behind them, are in `docs/PROD
 - **Online payments** (Stripe or similar): no money moves yet. Membership payment holds are wired through `setRenewalCharger` in `apps/api/src/modules/packages/payments.ts` and only switch on once a provider is connected; until then renewals are "pay at the desk".
 - **Email inbox going live:** needs a Google OAuth app (Google verification before more than 100 users) and a Microsoft app. Steps in `docs/HOSTING_AND_DEPLOYMENT.md`, section 6.
 - **No web or mobile app yet:** the preview stands in for them.
-- Suggested next features, roughly in priority order, are listed in `docs/PRODUCT_NOTES.md` ("Suggested next features"): self check-in, notification preferences (closures already send one combined message per person), calendar sync, and more.
+- **What comes next:** `docs/MARKET_AND_LAUNCH.md` has the market review (competitors, a UX audit, pricing, a launch plan) from the MVP milestone. `docs/PRODUCT_NOTES.md` ("Roadmap after the MVP") lists the order: feature-set improvements first (feature switches, setup by studio type, phone flows for clients and instructors, one AI entry point, one "Tell clients" flow), then what blocks launch (payments, client web booking, data import).
 
 ## The owner's rules
 
@@ -84,7 +84,7 @@ service postgresql start   # if tests fail with ECONNREFUSED
 # Fresh container? Tests need a "studio" user and "studio_test" database:
 # su postgres -c "psql -c \"create user studio with password 'studio' superuser;\"" && su postgres -c "createdb -O studio studio_test"
 pnpm typecheck
-pnpm test                  # 266 API tests at the time of writing
+pnpm test                  # 288 API tests at the time of writing
 ```
 
 - New migration: edit `apps/api/src/db/schema.ts`, then `cd apps/api && npx drizzle-kit generate --name <name>`. To regenerate one that isn't merged yet, delete its SQL file and snapshot and remove its entry from `drizzle/meta/_journal.json` first.

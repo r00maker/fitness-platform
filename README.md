@@ -26,7 +26,7 @@ packages/shared/     Used by the API, web app and mobile app:
   fields.ts            plain-English labels + hover help for every field
   schemas.ts           request validation (same rules on the forms and the server)
   enums.ts             every option list (roles, statuses, modes…)
-docs/                Hosting, deployment and product-gap notes
+docs/                Hosting, product notes, the market review and launch plan
 ```
 
 ## Run it locally

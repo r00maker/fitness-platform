@@ -34,22 +34,26 @@
 - **Cover:** instructors can ask for cover but don't choose who covers. Their request goes to the class's teaching list and admins are told. Admins choose who to ask, approve offers or assign someone directly.
 - **Favourite instructor filter:** clients tap one chip to see only that instructor's classes.
 
-## Suggested next features (roughly in priority order)
+## Roadmap after the MVP (from the market review)
 
-1. **Online payments** (on hold): Stripe checkout so clients can buy packages and drop-ins themselves. Packages, prices, refunds and fees are all recorded today; no money moves until this exists.
-2. ~~Booking rules~~: built (booking window, optional weekly limit, late-cancel and no-show fees).
-3. ~~Closures & holidays~~: built (see below).
-4. ~~Spot / equipment selection~~: built, and studios can switch it off.
-5. ~~Instructor qualifications~~: built as teaching lists.
-6. **Self check-in**: a QR code at the front desk or a tablet kiosk that marks attendance automatically.
-7. **Notification preferences**: per-person email/push choices, quiet hours, and a single digest when an admin bulk-changes many classes.
-8. **Calendar sync**: a private iCal feed so instructors and clients see their classes in Google/Apple Calendar.
-9. ~~Instructor pay~~: built (see below). Could add later: pay for cancelled classes, mileage/travel between locations, shift-based hourly pay for front desk.
-10. **Reports**: fill rate, waitlist-to-booking conversion, no-show rate and popular time slots.
-11. ~~Waivers~~: built. **Intake forms** (longer health questionnaires) could build on health notes later.
-12. **Virtual/hybrid classes** with a livestream link sent only to booked clients.
-13. **Offline attendance** in the mobile app for studios with poor signal, syncing when back online.
-14. **Translations**: wording already lives in one file (`packages/shared/src/fields.ts`), ready to translate.
+The full reasoning, competitor comparison and pricing are in `docs/MARKET_AND_LAUNCH.md`.
+
+**Feature-set improvements (making it simpler):**
+
+1. **Feature switches and a leaner menu:** studios switch features on as they need them, and related menu items are merged (about 12 instead of 24).
+2. **Setup by studio type:** a first-run setup that fills sensible defaults for independent, boutique and multi-location studios, plus search within Studio rules.
+3. **Client booking on phones:** a date strip and class list first; banners and filters out of the way.
+4. **Instructors on phones:** "Up next: check in" first, and a Check-in mode.
+5. **One AI entry point:** Ask, plus "Write with AI" next to text boxes; reminder agents become journeys.
+6. **One "Tell clients" flow** for announcements, banners and campaigns.
+
+**Before launch (blocking):** online payments (Stripe Connect: cards, PayNow, GrabPay, cards on file), client booking on the web plus a website widget, and data import (CSV, and exports from Mindbody, Momence and Glofox).
+
+**Soon after launch:** self check-in (QR code or tablet), Xero / QuickBooks, a card reader at the front desk, location managers for chains, notification preferences.
+
+**Later:** branded mobile app, door access, calendar sync, translations (wording already lives in `packages/shared/src/fields.ts`), open API, offline attendance, virtual classes.
+
+**Paused:** the Gmail/Outlook inbox. Google's yearly security check for apps that read Gmail costs more than it's worth while WhatsApp is the main channel.
 
 ## Packages, bookings for clients and payroll: how they work
 
