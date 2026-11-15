@@ -764,3 +764,20 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 .closedchip { font-size: 11px; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 5px; padding: 1px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cllist { margin: 6px 0 0; font-size: 12.5px; }
 .clcard b { font-size: 14.5px; }
+
+/* --- Cancelled classes and the Cancellations tab ------------------------------ */
+.filters .calcx { flex: 0 0 auto; white-space: nowrap; font-size: 13px; padding: 0 4px; }
+.filters .calcx input { width: 16px; height: 16px; min-width: 16px; padding: 0; margin: 0; flex: none; }
+.ev.cx button { background: repeating-linear-gradient(135deg, var(--sunk) 0 6px, var(--surface) 6px 12px); border-left-color: var(--muted); border-left-style: dashed; }
+.ev.cx button:hover { background: var(--sunk); }
+.ev.cx .en { text-decoration: line-through; color: var(--muted); }
+.ev.cx .em, .ev.cx .evcount { color: var(--fg); }
+.mchip.cx span { text-decoration: line-through; color: var(--muted); }
+.mchip.cx { background: var(--sunk); }
+.mchip.cx i { background: var(--muted); }
+.ag-row.cx .n { text-decoration: line-through; color: var(--muted); }
+.ag-row.cx .c { background: var(--muted); }
+.drtabs { flex: none; }
+.cxrow { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 10px; border-bottom: 1px solid var(--line-soft); }
+.cxrow:last-child { border-bottom: 0; }
+.cxmeta { font-size: 12.5px; color: var(--muted); }

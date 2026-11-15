@@ -114,7 +114,7 @@ async function forfeit(tx: DbOrTx, p: Pkg, reason: string, now: Date) {
     .innerJoin(classSessions, eq(classSessions.id, bookings.sessionId))
     .where(and(eq(bookings.clientPackageId, p.id), eq(bookings.status, "confirmed"), gt(classSessions.startsAt, now)));
   for (const b of upcoming) {
-    await tx.update(bookings).set({ status: "cancelled", cancelledAt: now }).where(eq(bookings.id, b.id));
+    await tx.update(bookings).set({ status: "cancelled", cancelledAt: now, cancelledVia: "membership_ended", cancelReason: `Membership payment didn't go through (${reason})` }).where(eq(bookings.id, b.id));
     await fillOpenSpots(tx, p.orgId, b.sessionId, now);
   }
   const data = { packageName: p.name, fee: fee ? money(fee, p.currency) : null, cancelledClasses: upcoming.length, reason };

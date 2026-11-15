@@ -14,6 +14,7 @@ import { classpassView, getCalendar } from "./calendar.js";
 import { classpassBooked, confirmedCount, describeSession, getOrg, getSession } from "./context.js";
 import { waiverStatuses } from "../clients/waivers.js";
 import { activeHealthNotes } from "../clients/health.js";
+import { cancellationsFor } from "./cancellations.js";
 
 /** Pinned tags shown under a client's name; the rest are counted as "+N" and listed under More. */
 const MAX_UP_FRONT_TAGS = 2;
@@ -157,6 +158,8 @@ export async function sessionRoutes(app: FastifyInstance) {
         };
       }),
       waitlist: waitlist.map((w, i) => ({ ...w, position: i + 1 })),
+      // Staff who can see the class list also see who cancelled (the Cancellations tab).
+      ...(fullRoster ? { cancellations: await cancellationsFor(app.db, s) } : {}),
     };
   });
 

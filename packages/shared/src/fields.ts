@@ -257,6 +257,7 @@ export const OPTION_LABELS = {
   attendance: { unmarked: "Not marked", present: "Attended", no_show: "No-show" },
   editScope: { this: "This class only", following: "This and later classes", all: "Every class in the series" },
   bookingStatus: { confirmed: "Booked", cancelled: "Cancelled", late_cancelled: "Late cancel" },
+  cancelledVia: { self: "Cancelled by the client", staff: "Cancelled by the studio", class_cancelled: "Class cancelled", moved: "Moved to another class", membership_ended: "Membership ended" },
   waitlistStatus: {
     waiting: "On waitlist",
     offered: "Spot held for you",

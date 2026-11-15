@@ -1308,6 +1308,23 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 .cllist { margin: 6px 0 0; font-size: 12.5px; }
 .clcard b { font-size: 14.5px; }
 
+/* --- Cancelled classes and the Cancellations tab ------------------------------ */
+.filters .calcx { flex: 0 0 auto; white-space: nowrap; font-size: 13px; padding: 0 4px; }
+.filters .calcx input { width: 16px; height: 16px; min-width: 16px; padding: 0; margin: 0; flex: none; }
+.ev.cx button { background: repeating-linear-gradient(135deg, var(--sunk) 0 6px, var(--surface) 6px 12px); border-left-color: var(--muted); border-left-style: dashed; }
+.ev.cx button:hover { background: var(--sunk); }
+.ev.cx .en { text-decoration: line-through; color: var(--muted); }
+.ev.cx .em, .ev.cx .evcount { color: var(--fg); }
+.mchip.cx span { text-decoration: line-through; color: var(--muted); }
+.mchip.cx { background: var(--sunk); }
+.mchip.cx i { background: var(--muted); }
+.ag-row.cx .n { text-decoration: line-through; color: var(--muted); }
+.ag-row.cx .c { background: var(--muted); }
+.drtabs { flex: none; }
+.cxrow { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 10px; border-bottom: 1px solid var(--line-soft); }
+.cxrow:last-child { border-bottom: 0; }
+.cxmeta { font-size: 12.5px; color: var(--muted); }
+
 /* MKT-CSS-END */
 </style>
 
@@ -1367,6 +1384,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
               <option value="evening">Evening (after 5pm)</option>
             </select>
             <input id="fQ" type="search" placeholder="Search classes, people, rooms" aria-label="Search" data-help="Type a class, instructor, room or location name to find it.">
+            <label class="check calcx" id="fCxWrap" for="fCx" data-help="Show cancelled classes too, struck through. Open one to see why it was cancelled and who was booked."><input type="checkbox" id="fCx"> Show cancelled</label>
           </div>
         </div>
         <div class="legend" id="legend" aria-label="Filter by class type"></div>
@@ -2122,7 +2140,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
   function visibleSessions() {
     const q = state.q.trim().toLowerCase();
     return SESSIONS.filter((s) => {
-      if (s.status !== "scheduled") return false;
+      if (s.status !== "scheduled" && !(s.status === "cancelled" && state.showCancelled && isStaff() && !state.selecting)) return false;
       if (state.role === "instructor" && s.instr !== ME.instructor) return false;
       if (state.role === "client" && isAppt(s) && !s.roster.some((r) => r.ci === ME.client)) return false;
       if (state.types.size && !state.types.has(s.type)) return false;
@@ -2165,6 +2183,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     $("#bulkChange").setAttribute("aria-pressed", String(state.selecting));
     document.querySelectorAll("#views button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === state.view)));
     $("#fInstr").hidden = state.role === "instructor";
+    $("#fCxWrap").hidden = state.role === "client";
     $("#legend").innerHTML = Object.entries(liveTypes()).filter(([, t]) => state.role !== "client" || t.kind !== "appointment")
       .map(([k, t]) => `<button type="button" class="chip" style="--t: var(--t-${k})" data-type="${k}" aria-pressed="${state.types.has(k)}" data-help="${state.types.has(k) ? "Showing" : "Show only"} ${esc(t.name)} classes. Click again to ${state.types.has(k) ? "stop filtering by it" : "undo"}."><span class="sw"></span>${t.name}</button>`)
       .join("") + favChip();
@@ -2212,25 +2231,25 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
   function eventBlock(s, single) {
     const top = ((s.start.getHours() - HOURS[0]) * 60 + s.start.getMinutes()) * (HOUR_PX / 60);
     const height = Math.max(24, mins(s) * (HOUR_PX / 60));
-    const flags = isStaff() ? calendarFlags(s) : [];
+    const flags = isStaff() && s.status === "scheduled" ? calendarFlags(s) : [];
     const warn = flags.filter((f) => f !== "No instructor yet");
     const flagDot = flags.length ? `<span class="flag ${warn.length ? "" : "info"}" data-help="${esc(flags.join(", "))}" aria-label="${esc(flags.join(", "))}">${warn.length ? "!" : "i"}</span>` : "";
     const compact = height < 40;
-    const metaLine = `${instrLabel(s, { avatar: single })} · ${spotsText(s)}`;
+    const metaLine = s.status === "cancelled" ? `Cancelled${s.cancelReason ? ` · ${esc(s.cancelReason)}` : ""}` : `${instrLabel(s, { avatar: single })} · ${spotsText(s)}`;
     // Day view: name and time on top, instructor and room below, booked count once on the right.
     // Short classes (under ~40 minutes) fit on a single line.
     const where = ROOMS[s.room].none ? esc(LOCS[s.loc]) : `${esc(ROOMS[s.room].name)}, ${esc(LOCS[s.loc])}`;
     const tight = height < 46;
-    const right = state.role === "client"
+    const right = s.status === "cancelled" ? `<span class="evr"><span class="evcount">Cancelled</span></span>` : state.role === "client"
       ? `<span class="evr"><span class="evcount">${spotsText(s)}</span></span>`
       : `<span class="evr"><span class="evcount"><b>${s.roster.length}</b>/${s.cap}${s.waitlist.length ? ` · ${s.waitlist.length} waiting` : ""}</span><span class="bar"><span style="width:${Math.min(100, (s.roster.length / s.cap) * 100)}%"></span></span></span>`;
     const inner = single
       ? tight
-        ? `<span class="evline"><span class="et">${short(s.start)}</span><span class="en">${esc(TYPES[s.type].name)}</span><span class="em">${instrLabel(s)} · ${where}</span></span>${right}`
-        : `<span class="col"><span class="evtop"><span class="en">${esc(TYPES[s.type].name)}</span><span class="et">${short(s.start)} – ${short(s.end)}</span>${isAppt(s) ? '<span class="evtag">Appointment</span>' : ""}</span><span class="em">${instrLabel(s, { avatar: true })} · ${where}</span></span>${right}`
+        ? `<span class="evline"><span class="et">${short(s.start)}</span><span class="en">${esc(TYPES[s.type].name)}</span><span class="em">${s.status === "cancelled" ? metaLine : `${instrLabel(s)} · ${where}`}</span></span>${right}`
+        : `<span class="col"><span class="evtop"><span class="en">${esc(TYPES[s.type].name)}</span><span class="et">${short(s.start)} – ${short(s.end)}</span>${isAppt(s) ? '<span class="evtag">Appointment</span>' : ""}</span><span class="em">${s.status === "cancelled" ? metaLine : `${instrLabel(s, { avatar: true })} · ${where}`}</span></span>${right}`
       : `<span class="et">${short(s.start)}</span><span class="en">${esc(TYPES[s.type].name)}</span>${compact ? "" : `<span class="em">${metaLine}</span>`}`;
     const style = `top:${top}px;height:${height}px;left:calc(${(s._lane / s._lanes) * 100}%);width:calc(${100 / s._lanes}%);--t:var(--t-${s.type})`;
-    return `<div class="ev ${s.end < NOW ? "past" : ""} ${isAppt(s) ? "appt" : ""} ${single && tight ? "tight" : ""} ${state.selected.has(s.id) ? "selected" : ""}" style="${style}"><button type="button" data-open="${s.id}" aria-label="${esc(TYPES[s.type].name)}, ${fmtDay(s.start)} ${clock(s.start)}">${inner}${flagDot}</button></div>`;
+    return `<div class="ev ${s.end < NOW ? "past" : ""} ${s.status === "cancelled" ? "cx" : ""} ${isAppt(s) ? "appt" : ""} ${single && tight ? "tight" : ""} ${state.selected.has(s.id) ? "selected" : ""}" style="${style}"><button type="button" data-open="${s.id}" aria-label="${esc(TYPES[s.type].name)}, ${fmtDay(s.start)} ${clock(s.start)}${s.status === "cancelled" ? ", cancelled" : ""}">${inner}${flagDot}</button></div>`;
   }
 
   function renderTimeGrid(days) {
@@ -2244,7 +2263,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       return `<div class="dcol ${sameDay(d, NOW) ? "today" : ""} ${closedCls(d)}" data-date="${ymd(d)}" style="height:${(HOURS[1] - HOURS[0]) * HOUR_PX}px">${nowLine}${evts.map((e) => eventBlock(e, single)).join("")}</div>`;
     });
     const heads = days.map((d) => {
-      const n = list.filter((s) => sameDay(s.start, d)).length;
+      const n = list.filter((s) => sameDay(s.start, d) && s.status === "scheduled").length;
       return `<div class="dh ${sameDay(d, NOW) ? "today" : ""}"><span class="dow">${DOW[d.getDay()]}</span><span class="dnum">${d.getDate()}</span><span class="dcount">${n ? plural(n, "class", "classes") : ""}</span>${closedTag(d)}</div>`;
     });
     const empty = single && !list.some((s) => sameDay(s.start, days[0]));
@@ -2261,10 +2280,10 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const items = list.filter((s) => sameDay(s.start, d));
       return `<div class="ag-day ${sameDay(d, NOW) ? "today" : ""}">${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}<span>${items.length ? plural(items.length, "class", "classes") : "No classes"}</span>${closedTag(d)}</div>` +
         items.map((s) => {
-          const flags = isStaff() ? calendarFlags(s) : [];
-          return `<button type="button" class="ag-row ${state.selected.has(s.id) ? "selected" : ""}" data-open="${s.id}" style="--t:var(--t-${s.type})">
+          const flags = isStaff() && s.status === "scheduled" ? calendarFlags(s) : [];
+          return `<button type="button" class="ag-row ${state.selected.has(s.id) ? "selected" : ""} ${s.status === "cancelled" ? "cx" : ""}" data-open="${s.id}" style="--t:var(--t-${s.type})">
             <span class="t">${short(s.start)}<br>${mins(s)} min</span><span class="c"></span>
-            <span><span class="n">${esc(TYPES[s.type].name)}</span><br><span class="s">${instrLabel(s, { avatar: true })} · ${esc(roomOrLoc(s.room))}${flags.length ? ` · <span style="color:var(--warn)">${esc(flags[0])}</span>` : ""}</span></span>
+            <span><span class="n">${esc(TYPES[s.type].name)}</span><br><span class="s">${s.status === "cancelled" ? "Cancelled · " : ""}${instrLabel(s, { avatar: true })} · ${esc(roomOrLoc(s.room))}${flags.length ? ` · <span style="color:var(--warn)">${esc(flags[0])}</span>` : ""}</span></span>
             <span class="r">${spotsText(s)}</span></button>`;
         }).join("");
     }).join("");
@@ -2284,7 +2303,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const shown = items.slice(0, 3);
       cells.push(`<button type="button" class="mc ${d.getMonth() !== a.getMonth() ? "out" : ""} ${sameDay(d, NOW) ? "today" : ""} ${closedCls(d)}" data-day="${ymd(d)}" aria-label="${fmtDay(d)}, ${closedFor(d).length ? `${closedLabel(closedFor(d)[0])}, ` : ""}${plural(items.length, "class", "classes")}">
         <span class="n">${d.getDate()}</span>${closedChip(d)}
-        ${shown.map((s) => `<span class="mchip" style="--t:var(--t-${s.type})"><i></i><span>${short(s.start)} ${esc(TYPES[s.type].name)}</span></span>`).join("")}
+        ${shown.map((s) => `<span class="mchip ${s.status === "cancelled" ? "cx" : ""}" style="--t:var(--t-${s.type})"><i></i><span>${short(s.start)} ${esc(TYPES[s.type].name)}</span></span>`).join("")}
         ${items.length > 3 ? `<span class="more">+${items.length - 3} more</span>` : ""}
         <span class="dots">${items.map((s) => `<i style="--t:var(--t-${s.type})"></i>`).join("")}</span>
       </button>`);
@@ -2327,7 +2346,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 
   function renderDrawer() {
     const s = SESSIONS.find((x) => x.id === state.openId);
-    if (!s || s.status !== "scheduled") { closeDrawer(); return; }
+    if (!s || (s.status !== "scheduled" && !(s.status === "cancelled" && isStaff()))) { closeDrawer(); return; }
     const role = state.role;
     const own = role === "instructor" && s.instr === ME.instructor;
     const seesRoster = role === "admin" || role === "foh" || own;
@@ -2335,7 +2354,8 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     const attOpen = NOW >= addMin(s.start, -60);
     const left = s.cap - s.roster.length;
     let body = "";
-
+    if (s.status === "cancelled") body = cancelledDrawer(s);
+    else {
     if (flags.length) {
       body += `<div class="dr-sec">${flags.map((f) => {
         if (f === "No instructor yet") return alertBox("info", f, "It will show as “TBC” to clients.");
@@ -2364,7 +2384,9 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       body += alertBox("info", "", "Front of House can take attendance, tag clients and mark ClassPass waivers done. Ask an admin to book, move or cancel for a client.");
     }
 
-    if (seesRoster) {
+    if (seesRoster) body += drTabs(s);
+    if (seesRoster && state.drTab === "cx") body += cancelsSection(s);
+    else if (seesRoster) {
       const addBtn = role === "admin" && s.end > NOW ? `<button type="button" class="btn" data-act="addClient" data-help="Book a client into this class. You can go outside the booking rules; you'll be warned if anything looks off.">+ Add client</button>` : "";
       const markAll = `<button type="button" class="btn" data-act="markall" data-help="Mark everyone not yet marked as attended. People already marked as a no-show stay that way." ${attOpen && s.roster.some((r) => r.att === "unmarked") ? "" : "disabled"}>Mark everyone present</button>`;
       const noWaiver = s.roster.filter((r) => waiverMissing(CLIENTS[r.ci]));
@@ -2385,6 +2407,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const me = CLIENTS[ME.client];
       if (s.instr && favouriteOf(me) === s.instr) body += alertBox("ok", "★ Your favourite instructor", `You've taken ${plural(me.withInstr[s.instr], "class", "classes")} with ${esc(firstName(STAFF[s.instr]))}.`);
       body += clientSection(s);
+    }
     }
 
     const r = ROOMS[s.room];
@@ -2577,6 +2600,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
         e.preventDefault();
         const back = st.back && pk ? giveBack(r, s, "Cancelled by the studio") : null;
         if (st.late && st.fee && STUDIO.lateFeeOn) FEES.unshift({ id: FEES.length + 1, ci, type: "late_cancel", sid: s.id, cents: STUDIO.lateFeeCents, status: "pending", added: fmtDay(NOW) });
+        logCancel(s, ci, { how: "staff", late: st.late, reason: ($("#scReason")?.value || "").trim(), returned: !!back, fee: st.late && st.fee && STUDIO.lateFeeOn ? STUDIO.lateFeeCents : null });
         s.roster = s.roster.filter((x) => x !== r);
         closeModal(); renderDrawer(); renderNav();
         toast(`Booking cancelled${back ? `; the class is back on ${firstName(c.name)}'s ${back.name}` : ""}${st.late && st.fee && STUDIO.lateFeeOn ? `; ${STUDIO.lateFee} fee added` : ""}.`);
@@ -2605,6 +2629,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
         const other = !still && old ? pkgOptions(ci, to).find((o) => !o.why)?.pk : null;
         const use = still || other;
         if (use) useClass(use, ci, to);
+        logCancel(s, ci, { how: "moved", returned: !!old });
         s.roster = s.roster.filter((x) => x !== r);
         to.roster.push({ ci, spot: spotsFor(to) ? freeSpot(to) || null : null, att: "unmarked", pay: use ? { kind: "package", pkg: use.id } : r.pay });
         closeModal(); renderDrawer();
@@ -2847,7 +2872,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     setTimeout(() => $("#newTag")?.focus(), 0);
   }
 
-  function openDrawer(id) { state.clientOpen = null; state.openId = id; expanded.clear(); renderDrawer(); setTimeout(() => document.querySelector(".drawer .close")?.focus(), 0); }
+  function openDrawer(id) { state.clientOpen = null; if (state.openId !== id) state.drTab = "list"; state.openId = id; expanded.clear(); renderDrawer(); setTimeout(() => document.querySelector(".drawer .close")?.focus(), 0); }
   function closeDrawer() { state.openId = null; state.clientOpen = null; $("#drawerRoot").innerHTML = ""; }
 
   // ---------------------------------------------------------------------------
@@ -3466,7 +3491,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
         title: "Please check before cancelling",
         proceedLabel: "Cancel classes",
         proceed: () => {
-          picked.forEach((x) => (x.status = "cancelled"));
+          picked.forEach((x) => Object.assign(x, { status: "cancelled", cancelledAt: NOW, cancelledBy: "You" }));
           state.selected.clear(); render();
           toast(`${plural(picked.length, "class", "classes")} cancelled. ${booked ? `${plural(booked, "client")} and the instructors` : "The instructors"} notified by email and push.`);
         },
@@ -3508,6 +3533,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       $("#cancelForm").onsubmit = (e) => {
         e.preventDefault();
         const refund = $("#cRefund").value;
+        const why = ($("#cReason")?.value || "").trim();
         const label = { credit: "return class credit", payment: "refund payment", none: "" }[refund];
         const flags = [];
         if (s.roster.length) flags.push({ level: "confirm", title: "Booked clients will be affected", msg: `${plural(s.roster.length, "booked client")} will be told the class is cancelled${refund === "none" ? "" : ` and given: ${label}`}.` });
@@ -3520,6 +3546,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
           proceedLabel: "Cancel class",
           proceed: () => {
             s.status = "cancelled";
+            Object.assign(s, { cancelledAt: NOW, cancelReason: why || null, cancelRefund: refund, cancelledBy: "You" });
             const n = s.roster.length + s.waitlist.length;
             closeDrawer(); render();
             toast(`Class cancelled. ${n ? `${plural(n, "client")} and ` : ""}${instrName(s.instr)} notified by email and push.`);
@@ -3561,6 +3588,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       $("#ccGo").onclick = () => {
         closeModal();
         const back = !late && mine ? giveBack(mine, s, "Cancelled in time") : null;
+        logCancel(s, ME.client, { how: "self", late, returned: !!back, fee: late && STUDIO.lateFeeOn ? STUDIO.lateFeeCents : null });
         s.roster = s.roster.filter((r) => r.ci !== ME.client);
         render();
         toast(late ? `Booking cancelled.${STUDIO.lateFeeOn ? ` A late-cancellation fee of ${STUDIO.lateFee} has been added.` : " Your class wasn't given back because it was a late cancellation."}` : back ? `Booking cancelled. The class is back on your ${back.name}.` : "Booking cancelled.");
@@ -8140,7 +8168,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       askState.msgs.push({ who: "bot", html: `<p>Done. ${esc(c.name)} is booked into ${esc(clsLabel(s))}${dg.pk ? ` with their ${esc(dg.pk.name)}` : ""}, and they've been sent a confirmation.</p>` });
     } else if (a.type === "cancel") {
       const r = s.roster.find((x) => x.ci === a.ci);
-      if (r) { giveBack(r, s, "Cancelled"); s.roster.splice(s.roster.indexOf(r), 1); }
+      if (r) { giveBack(r, s, "Cancelled"); logCancel(s, a.ci, { how: "staff", returned: r.pay?.kind === "package", reason: "Cancelled through the assistant" }); s.roster.splice(s.roster.indexOf(r), 1); }
       askState.msgs.push({ who: "bot", html: `<p>Done. ${esc(c.name)}'s booking is cancelled and the class is back on their package. They've been told.</p>` });
     } else {
       if (!s.waitlist.some((w) => w.ci === a.ci)) s.waitlist.push({ ci: a.ci, mode: "automatic", cutoff: null });
@@ -8435,7 +8463,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     if (!canEditCal() || e.button !== 0 || e.pointerType !== "mouse") return;
     const ev = e.target.closest(".ev");
     const btn = ev?.querySelector("[data-open]");
-    if (!btn) return;
+    if (!btn || ev.classList.contains("cx")) return; // cancelled classes can't be moved
     const s = SESSIONS.find((x) => x.id === Number(btn.dataset.open));
     if (!s || s.status !== "scheduled" || s.start < NOW) return;
     const col = ev.closest(".dcol");
@@ -9454,7 +9482,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
   /** Upcoming classes on the closed days. */
   const clClasses = (span) => SESSIONS.filter((s) => s.status === "scheduled" && s.start > NOW && (!span.loc || s.loc === span.loc) && ymd(s.start) >= span.start && ymd(s.start) <= span.end);
   function clCancel(c, list) {
-    for (const s of list) { s.status = "cancelled"; s.cancelReason = `Studio closed: ${c.name}`; s.closure = c.id; }
+    for (const s of list) Object.assign(s, { status: "cancelled", cancelReason: `Studio closed: ${c.name}`, closure: c.id, cancelledAt: NOW, cancelRefund: "credit", cancelledBy: "You" });
     c.cancelled += list.length;
   }
   // The sample closure at Holland Village has already cancelled that weekend's classes there.
@@ -9605,6 +9633,128 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
   NAV.push({ id: "closures", roles: ["admin"], label: "Closures & holidays", help: "Days you're closed. Recurring classes skip them and the classes on those days are cancelled in one go." });
   for (const n of NAV) { const id = n.id; n.group = (role) => navGroup(id, role); }
   NAV.sort((a, b) => navRank(a.id, "admin") - navRank(b.id, "admin"));
+  // ===========================================================================
+  // Cancelled classes on the calendar ("Show cancelled", staff only) and each class's
+  // Cancellations tab. Same rules as GET /calendar?includeCancelled=true and the
+  // `cancellations` part of GET /sessions/:id (apps/api/src/modules/sessions/cancellations.ts).
+  // ===========================================================================
+  const CX_VIA = { self: "Cancelled by the client", staff: "Cancelled by the studio", class_cancelled: "Class cancelled", moved: "Moved to another class", membership_ended: "Membership ended" };
+  const CX_REASONS = ["Called in sick", "Travelling for work", "Injured their back", "Childcare fell through"];
+  state.showCancelled = false;
+  state.drTab = "list";
+
+  /** Record a cancelled booking on the class, for its Cancellations tab. */
+  function logCancel(s, ci, o) {
+    (s.cancels ||= []).push({ ci, at: NOW, late: !!o.late, how: o.how, by: o.how === "self" ? null : o.by || "You", reason: o.reason || null, returned: !!o.returned, fee: o.fee || null });
+  }
+
+  // Sample cancellations: a few on most classes, all made before "now".
+  for (const s of SESSIONS) {
+    s.cancels ||= [];
+    const h = hash(`${s.id}-cx`);
+    const n = h % 5 === 0 ? 2 : h % 3 === 0 ? 1 : 0;
+    const taken = new Set([...s.roster.map((r) => r.ci), ...s.waitlist.map((w) => w.ci)]);
+    const free = CLIENTS.map((_, i) => i).filter((i) => !taken.has(i) && (CLIENTS[i].source !== "direct" || CLIENTS[i].waiver));
+    for (let k = 0; k < n && free.length; k++) {
+      const ci = free.splice((h >> (k + 2)) % free.length, 1)[0];
+      const before = [70, 30, 5, 1.5, 40, 20][(h >> (k * 3 + 1)) % 6];
+      const at = new Date(+s.start - before * 36e5);
+      if (at > NOW) continue;
+      const late = before < STUDIO.lateCancelHours;
+      const how = (h >> (k + 4)) % 4 === 0 ? "staff" : (h >> (k + 4)) % 7 === 1 && !late ? "moved" : "self";
+      const cp = CLIENTS[ci].source === "classpass";
+      s.cancels.push({ ci, at, late, how, by: how === "self" ? null : "Olivia Tan (owner)", reason: how === "staff" ? CX_REASONS[h % CX_REASONS.length] : null, returned: !late && !cp, fee: late && !cp && STUDIO.lateFeeOn ? STUDIO.lateFeeCents : null, cp });
+    }
+  }
+  // Today's 10:45 Reformer has one late and one on-time cancellation, so the tab always has something to show.
+  {
+    const s = SESSIONS.find((x) => ymd(x.start) === "2026-11-11" && hhmm(x.start) === "10:45");
+    if (s) {
+      const out = CLIENTS.map((_, i) => i).filter((i) => !s.roster.some((r) => r.ci === i) && CLIENTS[i].source !== "classpass" && CLIENTS[i].waiver);
+      s.cancels = [
+        { ci: out[0], at: new Date(+s.start - 26 * 36e5), late: false, how: "self", by: null, reason: null, returned: true, fee: null },
+        { ci: out[1], at: new Date(+s.start - 3 * 36e5), late: true, how: "self", by: null, reason: null, returned: false, fee: STUDIO.lateFeeCents },
+      ];
+    }
+  }
+  // Two sample cancelled classes: one cancelled by an admin last Monday, one cancelled automatically tonight.
+  {
+    const mon = SESSIONS.find((x) => ymd(x.start) === "2026-11-09" && hhmm(x.start) === "12:30");
+    if (mon) Object.assign(mon, { status: "cancelled", cancelledAt: new Date(2026, 10, 9, 8, 5), cancelReason: "Instructor unwell", cancelRefund: "credit", cancelledBy: "Olivia Tan (owner)" });
+    const tonight = SESSIONS.filter((x) => ymd(x.start) === "2026-11-11" && x.start.getHours() >= 19 && x.status === "scheduled").sort((a, b) => a.roster.length - b.roster.length)[0];
+    if (tonight) {
+      tonight.roster = tonight.roster.slice(0, 2);
+      tonight.ac = { min: 3, h: 12 };
+      Object.assign(tonight, { status: "cancelled", cancelledAt: new Date(+tonight.start - 12 * 36e5), cancelReason: "Fewer than 3 people booked 12 hours before", cancelRefund: "credit", autoCancelled: true, cancelledBy: null });
+    }
+  }
+
+  /** Everyone whose booking ended: their own cancellations, plus (for a cancelled class) everyone who was booked. */
+  function allCancels(s) {
+    const list = [...(s.cancels || [])];
+    if (s.status === "cancelled") {
+      for (const r of s.roster) list.push({ ci: r.ci, at: s.cancelledAt || NOW, late: false, how: "class_cancelled", by: s.autoCancelled ? "Cancelled automatically" : s.cancelledBy || "You", reason: s.cancelReason || null, returned: s.cancelRefund !== "none" && r.pay?.kind === "package", fee: null, cp: CLIENTS[r.ci].source === "classpass" });
+    }
+    return list.sort((a, b) => a.at - b.at);
+  }
+  function beforeText(s, at) {
+    const m = Math.round((s.start - at) / 6e4);
+    if (m < 0) return "after it started";
+    if (m < 60) return `${plural(m, "minute")} before class`;
+    if (m < 48 * 60) return `${plural(Math.round(m / 60), "hour")} before class`;
+    return `${plural(Math.round(m / 1440), "day")} before class`;
+  }
+  function cxSummary(list) {
+    const moved = list.filter((c) => c.how === "moved").length;
+    const n = list.length - moved, late = list.filter((c) => c.late).length;
+    const parts = [n ? `${plural(n, "cancellation")}${late ? ` (${late} late)` : ""}` : "", moved ? `${moved} moved to another class` : ""].filter(Boolean);
+    return parts.length ? `${parts.join(", ")}.` : "No one has cancelled this class.";
+  }
+  function cxRow(s, c) {
+    const who = CLIENTS[c.ci];
+    const badge = c.how === "moved" ? '<span class="status wait">Moved</span>' : c.how === "class_cancelled" ? '<span class="status off">Class cancelled</span>' : c.late ? '<span class="status open">Late cancel</span>' : '<span class="status done">On time</span>';
+    const credit = c.cp ? "ClassPass handles the credit" : c.how === "moved" ? "Moved with their package" : c.returned ? "Class back on their package" : c.late ? "Class not given back (late)" : "No package class to give back";
+    const by = c.how === "self" ? CX_VIA.self : c.how === "class_cancelled" ? `Class cancelled${c.by ? ` · ${esc(c.by)}` : ""}` : `${CX_VIA[c.how]}${c.by ? ` · by ${esc(c.by)}` : ""}`;
+    return `<div class="cxrow">${avatar(who)}<div class="stack" style="gap:2px;min-width:0">
+      <div class="row" style="gap:6px"><b>${esc(who.name)}</b>${badge}</div>
+      <span class="cxmeta">${fmtDay(c.at)} ${clock(c.at)} · ${beforeText(s, c.at)}</span>
+      <span class="cxmeta">${by}${c.reason ? ` · “${esc(c.reason)}”` : ""}</span>
+      <span class="cxmeta">${credit}${c.fee ? ` · Late fee ${money(c.fee, STUDIO.currency)} to collect under Fees` : ""}</span></div></div>`;
+  }
+  function cancelsSection(s) {
+    const list = allCancels(s);
+    return `<div class="dr-sec"><span class="hint">${esc(cxSummary(list))} Only staff see this list.</span>
+      ${list.length ? `<div class="roster cxlist">${list.map((c) => cxRow(s, c)).join("")}</div>` : ""}</div>`;
+  }
+  function drTabs(s) {
+    const n = allCancels(s).filter((c) => c.how !== "moved").length;
+    return `<div class="tabs drtabs" role="tablist" aria-label="Class list or cancellations">
+      <button type="button" role="tab" data-drtab="list" aria-selected="${state.drTab !== "cx"}">Class list<span class="n">${s.roster.length}</span></button>
+      <button type="button" role="tab" data-drtab="cx" aria-selected="${state.drTab === "cx"}">Cancellations<span class="n">${n}</span></button></div>`;
+  }
+  /** A cancelled class opens read-only: why, when, and everyone affected. */
+  function cancelledDrawer(s) {
+    const when = s.cancelledAt ? `${fmtDay(s.cancelledAt)} at ${clock(s.cancelledAt)}` : "";
+    const head = s.autoCancelled
+      ? alertBox("warn", "Cancelled automatically", `${esc(s.cancelReason || "Not enough people booked.")}${when ? ` (${when})` : ""}. Everyone booked was told and got their class back.`)
+      : alertBox("warn", "This class was cancelled", `${s.cancelReason ? `Reason: “${esc(s.cancelReason)}”. ` : ""}${when ? `Cancelled ${when}${s.cancelledBy ? ` by ${esc(s.cancelledBy)}` : ""}. ` : ""}Everyone booked was told.`);
+    return `<div class="dr-sec">${head}</div><div class="stats">
+      <div class="stat"><b>${s.roster.length}</b><span>Were booked</span></div>
+      <div class="stat"><b>${s.waitlist.length}</b><span>Were waiting</span></div>
+      <div class="stat"><b>${(s.cancels || []).filter((c) => c.how !== "moved").length}</b><span>Cancelled before</span></div></div>
+      <div class="dr-sec"><h3>Cancellations</h3></div>${cancelsSection(s)}
+      <span class="hint">Cancelled classes can't be brought back. To run it after all, add a new class at the same time.</span>`;
+  }
+
+  // Calendar toggle and drawer tabs.
+  $("#fCx").onchange = (e) => { state.showCancelled = e.target.checked; render(); toast(state.showCancelled ? "Showing cancelled classes, struck through." : "Cancelled classes hidden."); };
+  $("#drawerRoot").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-drtab]");
+    if (!t) return;
+    state.drTab = t.dataset.drtab;
+    renderDrawer();
+    document.querySelector(`[data-drtab="${state.drTab}"]`)?.focus();
+  });
 
   // MKT-JS-END
   window.addEventListener("hashchange", () => { const id = location.hash.slice(1); if (id !== state.page && navFor(state.role).some((n) => n.id === id)) go(id); });

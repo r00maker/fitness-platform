@@ -91,6 +91,8 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Edit (this / this and later / whole series) | `PATCH /sessions/:id` | owner, admin |
 | Bulk edit / bulk cancel | `POST /sessions/bulk-update`, `POST /sessions/bulk-cancel` | owner, admin |
 | Cancel / delete | `POST /sessions/:id/cancel`, `DELETE /sessions/:id` | owner, admin |
+| Cancelled classes on the calendar | `GET /calendar?includeCancelled=true` | staff (clients never see them) |
+| Who cancelled a class (Cancellations tab) | `cancellations` in `GET /sessions/:id` | admin, Front of House, the class's instructor |
 | Duplicate a class / copy a week | `POST /sessions/:id/duplicate`, `POST /sessions/duplicate-range` | owner, admin |
 | Closures and holidays (cancels classes on those days after confirming) | `GET /closures`, `POST /closures/preview`, `POST /closures`, `PATCH\|DELETE /closures/:id` | read: all · write: owner, admin |
 | Templates, class types, locations, rooms | `/templates`, `/class-types`, `/locations`, `/rooms` | read: all · write: owner, admin |

@@ -93,6 +93,10 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
       coverForLast: coverFor.lastName,
       booked,
       waiting,
+      cancelledAt: classSessions.cancelledAt,
+      cancelReason: classSessions.cancelReason,
+      autoCancelled: classSessions.autoCancelled,
+      wasBooked: sql<number>`(select count(*)::int from bookings b where b.session_id = ${classSessions.id} and b.cancelled_via = 'class_cancelled')`,
       instructorClash: overlapping("instructor_id"),
       roomClash: overlapping("room_id"),
     })
@@ -188,6 +192,10 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
         isAppointment: r.classType.kind === "appointment",
         ...(isClient ? {} : { classpass: classpassView(r) }),
         ...(isClient ? {} : { notes: r.notes, flags: flags.map((code) => ({ code, title: FLAG_TITLES[code] })) }),
+        // Shown when staff switch on "Show cancelled classes".
+        ...(!isClient && r.status === "cancelled"
+          ? { cancelled: { at: r.cancelledAt?.toISOString() ?? null, reason: r.cancelReason, automatically: r.autoCancelled, peopleWereBooked: r.wasBooked } }
+          : {}),
       };
     }),
   };

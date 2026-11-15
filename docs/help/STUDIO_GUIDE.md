@@ -44,6 +44,8 @@ The **Ask** button (bottom right) opens the assistant. The **bell** at the top s
 - **Change one class:** tap it, then **Edit**. For recurring classes you choose "this class", "this and later" or "the whole series".
 - **Change or cancel many classes at once:** **Edit many**. Either pick classes on the calendar, or choose them with filters (dates up to a year ahead, class types, instructors, location, days of the week and start time). Then change anything you could set when creating a class, or cancel them all.
 - **Cancel a class:** tap it, then **Cancel class**. Everyone booked is told and gets their class back.
+- **See cancelled classes:** tick **Show cancelled** next to the filters on the Schedule (staff only; clients never see cancelled classes). They show struck through. Open one to see why and when it was cancelled, who cancelled it, and everyone who was booked. Cancelled classes can't be brought back; add a new class at the same time instead.
+- **Who cancelled a class:** open the class and choose the **Cancellations** tab (next to **Class list**). It lists everyone whose booking was cancelled: when, how long before class, whether they did it themselves or the studio did (with the reason), whether they got the class back, and any late fee. People moved to another class are listed too. Owners, admins, Front of House and the class's own instructor can see it.
 - **Auto-cancel:** a class can cancel itself if fewer than a set number of people are booked a set number of hours before. Set it on a template or on the class.
 - **ClassPass:** in the class's settings, switch on ClassPass bookings and choose how many spots ClassPass can have. Unused ClassPass spots stay open to members.
 

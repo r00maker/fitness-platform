@@ -37,7 +37,7 @@
     if (!canEditCal() || e.button !== 0 || e.pointerType !== "mouse") return;
     const ev = e.target.closest(".ev");
     const btn = ev?.querySelector("[data-open]");
-    if (!btn) return;
+    if (!btn || ev.classList.contains("cx")) return; // cancelled classes can't be moved
     const s = SESSIONS.find((x) => x.id === Number(btn.dataset.open));
     if (!s || s.status !== "scheduled" || s.start < NOW) return;
     const col = ev.closest(".dcol");

@@ -24,7 +24,7 @@
   /** Upcoming classes on the closed days. */
   const clClasses = (span) => SESSIONS.filter((s) => s.status === "scheduled" && s.start > NOW && (!span.loc || s.loc === span.loc) && ymd(s.start) >= span.start && ymd(s.start) <= span.end);
   function clCancel(c, list) {
-    for (const s of list) { s.status = "cancelled"; s.cancelReason = `Studio closed: ${c.name}`; s.closure = c.id; }
+    for (const s of list) Object.assign(s, { status: "cancelled", cancelReason: `Studio closed: ${c.name}`, closure: c.id, cancelledAt: NOW, cancelRefund: "credit", cancelledBy: "You" });
     c.cancelled += list.length;
   }
   // The sample closure at Holland Village has already cancelled that weekend's classes there.

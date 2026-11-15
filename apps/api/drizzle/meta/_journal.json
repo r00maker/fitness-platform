@@ -162,6 +162,13 @@
       "when": 1794671488233,
       "tag": "0022_closures",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794710305955,
+      "tag": "0023_booking_cancellations",
+      "breakpoints": true
     }
   ]
 }

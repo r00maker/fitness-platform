@@ -731,7 +731,7 @@ export async function cancelOne(tx: DbOrTx, auth: AuthContext, s: SessionRow, op
     .returning();
   const cancelled = await tx
     .update(bookings)
-    .set({ status: "cancelled", cancelledAt: now })
+    .set({ status: "cancelled", cancelledAt: now, cancelledBy: auth.userId, cancelledVia: "class_cancelled", cancelReason: opts.reason ?? null })
     .where(and(eq(bookings.sessionId, s.id), eq(bookings.status, "confirmed")))
     .returning();
   if (opts.refund !== "none" && cancelled.length) {

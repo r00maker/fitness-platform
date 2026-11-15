@@ -43,6 +43,7 @@ import {
   VALIDITY_UNITS,
   type PayTier,
   type ClassTypeKind,
+  type CancelledVia,
   EXTENSION_ATTACHMENT,
   EXTENSION_FEE_MODES,
   EXTENSION_MODES,
@@ -674,6 +675,12 @@ export const bookings = pgTable(
     clientPackageId: uuid("client_package_id").references(() => clientPackages.id),
     bookedBy: uuid("booked_by").references(() => users.id),
     cancelledAt: ts("cancelled_at"),
+    /** Who cancelled it (the client themselves, or a member of staff). */
+    cancelledBy: uuid("cancelled_by").references(() => users.id, { onDelete: "set null" }),
+    /** How it was cancelled, for the class's Cancellations tab. Null for bookings cancelled before this was recorded. */
+    cancelledVia: text("cancelled_via").$type<CancelledVia>(),
+    /** The reason given, if any. Staff only. */
+    cancelReason: text("cancel_reason"),
     attendanceMarkedAt: ts("attendance_marked_at"),
     attendanceMarkedBy: uuid("attendance_marked_by").references(() => users.id),
     createdAt: createdAt(),
