@@ -21,12 +21,12 @@
     const taken = new Set([...s.roster.map((r) => r.ci), ...s.waitlist.map((w) => w.ci)]);
     const free = CLIENTS.map((_, i) => i).filter((i) => !taken.has(i) && (CLIENTS[i].source !== "direct" || CLIENTS[i].waiver));
     for (let k = 0; k < n && free.length; k++) {
-      const ci = free.splice((h >> (k + 2)) % free.length, 1)[0];
-      const before = [70, 30, 5, 1.5, 40, 20][(h >> (k * 3 + 1)) % 6];
+      const ci = free.splice((h >>> (k + 2)) % free.length, 1)[0];
+      const before = [70, 30, 5, 1.5, 40, 20][(h >>> (k * 3 + 1)) % 6];
       const at = new Date(+s.start - before * 36e5);
       if (at > NOW) continue;
       const late = before < STUDIO.lateCancelHours;
-      const how = (h >> (k + 4)) % 4 === 0 ? "staff" : (h >> (k + 4)) % 7 === 1 && !late ? "moved" : "self";
+      const how = (h >>> (k + 4)) % 4 === 0 ? "staff" : (h >>> (k + 4)) % 7 === 1 && !late ? "moved" : "self";
       const cp = CLIENTS[ci].source === "classpass";
       s.cancels.push({ ci, at, late, how, by: how === "self" ? null : "Olivia Tan (owner)", reason: how === "staff" ? CX_REASONS[h % CX_REASONS.length] : null, returned: !late && !cp, fee: late && !cp && STUDIO.lateFeeOn ? STUDIO.lateFeeCents : null, cp });
     }

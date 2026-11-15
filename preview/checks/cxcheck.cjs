@@ -36,6 +36,12 @@ const file = "file://" + path.join(__dirname, "cx-test.html");
     const cxCount = () => p.locator(phone ? ".ag-row.cx" : ".ev.cx").count();
     const toggle = async (on) => { if ((await p.locator("#fCx").isChecked()) !== on) await click("#fCxWrap"); };
 
+    // Every sample cancellation has a real date, and no tab shows "undefined" or "NaN".
+    const broken = await ev(`SESSIONS.flatMap((s) => allCancels(s).filter((c) => !(c.at instanceof Date) || isNaN(c.at)).map(() => s.id)).length`);
+    ok(`${label}: every cancellation has a real date (${broken} bad)`, broken === 0);
+    const badText = await ev(`SESSIONS.filter((s) => /undefined|NaN/.test(cancelsSection(s))).length`);
+    ok(`${label}: no tab shows undefined or NaN (${badText} bad)`, badText === 0);
+
     // Calendar toggle
     await go("schedule");
     ok(`${label}: toggle shown to admins`, await p.locator("#fCxWrap").isVisible());
