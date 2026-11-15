@@ -899,3 +899,6 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 .qvimg { display: block; margin: 0 auto; height: auto; border-radius: 4px; box-shadow: 0 1px 3px rgba(0, 0, 0, .18); }
 .qvmsg { display: grid; place-items: center; min-height: 200px; color: var(--muted); }
 @media (max-width: 520px) { .qvwrap { padding: 0; } .modal.qv { height: 100%; border-radius: 0; } .qvtools #qvFit { display: none; } }
+
+/* Pages with a save bar (Studio rules): the Ask button sits above it instead of covering it. */
+body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }

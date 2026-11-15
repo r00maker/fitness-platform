@@ -321,6 +321,9 @@ export const FLAG_CODES = [
   // Appointments and ClassPass
   "appointment_no_client",
   "delete_class_type",
+  "delete_template",
+  "attendance_locked",
+  "fee_not_final",
   "whatsapp_charge",
   "classpass_reduced",
   // Packages and payroll

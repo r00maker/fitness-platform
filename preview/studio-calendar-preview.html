@@ -1443,6 +1443,9 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 .qvmsg { display: grid; place-items: center; min-height: 200px; color: var(--muted); }
 @media (max-width: 520px) { .qvwrap { padding: 0; } .modal.qv { height: 100%; border-radius: 0; } .qvtools #qvFit { display: none; } }
 
+/* Pages with a save bar (Studio rules): the Ask button sits above it instead of covering it. */
+body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+
 /* MKT-CSS-END */
 </style>
 
@@ -2469,7 +2472,8 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     const own = role === "instructor" && s.instr === ME.instructor;
     const seesRoster = role === "admin" || role === "foh" || own;
     const flags = isStaff() ? calendarFlags(s) : [];
-    const attOpen = NOW >= addMin(s.start, -60);
+    // Attendance opens an hour before class and locks at midnight after it (admins can still correct it).
+    const attOpen = NOW >= addMin(s.start, -60) && (NOW < attLockOf(s) || role === "admin");
     const left = s.cap - s.roster.length;
     let body = "";
     if (s.status === "cancelled") body = cancelledDrawer(s);
@@ -2510,8 +2514,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const noWaiver = s.roster.filter((r) => waiverMissing(CLIENTS[r.ci]));
       body += `<div class="dr-sec"><h3>Client list <span class="inline2">${addBtn}${markAll}</span></h3>
         ${noWaiver.length ? alertBox("bad", `${plural(noWaiver.length, "client hasn't", "clients haven't")} done the waiver`, `${noWaiver.map((r) => esc(CLIENTS[r.ci].name)).join(", ")}. Check before class starts. They're marked in red below.`) : ""}
-        ${attOpen ? "" : `<span class="hint">Attendance opens an hour before class (${clock(addMin(s.start, -60))}).</span>`}
-        ${attOpen ? `<span class="hint">Tap ✓ for attended or ✕ for a no-show. Tap a name for details.</span>` : ""}
+        ${attHint(s, role, attOpen)}
         ${s.roster.length ? `<div class="roster">${s.roster.slice().sort((a, b) => (spotsFor(s) ? (a.spot || 99) - (b.spot || 99) : 0) || CLIENTS[a.ci].name.localeCompare(CLIENTS[b.ci].name)).map((r) => clientRow(s, r, role, attOpen)).join("")}</div>` : `<span class="hint">No one has booked yet.</span>`}
       </div>`;
       if (s.waitlist.length) {
@@ -3957,14 +3960,14 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const list = FEES.filter((x) => f === "all" || x.status === f);
       const due = FEES.filter((x) => x.status === "pending");
       const total = due.reduce((n, x) => n + x.cents, 0);
-      return head("Fees", due.length ? `${money(total, STUDIO.currency)} to collect from ${plural(new Set(due.map((x) => x.ci)).size, "client")}. Fees are collected once payments are switched on.` : "Nothing to collect.") +
+      return head("Fees", due.length ? `${money(total, STUDIO.currency)} to collect from ${plural(new Set(due.map((x) => x.ci)).size, "client")}. Late-cancellation fees are final straight away; no-show fees become final at midnight after the class, when attendance locks.` : "Nothing to collect.") +
         `<div class="seg" role="group" aria-label="Show" style="align-self:flex-start">${[["pending", "To be collected"], ["waived", "Waived"], ["all", "All"]].map(([k, l]) => `<button type="button" data-ff="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
         <div class="tblwrap"><table class="tbl"><thead><tr><th>Client</th><th>Fee</th><th>Class</th><th>Amount</th><th>Added</th><th>Status</th><th></th></tr></thead><tbody>
         ${list.map((x) => {
           const c = CLIENTS[x.ci], s = SESSIONS.find((y) => y.id === x.sid);
           return `<tr><td><div class="cellp">${avatar(c, "sm")}${esc(c.name)}</div></td><td>${FEE_TYPE[x.type]}</td><td>${s ? esc(sLabel(s)) : ""}</td>
             <td style="font-variant-numeric:tabular-nums">${money(x.cents, STUDIO.currency)}</td><td>${esc(x.added)}</td>
-            <td>${x.status === "pending" ? '<span class="status open">To be collected</span>' : `<span class="status off" data-help="${esc(x.reason || "")}">Waived</span>`}</td>
+            <td>${feeStatus(x)}</td>
             <td>${x.status === "pending" ? `<button type="button" class="btn" data-waive="${x.id}" data-help="Remove this fee. The reason is kept on the client's history.">Waive</button>` : ""}</td></tr>`;
         }).join("") || `<tr><td colspan="7" class="muted">No fees here.</td></tr>`}
         </tbody></table></div>`;
@@ -3983,9 +3986,9 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 
     templates() {
       return head("Templates", "Saved class details. Pick one when adding a class and everything here is filled in, including the length.", `<button type="button" class="btn primary" id="newTpl" data-help="Save a new set of class details to reuse.">New template</button>`) +
-        `<div class="tblwrap"><table class="tbl"><thead><tr><th>Template</th><th>Class</th><th>Length</th><th>Usual start</th><th>Room</th><th>Instructor</th><th>Spots</th></tr></thead><tbody>
+        `<div class="tblwrap"><table class="tbl"><thead><tr><th>Template</th><th>Class</th><th>Length</th><th>Usual start</th><th>Room</th><th>Instructor</th><th>Spots</th><th aria-label="Delete"></th></tr></thead><tbody>
         ${TEMPLATE_LIST.map((t) => `<tr class="click" data-tpl="${t.id}" tabindex="0" data-help="Click to edit this template."><td><b>${esc(t.label)}</b></td><td><div class="cellp">${sw(t.type)}${esc(TYPES[t.type].name)}</div></td>
-          <td>${lengthText(t.dur)}</td><td>${short(fromYmdHm("2026-01-01", t.start))}</td><td>${esc(ROOMS[t.room].name)}</td><td>${t.instr ? `<div class="cellp">${instrAvatar(t.instr, "sm")}${esc(STAFF[t.instr])}</div>` : "TBC"}</td><td>${t.cap}</td></tr>`).join("")}
+          <td>${lengthText(t.dur)}</td><td>${short(fromYmdHm("2026-01-01", t.start))}</td><td>${esc(ROOMS[t.room].name)}</td><td>${t.instr ? `<div class="cellp">${instrAvatar(t.instr, "sm")}${esc(STAFF[t.instr])}</div>` : "TBC"}</td><td>${t.cap}</td><td><button type="button" class="btn ghost danger" data-tpldel="${t.id}" aria-label="Delete ${esc(t.label)}" data-help="Delete this template. Classes made from it stay as they are.">Delete</button></td></tr>`).join("")}
         </tbody></table></div>`;
     },
 
@@ -4014,7 +4017,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
         <div class="card"><h3>Cancellations and fees</h3><div class="rules">
           ${rule("Late-cancellation window", "Cancelling inside this loses the class credit, and clients can't move their booking.", sel("pLate", [1, 2, 3, 4, 6, 8, 12, 24, 48].map((h) => [h, `${plural(h, "hour")} before`]), STUDIO.lateCancelHours), "lateCancelWindowHours")}
           ${rule("Late-cancellation fee", "Charged on top of losing the credit.", `${toggle("pLateOn", STUDIO.lateFeeOn, "Late-cancellation fee")}<span class="muted">${cur}</span><input type="number" id="pLateFee" min="0" step="0.5" value="${(STUDIO.lateFeeCents / 100).toFixed(2)}" ${STUDIO.lateFeeOn ? "" : "disabled"} aria-label="Late-cancellation fee amount">`, "lateCancelFeeEnabled", "pLateErr")}
-          ${rule("No-show fee", "Added when a client is marked as a no-show; removed if that's corrected.", `${toggle("pNoShowOn", STUDIO.noShowFeeOn, "No-show fee")}<span class="muted">${cur}</span><input type="number" id="pNoShowFee" min="0" step="0.5" value="${(STUDIO.noShowFeeCents / 100).toFixed(2)}" ${STUDIO.noShowFeeOn ? "" : "disabled"} aria-label="No-show fee amount">`, "noShowFeeEnabled", "pNoShowErr")}
+          ${rule("No-show fee", "Added when a client is marked as a no-show; removed if that's corrected before attendance locks at midnight after the class. After that it's final.", `${toggle("pNoShowOn", STUDIO.noShowFeeOn, "No-show fee")}<span class="muted">${cur}</span><input type="number" id="pNoShowFee" min="0" step="0.5" value="${(STUDIO.noShowFeeCents / 100).toFixed(2)}" ${STUDIO.noShowFeeOn ? "" : "disabled"} aria-label="No-show fee amount">`, "noShowFeeEnabled", "pNoShowErr")}
           ${rule("Currency", "Used for fees and, later, prices.", sel("pCur", ["SGD", "MYR", "THB", "IDR", "PHP", "VND", "USD", "AUD"].map((c) => [c, c]), cur), "currency")}
         </div></div>
         <div class="card"><h3>Waivers and spots</h3><div class="rules">
@@ -4263,7 +4266,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     weeklyBookingLimit: "The most classes one client can have booked in a week (Monday–Sunday). Leave off for unlimited, which suits most studios.",
     lateCancelWindowHours: "Cancelling within this many hours of class counts as a late cancellation.",
     lateCancelFeeEnabled: "Clients who cancel inside the late-cancellation window are charged this fee, on top of losing their credit.",
-    noShowFeeEnabled: "Clients marked as a no-show are charged this fee. It's removed automatically if attendance is corrected.",
+    noShowFeeEnabled: "Clients marked as a no-show are charged this fee. It's removed automatically if attendance is corrected before it locks at midnight after the class. After that, only an admin can correct attendance, and the fee is final.",
     currency: "The currency your fees and prices are shown in.",
     waitlistModes: "“Clients choose”: each client picks “Book me in automatically” or “Ask me first” when they join. Or choose one way for everyone, and clients aren't asked.",
     waitlistHoldMinutes: "How long a spot is held for someone who chose “Ask me first” before it goes to the next person.",
@@ -4863,7 +4866,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
         <div class="field"><label for="tCap">Spots available</label><input id="tCap" type="number" min="1" value="${t.cap}"></div>
         <div class="field full cpbox" id="tAc"></div>
       </div></div>
-      <footer><button type="button" class="btn ghost" data-mclose>Cancel</button><button type="submit" class="btn primary">${id ? "Save template" : "Create template"}</button></footer></form></div>`;
+      <footer>${id ? '<button type="button" class="btn ghost danger" id="tDel" style="margin-right:auto">Delete template</button>' : ""}<button type="button" class="btn ghost" data-mclose>Cancel</button><button type="submit" class="btn primary">${id ? "Save template" : "Create template"}</button></footer></form></div>`;
     let ac = t.ac ? { ...t.ac } : null;
     const paintAc = () => {
       const box = $("#tAc");
@@ -4875,6 +4878,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     };
     $("#tType").addEventListener("change", paintAc);
     paintAc();
+    if ($("#tDel")) $("#tDel").onclick = () => deleteTemplate(id);
     $("#tplForm").onsubmit = (e) => {
       e.preventDefault();
       const label = $("#tName").value.trim();
@@ -4957,8 +4961,9 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       $("#newTpl").onclick = () => openTemplate(null);
       document.querySelectorAll("[data-tpl]").forEach((tr) => {
         tr.onclick = () => openTemplate(tr.dataset.tpl);
-        tr.onkeydown = (e) => { if (e.key === "Enter") openTemplate(tr.dataset.tpl); };
+        tr.onkeydown = (e) => { if (e.key === "Enter" && e.target === tr) openTemplate(tr.dataset.tpl); };
       });
+      document.querySelectorAll("[data-tpldel]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); deleteTemplate(b.dataset.tpldel); }));
     },
     policies() {
       const link = (sw2, input) => ($(sw2).onchange = () => { $(input).disabled = !$(sw2).checked; });
@@ -5153,6 +5158,11 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       return render();
     }
     if (t.dataset.att) {
+      if (NOW >= attLockOf(current()) && !t._lockOk) {
+        const btn = t;
+        confirmFlags([{ level: "confirm", title: "Attendance is locked", msg: `Attendance for this class was locked at ${lockWords(current())}, and any no-show fees are final. Changing it now adds or removes a no-show fee. Change it anyway?` }], { proceedLabel: "Change it", proceed: () => { btn._lockOk = true; btn.click(); } });
+        return;
+      }
       const [ci, val] = t.dataset.att.split(":");
       const r = current().roster.find((x) => x.ci === Number(ci));
       r.att = r.att === val ? "unmarked" : val;
@@ -9040,14 +9050,14 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     if ($("#ivDocR")) $("#ivDocR").onclick = () => openDoc(inv, "receipt");
     if ($("#ivMail")) $("#ivMail").onclick = () => { emailReceipt(inv); openInv(inv); };
     if ($("#ivRefund")) $("#ivRefund").onclick = () => openRefund(inv);
-    if ($("#ivPay")) $("#ivPay").onclick = () => payMethodModal(`Mark ${inv.no} as paid`, `${esc(c.name)} · ${m$(invTotal(inv))}. ${INV.settings.autoEmailReceipts ? "They're emailed a receipt." : "You can email the receipt afterwards."}`, (m) => {
+    if ($("#ivPay")) $("#ivPay").onclick = () => feeGate(inv, () => payMethodModal(`Mark ${inv.no} as paid`, `${esc(c.name)} · ${m$(invTotal(inv))}. ${INV.settings.autoEmailReceipts ? "They're emailed a receipt." : "You can email the receipt afterwards."}`, (m) => {
       const pk = inv.ref?.pkg && CPKG.find((x) => x.id === inv.ref.pkg);
       if (inv.ref?.renewal && pk?.hold) liftHold(pk, m);
       else if (inv.ref?.order) { const o = ORDERS.find((x) => x.id === inv.ref.order); payInv(inv, m); if (o && o.status === "pending") { const p2 = sellPkg(o.ci, o.plan, { daysAgo: 0 }); p2._inv = inv.id; inv.ref.pkg = p2.id; o.status = "paid"; } }
       else if (inv.ref?.fee) { const f = FEES.find((x) => x.id === inv.ref.fee); if (f) { f.status = "paid"; f.method = m; } payInv(inv, m); }
       else { payInv(inv, m); const so = inv.ref?.shop && SHOP_ORDERS.find((x) => x.id === inv.ref.shop); if (so) so.paid = true; }
       renderNav(); render(); toast(`${inv.no} paid by ${PAY_METHODS[m].toLowerCase()}.${INV.settings.autoEmailReceipts ? ` Receipt ${inv.rct} emailed to ${c.email}.` : ""}`);
-    });
+    }));
   }
 
   function invoiceDesign() {
@@ -10299,6 +10309,57 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     openQuickView(Number(b.dataset.qv));
   });
   window.addEventListener("resize", () => { if ($("#qvBody") && QV.fit) draw(); });
+  // ===========================================================================
+  // Deleting templates, and the attendance lock. Same rules as the API:
+  //  - DELETE /templates/:id asks first; classes made from a template keep every detail.
+  //  - Attendance locks at midnight at the end of the class's day. Until then staff can change it
+  //    and no-show fees follow it; after it, it's final: only admins can correct it, after a
+  //    warning. Collecting a no-show fee before the lock asks first. Late-cancellation fees are
+  //    final straight away.
+  // ===========================================================================
+  /** Midnight at the end of the class's day. */
+  const attLockOf = (s) => day(addDays(s.start, 1));
+  const lockWords = (s) => `midnight at the end of ${fmtDay(s.start)}`;
+  function attHint(s, role, attOpen) {
+    if (NOW < addMin(s.start, -60)) return `<span class="hint">Attendance opens an hour before class (${clock(addMin(s.start, -60))}) and locks at ${lockWords(s)}.</span>`;
+    if (NOW >= attLockOf(s)) {
+      return alertBox("info", "Attendance is locked", role === "admin"
+        ? `It locked at ${lockWords(s)}, and no-show fees are final. You can still correct it; you'll be asked first, because it adds or removes a no-show fee.`
+        : `It locked at ${lockWords(s)}, and no-show fees are final. Ask an admin if it needs correcting.`);
+    }
+    return `<span class="hint">Tap ✓ for attended or ✕ for a no-show. Tap a name for details. Attendance locks at ${lockWords(s)}${sameDay(s.start, NOW) ? " (tonight)" : ""}; until then, no-show fees follow it.</span>`;
+  }
+  /** Before a no-show fee is collected: is attendance still open? */
+  function feeFinalAt(f) {
+    if (f.type !== "no_show") return null;
+    const s = SESSIONS.find((x) => x.id === f.sid);
+    return s ? { at: attLockOf(s), s } : null;
+  }
+  function feeGate(inv, go) {
+    const f = inv.ref?.fee && FEES.find((x) => x.id === inv.ref.fee);
+    const fin = f && feeFinalAt(f);
+    if (!fin || NOW >= fin.at) return go();
+    confirmFlags([{ level: "confirm", title: "Attendance can still change", msg: `Attendance for this class can still change until ${lockWords(fin.s)}, which would remove this no-show fee. Collect it now anyway?` }], { proceed: go, proceedLabel: "Collect anyway" });
+  }
+  function feeStatus(x) {
+    if (x.status !== "pending") return x.status === "paid" ? '<span class="status done">Paid</span>' : `<span class="status off" data-help="${esc(x.reason || "")}">Waived</span>`;
+    const fin = feeFinalAt(x);
+    if (fin && NOW < fin.at) return `<span class="status wait" data-help="If attendance is corrected before ${esc(lockWords(fin.s))}, this fee is removed.">Final after midnight</span>`;
+    return '<span class="status open">To be collected</span>';
+  }
+
+  // --- Deleting a template ------------------------------------------------------------
+  function deleteTemplate(id) {
+    const t = TEMPLATES[id];
+    if (!t) return;
+    const upcoming = SESSIONS.filter((s) => s.tpl === id && s.status === "scheduled" && s.start > NOW);
+    const repeats = new Set(upcoming.map((s) => s.series).filter(Boolean)).size;
+    const used = [upcoming.length ? plural(upcoming.length, "upcoming class", "upcoming classes") : "", repeats ? plural(repeats, "repeating schedule") : ""].filter(Boolean).join(" and ");
+    confirmFlags([{ level: "confirm", title: "Delete this template?", msg: `“${t.label}” will be deleted, so it can't be used for new classes.${used ? ` The ${used} made from it stay exactly as they are.` : " No upcoming classes use it."}` }], {
+      proceedLabel: "Delete template",
+      proceed: () => { t.archived = true; const i = TEMPLATE_LIST.indexOf(t); if (i >= 0) TEMPLATE_LIST.splice(i, 1); closeModal(); render(); toast(`“${t.label}” deleted.${upcoming.length ? ` Its ${plural(upcoming.length, "class", "classes")} are unchanged.` : ""}`); },
+    });
+  }
 
   // MKT-JS-END
   window.addEventListener("hashchange", () => { const id = location.hash.slice(1); if (id !== state.page && navFor(state.role).some((n) => n.id === id)) go(id); });

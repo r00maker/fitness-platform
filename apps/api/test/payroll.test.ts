@@ -157,7 +157,9 @@ describe("payroll report", () => {
 
     // The no-show turns out to have come: admins are told pay was already marked as paid.
     const [noShow] = await db.select().from(bookings).where(eq(bookings.attendance, "no_show"));
-    const fix = await s.owner.call("PUT", `/bookings/${noShow!.id}/attendance`, { attendance: "present" });
+    // Yesterday's attendance is locked, so admins are asked first.
+    expect((await s.owner.call("PUT", `/bookings/${noShow!.id}/attendance`, { attendance: "present" })).body.error.flags[0].code).toBe("attendance_locked");
+    const fix = await s.owner.call("PUT", `/bookings/${noShow!.id}/attendance`, { attendance: "present", acknowledge: ["attendance_locked"] });
     expect(fix.body.flags.map((f: { code: string }) => f.code)).toContain("pay_already_marked_paid");
     const rep = await report();
     expect(rep.paid).toMatchObject({ totalCents: 2000, changesSince: [{ differenceCents: 1000, difference: "+SGD 10.00" }] });

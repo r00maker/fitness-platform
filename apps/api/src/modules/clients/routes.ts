@@ -7,6 +7,7 @@ import { bookings, classSessions, classTypes, fees, memberships, users } from ".
 import { audit } from "../../lib/audit.js";
 import { conflict, notFound } from "../../lib/errors.js";
 import { inTx } from "../../lib/route.js";
+import { feeFinalAt } from "../bookings/service.js";
 import { parse } from "../../lib/validate.js";
 import { voidFor } from "../sales/invoices.js";
 import { requirePermission } from "../../plugins/auth.js";
@@ -84,7 +85,15 @@ export async function clientRoutes(app: FastifyInstance) {
       .where(and(eq(fees.orgId, req.auth.orgId), inArray(fees.status, status ? [status] : ["pending"])))
       .orderBy(desc(fees.createdAt))
       .limit(500);
-    return rows.map((r) => ({ ...r.fee, amount: money(r.fee.amountCents, r.fee.currency), clientName: `${r.firstName} ${r.lastName}` }));
+    const now = new Date();
+    return Promise.all(
+      rows.map(async (r) => {
+        // No-show fees follow attendance until it locks at midnight after the class; others are final straight away.
+        const f = r.fee.status === "pending" ? await feeFinalAt(db, req.auth.orgId, r.fee) : null;
+        const final = !f || now >= f.at;
+        return { ...r.fee, amount: money(r.fee.amountCents, r.fee.currency), clientName: `${r.firstName} ${r.lastName}`, final, finalAt: f?.at.toISOString() ?? null, finalNote: final ? null : `Can still change until ${f!.text} (if attendance is corrected)` };
+      }),
+    );
   });
 
   app.post("/fees/:id/waive", async (req) => {

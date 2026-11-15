@@ -13,6 +13,7 @@ import { badRequest, notFound } from "../../lib/errors.js";
 import { parse, parsePatch } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { assertMemberWithRole } from "../sessions/context.js";
+import { audit } from "../../lib/audit.js";
 
 const idParam = z.object({ id: schemas.id });
 
@@ -319,11 +320,28 @@ export async function catalogRoutes(app: FastifyInstance) {
       return row;
     });
 
-    admin.delete("/templates/:id", async (req, reply) => {
+    /**
+     * Delete a template. It asks first. Classes and repeating schedules made from it keep every
+     * detail they have (they copied it when they were made); it just can't be used for new classes.
+     */
+    admin.delete("/templates/:id", async (req) => {
       const { id } = parse(idParam, req.params);
-      const [row] = await db.update(classTemplates).set({ archivedAt: new Date() }).where(and(eq(classTemplates.id, id), eq(classTemplates.orgId, req.auth.orgId))).returning();
-      if (!row) throw notFound("template");
-      return reply.code(204).send();
+      const { acknowledge } = parse(schemas.deleteTemplate, req.body ?? {});
+      return withFlags(app, acknowledge, async (tx, flags) => {
+        const [tpl] = await tx.select().from(classTemplates).where(and(eq(classTemplates.id, id), eq(classTemplates.orgId, req.auth.orgId), isNull(classTemplates.archivedAt)));
+        if (!tpl) throw notFound("template");
+        const [{ n: upcoming } = { n: 0 }] = await tx.select({ n: sql<number>`count(*)::int` }).from(classSessions).where(and(eq(classSessions.templateId, id), eq(classSessions.status, "scheduled"), gt(classSessions.startsAt, new Date())));
+        const [{ n: repeats } = { n: 0 }] = await tx.select({ n: sql<number>`count(*)::int` }).from(classSeries).where(and(eq(classSeries.templateId, id), isNull(classSeries.endedAt)));
+        const used = [upcoming ? `${upcoming} upcoming ${upcoming === 1 ? "class" : "classes"}` : "", repeats ? `${repeats} repeating ${repeats === 1 ? "schedule" : "schedules"}` : ""].filter(Boolean).join(" and ");
+        flags.confirm({
+          code: "delete_template",
+          details: { upcoming, repeats },
+          message: `“${tpl.name}” will be deleted, so it can't be used for new classes.${used ? ` The ${used} made from it stay exactly as they are.` : " No upcoming classes use it."}`,
+        });
+        await tx.update(classTemplates).set({ archivedAt: new Date() }).where(eq(classTemplates.id, id));
+        await audit(tx, { orgId: req.auth.orgId, actorId: req.auth.userId, action: "template.deleted", entityType: "template", entityId: id });
+        return { deleted: tpl.name, classesKept: upcoming, repeatsKept: repeats };
+      });
     });
   });
 }

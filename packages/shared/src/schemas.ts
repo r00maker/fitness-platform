@@ -310,6 +310,8 @@ export const duplicateRange = z.object({
 });
 
 // ---- Recurring classes ------------------------------------------------------
+export const deleteTemplate = z.object({ acknowledge });
+
 export const createSeries = z
   .object({
     templateId: id.optional(),
@@ -451,7 +453,7 @@ export const refundBooking = z.object({
   reason: z.string().min(1, "Add a short reason.").max(500),
   acknowledge,
 });
-export const markAttendance = z.object({ attendance: z.enum(ATTENDANCE) });
+export const markAttendance = z.object({ attendance: z.enum(ATTENDANCE), acknowledge });
 export const createClientTag = z.object({
   name: z.string().trim().min(1, "Give the tag a name.").max(40),
   color: hexColor.optional(),

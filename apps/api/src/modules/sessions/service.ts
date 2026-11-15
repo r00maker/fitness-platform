@@ -120,7 +120,8 @@ type FieldInput = Omit<CreateSessionInput, "date" | "acknowledge">;
 async function resolveFields(db: DbOrTx, orgId: string, input: FieldInput): Promise<ResolvedFields> {
   let t: typeof classTemplates.$inferSelect | undefined;
   if (input.templateId) {
-    [t] = await db.select().from(classTemplates).where(and(eq(classTemplates.id, input.templateId), eq(classTemplates.orgId, orgId)));
+    // Deleted templates can't be used for new classes (classes already made from them keep their details).
+    [t] = await db.select().from(classTemplates).where(and(eq(classTemplates.id, input.templateId), eq(classTemplates.orgId, orgId), isNull(classTemplates.archivedAt)));
     if (!t) throw notFound("template");
   }
   const startTime = input.startTime ?? t?.startTime?.slice(0, 5) ?? null;

@@ -295,14 +295,14 @@
     if ($("#ivDocR")) $("#ivDocR").onclick = () => openDoc(inv, "receipt");
     if ($("#ivMail")) $("#ivMail").onclick = () => { emailReceipt(inv); openInv(inv); };
     if ($("#ivRefund")) $("#ivRefund").onclick = () => openRefund(inv);
-    if ($("#ivPay")) $("#ivPay").onclick = () => payMethodModal(`Mark ${inv.no} as paid`, `${esc(c.name)} · ${m$(invTotal(inv))}. ${INV.settings.autoEmailReceipts ? "They're emailed a receipt." : "You can email the receipt afterwards."}`, (m) => {
+    if ($("#ivPay")) $("#ivPay").onclick = () => feeGate(inv, () => payMethodModal(`Mark ${inv.no} as paid`, `${esc(c.name)} · ${m$(invTotal(inv))}. ${INV.settings.autoEmailReceipts ? "They're emailed a receipt." : "You can email the receipt afterwards."}`, (m) => {
       const pk = inv.ref?.pkg && CPKG.find((x) => x.id === inv.ref.pkg);
       if (inv.ref?.renewal && pk?.hold) liftHold(pk, m);
       else if (inv.ref?.order) { const o = ORDERS.find((x) => x.id === inv.ref.order); payInv(inv, m); if (o && o.status === "pending") { const p2 = sellPkg(o.ci, o.plan, { daysAgo: 0 }); p2._inv = inv.id; inv.ref.pkg = p2.id; o.status = "paid"; } }
       else if (inv.ref?.fee) { const f = FEES.find((x) => x.id === inv.ref.fee); if (f) { f.status = "paid"; f.method = m; } payInv(inv, m); }
       else { payInv(inv, m); const so = inv.ref?.shop && SHOP_ORDERS.find((x) => x.id === inv.ref.shop); if (so) so.paid = true; }
       renderNav(); render(); toast(`${inv.no} paid by ${PAY_METHODS[m].toLowerCase()}.${INV.settings.autoEmailReceipts ? ` Receipt ${inv.rct} emailed to ${c.email}.` : ""}`);
-    });
+    }));
   }
 
   function invoiceDesign() {

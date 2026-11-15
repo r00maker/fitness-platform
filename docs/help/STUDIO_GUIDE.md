@@ -9,7 +9,7 @@ A plain-English guide to the app for studio staff. The in-app assistant reads th
 | See the schedule | Everything | Everything | Their own classes |
 | Class lists (who's booked) | Every class | Every class | Their own classes |
 | Book, cancel, move or refund for a client | Yes | No | No |
-| Take attendance | Any class | Any class | Their own classes, from an hour before |
+| Take attendance | Any class (and correct it after it locks) | Any class, until it locks | Their own classes, from an hour before until it locks |
 | Create, change or cancel classes | Yes | No | No |
 | Client profiles, history, packages and fees | Yes | Contact details on class lists only | Contact details for their own classes |
 | Sell and manage packages | Yes | No | No |
@@ -49,6 +49,7 @@ Home is the first page staff see. Instructors see it as **My day**, about their 
 
 ## The schedule
 
+- **Templates** (Setup, Templates) are saved class details. To delete one, choose **Delete** on its row (or in the template). You're asked first. Classes and repeating schedules made from it stay exactly as they are; the template just can't be used for new classes.
 - **Add a class:** Schedule, then **+ New class**. Start from a template to fill most details in. Choose "Repeats" to make it recurring. Shortcut: double-click an empty time on the calendar (owners and admins, on a computer). You're asked first, so a stray double-click doesn't start anything.
 - **Move a class to another time:** drag it to the new time or day on the calendar. You're asked to confirm before anything changes, and told about any clashes. Everyone booked or waiting is told about the new time. For a recurring class, only that one moves.
 - **No room?** If a location is one open space, choose **No room** in the room list. The class shows at the location, with no room clashes to worry about.
@@ -97,6 +98,8 @@ Common reasons a booking can't be made:
 - **Move a booking:** the client's booking, then **Move**. It keeps the same package.
 - **Refunds** are done by owners and admins only. For a class, use **Refund** on the booking in the class list (gives the class back). For money (a package, gift card, shop order or fee), go to **Sales**, open the sale and choose **Refund**: choose the amount, the reason, and whether it goes back the way they paid or as studio credit. You can also cancel what was bought (for example the package) at the same time. Card refunds go through your card terminal or payment provider; the app records them and emails the client.
 - **Fees** (late cancellation, no-show) are listed under **Fees**, where admins collect or waive them.
+- **When fees are final:** a late-cancellation fee is added when someone cancels inside the late-cancellation window, and it's final straight away. A no-show fee is added when someone is marked as a no-show, and it follows attendance until attendance **locks at midnight at the end of the class's day** (in the location's time zone). If attendance is corrected before then, the fee is removed. Until then the Fees page shows it as **Final after midnight**, and collecting it asks you first.
+- **Attendance lock:** attendance opens an hour before class and locks at midnight at the end of that day. After that, instructors and Front of House can't change it. Owners and admins can still correct it, after a warning, because that adds or removes a no-show fee. If the client already paid the fee, refund it under **Sales**.
 
 ## Sales: invoices, receipts and refunds
 
