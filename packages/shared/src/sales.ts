@@ -95,7 +95,7 @@ export const transactionsQuery = z.object({
   to: z.iso.date().optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
 });
-export const markInvoicePaid = z.object({ method: paymentMethod.default("card") });
+export const markInvoicePaid = z.object({ method: paymentMethod.default("card"), acknowledge: z.array(z.string()).max(20).default([]) });
 export const refundInvoice = z.object({
   amountCents: money.refine((n) => n > 0, "Enter how much to refund."),
   reason: z.string().trim().min(1, "Add a short reason (it's kept with the sale).").max(300),

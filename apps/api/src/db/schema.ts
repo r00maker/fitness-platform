@@ -44,6 +44,9 @@ import {
   type PayTier,
   type ClassTypeKind,
   type CancelledVia,
+  type WaitlistModeSetting,
+  type FeedbackCategory,
+  type FeedbackStatus,
   EXTENSION_ATTACHMENT,
   EXTENSION_FEE_MODES,
   EXTENSION_MODES,
@@ -146,6 +149,15 @@ export const organizations = pgTable("organizations", {
   name: text("name").notNull(),
   timezone: text("timezone").notNull().default("UTC"),
   substituteApproval: subApprovalEnum("substitute_approval").notNull().default("manual"),
+  /** Clients are asked to review classes they came to. */
+  reviewsEnabled: boolean("reviews_enabled").notNull().default(true),
+  /** The studio's Google "write a review" link, offered to everyone after they review in the app. */
+  googleReviewUrl: text("google_review_url"),
+  /** Celebration pop-ups for staff (fortnightly recaps and milestones), and whether recaps use AI. */
+  celebrationsEnabled: boolean("celebrations_enabled").notNull().default(true),
+  aiRecaps: boolean("ai_recaps").notNull().default(true),
+  /** Which waitlist choices clients get: both, or always automatic / always "ask me first". */
+  waitlistModes: text("waitlist_modes").$type<WaitlistModeSetting>().notNull().default("both"),
   waitlistHoldMinutes: integer("waitlist_hold_minutes").notNull().default(10),
   waitlistExpiryOptionsHours: integer("waitlist_expiry_options_hours")
     .array()
@@ -296,6 +308,10 @@ export const memberships = pgTable(
     /** Loyalty: when we last warned them their points were about to expire. */
     loyaltyWarnedAt: ts("loyalty_warned_at"),
     attribution: jsonb("attribution").$type<Record<string, string>>(),
+    /** Clients: no review pop-ups until then (they chose "don't ask me for N weeks" with a review). */
+    reviewSnoozeUntil: ts("review_snooze_until"),
+    /** Staff: turned off celebration pop-ups for themselves. */
+    celebrationsOff: boolean("celebrations_off").notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [
@@ -681,6 +697,8 @@ export const bookings = pgTable(
     cancelledVia: text("cancelled_via").$type<CancelledVia>(),
     /** The reason given, if any. Staff only. */
     cancelReason: text("cancel_reason"),
+    /** The client skipped the review pop-up for this class (the next class asks again). */
+    reviewSkippedAt: ts("review_skipped_at"),
     attendanceMarkedAt: ts("attendance_marked_at"),
     attendanceMarkedBy: uuid("attendance_marked_by").references(() => users.id),
     createdAt: createdAt(),
@@ -1902,3 +1920,98 @@ export const oauthStates = pgTable("oauth_states", {
   provider: text("provider").$type<"gmail" | "outlook">().notNull(),
   expiresAt: ts("expires_at").notNull(),
 });
+
+// ---------------------------------------------------------------------------
+// Reviews, feedback and celebrations
+// ---------------------------------------------------------------------------
+/** A client's review of a class they came to: 1 to 5 stars and an optional comment. */
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    bookingId: uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id").notNull().references(() => classSessions.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** Copied when the review is left, so later changes to the class don't move it. */
+    instructorId: uuid("instructor_id").references(() => users.id, { onDelete: "set null" }),
+    classTypeId: uuid("class_type_id").notNull().references(() => classTypes.id),
+    locationId: uuid("location_id").notNull().references(() => locations.id),
+    rating: smallint("rating").notNull(),
+    comment: text("comment"),
+    /** Google: when we offered the studio's Google review link, and whether they tapped it. */
+    googleOfferedAt: ts("google_offered_at"),
+    googleClickedAt: ts("google_clicked_at"),
+    /** Low reviews: when staff looked at it, and any private reply sent to the client. */
+    handledAt: ts("handled_at"),
+    handledBy: uuid("handled_by").references(() => users.id, { onDelete: "set null" }),
+    staffReply: text("staff_reply"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("reviews_booking_uq").on(t.bookingId),
+    index("reviews_org_created_idx").on(t.orgId, t.createdAt),
+    index("reviews_instructor_idx").on(t.instructorId),
+    check("reviews_rating_range", sql`${t.rating} between 1 and 5`),
+  ],
+);
+
+/** Feedback from a client: what they'd like the studio to know or change, in a category. */
+export const feedback = pgTable(
+  "feedback",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    category: text("category").$type<FeedbackCategory>().notNull(),
+    locationId: uuid("location_id").references(() => locations.id, { onDelete: "set null" }),
+    message: text("message").notNull(),
+    status: text("status").$type<FeedbackStatus>().notNull().default("new"),
+    lastActivityAt: ts("last_activity_at").notNull().defaultNow(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("feedback_org_idx").on(t.orgId, t.category, t.status)],
+);
+
+export const feedbackReplies = pgTable(
+  "feedback_replies",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    feedbackId: uuid("feedback_id").notNull().references(() => feedback.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id").references(() => users.id, { onDelete: "set null" }),
+    fromStudio: boolean("from_studio").notNull(),
+    body: text("body").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("feedback_replies_idx").on(t.feedbackId)],
+);
+
+/**
+ * Celebration pop-ups for staff: a fortnightly recap or a milestone (e.g. 100 classes taught).
+ * Made once per person per key, shown until they close it.
+ */
+export const moments = pgTable(
+  "moments",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<"recap" | "milestone">().notNull(),
+    /** e.g. "recap:instructor:2026-11-02" or "milestone:classes_taught:100". */
+    key: text("key").notNull(),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull(),
+    /** The words shown: a headline and fun lines, plus an AI review summary and self-care tips when on. */
+    story: jsonb("story").$type<MomentStory>(),
+    seenAt: ts("seen_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("moments_user_key_uq").on(t.orgId, t.userId, t.key), index("moments_user_idx").on(t.userId, t.seenAt)],
+);
+export interface MomentStory {
+  headline: string;
+  lines: { emoji: string; text: string }[];
+  reviewSummary?: string | null;
+  selfCare?: string[];
+  byAi?: boolean;
+}

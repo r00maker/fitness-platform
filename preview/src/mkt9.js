@@ -493,7 +493,7 @@
       if (r) { giveBack(r, s, "Cancelled"); logCancel(s, a.ci, { how: "staff", returned: r.pay?.kind === "package", reason: "Cancelled through the assistant" }); s.roster.splice(s.roster.indexOf(r), 1); }
       askState.msgs.push({ who: "bot", html: `<p>Done. ${esc(c.name)}'s booking is cancelled and the class is back on their package. They've been told.</p>` });
     } else {
-      if (!s.waitlist.some((w) => w.ci === a.ci)) s.waitlist.push({ ci: a.ci, mode: "automatic", cutoff: null });
+      if (!s.waitlist.some((w) => w.ci === a.ci)) s.waitlist.push({ ci: a.ci, mode: STUDIO.wlModes === "manual" ? "manual" : "automatic", cutoff: null });
       askState.msgs.push({ who: "bot", html: `<p>Done. ${esc(c.name)} is on the waitlist for ${esc(clsLabel(s))}. They'll be told if a spot opens.</p>` });
     }
     a.status = "done";

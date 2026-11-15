@@ -15,6 +15,7 @@ const file = "file://" + path.join(__dirname, "..", "studio-calendar-preview.htm
     ["phone", { ...devices["iPhone 13"], colorScheme: "light" }],
   ]) {
     const p = await browser.newPage(opts);
+    await p.addInitScript(() => { window.__quiet = true; }); // no celebration or review pop-ups over the page
     const errors = [];
     p.on("pageerror", (e) => errors.push(e.message));
     await p.goto(file);

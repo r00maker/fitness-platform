@@ -1,5 +1,5 @@
 import { and, asc, count, eq, inArray } from "drizzle-orm";
-import { can, type WaitlistMode } from "@studio/shared";
+import { can, type WaitlistMode, type WaitlistModeSetting } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
 import { bookings, waitlistEntries } from "../../db/schema.js";
 import { badRequest, conflict, forbidden, notFound } from "../../lib/errors.js";
@@ -14,7 +14,7 @@ import { requireWaiver } from "../clients/waivers.js";
 export async function joinWaitlist(
   tx: DbOrTx,
   auth: AuthContext,
-  input: { sessionId: string; clientId?: string; mode: WaitlistMode; expiresHoursBeforeStart: number | null; waiver?: { signedName: string } },
+  input: { sessionId: string; clientId?: string; mode?: WaitlistMode; expiresHoursBeforeStart: number | null; waiver?: { signedName: string } },
   flags: Flags,
   now = new Date(),
 ) {
@@ -33,6 +33,7 @@ export async function joinWaitlist(
   if (!session.waitlistEnabled) throw conflict("waitlist_off", "This class doesn't have a waitlist.");
 
   const org = await getOrg(tx, auth.orgId);
+  const mode = waitlistModeFor(org.waitlistModes, input.mode);
   // Waiting stops at the client's cut-off, or when booking closes, whichever is first.
   const zone = await locationZone(tx, auth.orgId, session.locationId);
   const win = bookingWindow(org, session.startsAt, zone);
@@ -80,7 +81,7 @@ export async function joinWaitlist(
 
   const [entry] = await tx
     .insert(waitlistEntries)
-    .values({ orgId: auth.orgId, sessionId: session.id, clientId, mode: input.mode, expiresHoursBeforeStart: hours, expiresAt })
+    .values({ orgId: auth.orgId, sessionId: session.id, clientId, mode, expiresHoursBeforeStart: hours, expiresAt })
     .onConflictDoNothing()
     .returning();
   if (!entry) throw conflict("already_waitlisted", "You're already on the waitlist for this class.");
@@ -105,6 +106,21 @@ async function ownEntry(tx: DbOrTx, auth: AuthContext, entryId: string) {
   if (!e || (auth.role === "client" && e.clientId !== auth.userId)) throw notFound("waitlist spot");
   if (auth.role !== "client" && !can(auth.role, "manageBookings")) throw forbidden();
   return e;
+}
+
+/**
+ * The waitlist mode to use. When the studio uses one way for everyone, that's it (a client
+ * asking for the other way is told plainly). When clients choose, they must pick one.
+ */
+export function waitlistModeFor(setting: WaitlistModeSetting, asked?: WaitlistMode): WaitlistMode {
+  if (setting === "both") {
+    if (!asked) throw badRequest("invalid_input", "Some details need fixing.", { fields: { mode: "Choose “Book me in automatically” or “Ask me first”." } });
+    return asked;
+  }
+  if (asked && asked !== setting) {
+    throw badRequest("waitlist_mode_not_offered", setting === "automatic" ? "This studio books people in from the waitlist automatically when a spot opens." : "This studio holds an open spot for you to confirm, rather than booking you in automatically.");
+  }
+  return setting;
 }
 
 /** Confirm a held spot ("Ask me first" mode). */

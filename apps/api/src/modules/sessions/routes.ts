@@ -11,10 +11,11 @@ import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { canSeeRequest } from "../substitutes/service.js";
 import { classpassView, getCalendar } from "./calendar.js";
-import { classpassBooked, confirmedCount, describeSession, getOrg, getSession } from "./context.js";
+import { classpassBooked, confirmedCount, describeSession, getOrg, getSession, locationZone } from "./context.js";
 import { waiverStatuses } from "../clients/waivers.js";
 import { activeHealthNotes } from "../clients/health.js";
 import { cancellationsFor } from "./cancellations.js";
+import { attendanceLocksAt } from "../bookings/service.js";
 
 /** Pinned tags shown under a client's name; the rest are counted as "+N" and listed under More. */
 const MAX_UP_FRONT_TAGS = 2;
@@ -158,6 +159,11 @@ export async function sessionRoutes(app: FastifyInstance) {
         };
       }),
       waitlist: waitlist.map((w, i) => ({ ...w, position: i + 1 })),
+      // Attendance opens an hour before class and locks at midnight after it; no-show fees are final then.
+      ...(isClient ? {} : await (async () => {
+        const locks = attendanceLocksAt(s.startsAt, await locationZone(app.db, orgId, s.locationId));
+        return { attendanceWindow: { opensAt: new Date(s.startsAt.getTime() - 3_600_000).toISOString(), locksAt: locks.toISOString(), locked: Date.now() >= locks.getTime() } };
+      })()),
       // Staff who can see the class list also see who cancelled (the Cancellations tab).
       ...(fullRoster ? { cancellations: await cancellationsFor(app.db, s) } : {}),
     };

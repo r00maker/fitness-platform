@@ -5,6 +5,7 @@ const engine = process.argv[3] || "chromium";
   const pw = require("playwright");
   const b = await pw[engine].launch(engine === "chromium" ? {} : {});
   const p = await b.newPage({ viewport: { width: 1360, height: 900 }, colorScheme: scheme });
+  await p.addInitScript(() => { window.__quiet = true; }); // no celebration or review pop-ups over the page
   const errs = []; p.on("pageerror", (e) => errs.push(e.message));
   await p.goto("file://" + __dirname + "/../studio-calendar-preview.html"); await p.waitForTimeout(200);
   const rows = new Map();

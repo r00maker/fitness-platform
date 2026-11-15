@@ -68,6 +68,10 @@ export const PERMISSIONS = {
   handOverOrders: ["owner", "admin", "front_desk"],
   /** Revenue, sales, attendance and conversion reports. */
   viewReports: ["owner", "admin"],
+  /** Read every review (instructors see reviews of their own classes). */
+  viewReviews: ["owner", "admin"],
+  /** Read and answer client feedback, and follow up low reviews. */
+  manageFeedback: ["owner", "admin", "front_desk"],
   /** Segments, emails, campaigns, journeys, banners, gift cards and referral settings. */
   manageMarketing: ["owner", "admin"],
   /** Post an announcement to clients, e.g. "The lift is out of order". Front desk can too, since they're first to know. */
@@ -100,6 +104,18 @@ export type BookingSource = (typeof BOOKING_SOURCES)[number];
 
 export const WAITLIST_MODES = ["automatic", "manual"] as const;
 export type WaitlistMode = (typeof WAITLIST_MODES)[number];
+/** Which waitlist choices a studio offers: let clients choose, or always one way. */
+export const WAITLIST_MODE_SETTINGS = ["both", "automatic", "manual"] as const;
+export type WaitlistModeSetting = (typeof WAITLIST_MODE_SETTINGS)[number];
+/** What client feedback is about. Kept apart in the Feedback page. */
+export const FEEDBACK_CATEGORIES = ["facilities", "classes", "instructors", "app", "prices", "other"] as const;
+export type FeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
+export const FEEDBACK_STATUSES = ["new", "in_progress", "resolved"] as const;
+export type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number];
+/** "Don't ask me for N weeks", offered with a review. */
+export const REVIEW_SNOOZE_WEEKS = [2, 4, 8, 12] as const;
+/** A review at or below this many stars is flagged for staff. */
+export const LOW_REVIEW_STARS = 2;
 
 export const WAITLIST_STATUSES = [
   "waiting", // in the queue
@@ -318,6 +334,9 @@ export const FLAG_CODES = [
   // Appointments and ClassPass
   "appointment_no_client",
   "delete_class_type",
+  "delete_template",
+  "attendance_locked",
+  "fee_not_final",
   "whatsapp_charge",
   "classpass_reduced",
   // Packages and payroll

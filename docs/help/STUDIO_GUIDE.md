@@ -9,7 +9,7 @@ A plain-English guide to the app for studio staff. The in-app assistant reads th
 | See the schedule | Everything | Everything | Their own classes |
 | Class lists (who's booked) | Every class | Every class | Their own classes |
 | Book, cancel, move or refund for a client | Yes | No | No |
-| Take attendance | Any class | Any class | Their own classes, from an hour before |
+| Take attendance | Any class (and correct it after it locks) | Any class, until it locks | Their own classes, from an hour before until it locks |
 | Create, change or cancel classes | Yes | No | No |
 | Client profiles, history, packages and fees | Yes | Contact details on class lists only | Contact details for their own classes |
 | Sell and manage packages | Yes | No | No |
@@ -25,13 +25,13 @@ Owners can do everything admins can. Only the owner can add or remove admins.
 The menu on the left is grouped by what you're doing. Staff see:
 
 - **Day to day:** Home (or My day for instructors), Schedule (or My schedule), Cover requests, Communication, Announcements, Pickups (Front of House: shop orders and rewards to hand over).
-- **Clients & sales:** Clients, Leads, Sales, Packages, Shop, Fees.
-- **Growth:** Marketing, Reports.
+- **Clients & sales:** Clients, Leads, Sales, Packages, Shop, Fees, Feedback.
+- **Growth:** Marketing, Reports, Reviews.
 - **Team:** Staff & pay, Payroll, Agents.
 - **Setup:** Class types, Templates, Locations & rooms, Closures & holidays, Studio rules.
-- **Account:** My pay (instructors), Preferences.
+- **Account:** My pay and My reviews (instructors), Preferences.
 
-Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My packages, Rewards, Refer a friend, and Shop when there's something in it) and **Account** (Injuries & conditions, Profile & privacy, Preferences).
+Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My packages, Rewards, Refer a friend, and Shop when there's something in it) and **Account** (Feedback, Injuries & conditions, Profile & privacy, Preferences).
 
 The **Ask** button (bottom right) opens the assistant. The **bell** at the top shows messages from your studio's agents.
 
@@ -49,6 +49,7 @@ Home is the first page staff see. Instructors see it as **My day**, about their 
 
 ## The schedule
 
+- **Templates** (Setup, Templates) are saved class details. To delete one, choose **Delete** on its row (or in the template). You're asked first. Classes and repeating schedules made from it stay exactly as they are; the template just can't be used for new classes.
 - **Add a class:** Schedule, then **+ New class**. Start from a template to fill most details in. Choose "Repeats" to make it recurring. Shortcut: double-click an empty time on the calendar (owners and admins, on a computer). You're asked first, so a stray double-click doesn't start anything.
 - **Move a class to another time:** drag it to the new time or day on the calendar. You're asked to confirm before anything changes, and told about any clashes. Everyone booked or waiting is told about the new time. For a recurring class, only that one moves.
 - **No room?** If a location is one open space, choose **No room** in the room list. The class shows at the location, with no room clashes to worry about.
@@ -97,6 +98,8 @@ Common reasons a booking can't be made:
 - **Move a booking:** the client's booking, then **Move**. It keeps the same package.
 - **Refunds** are done by owners and admins only. For a class, use **Refund** on the booking in the class list (gives the class back). For money (a package, gift card, shop order or fee), go to **Sales**, open the sale and choose **Refund**: choose the amount, the reason, and whether it goes back the way they paid or as studio credit. You can also cancel what was bought (for example the package) at the same time. Card refunds go through your card terminal or payment provider; the app records them and emails the client.
 - **Fees** (late cancellation, no-show) are listed under **Fees**, where admins collect or waive them.
+- **When fees are final:** a late-cancellation fee is added when someone cancels inside the late-cancellation window, and it's final straight away. A no-show fee is added when someone is marked as a no-show, and it follows attendance until attendance **locks at midnight at the end of the class's day** (in the location's time zone). If attendance is corrected before then, the fee is removed. Until then the Fees page shows it as **Final after midnight**, and collecting it asks you first.
+- **Attendance lock:** attendance opens an hour before class and locks at midnight at the end of that day. After that, instructors and Front of House can't change it. Owners and admins can still correct it, after a warning, because that adds or removes a no-show fee. If the client already paid the fee, refund it under **Sales**.
 
 ## Sales: invoices, receipts and refunds
 
@@ -117,11 +120,15 @@ Owners and admins add studio merch under **Shop**: name, price, photo, sizes or 
 
 ## Waitlists
 
-Clients join a waitlist when a class is full. In automatic mode the first person waiting gets the spot; in manual mode the spot is held for them for a set time (Studio rules). Waitlists close when booking closes.
+Clients join a waitlist when a class is full. With **Book me in automatically**, the first person waiting gets the spot; with **Ask me first**, the spot is held for them for a set time while they confirm. Waitlists close when booking closes.
+
+- **How waitlists work** (Studio rules, Waitlist): **Clients choose** lets each client pick one of the two when they join. **Always book in automatically** or **Always ask first** uses one way for everyone, and clients aren't asked. People already waiting keep the choice they made. When staff add someone to a waitlist, the same setting applies.
 
 ## Packages
 
 Package types are set up under **Packages**: class packs or unlimited memberships, price, how long they last, which classes they cover, sharing and weekly limits. Selling one copies the terms, so editing a package type never changes packages already sold. Each booking uses the package that runs out soonest.
+
+- **Extension requests** show at the top of **Packages**. If the client attached something (for example a doctor's note), tap it to open a **quick view** right there: PDFs show page by page, and photos as they are. Zoom with **+** and **−**, go back with **Fit width**, and close with **✕** or Esc. Nothing opens in a new window. **Download** saves a copy if you need one.
 
 ## Cover
 
@@ -137,6 +144,35 @@ Instructors ask for cover from their class ("Ask for cover"). The request goes t
 Read and reply to WhatsApp messages and emails from clients in one inbox. Filter by **All**, **WhatsApp** or **Email**. To bring in email, an owner or admin connects the studio's **Gmail** (or Google Workspace) or **Outlook** (or Microsoft 365) account under Communication, Settings, by signing in with Google or Microsoft. Replies go from that address, in the same email thread. Other email providers aren't supported yet.
 
 WhatsApp works alongside the WhatsApp Business app on your phone. Meta charges for some messages (marketing templates always; service updates outside 24 hours of the client's last message). Before using it, an owner or admin chooses how messages are paid for under Communication, Settings: pay Meta directly, or buy message credits. Replies within 24 hours of a client's message are free.
+
+## Reviews
+
+After a class they came to, clients are asked how it went: 1 to 5 stars and an optional comment. Only their most recent class is ever asked about, so nobody is asked after every booking.
+
+- **Skipping is fine.** If they skip, they're asked again after their next class.
+- **"Don't ask me again for…"** Clients who leave a review can pause the pop-ups for 2, 4, 8 or 12 weeks (they can also do it later under **Feedback**, **My reviews**, once they've left one review).
+- **Google reviews:** add your studio's Google review link under **Studio rules**, **Reviews and celebrations** (in your Google Business Profile, choose "Ask for reviews" and copy the link). After any review, the client is offered **Share on Google**, with their words copied so they can paste them. **Everyone is offered it, whatever they gave.** Offering it only to happy clients ("review gating") is against Google's rules and can get a studio's Google reviews removed. The Reviews page shows how many people tap it.
+- **The Reviews page** (owners and admins, under Growth) shows the average, how people rated (5 to 1), the Google share rate, each instructor's average, and every review. Filter by period, class, instructor, location and stars; tap an instructor to see just theirs.
+- **Instructors** see **My reviews**: reviews of their own classes, with clients' first names and initials only.
+- **Low reviews** (2 stars or fewer) tell owners and admins straight away, and wait under **Feedback**, **Needs attention** until someone follows them up.
+
+## Feedback
+
+Clients can tell the studio what they'd like to see under **Feedback** in their menu: they choose what it's about (Facilities and comfort, Classes and schedule, Instructors, App and booking, Prices and packages, or Something else), optionally a location, and write a short message. For example: "The aircon at Tanjong Pagar is really cold."
+
+- **Owners, admins and Front of House** see it under **Feedback**. Each topic has its own tab, so facilities issues don't get mixed up with schedule requests.
+- **Needs attention** (the first tab) lists new feedback nobody has answered yet, and low reviews to follow up.
+- **Reply** from the item: the client gets it by email and sees it in the app, and can reply back. Mark items **Replied** or **Sorted** as you go. If a client writes again about something marked Sorted, it goes back to New.
+- **Follow up a low review** with **Mark as followed up**, adding a private reply if you like (the client gets it by email).
+
+## Celebrations
+
+Owners, admins and instructors get a pop-up on **Home** when there's something to celebrate:
+
+- **Every two weeks, a recap.** Instructors: classes taught, people who came (and how many came back), how full their classes were, their busiest class and their reviews. Owners and admins: the same for the whole studio.
+- **Milestones:** 50, 100, 250, 500 and more classes taught; for the studio, classes held and total visits.
+- **With AI recaps on** (Studio rules), Claude writes the headline, a kind summary of what clients said in their reviews, and two self-care tips. It sees numbers and review text only, never names or contact details, and uses 1 AI credit per recap. With it off, the same card uses set wording.
+- Each person can turn the pop-ups off for themselves with **Don't show these**, and back on under **Preferences**. Owners and admins can turn them off for everyone under Studio rules.
 
 ## Reports
 
@@ -170,7 +206,7 @@ The assistant (the **Ask** button) answers questions about using the app and abo
 
 It can't do anything involving money (refunds, payments, prices, selling packages, fees, pay), change settings, staff or the schedule, delete anything, or share client contact details or health notes. For those, it tells you who can and where.
 
-Owners and admins can switch it off, choose which roles can use it, and stop it doing things for people, under **Agents**, then **Assistant**. Each plan includes a number of AI credits a month, shared by the assistant (1 per answer) and the writers (see **Agents**, then **Usage**). Reminder agents are free. Owners and admins are told at 80% and when they're used up, and can buy a top-up.
+Owners and admins can switch it off, choose which roles can use it, and stop it doing things for people, under **Agents**, then **Assistant**. Each plan includes a number of AI credits a month, shared by the assistant (1 per answer), the writers and AI recaps (1 per recap) (see **Agents**, then **Usage**). Reminder agents are free. Owners and admins are told at 80% and when they're used up, and can buy a top-up.
 
 ## Class types
 

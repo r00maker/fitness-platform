@@ -10,6 +10,9 @@ apps/api/            The API server and background worker (TypeScript, Fastify, 
     sessions/        Calendar, classes, recurring series, bulk edit, duplicate, cancel/delete
     closures/        Closures and holidays: recurring classes skip them, one action cancels the days
     dashboard/       Home: today, what needs attention, how it's going, the week ahead
+    reviews/         Reviews after classes (with the Google offer) and the Reviews page
+    feedback/        Client feedback by category, replies, and low reviews to follow up
+    moments/         Celebration pop-ups for staff: fortnightly recaps and milestones
     bookings/        Book, cancel, move (reschedule), refund, attendance
     waitlist/        Join/leave/claim, auto vs "ask me first", hold timers, cut-offs
     substitutes/     Cover requests, accept/decline, automatic or admin-approved
@@ -92,6 +95,9 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Edit (this / this and later / whole series) | `PATCH /sessions/:id` | owner, admin |
 | Bulk edit / bulk cancel | `POST /sessions/bulk-update`, `POST /sessions/bulk-cancel` | owner, admin |
 | Cancel / delete | `POST /sessions/:id/cancel`, `DELETE /sessions/:id` | owner, admin |
+| Reviews | `GET /me/review-prompt`, `POST /reviews`, `POST /reviews/skip`, `PUT /me/review-snooze`, `GET /reviews` | clients review; admins see all, instructors their own |
+| Feedback | `POST /feedback`, `GET /me/feedback`, `GET /feedback`, `POST /feedback/:id/replies` | clients send; owner, admin, Front of House answer |
+| Celebrations | `GET /me/moments`, `POST /moments/:id/seen`, `PUT /me/celebrations` | owners, admins, instructors |
 | Home (staff front page) | `GET /dashboard?days=7\|30&locationId=` | staff; what's shown depends on role |
 | Cancelled classes on the calendar | `GET /calendar?includeCancelled=true` | staff (clients never see them) |
 | Who cancelled a class (Cancellations tab) | `cancellations` in `GET /sessions/:id` | admin, Front of House, the class's instructor |

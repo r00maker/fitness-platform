@@ -1,10 +1,12 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { bookings, classSessions, journeyEnrollments, leads, memberships, notifications, organizations, packagePlans, users, whatsappSettings } from "../src/db/schema.js";
+import { bookings, classSessions, clientPackages, journeyEnrollments, leads, memberships, notifications, organizations, packagePlans, users, whatsappSettings } from "../src/db/schema.js";
 import { setWhatsappFetch } from "../src/modules/marketing/whatsapp.js";
 import { runDueJourneys } from "../src/modules/marketing/journeys.js";
 import { deliverPending } from "../src/modules/notifications/deliver.js";
 import { autoCancelDue } from "../src/modules/sessions/service.js";
+import { sales as salesReport } from "../src/modules/reports/routes.js";
+import { getOrg } from "../src/modules/sessions/context.js";
 import { app, caller, config, dayOffset, db, outbox, person, pool, reset, studio, tokenFor } from "./helpers.js";
 
 beforeEach(reset);
@@ -293,6 +295,15 @@ describe("reports", () => {
     expect(sales.chart.unit).toBe("week");
     expect(sales.chart.series.reduce((a: number, b: { cents: number }) => a + b.cents, 0)).toBe(28000);
     expect(sales.breakdown[0]).toMatchObject({ label: "Packages and memberships", share: 100 });
+
+    // The current week counts even when the studio's date is ahead of UTC's: 16:32 UTC on Sunday
+    // is 00:32 on Monday in Singapore, and a sale made then belongs to the new week.
+    const to = new Date("2026-11-15T16:32:00Z");
+    const [pkg] = await db.select().from(clientPackages).where(eq(clientPackages.orgId, s.orgId));
+    await db.update(clientPackages).set({ purchasedAt: new Date("2026-11-15T16:20:00Z") }).where(eq(clientPackages.id, pkg!.id));
+    const late = await salesReport(db, await getOrg(db, s.orgId), { from: new Date(to.getTime() - 30 * DAY), to, prevFrom: new Date(to.getTime() - 60 * DAY), days: 30 });
+    expect(late.chart.series.at(-1)).toMatchObject({ start: "2026-11-16", cents: 28000 });
+    await db.update(clientPackages).set({ purchasedAt: pkg!.purchasedAt }).where(eq(clientPackages.id, pkg!.id));
 
     const classes = (await s.owner.call("GET", "/reports/classes?days=30")).body;
     const cm = Object.fromEntries(classes.metrics.map((x: { key: string }) => [x.key, x]));

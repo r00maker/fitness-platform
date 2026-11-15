@@ -12,11 +12,11 @@
  *
  * Clients don't have a dashboard: their front page is "Book a class".
  */
-import { and, asc, count, eq, gt, gte, inArray, isNull, lt, ne, or, sql, sum } from "drizzle-orm";
-import { can } from "@studio/shared";
+import { and, asc, count, eq, gt, gte, inArray, isNull, lt, lte, ne, or, sql, sum } from "drizzle-orm";
+import { LOW_REVIEW_STARS, can } from "@studio/shared";
 import { alias } from "drizzle-orm/pg-core";
 import type { DbOrTx } from "../../db/client.js";
-import { bookings, classSessions, classTypes, conversations, fees, locations, orders, packageExtensionRequests, rooms, substituteRequests, users } from "../../db/schema.js";
+import { bookings, classSessions, classTypes, conversations, feedback, fees, locations, orders, packageExtensionRequests, reviews, rooms, substituteRequests, users } from "../../db/schema.js";
 import { forbidden } from "../../lib/errors.js";
 import { localToUtc, shiftDate, utcToLocal, zoneFor } from "../../lib/time.js";
 import type { AuthContext } from "../../plugins/auth.js";
@@ -193,6 +193,12 @@ export async function getDashboard(db: DbOrTx, auth: AuthContext, q: { days: 7 |
   if (can(auth.role, "useInbox")) {
     const [u] = await db.select({ chats: count(), unread: sum(conversations.unread) }).from(conversations).where(and(eq(conversations.orgId, auth.orgId), eq(conversations.status, "open"), gt(conversations.unread, 0)));
     if (u && u.chats) attention.push({ kind: "messages", severity: "fyi", count: Number(u.unread ?? 0), title: `${plural(Number(u.unread ?? 0), "unread message")}`, detail: `From ${plural(u.chats, "client", "clients")}`, action: { label: "Open Communication", page: "comms" } });
+  }
+  if (can(auth.role, "manageFeedback")) {
+    const [{ n: newFb } = { n: 0 }] = await db.select({ n: count() }).from(feedback).where(and(eq(feedback.orgId, auth.orgId), eq(feedback.status, "new")));
+    const [{ n: low } = { n: 0 }] = await db.select({ n: count() }).from(reviews).where(and(eq(reviews.orgId, auth.orgId), lte(reviews.rating, LOW_REVIEW_STARS), isNull(reviews.handledAt)));
+    if (low) attention.push({ kind: "low_reviews", severity: "soon", count: low, title: `${plural(low, "low review")} to follow up`, detail: `${LOW_REVIEW_STARS} stars or fewer. A quick, kind reply often wins a client back`, action: { label: "Open Feedback", page: "feedback" } });
+    if (newFb) attention.push({ kind: "feedback", severity: "fyi", count: newFb, title: `${plural(newFb, "new piece", "new pieces")} of feedback`, detail: "From clients, waiting for a reply", action: { label: "Open Feedback", page: "feedback" } });
   }
   attention.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
 

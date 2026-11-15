@@ -18,6 +18,7 @@ const file = "file://" + path.join(__dirname, "cx-test.html");
     ["phone", { ...devices["iPhone 13"], colorScheme: "light" }],
   ]) {
     const p = await browser.newPage(opts);
+    await p.addInitScript(() => { window.__quiet = true; }); // no celebration or review pop-ups over the page
     const errors = [];
     p.on("pageerror", (e) => errors.push(e.message + " @@ " + (e.stack || "").split("\n").slice(1, 3).join(" / ")));
     p.on("dialog", (d) => d.dismiss());

@@ -1,10 +1,10 @@
 # Clickable preview
 
-`studio-calendar-preview.html` is a single-file, clickable preview of the app with sample data (admin, Front of House, instructor and client views; light and dark). It mirrors the rules in `apps/api` so features can be tried before the web and mobile apps are built. Open it in a browser; nothing is sent anywhere.
+`studio-calendar-preview.html` is a single-file, clickable preview of the app with sample data (admin, Front of House, instructor and client views; light and dark). It mirrors the rules in `apps/api` so features can be tried before the web and mobile apps are built. Open it in a browser; nothing is sent anywhere. (Opening a PDF attachment loads the pdf.js reader from cdnjs.)
 
 ## How it's built
 
-The HTML file is both the base and the output. `inject.py` puts the feature code from `src/` into it between markers, then applies small, repeatable edits to the base code (`patch9.py` to `patch12.py`):
+The HTML file is both the base and the output. `inject.py` puts the feature code from `src/` into it between markers, then applies small, repeatable edits to the base code (`patch9.py` to `patch15.py`):
 
 - `src/mkt.css`: styles for everything added in `src/` (light and dark).
 - `src/*.js`: concatenated in the order listed in `inject.py`, into one shared scope. Later files can wrap earlier pages (`PAGES.x` / `BIND.x`) or override function declarations.
@@ -13,6 +13,9 @@ The HTML file is both the base and the output. `inject.py` puts the feature code
   - `mkt11.js` Sales (invoices, receipts, refunds, invoice design) and membership payment holds.
   - `mkt12.js` Shop, Pickups, writing agents, report exports, menu entries.
   - `mkt13.js` Closures and holidays (with `patch11.py`, which shades closed days on the calendar and teaches the class form about them).
+  - `mkt18.js` Reviews (the client pop-up and the Reviews page), client feedback and the staff Feedback page, and celebration pop-ups (with `patch15.py`).
+  - `mkt17.js` Deleting templates and the attendance lock (with `patch14.py`).
+  - `mkt16.js` Quick view for attachments (PDFs drawn with pdf.js, loaded from cdnjs only when a PDF is opened) and the waitlist setting (with `patch13.py`).
   - `mkt15.js` Home, the staff front page (today, needs attention, how it's going, the week ahead).
   - `mkt14.js` Cancelled classes on the calendar ("Show cancelled") and each class's Cancellations tab (with `patch12.py`).
 
@@ -33,6 +36,9 @@ node s10check.cjs
 ```
 
 - `s10check.cjs` sales, holds, shop, calendar, rooms, goals, class types, categories, writers, email, exports.
+- `rvcheck.cjs` reviews, the Google offer, feedback for clients and staff, and celebrations for owners and instructors.
+- `fxcheck.cjs` the Studio rules save button clearing the Ask button, deleting templates, and the attendance lock with when fees become final.
+- `qvcheck.cjs` the attachment quick view and the waitlist setting. pdf.js is served from a local copy so it runs without internet: `npm pack pdfjs-dist@3.11.174`, unpack it, then `PDFJS_DIR=<unpacked>/package/build node qvcheck.cjs`.
 - `hmcheck.cjs` Home for every role: the numbers, filters, the week-ahead chart and table, and where each button goes.
 - `cxcheck.cjs` cancelled classes on the calendar and the Cancellations tab, for every role.
 - `clcheck.cjs` closures and holidays: the page, adding one, the calendar for staff and clients, repeats, the closed-day warning, editing and removing.
@@ -43,3 +49,5 @@ node s10check.cjs
 ## Publishing
 
 The preview is published as a private claude.ai artifact (it declares the `downloads` capability so CSV and report exports can be saved from the viewer). Republish the same artifact URL after rebuilding, rather than creating a new one.
+
+The celebration and review pop-ups open by themselves (on Home, and on Book a class for clients). Checks that aren't about them set `window.__quiet = true` with `addInitScript` before the page loads, so a pop-up doesn't cover what they test. New checks should do the same unless they test the pop-ups.

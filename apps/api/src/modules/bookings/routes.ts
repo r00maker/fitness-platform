@@ -39,8 +39,8 @@ export async function bookingRoutes(app: FastifyInstance) {
 
   app.put("/bookings/:id/attendance", async (req) => {
     const { id } = parse(idParam, req.params);
-    const { attendance } = parse(schemas.markAttendance, req.body);
-    return withFlags(app, [], (tx, flags) => svc.markAttendance(tx, req.auth, id, attendance, flags));
+    const { attendance, acknowledge } = parse(schemas.markAttendance, req.body);
+    return withFlags(app, acknowledge, (tx, flags) => svc.markAttendance(tx, req.auth, id, attendance, flags));
   });
 
   app.post("/sessions/:id/attendance/mark-all", async (req) => {

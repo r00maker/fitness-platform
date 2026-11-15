@@ -77,6 +77,11 @@
       const unread = unreadTotal();
       if (unread) out.push({ kind: "messages", sev: "fyi", count: unread, title: `${hp(unread, "unread message")}`, detail: "From clients on WhatsApp and email", go: "comms", label: "Open Communication" });
     }
+    if (role === "admin" || role === "foh") {
+      const low = typeof lowToHandle === "function" ? lowToHandle().length : 0, fresh = typeof fbNew === "function" ? fbNew().length : 0;
+      if (low) out.push({ kind: "low_reviews", sev: "soon", count: low, title: `${hp(low, "low review")} to follow up`, detail: "2 stars or fewer. A quick, kind reply often wins a client back", go: "feedback", label: "Open Feedback" });
+      if (fresh) out.push({ kind: "feedback", sev: "fyi", count: fresh, title: `${hp(fresh, "new piece", "new pieces")} of feedback`, detail: "From clients, waiting for a reply", go: "feedback", label: "Open Feedback" });
+    }
     const order = { urgent: 0, soon: 1, fyi: 2 };
     return out.sort((a, b) => order[a.sev] - order[b.sev]);
   }

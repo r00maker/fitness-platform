@@ -1425,6 +1425,83 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 .cbtn:hover { background: var(--sunk); }
 .cbar { width: 4px; align-self: stretch; border-radius: 2px; background: var(--t); flex: none; }
 
+/* --- Attachment quick view ------------------------------------------------------- */
+.attchip { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.attchip:hover { background: var(--sunk); border-color: var(--accent); }
+.attchip .qvlink { color: var(--accent); font-weight: 600; }
+.qvwrap { padding: 12px; }
+.modal.qv { width: min(920px, 100%); height: min(92vh, 1000px); max-height: none; display: flex; flex-direction: column; overflow: hidden; }
+.qvhead { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.qvhead h2 { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qvtools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.qvz { font-size: 12.5px; color: var(--muted); min-width: 42px; text-align: center; font-variant-numeric: tabular-nums; }
+.qvbody { flex: 1; overflow: auto; background: var(--sunk); padding: 16px; outline: none; }
+.qvbody:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.qvpages { display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: min-content; }
+.qvpage { background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .18), 0 8px 24px -12px rgba(0, 0, 0, .3); border-radius: 2px; }
+.qvimg { display: block; margin: 0 auto; height: auto; border-radius: 4px; box-shadow: 0 1px 3px rgba(0, 0, 0, .18); }
+.qvmsg { display: grid; place-items: center; min-height: 200px; color: var(--muted); }
+@media (max-width: 520px) { .qvwrap { padding: 0; } .modal.qv { height: 100%; border-radius: 0; } .qvtools #qvFit { display: none; } }
+
+/* Pages with a save bar (Studio rules): the Ask button sits above it instead of covering it. */
+body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+
+/* --- Reviews, feedback and celebrations --------------------------------------------- */
+.rvmodal { width: min(480px, 100%); }
+.rvstars { display: flex; justify-content: center; gap: 6px; }
+.rvstars button { border: 0; background: transparent; font-size: 40px; line-height: 1; padding: 4px; color: color-mix(in srgb, var(--muted) 50%, var(--surface)); border-radius: 10px; min-width: 48px; min-height: 48px; }
+.rvstars button.on { color: #e8a317; }
+.rvstars button:hover { color: #f0b63a; }
+.rvword { text-align: center; font-weight: 600; min-height: 20px; }
+.rvdone { font-size: 30px; color: #e8a317; letter-spacing: 2px; text-align: center; }
+.gcard { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); font-size: 13.5px; }
+.rvst { color: #c98a0c; letter-spacing: 1px; font-size: 15px; }
+.rvst.low { color: var(--danger); }
+.rvcard { gap: 6px; }
+.rvcard.low { border-left: 3px solid var(--danger); }
+.rvfilters { gap: 8px 12px; }
+.rvsum { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 900px) { .rvsum { grid-template-columns: minmax(0, 1fr); } }
+.rvhero { align-items: flex-start; }
+.rvbig { display: flex; align-items: baseline; gap: 10px; }
+.rvbig b { font-size: 52px; font-weight: 600; line-height: 1; letter-spacing: -.02em; }
+.rvbig.sm b { font-size: 30px; }
+.rvdist { display: flex; flex-direction: column; gap: 6px; }
+.rvrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) 30px; gap: 10px; align-items: center; font-size: 13px; border: 0; background: transparent; color: var(--fg); padding: 2px 0; text-align: left; width: 100%; }
+.rvrow.rvinstr { grid-template-columns: 26px minmax(90px, 160px) minmax(0, 1fr) 48px 24px; border-radius: 8px; padding: 4px; }
+.rvrow.rvinstr:hover { background: var(--sunk); }
+.rvbar { height: 8px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; }
+.rvbar span { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.fbcats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.fbcats button { display: flex; flex-direction: column; gap: 2px; text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 10px; padding: 9px 11px; font-size: 13px; }
+.fbcats button span { font-weight: 400; font-size: 12px; color: var(--muted); }
+.fbcats button[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+.fbcard { gap: 8px; }
+.fbcard.lowrv { border-left: 3px solid var(--danger); }
+.fbmsg { display: flex; flex-direction: column; gap: 2px; padding: 8px 11px; border-radius: 10px; background: var(--sunk); font-size: 13.5px; max-width: 92%; }
+.fbmsg.studio { background: var(--accent-soft); align-self: flex-end; }
+.fbmsg b { font-size: 12px; }
+.fbreply { flex-wrap: nowrap; }
+.fbreply input { flex: 1; min-width: 0; height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 13px; }
+.tabs .n.hot { background: var(--danger); color: var(--surface); }
+/* Celebration pop-up */
+.modal.celeb { width: min(500px, 100%); overflow-x: hidden; position: relative; }
+.celebtop { height: 74px; margin: 0; background: linear-gradient(120deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #f0b63a)); position: relative; overflow: hidden; border-radius: 14px 14px 0 0; }
+.celebtop i { position: absolute; font-style: normal; font-size: 22px; left: calc(6% + var(--k) * 12%); top: 18px; animation: celebfloat 2.6s ease-in-out calc(var(--k) * -.3s) infinite alternate; }
+.celebtop.still i { animation: none; }
+@keyframes celebfloat { from { transform: translateY(-6px) rotate(-8deg); } to { transform: translateY(14px) rotate(8deg); } }
+@media (prefers-reduced-motion: reduce) { .celebtop i { animation: none; } }
+.modal.celeb header { padding-top: 14px; }
+.celebkind { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.modal.celeb h2 { font-size: 22px; }
+.celeblines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.celeblines li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; font-size: 14px; align-items: start; }
+.celeblines li > span:first-child { font-size: 18px; line-height: 1.2; }
+.celebbox { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; background: var(--sunk); font-size: 13.5px; }
+.celebbox.care { background: var(--ok-soft); }
+.celebbox ul { margin: 0; padding-left: 18px; }
+.aitag { font-size: 11.5px; color: var(--muted); }
+
 /* MKT-CSS-END */
 </style>
 
@@ -1516,7 +1593,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
   const STUDIO = {
     lateCancelHours: 12, bookingOpensDays: 14, bookingClosesMins: 60, weeklyLimit: null,
     lateFeeOn: true, lateFeeCents: 1500, noShowFeeOn: true, noShowFeeCents: 2000, currency: "SGD",
-    expiry: [5, 3, 1], hold: 10, coverApproval: "manual", tellClientsInstructorChange: true, dst: false,
+    expiry: [5, 3, 1], hold: 10, wlModes: "both", coverApproval: "manual", tellClientsInstructorChange: true, dst: false,
     waiverOn: true, spotsOn: true, needPackage: true, allowNoPkg: true, payPeriod: "monthly", payHeadcount: "attended", seeOwnPay: true,
     extMode: "review", extAuto: 14, extMax: 60, extAttach: "optional", extFeeMode: "flat", extFee: 2000,
     rollMode: "clients", rollMax: 4, rollWithin: 30,
@@ -2435,6 +2512,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     $("#canvas").innerHTML = html;
     renderSelBar();
     if (state.openId) renderDrawer();
+    maybeAskReview();
   }
 
   // ---------------------------------------------------------------------------
@@ -2451,7 +2529,8 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     const own = role === "instructor" && s.instr === ME.instructor;
     const seesRoster = role === "admin" || role === "foh" || own;
     const flags = isStaff() ? calendarFlags(s) : [];
-    const attOpen = NOW >= addMin(s.start, -60);
+    // Attendance opens an hour before class and locks at midnight after it (admins can still correct it).
+    const attOpen = NOW >= addMin(s.start, -60) && (NOW < attLockOf(s) || role === "admin");
     const left = s.cap - s.roster.length;
     let body = "";
     if (s.status === "cancelled") body = cancelledDrawer(s);
@@ -2492,8 +2571,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const noWaiver = s.roster.filter((r) => waiverMissing(CLIENTS[r.ci]));
       body += `<div class="dr-sec"><h3>Client list <span class="inline2">${addBtn}${markAll}</span></h3>
         ${noWaiver.length ? alertBox("bad", `${plural(noWaiver.length, "client hasn't", "clients haven't")} done the waiver`, `${noWaiver.map((r) => esc(CLIENTS[r.ci].name)).join(", ")}. Check before class starts. They're marked in red below.`) : ""}
-        ${attOpen ? "" : `<span class="hint">Attendance opens an hour before class (${clock(addMin(s.start, -60))}).</span>`}
-        ${attOpen ? `<span class="hint">Tap ✓ for attended or ✕ for a no-show. Tap a name for details.</span>` : ""}
+        ${attHint(s, role, attOpen)}
         ${s.roster.length ? `<div class="roster">${s.roster.slice().sort((a, b) => (spotsFor(s) ? (a.spot || 99) - (b.spot || 99) : 0) || CLIENTS[a.ci].name.localeCompare(CLIENTS[b.ci].name)).map((r) => clientRow(s, r, role, attOpen)).join("")}</div>` : `<span class="hint">No one has booked yet.</span>`}
       </div>`;
       if (s.waitlist.length) {
@@ -2549,9 +2627,10 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     if (NOW >= win.closes) return `<div class="dr-sec">${alertBox("info", "Booking closed", `Booking for this class closed at ${clock(win.closes)} (${closesText()}).`)}</div>`;
     if (s.roster.length < s.cap) return `<div class="dr-sec"><div class="actions"><button type="button" class="btn primary" data-act="book" data-help="${spotsFor(s) ? "Pick where you'll be in the room. " : ""}You'll check the details before anything is booked.">${spotsFor(s) ? "Choose a spot" : "Book"}</button></div><span class="hint">${plural(s.cap - s.roster.length, "spot")} left. You'll check the details before anything is booked.</span></div>`;
     return `<div class="dr-sec"><h3>This class is full · join the waitlist</h3>
-      <div class="lbl" style="font-size:12.5px;font-weight:600;display:flex;gap:5px;align-items:center">When a spot opens ${tip("mode")}</div>
+      ${STUDIO.wlModes === "both" ? `<div class="lbl" style="font-size:12.5px;font-weight:600;display:flex;gap:5px;align-items:center">When a spot opens ${tip("mode")}</div>
       <label class="opt"><input type="radio" name="wlmode" id="wlAuto" value="automatic" checked><div><b>Book me in automatically</b><span>We take the spot for you and let you know.</span></div></label>
-      <label class="opt"><input type="radio" name="wlmode" id="wlAsk" value="manual"><div><b>Ask me first</b><span>We hold the spot for ${STUDIO.hold} minutes while you confirm.</span></div></label>
+      <label class="opt"><input type="radio" name="wlmode" id="wlAsk" value="manual"><div><b>Ask me first</b><span>We hold the spot for ${STUDIO.hold} minutes while you confirm.</span></div></label>`
+        : `<input type="radio" name="wlmode" value="${STUDIO.wlModes}" checked hidden>${alertBox("info", "When a spot opens", STUDIO.wlModes === "automatic" ? "We'll book you in automatically and let you know." : `We'll hold the spot for ${STUDIO.hold} minutes and ask you to confirm.`)}`}
       <div class="field"><span class="lbl">Stop waiting ${tip("expiry")}</span>
         <select id="wlExpiry">${STUDIO.expiry.map((h) => `<option value="${h}">${h} hours before class</option>`).join("")}<option value="0">When class starts</option></select></div>
       <div class="actions"><button type="button" class="btn primary" data-act="joinWl">Join waitlist</button></div></div>`;
@@ -3938,14 +4017,14 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const list = FEES.filter((x) => f === "all" || x.status === f);
       const due = FEES.filter((x) => x.status === "pending");
       const total = due.reduce((n, x) => n + x.cents, 0);
-      return head("Fees", due.length ? `${money(total, STUDIO.currency)} to collect from ${plural(new Set(due.map((x) => x.ci)).size, "client")}. Fees are collected once payments are switched on.` : "Nothing to collect.") +
+      return head("Fees", due.length ? `${money(total, STUDIO.currency)} to collect from ${plural(new Set(due.map((x) => x.ci)).size, "client")}. Late-cancellation fees are final straight away; no-show fees become final at midnight after the class, when attendance locks.` : "Nothing to collect.") +
         `<div class="seg" role="group" aria-label="Show" style="align-self:flex-start">${[["pending", "To be collected"], ["waived", "Waived"], ["all", "All"]].map(([k, l]) => `<button type="button" data-ff="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
         <div class="tblwrap"><table class="tbl"><thead><tr><th>Client</th><th>Fee</th><th>Class</th><th>Amount</th><th>Added</th><th>Status</th><th></th></tr></thead><tbody>
         ${list.map((x) => {
           const c = CLIENTS[x.ci], s = SESSIONS.find((y) => y.id === x.sid);
           return `<tr><td><div class="cellp">${avatar(c, "sm")}${esc(c.name)}</div></td><td>${FEE_TYPE[x.type]}</td><td>${s ? esc(sLabel(s)) : ""}</td>
             <td style="font-variant-numeric:tabular-nums">${money(x.cents, STUDIO.currency)}</td><td>${esc(x.added)}</td>
-            <td>${x.status === "pending" ? '<span class="status open">To be collected</span>' : `<span class="status off" data-help="${esc(x.reason || "")}">Waived</span>`}</td>
+            <td>${feeStatus(x)}</td>
             <td>${x.status === "pending" ? `<button type="button" class="btn" data-waive="${x.id}" data-help="Remove this fee. The reason is kept on the client's history.">Waive</button>` : ""}</td></tr>`;
         }).join("") || `<tr><td colspan="7" class="muted">No fees here.</td></tr>`}
         </tbody></table></div>`;
@@ -3964,9 +4043,9 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 
     templates() {
       return head("Templates", "Saved class details. Pick one when adding a class and everything here is filled in, including the length.", `<button type="button" class="btn primary" id="newTpl" data-help="Save a new set of class details to reuse.">New template</button>`) +
-        `<div class="tblwrap"><table class="tbl"><thead><tr><th>Template</th><th>Class</th><th>Length</th><th>Usual start</th><th>Room</th><th>Instructor</th><th>Spots</th></tr></thead><tbody>
+        `<div class="tblwrap"><table class="tbl"><thead><tr><th>Template</th><th>Class</th><th>Length</th><th>Usual start</th><th>Room</th><th>Instructor</th><th>Spots</th><th aria-label="Delete"></th></tr></thead><tbody>
         ${TEMPLATE_LIST.map((t) => `<tr class="click" data-tpl="${t.id}" tabindex="0" data-help="Click to edit this template."><td><b>${esc(t.label)}</b></td><td><div class="cellp">${sw(t.type)}${esc(TYPES[t.type].name)}</div></td>
-          <td>${lengthText(t.dur)}</td><td>${short(fromYmdHm("2026-01-01", t.start))}</td><td>${esc(ROOMS[t.room].name)}</td><td>${t.instr ? `<div class="cellp">${instrAvatar(t.instr, "sm")}${esc(STAFF[t.instr])}</div>` : "TBC"}</td><td>${t.cap}</td></tr>`).join("")}
+          <td>${lengthText(t.dur)}</td><td>${short(fromYmdHm("2026-01-01", t.start))}</td><td>${esc(ROOMS[t.room].name)}</td><td>${t.instr ? `<div class="cellp">${instrAvatar(t.instr, "sm")}${esc(STAFF[t.instr])}</div>` : "TBC"}</td><td>${t.cap}</td><td><button type="button" class="btn ghost danger" data-tpldel="${t.id}" aria-label="Delete ${esc(t.label)}" data-help="Delete this template. Classes made from it stay as they are.">Delete</button></td></tr>`).join("")}
         </tbody></table></div>`;
     },
 
@@ -3995,7 +4074,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
         <div class="card"><h3>Cancellations and fees</h3><div class="rules">
           ${rule("Late-cancellation window", "Cancelling inside this loses the class credit, and clients can't move their booking.", sel("pLate", [1, 2, 3, 4, 6, 8, 12, 24, 48].map((h) => [h, `${plural(h, "hour")} before`]), STUDIO.lateCancelHours), "lateCancelWindowHours")}
           ${rule("Late-cancellation fee", "Charged on top of losing the credit.", `${toggle("pLateOn", STUDIO.lateFeeOn, "Late-cancellation fee")}<span class="muted">${cur}</span><input type="number" id="pLateFee" min="0" step="0.5" value="${(STUDIO.lateFeeCents / 100).toFixed(2)}" ${STUDIO.lateFeeOn ? "" : "disabled"} aria-label="Late-cancellation fee amount">`, "lateCancelFeeEnabled", "pLateErr")}
-          ${rule("No-show fee", "Added when a client is marked as a no-show; removed if that's corrected.", `${toggle("pNoShowOn", STUDIO.noShowFeeOn, "No-show fee")}<span class="muted">${cur}</span><input type="number" id="pNoShowFee" min="0" step="0.5" value="${(STUDIO.noShowFeeCents / 100).toFixed(2)}" ${STUDIO.noShowFeeOn ? "" : "disabled"} aria-label="No-show fee amount">`, "noShowFeeEnabled", "pNoShowErr")}
+          ${rule("No-show fee", "Added when a client is marked as a no-show; removed if that's corrected before attendance locks at midnight after the class. After that it's final.", `${toggle("pNoShowOn", STUDIO.noShowFeeOn, "No-show fee")}<span class="muted">${cur}</span><input type="number" id="pNoShowFee" min="0" step="0.5" value="${(STUDIO.noShowFeeCents / 100).toFixed(2)}" ${STUDIO.noShowFeeOn ? "" : "disabled"} aria-label="No-show fee amount">`, "noShowFeeEnabled", "pNoShowErr")}
           ${rule("Currency", "Used for fees and, later, prices.", sel("pCur", ["SGD", "MYR", "THB", "IDR", "PHP", "VND", "USD", "AUD"].map((c) => [c, c]), cur), "currency")}
         </div></div>
         <div class="card"><h3>Waivers and spots</h3><div class="rules">
@@ -4004,7 +4083,14 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
             <div class="rc" style="grid-column:1 / -1"><textarea id="pWaiverText" rows="4" maxlength="20000" style="width:100%;min-height:96px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface);color:var(--fg);font:inherit;font-size:13px">${esc(STUDIO.waiverText)}</textarea></div></div>
           ${rule("Clients choose a spot", "Off: clients just book. They still see who's coming and confirm before booking.", toggle("pSpots", STUDIO.spotsOn, "Clients choose a spot"), "spotBookingEnabled")}
         </div></div>
+        <div class="card"><h3>Reviews and celebrations</h3><div class="rules">
+          ${rule("Ask clients for reviews", "After a class they came to, clients are asked for 1 to 5 stars and a comment. They can skip, or pause it for a few weeks.", toggle("pRevOn", STUDIO.reviewsOn, "Ask clients for reviews"), "reviewsEnabled")}
+          ${rule("Google review link", "After any review, clients are offered this link to share it on Google too. Everyone is asked, whatever they gave, as Google requires.", `<input type="url" id="pGoogle" value="${esc(STUDIO.googleUrl || "")}" placeholder="https://g.page/r/…/review" style="width:100%;max-width:320px;height:34px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--surface);color:var(--fg)">`, "googleReviewUrl", "pGoogleErr")}
+          ${rule("Celebration pop-ups for staff", "A fun recap every two weeks, and milestones like 100 classes taught. Each person can turn them off for themselves.", toggle("pCelebOn", STUDIO.celebOn, "Celebration pop-ups for staff"), "celebrationsEnabled")}
+          ${rule("Write recaps with AI", "Claude summarises the fortnight's review comments and adds two self-care tips. Uses 1 AI credit per recap. It sees numbers and comment text only, never names.", toggle("pAiRecaps", STUDIO.aiRecaps, "Write recaps with AI"), "aiRecaps")}
+        </div></div>
         <div class="card"><h3>Waitlist</h3><div class="rules">
+          ${rule("How waitlists work", "Let clients choose, or use one way for everyone. People already waiting keep the choice they made.", sel("pWlModes", [["both", "Clients choose"], ["automatic", "Always book in automatically"], ["manual", "Always ask first"]], STUDIO.wlModes), "waitlistModes")}
           ${rule("Hold time", "How long a spot is held for someone who chose “Ask me first”.", sel("pHold", [5, 10, 15, 20, 30].map((m) => [m, `${m} minutes`]), STUDIO.hold), "waitlistHoldMinutes")}
           ${rule("Cut-off choices", "The three options clients pick from for when to stop waiting.", STUDIO.expiry.map((h, i) => `<input type="number" id="pExp${i}" min="0" max="168" value="${h}" aria-label="Choice ${i + 1}, hours before class">`).join("") + '<span class="muted">hours before</span>', "waitlistExpiryOptions", "pExpErr")}
         </div></div>
@@ -4047,7 +4133,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const tidy = PLANS.filter(suggest);
       const pend = EXTREQ.filter((r) => r.status === "pending"), ords = ORDERS.filter((o) => o.status === "pending");
       return head("Packages", "What you sell, grouped the way clients see them.", `<button type="button" class="btn" data-plan="cats" data-help="Add, rename, reorder or remove the groups on the buying page.">Categories</button><button type="button" class="btn primary" data-plan="new" data-help="Set up a package you sell: one-time or recurring, with its own rules.">New package type</button>`) +
-        (pend.length ? `<div class="card"><h3>Extension requests · ${pend.length}</h3><div class="stack">${pend.map((r) => { const pk = CPKG.find((x) => x.id === r.pkg); return `<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><span class="cellp" style="align-items:flex-start">${avatar(CLIENTS[r.ci], "sm")}<span><b>${esc(CLIENTS[r.ci].name)}</b> asked for <b>${plural(r.days, "day")}</b> on their ${esc(pk.name)} <span class="muted">· ${esc(r.when)}</span><br><span style="font-size:13px">“${esc(r.reason)}”</span>${r.file ? `<br><span class="tag">📎 ${esc(r.file)}</span>` : ""}<br><span class="muted" style="font-size:12.5px">Valid until ${lastDayOf(pk.expires) || "–"} → ${lastDayOf(addDays(pk.expires > day(NOW) ? pk.expires : day(NOW), r.days))}${extFee(r.days) ? ` · fee ${m$(extFee(r.days))}` : ""}</span></span></span><span class="inline2"><button type="button" class="btn primary" data-ext="approve:${r.id}">Approve</button><button type="button" class="btn" data-ext="change:${r.id}">Change…</button><button type="button" class="btn ghost" data-ext="decline:${r.id}">Decline</button></span></div>`; }).join("")}</div></div>` : "") +
+        (pend.length ? `<div class="card"><h3>Extension requests · ${pend.length}</h3><div class="stack">${pend.map((r) => { const pk = CPKG.find((x) => x.id === r.pkg); return `<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><span class="cellp" style="align-items:flex-start">${avatar(CLIENTS[r.ci], "sm")}<span><b>${esc(CLIENTS[r.ci].name)}</b> asked for <b>${plural(r.days, "day")}</b> on their ${esc(pk.name)} <span class="muted">· ${esc(r.when)}</span><br><span style="font-size:13px">“${esc(r.reason)}”</span>${r.file ? `<br>${attachChip(r)}` : ""}<br><span class="muted" style="font-size:12.5px">Valid until ${lastDayOf(pk.expires) || "–"} → ${lastDayOf(addDays(pk.expires > day(NOW) ? pk.expires : day(NOW), r.days))}${extFee(r.days) ? ` · fee ${m$(extFee(r.days))}` : ""}</span></span></span><span class="inline2"><button type="button" class="btn primary" data-ext="approve:${r.id}">Approve</button><button type="button" class="btn" data-ext="change:${r.id}">Change…</button><button type="button" class="btn ghost" data-ext="decline:${r.id}">Decline</button></span></div>`; }).join("")}</div></div>` : "") +
         (ords.length ? `<div class="card"><h3>Orders to confirm · ${ords.length}</h3><span class="hint">Clients who checked out and will pay at the desk. Marking one paid adds the package to their account.</span>${ords.map((o) => `<div class="row" style="justify-content:space-between"><span class="cellp">${avatar(CLIENTS[o.ci], "sm")}<b>${esc(CLIENTS[o.ci].name)}</b><span class="muted">${esc(PLANS.find((x) => x.id === o.plan).name)} · ${esc(o.when)}</span></span><span class="inline2"><b>${m$(PLANS.find((x) => x.id === o.plan).price)}</b><button type="button" class="btn primary" data-order="paid:${o.id}">Mark paid</button><button type="button" class="btn ghost" data-order="cancel:${o.id}">Cancel</button></span></div>`).join("")}</div>` : "") +
         (tidy.length && !showArch ? `<div class="card tidy">${alertBox("info", `${plural(tidy.length, "package type looks", "package types look")} unused`, `${tidy.map((pl) => esc(pl.name)).join(", ")}: no one's using ${tidy.length === 1 ? "it" : "them"} and ${tidy.length === 1 ? "it hasn't" : "they haven't"} sold for 6 months (or ${tidy.length === 1 ? "isn't" : "aren't"} on sale). Archive to tidy up; nothing is lost.`)}</div>` : "") +
         `<div class="seg" role="group" aria-label="Show" style="align-self:flex-start"><button type="button" data-arch="0" aria-pressed="${!showArch}">Current</button><button type="button" data-arch="1" aria-pressed="${showArch}">Archived (${PLANS.filter((x) => x.archived).length})</button></div>
@@ -4243,8 +4329,13 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     weeklyBookingLimit: "The most classes one client can have booked in a week (Monday–Sunday). Leave off for unlimited, which suits most studios.",
     lateCancelWindowHours: "Cancelling within this many hours of class counts as a late cancellation.",
     lateCancelFeeEnabled: "Clients who cancel inside the late-cancellation window are charged this fee, on top of losing their credit.",
-    noShowFeeEnabled: "Clients marked as a no-show are charged this fee. It's removed automatically if attendance is corrected.",
+    noShowFeeEnabled: "Clients marked as a no-show are charged this fee. It's removed automatically if attendance is corrected before it locks at midnight after the class. After that, only an admin can correct attendance, and the fee is final.",
     currency: "The currency your fees and prices are shown in.",
+    reviewsEnabled: "Clients are asked after their latest class only, never for every class. Skipping is fine; the next class asks again.",
+    googleReviewUrl: "In your Google Business Profile, choose “Ask for reviews” and copy the link. Offering it only to happy clients is against Google's rules, so the app offers it to everyone who reviews.",
+    celebrationsEnabled: "Recaps and milestones for owners, admins and instructors. They show once, when Home opens.",
+    aiRecaps: "Off: the recap uses set wording, with no review summary.",
+    waitlistModes: "“Clients choose”: each client picks “Book me in automatically” or “Ask me first” when they join. Or choose one way for everyone, and clients aren't asked.",
     waitlistHoldMinutes: "How long a spot is held for someone who chose “Ask me first” before it goes to the next person.",
     waitlistExpiryOptions: "The three options clients can pick from for when to stop waiting, in hours before class.",
     subApprovalMode: "“First to accept gets it” gives the class to the first instructor who accepts. “An admin chooses” lets an admin pick from everyone who accepted.",
@@ -4536,13 +4627,14 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
         <footer><button type="button" class="btn ghost" data-mclose>Cancel</button><button type="submit" class="btn primary">Send request</button></footer></form></div>`;
       const keep = () => { st.days = Math.max(1, Math.min(STUDIO.extMax, Number($("#exDays").value) || 1)); st.why = $("#exWhy").value; };
       $("#exDays").onchange = () => { keep(); paint(); };
-      if ($("#exFile")) $("#exFile").onchange = (e) => { const f = e.target.files[0]; if (!f) return; if (f.size > 5 * 1024 * 1024) { toast("That file is too big. The limit is 5 MB."); return; } keep(); st.file = f.name; paint(); };
+      if ($("#exFile")) $("#exFile").onchange = (e) => { const f = e.target.files[0]; if (!f) return; if (f.size > 5 * 1024 * 1024) { toast("That file is too big. The limit is 5 MB."); return; } keep(); st.file = f.name; st.blob = f; paint(); };
       $("#exForm").onsubmit = (e) => {
         e.preventDefault(); keep();
         if ((st.why || "").trim().length < 3) { toast("Tell the studio why, e.g. “Knee injury”."); return; }
         if (STUDIO.extAttach === "required" && !st.file) { toast("Your studio asks for a document, e.g. a doctor's note."); return; }
         if (auto) { pk.autoUsed = true; const to = extendPkg(pk, st.days, `Approved automatically: ${st.why}`, "Automatic"); closeModal(); render(); toast(`Approved: ${pk.name} now lasts until ${lastDayOf(to)}.${fee ? ` A ${m$(fee)} fee has been added.` : ""}`); return; }
         EXTREQ.push({ id: nextReqId++, pkg: pk.id, ci: ME.client, days: st.days, reason: st.why.trim(), file: st.file, status: "pending", when: "Just now" });
+        if (st.blob) { const f = st.blob; ATTACH.set(EXTREQ.at(-1).id, { name: st.file, type: f.type || (/\.pdf$/i.test(st.file) ? "application/pdf" : "image/jpeg"), data: () => Promise.resolve(f) }); }
         closeModal(); render(); toast("Request sent. The studio will get back to you by email and push.");
       };
     };
@@ -4653,7 +4745,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
           })()}
           ${studio.length ? `<div class="dr-sec"><h3>Changes by the studio</h3>${studio.map((h) => `<div class="hnote"><b>${esc(h.text)}</b>${h.detail ? `<span>${esc(h.detail)}</span>` : ""}<span class="hmeta">${esc(h.when)}${client ? "" : " · Olivia (Admin)"}</span></div>`).join("")}</div>` : ""}
           <div class="dr-sec"><h3>Everything else</h3>${pk.history.filter((h) => h.by !== "The studio").map((h) => `<div class="row" style="justify-content:space-between;font-size:13px"><span>${esc(h.text)}${h.detail ? ` <span class="muted">· ${esc(h.detail)}</span>` : ""}</span><span class="muted">${esc(h.when)}${h.change ? ` · ${esc(h.change)}` : ""}</span></div>`).join("")}
-            ${EXTREQ.filter((r) => r.pkg === pk.id).map((r) => `<div class="row" style="justify-content:space-between;font-size:13px"><span>Extension request: ${plural(r.days, "day")}, “${esc(r.reason)}”</span><span class="status ${r.status === "pending" ? "wait" : r.status === "approved" ? "done" : "off2"}">${r.status === "pending" ? "Waiting" : r.status}</span></div>`).join("")}
+            ${EXTREQ.filter((r) => r.pkg === pk.id).map((r) => `<div class="row" style="justify-content:space-between;font-size:13px"><span>Extension request: ${plural(r.days, "day")}, “${esc(r.reason)}”${r.file ? ` ${attachChip(r)}` : ""}</span><span class="status ${r.status === "pending" ? "wait" : r.status === "approved" ? "done" : "off2"}">${r.status === "pending" ? "Waiting" : r.status}</span></div>`).join("")}
             <span class="hint">Bought ${fmtDay(pk.bought)} for ${m$(pk.paid)}.</span></div>
         </div>
         <footer><button type="button" class="btn primary" data-mclose>Done</button></footer></div></div>`;
@@ -4841,7 +4933,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
         <div class="field"><label for="tCap">Spots available</label><input id="tCap" type="number" min="1" value="${t.cap}"></div>
         <div class="field full cpbox" id="tAc"></div>
       </div></div>
-      <footer><button type="button" class="btn ghost" data-mclose>Cancel</button><button type="submit" class="btn primary">${id ? "Save template" : "Create template"}</button></footer></form></div>`;
+      <footer>${id ? '<button type="button" class="btn ghost danger" id="tDel" style="margin-right:auto">Delete template</button>' : ""}<button type="button" class="btn ghost" data-mclose>Cancel</button><button type="submit" class="btn primary">${id ? "Save template" : "Create template"}</button></footer></form></div>`;
     let ac = t.ac ? { ...t.ac } : null;
     const paintAc = () => {
       const box = $("#tAc");
@@ -4853,6 +4945,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     };
     $("#tType").addEventListener("change", paintAc);
     paintAc();
+    if ($("#tDel")) $("#tDel").onclick = () => deleteTemplate(id);
     $("#tplForm").onsubmit = (e) => {
       e.preventDefault();
       const label = $("#tName").value.trim();
@@ -4935,8 +5028,9 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       $("#newTpl").onclick = () => openTemplate(null);
       document.querySelectorAll("[data-tpl]").forEach((tr) => {
         tr.onclick = () => openTemplate(tr.dataset.tpl);
-        tr.onkeydown = (e) => { if (e.key === "Enter") openTemplate(tr.dataset.tpl); };
+        tr.onkeydown = (e) => { if (e.key === "Enter" && e.target === tr) openTemplate(tr.dataset.tpl); };
       });
+      document.querySelectorAll("[data-tpldel]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); deleteTemplate(b.dataset.tpldel); }));
     },
     policies() {
       const link = (sw2, input) => ($(sw2).onchange = () => { $(input).disabled = !$(sw2).checked; });
@@ -4954,13 +5048,14 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
           err("#pLimitErr", $("#pLimitOn").checked && !(limit >= 1) ? "Set how many classes a week, or switch the limit off." : ""),
           err("#pLateErr", $("#pLateOn").checked && !(lateFee > 0) ? "Set the fee amount, or switch the fee off." : ""),
           err("#pNoShowErr", $("#pNoShowOn").checked && !(noShow > 0) ? "Set the fee amount, or switch the fee off." : ""),
+          err("#pGoogleErr", $("#pGoogle").value.trim() && !/^https:\/\/\S+$/.test($("#pGoogle").value.trim()) ? "Use the full https:// link Google gives you for reviews." : ""),
           err("#pExpErr", exp.some((h) => !(h >= 0 && h <= 168)) ? "Each choice must be between 0 and 168 hours." : new Set(exp).size < 3 ? "Give three different choices." : ""),
         ].some(Boolean);
         if (bad) { toast("Some rules need fixing."); return; }
         Object.assign(STUDIO, {
           bookingOpensDays: Number($("#pOpen").value), bookingClosesMins: Number($("#pClose").value), weeklyLimit: $("#pLimitOn").checked ? limit : null,
           lateCancelHours: Number($("#pLate").value), lateFeeOn: $("#pLateOn").checked, lateFeeCents: lateFee, noShowFeeOn: $("#pNoShowOn").checked, noShowFeeCents: noShow,
-          currency: $("#pCur").value, hold: Number($("#pHold").value), expiry: exp.sort((a, b) => b - a), coverApproval: $("#pCover").value,
+          currency: $("#pCur").value, hold: Number($("#pHold").value), wlModes: $("#pWlModes").value, reviewsOn: $("#pRevOn").checked, googleUrl: $("#pGoogle").value.trim() || null, celebOn: $("#pCelebOn").checked, aiRecaps: $("#pAiRecaps").checked, expiry: exp.sort((a, b) => b - a), coverApproval: $("#pCover").value,
           tellClientsInstructorChange: $("#pTell").checked, dst: $("#pDst").checked,
           extMode: $("#pExtMode").value, extAuto: Number($("#pExtAuto")?.value || STUDIO.extAuto), extMax: Number($("#pExtMax")?.value || STUDIO.extMax), extAttach: $("#pExtAttach")?.value || STUDIO.extAttach,
           extFeeMode: $("#pExtFeeMode")?.value || STUDIO.extFeeMode, extFee: $("#pExtFee") ? Math.round(Number($("#pExtFee").value || 0) * 100) : STUDIO.extFee,
@@ -5131,6 +5226,11 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       return render();
     }
     if (t.dataset.att) {
+      if (NOW >= attLockOf(current()) && !t._lockOk) {
+        const btn = t;
+        confirmFlags([{ level: "confirm", title: "Attendance is locked", msg: `Attendance for this class was locked at ${lockWords(current())}, and any no-show fees are final. Changing it now adds or removes a no-show fee. Change it anyway?` }], { proceedLabel: "Change it", proceed: () => { btn._lockOk = true; btn.click(); } });
+        return;
+      }
       const [ci, val] = t.dataset.att.split(":");
       const r = current().roster.find((x) => x.ci === Number(ci));
       r.att = r.att === val ? "unmarked" : val;
@@ -8271,7 +8371,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       if (r) { giveBack(r, s, "Cancelled"); logCancel(s, a.ci, { how: "staff", returned: r.pay?.kind === "package", reason: "Cancelled through the assistant" }); s.roster.splice(s.roster.indexOf(r), 1); }
       askState.msgs.push({ who: "bot", html: `<p>Done. ${esc(c.name)}'s booking is cancelled and the class is back on their package. They've been told.</p>` });
     } else {
-      if (!s.waitlist.some((w) => w.ci === a.ci)) s.waitlist.push({ ci: a.ci, mode: "automatic", cutoff: null });
+      if (!s.waitlist.some((w) => w.ci === a.ci)) s.waitlist.push({ ci: a.ci, mode: STUDIO.wlModes === "manual" ? "manual" : "automatic", cutoff: null });
       askState.msgs.push({ who: "bot", html: `<p>Done. ${esc(c.name)} is on the waitlist for ${esc(clsLabel(s))}. They'll be told if a spot opens.</p>` });
     }
     a.status = "done";
@@ -9018,14 +9118,14 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     if ($("#ivDocR")) $("#ivDocR").onclick = () => openDoc(inv, "receipt");
     if ($("#ivMail")) $("#ivMail").onclick = () => { emailReceipt(inv); openInv(inv); };
     if ($("#ivRefund")) $("#ivRefund").onclick = () => openRefund(inv);
-    if ($("#ivPay")) $("#ivPay").onclick = () => payMethodModal(`Mark ${inv.no} as paid`, `${esc(c.name)} · ${m$(invTotal(inv))}. ${INV.settings.autoEmailReceipts ? "They're emailed a receipt." : "You can email the receipt afterwards."}`, (m) => {
+    if ($("#ivPay")) $("#ivPay").onclick = () => feeGate(inv, () => payMethodModal(`Mark ${inv.no} as paid`, `${esc(c.name)} · ${m$(invTotal(inv))}. ${INV.settings.autoEmailReceipts ? "They're emailed a receipt." : "You can email the receipt afterwards."}`, (m) => {
       const pk = inv.ref?.pkg && CPKG.find((x) => x.id === inv.ref.pkg);
       if (inv.ref?.renewal && pk?.hold) liftHold(pk, m);
       else if (inv.ref?.order) { const o = ORDERS.find((x) => x.id === inv.ref.order); payInv(inv, m); if (o && o.status === "pending") { const p2 = sellPkg(o.ci, o.plan, { daysAgo: 0 }); p2._inv = inv.id; inv.ref.pkg = p2.id; o.status = "paid"; } }
       else if (inv.ref?.fee) { const f = FEES.find((x) => x.id === inv.ref.fee); if (f) { f.status = "paid"; f.method = m; } payInv(inv, m); }
       else { payInv(inv, m); const so = inv.ref?.shop && SHOP_ORDERS.find((x) => x.id === inv.ref.shop); if (so) so.paid = true; }
       renderNav(); render(); toast(`${inv.no} paid by ${PAY_METHODS[m].toLowerCase()}.${INV.settings.autoEmailReceipts ? ` Receipt ${inv.rct} emailed to ${c.email}.` : ""}`);
-    });
+    }));
   }
 
   function invoiceDesign() {
@@ -9934,6 +10034,11 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const unread = unreadTotal();
       if (unread) out.push({ kind: "messages", sev: "fyi", count: unread, title: `${hp(unread, "unread message")}`, detail: "From clients on WhatsApp and email", go: "comms", label: "Open Communication" });
     }
+    if (role === "admin" || role === "foh") {
+      const low = typeof lowToHandle === "function" ? lowToHandle().length : 0, fresh = typeof fbNew === "function" ? fbNew().length : 0;
+      if (low) out.push({ kind: "low_reviews", sev: "soon", count: low, title: `${hp(low, "low review")} to follow up`, detail: "2 stars or fewer. A quick, kind reply often wins a client back", go: "feedback", label: "Open Feedback" });
+      if (fresh) out.push({ kind: "feedback", sev: "fyi", count: fresh, title: `${hp(fresh, "new piece", "new pieces")} of feedback`, detail: "From clients, waiting for a reply", go: "feedback", label: "Open Feedback" });
+    }
     const order = { urgent: 0, soon: 1, fyi: 2 };
     return out.sort((a, b) => order[a.sev] - order[b.sev]);
   }
@@ -10101,6 +10206,613 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
   for (const n of NAV) { const id = n.id; n.group = (role) => navGroup(id, role); }
   NAV.sort((a, b) => navRank(a.id, "admin") - navRank(b.id, "admin"));
   state.page = "home";
+  // ===========================================================================
+  // Quick view for attachments (e.g. a physio's note on an extension request), on the page:
+  // PDFs are drawn page by page with pdf.js, photos shown as they are. Nothing opens in a new
+  // window. The API keeps serving PDFs as downloads; the app fetches the file and draws it.
+  // Also: the studio's waitlist setting (clients choose, or one way for everyone).
+  // ===========================================================================
+  const PDFJS_BASE = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
+  let pdfjsReady = null;
+  /** pdf.js loads only when someone opens a PDF. Its worker runs on the page (no separate worker file to fetch). */
+  function loadPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (!pdfjsReady) {
+      const add = (src) => new Promise((ok, fail) => { const el = document.createElement("script"); el.src = src; el.onload = ok; el.onerror = () => fail(new Error("load")); document.head.appendChild(el); });
+      pdfjsReady = add(`${PDFJS_BASE}/pdf.worker.min.js`).then(() => add(`${PDFJS_BASE}/pdf.min.js`)).then(() => {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.js`;
+        return window.pdfjsLib;
+      }).catch((e) => { pdfjsReady = null; throw e; });
+    }
+    return pdfjsReady;
+  }
+
+  // --- A real sample PDF for the sample request, made here so the preview needs no files ---
+  function samplePdf(pages) {
+    const esc_ = (s) => s.replace(/[\\()]/g, (c) => `\\${c}`);
+    const stream = (lines) => {
+      const out = ["0.05 0.38 0.34 RG 2 w 60 764 m 535 764 l S"];
+      let y = 795;
+      for (const [size, bold, text, gap] of lines) {
+        y -= gap ?? size + 8;
+        out.push(`BT /${bold ? "F2" : "F1"} ${size} Tf 60 ${y} Td (${esc_(text)}) Tj ET`);
+      }
+      return out.join("\n");
+    };
+    const objs = ["<</Type/Catalog/Pages 2 0 R>>", "", "<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>", "<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold>>"];
+    const kids = [];
+    for (const lines of pages) {
+      const body = stream(lines);
+      objs.push(`<</Length ${body.length}>>\nstream\n${body}\nendstream`);
+      objs.push(`<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Resources<</Font<</F1 3 0 R/F2 4 0 R>>>>/Contents ${objs.length} 0 R>>`);
+      kids.push(`${objs.length} 0 R`);
+    }
+    objs[1] = `<</Type/Pages/Kids[${kids.join(" ")}]/Count ${kids.length}>>`;
+    let pdf = "%PDF-1.4\n";
+    const at = [];
+    objs.forEach((o, i) => { at.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+    const xref = pdf.length;
+    pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${at.map((n) => `${String(n).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<</Size ${objs.length + 1}/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF`;
+    return new Uint8Array([...pdf].map((c) => c.charCodeAt(0)));
+  }
+  const PHYSIO_NOTE = () => samplePdf([
+    [[20, true, "Bukit Timah Physio Clinic", 0], [10, false, "12 Jalan Jurong Kechil, Singapore 598593  |  6466 1234"], [12, true, "Medical certificate", 34], [11, false, "Date: 10 November 2026"],
+      [11, false, "Patient: Sarah Lee", 22], [11, false, "To whom it may concern,", 30], [11, false, "Ms Lee was seen today for a sprained right ankle (grade 1)."],
+      [11, false, "She should avoid exercise classes, including Pilates and yoga, for"], [11, false, "two weeks, from 10 November to 24 November 2026."],
+      [11, false, "She can return to normal activity after that, starting gently.", 30], [11, false, "Yours sincerely,", 40], [11, true, "Dr Mei Chen, Physiotherapist"], [10, false, "Registration no. PT-04567"]],
+    [[16, true, "Treatment plan", 0], [11, false, "Week 1: rest, ice, compression and keeping the ankle raised.", 30], [11, false, "Week 2: gentle range-of-motion exercises at home."],
+      [11, false, "Review appointment: 24 November 2026, 10:00am.", 22], [10, false, "This note is for the patient's studio and may be shared with them.", 40]],
+  ]);
+  /** Bytes or a File for each attachment, keyed by its request. */
+  const ATTACH = new Map();
+  { const r = EXTREQ.find((x) => x.file === "physio-note.pdf"); if (r) ATTACH.set(r.id, { name: r.file, type: "application/pdf", data: () => Promise.resolve(PHYSIO_NOTE()) }); }
+  const attachOf = (r) => ATTACH.get(r.id) || (r.file ? { name: r.file, type: /\.pdf$/i.test(r.file) ? "application/pdf" : "image/*", data: null } : null);
+  /** The attachment chip on an extension request: opens the quick view. */
+  function attachChip(r) {
+    if (!r.file) return "";
+    const isPdf = /\.pdf$/i.test(r.file);
+    return `<button type="button" class="attchip" data-qv="${r.id}" data-help="Open it here, without leaving the page."><span aria-hidden="true">${isPdf ? "📄" : "🖼"}</span> ${esc(r.file)} <span class="qvlink">Quick view</span></button>`;
+  }
+
+  // --- The viewer ---------------------------------------------------------------------
+  const QV = { zoom: null, doc: null, img: null, page: 1, url: null, fit: true };
+  async function openQuickView(reqId) {
+    const r = EXTREQ.find((x) => x.id === reqId);
+    const a = r && attachOf(r);
+    if (!a) return;
+    const isPdf = a.type === "application/pdf";
+    Object.assign(QV, { zoom: 1, doc: null, img: null, page: 1, fit: true, name: a.name });
+    if (QV.url) { URL.revokeObjectURL(QV.url); QV.url = null; }
+    $("#modalRoot").innerHTML = `<div class="modal-wrap qvwrap" data-mclose><div class="modal qv" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
+      <header class="qvhead"><div class="stack" style="gap:1px;min-width:0"><h2 id="qvTitle">${esc(a.name)}</h2><span class="muted" style="font-size:12.5px">${esc(CLIENTS[r.ci].name)} · extension request · <span id="qvMeta">${isPdf ? "PDF" : "Photo"}</span></span></div>
+        <div class="qvtools" role="toolbar" aria-label="Quick view">
+          <button type="button" class="iconbtn" id="qvOut" aria-label="Zoom out" data-help="Zoom out">−</button><span id="qvZoom" class="qvz" aria-live="polite">Fit</span><button type="button" class="iconbtn" id="qvIn" aria-label="Zoom in" data-help="Zoom in">+</button>
+          <button type="button" class="btn" id="qvFit">Fit width</button>
+          ${isPdf ? '<span id="qvPage" class="qvz" aria-live="polite"></span>' : ""}
+          <button type="button" class="btn" id="qvDl" data-help="Save a copy to your device.">Download</button>
+          <button type="button" class="iconbtn" data-mclose aria-label="Close quick view">✕</button></div></header>
+      <div class="qvbody" id="qvBody" tabindex="0" aria-label="${esc(a.name)}"><div class="qvmsg" id="qvMsg">Opening…</div></div></div></div>`;
+    const body = $("#qvBody");
+    const fail = (why) => { body.innerHTML = `<div class="qvmsg">${alertBox("warn", "This file couldn't be shown here", `${esc(why)} You can download it instead.`)}</div>`; };
+    $("#qvIn").onclick = () => zoomBy(1.25);
+    $("#qvOut").onclick = () => zoomBy(0.8);
+    $("#qvFit").onclick = () => { QV.fit = true; QV.zoom = 1; draw(); };
+    $("#qvDl").onclick = async () => {
+      const bytes = a.data ? await a.data() : null;
+      if (!bytes) return toast("This sample file is only a name. Attach a real file to an extension request to try it.");
+      const res = await offerFile(a.name, bytes instanceof Uint8Array ? bytes : new Uint8Array(await bytes.arrayBuffer()), a.type);
+      toast(res === "saved" ? `Downloaded ${a.name}.` : res === "busy" ? "A download is already waiting for you to confirm." : "Your browser didn't allow the download.");
+    };
+    body.onkeydown = (e) => { if (e.key === "+" || e.key === "=") zoomBy(1.25); if (e.key === "-") zoomBy(0.8); };
+    if (!a.data) return fail("This sample request only has a file name, not a real file.");
+    try {
+      const raw = await a.data();
+      const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(await raw.arrayBuffer());
+      if (!$("#qvBody")) return; // closed while loading
+      if (isPdf) {
+        const lib = await loadPdfJs();
+        QV.doc = await lib.getDocument({ data: bytes }).promise;
+        $("#qvMeta").textContent = `PDF, ${plural(QV.doc.numPages, "page")}`;
+      } else {
+        QV.url = URL.createObjectURL(new Blob([bytes], { type: a.type }));
+        QV.img = QV.url;
+      }
+      await draw();
+      body.focus();
+    } catch (e) {
+      fail(e?.message === "load" ? "The PDF reader didn't load. Check your connection and try again." : "It may be damaged or in a format we can't show.");
+    }
+  }
+  function zoomBy(f) {
+    if (!QV.doc && !QV.img) return;
+    QV.fit = false;
+    QV.zoom = Math.min(4, Math.max(0.25, Math.round(QV.zoom * f * 100) / 100));
+    draw();
+  }
+  let drawing = 0;
+  async function draw() {
+    const body = $("#qvBody");
+    if (!body) return;
+    const run = ++drawing;
+    const avail = Math.max(200, body.clientWidth - 32);
+    if (QV.img) {
+      body.innerHTML = `<img class="qvimg" src="${QV.img}" alt="${esc(QV.name)}" style="${QV.fit ? "width:100%;max-width:100%" : `width:${Math.round(avail * QV.zoom)}px;max-width:none`}">`;
+      $("#qvZoom").textContent = QV.fit ? "Fit" : `${Math.round(QV.zoom * 100)}%`;
+      return;
+    }
+    if (!QV.doc) return;
+    const first = await QV.doc.getPage(1);
+    const base = first.getViewport({ scale: 1 });
+    const fitScale = avail / base.width;
+    const scale = QV.fit ? fitScale : fitScale * QV.zoom;
+    $("#qvZoom").textContent = QV.fit ? "Fit" : `${Math.round(QV.zoom * 100)}%`;
+    const frag = document.createElement("div");
+    frag.className = "qvpages";
+    const dpr = window.devicePixelRatio || 1;
+    for (let n = 1; n <= QV.doc.numPages; n++) {
+      const page = await QV.doc.getPage(n);
+      if (run !== drawing) return; // a newer zoom started
+      const vp = page.getViewport({ scale });
+      const c = document.createElement("canvas");
+      c.width = Math.floor(vp.width * dpr); c.height = Math.floor(vp.height * dpr);
+      c.style.width = `${Math.floor(vp.width)}px`; c.style.height = `${Math.floor(vp.height)}px`;
+      c.className = "qvpage"; c.dataset.page = String(n);
+      c.setAttribute("role", "img"); c.setAttribute("aria-label", `Page ${n} of ${QV.doc.numPages}`);
+      await page.render({ canvasContext: c.getContext("2d"), viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null }).promise;
+      frag.appendChild(c);
+    }
+    if (run !== drawing || !$("#qvBody")) return;
+    body.replaceChildren(frag);
+    const pageNow = () => {
+      const top = body.scrollTop + body.clientHeight / 3;
+      const pages = [...body.querySelectorAll(".qvpage")];
+      const cur = pages.filter((p) => p.offsetTop <= top).pop() || pages[0];
+      QV.page = Number(cur?.dataset.page || 1);
+      if ($("#qvPage")) $("#qvPage").textContent = `Page ${QV.page} of ${QV.doc.numPages}`;
+    };
+    body.onscroll = pageNow;
+    pageNow();
+  }
+
+  // Clicking an attachment opens the quick view (anywhere it appears).
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest?.("[data-qv]");
+    if (!b) return;
+    e.preventDefault();
+    openQuickView(Number(b.dataset.qv));
+  });
+  window.addEventListener("resize", () => { if ($("#qvBody") && QV.fit) draw(); });
+  // ===========================================================================
+  // Deleting templates, and the attendance lock. Same rules as the API:
+  //  - DELETE /templates/:id asks first; classes made from a template keep every detail.
+  //  - Attendance locks at midnight at the end of the class's day. Until then staff can change it
+  //    and no-show fees follow it; after it, it's final: only admins can correct it, after a
+  //    warning. Collecting a no-show fee before the lock asks first. Late-cancellation fees are
+  //    final straight away.
+  // ===========================================================================
+  /** Midnight at the end of the class's day. */
+  const attLockOf = (s) => day(addDays(s.start, 1));
+  const lockWords = (s) => `midnight at the end of ${fmtDay(s.start)}`;
+  function attHint(s, role, attOpen) {
+    if (NOW < addMin(s.start, -60)) return `<span class="hint">Attendance opens an hour before class (${clock(addMin(s.start, -60))}) and locks at ${lockWords(s)}.</span>`;
+    if (NOW >= attLockOf(s)) {
+      return alertBox("info", "Attendance is locked", role === "admin"
+        ? `It locked at ${lockWords(s)}, and no-show fees are final. You can still correct it; you'll be asked first, because it adds or removes a no-show fee.`
+        : `It locked at ${lockWords(s)}, and no-show fees are final. Ask an admin if it needs correcting.`);
+    }
+    return `<span class="hint">Tap ✓ for attended or ✕ for a no-show. Tap a name for details. Attendance locks at ${lockWords(s)}${sameDay(s.start, NOW) ? " (tonight)" : ""}; until then, no-show fees follow it.</span>`;
+  }
+  /** Before a no-show fee is collected: is attendance still open? */
+  function feeFinalAt(f) {
+    if (f.type !== "no_show") return null;
+    const s = SESSIONS.find((x) => x.id === f.sid);
+    return s ? { at: attLockOf(s), s } : null;
+  }
+  function feeGate(inv, go) {
+    const f = inv.ref?.fee && FEES.find((x) => x.id === inv.ref.fee);
+    const fin = f && feeFinalAt(f);
+    if (!fin || NOW >= fin.at) return go();
+    confirmFlags([{ level: "confirm", title: "Attendance can still change", msg: `Attendance for this class can still change until ${lockWords(fin.s)}, which would remove this no-show fee. Collect it now anyway?` }], { proceed: go, proceedLabel: "Collect anyway" });
+  }
+  function feeStatus(x) {
+    if (x.status !== "pending") return x.status === "paid" ? '<span class="status done">Paid</span>' : `<span class="status off" data-help="${esc(x.reason || "")}">Waived</span>`;
+    const fin = feeFinalAt(x);
+    if (fin && NOW < fin.at) return `<span class="status wait" data-help="If attendance is corrected before ${esc(lockWords(fin.s))}, this fee is removed.">Final after midnight</span>`;
+    return '<span class="status open">To be collected</span>';
+  }
+
+  // --- Deleting a template ------------------------------------------------------------
+  function deleteTemplate(id) {
+    const t = TEMPLATES[id];
+    if (!t) return;
+    const upcoming = SESSIONS.filter((s) => s.tpl === id && s.status === "scheduled" && s.start > NOW);
+    const repeats = new Set(upcoming.map((s) => s.series).filter(Boolean)).size;
+    const used = [upcoming.length ? plural(upcoming.length, "upcoming class", "upcoming classes") : "", repeats ? plural(repeats, "repeating schedule") : ""].filter(Boolean).join(" and ");
+    confirmFlags([{ level: "confirm", title: "Delete this template?", msg: `“${t.label}” will be deleted, so it can't be used for new classes.${used ? ` The ${used} made from it stay exactly as they are.` : " No upcoming classes use it."}` }], {
+      proceedLabel: "Delete template",
+      proceed: () => { t.archived = true; const i = TEMPLATE_LIST.indexOf(t); if (i >= 0) TEMPLATE_LIST.splice(i, 1); closeModal(); render(); toast(`“${t.label}” deleted.${upcoming.length ? ` Its ${plural(upcoming.length, "class", "classes")} are unchanged.` : ""}`); },
+    });
+  }
+  // ===========================================================================
+  // Reviews, client feedback and celebrations. Same rules as the API
+  // (apps/api/src/modules/reviews, feedback, moments):
+  //  - After a class they came to, clients are asked to review it (only the latest one). Skip is
+  //    fine: the next class asks again. With a review they can pause the pop-ups for N weeks.
+  //  - After any review, everyone is offered the studio's Google review link with their words
+  //    copied (never only happy clients: Google forbids that "review gating").
+  //  - Feedback: clients write to the studio in a category; staff see categories apart, plus Needs
+  //    attention (new feedback and low reviews), reply and mark it sorted.
+  //  - Celebrations: fortnightly recaps and milestones for instructors and owners, with an AI
+  //    summary of review comments and self-care tips when the studio has AI recaps on.
+  // ===========================================================================
+  Object.assign(STUDIO, { reviewsOn: true, googleUrl: "https://g.page/r/demo-studio/review", celebOn: true, aiRecaps: true });
+  const LOW_STARS = 2;
+  const STAR_WORDS = ["", "Not good", "Could be better", "Okay", "Good", "Loved it"];
+  const FB_CATS = {
+    facilities: ["Facilities and comfort", "Temperature, showers, cleanliness, lockers"],
+    classes: ["Classes and schedule", "Class times, new classes, how full they get"],
+    instructors: ["Instructors", "Praise or suggestions for the team"],
+    app: ["App and booking", "Booking, payments, reminders, this app"],
+    prices: ["Prices and packages", "Packages, memberships, discounts"],
+    other: ["Something else", "Anything that doesn't fit above"],
+  };
+  const FB_STATUS = { new: ["New", "open"], in_progress: ["Replied", "wait"], resolved: ["Sorted", "done"] };
+  const SNOOZE_WEEKS = [2, 4, 8, 12];
+  const starsText = (n) => "★".repeat(n) + "☆".repeat(5 - n);
+
+  // --- Sample reviews for classes that have finished ---------------------------------
+  const RV_GOOD = ["Loved the music and the energy!", "Clear cues, I finally understood the footwork.", "Tough but so good. My core is on fire.", "Such a friendly class, I felt welcome straight away.", "Perfect pace for a Monday morning.", "Great playlist and lovely studio.", "Best class of my week, every week.", null, null];
+  const RV_MID = ["Good class but the room got quite warm.", "Nice, a bit fast for a beginner.", "Good, but it started a few minutes late.", null];
+  const REVIEWS = [];
+  let nextRvId = 1;
+  for (const s of SESSIONS) {
+    if (s.end >= NOW || s.end < addDays(NOW, -30) || s.status !== "scheduled") continue;
+    for (const r of s.roster) {
+      const h = hash(`${s.id}-${r.ci}-rv`);
+      if (h % 6 || r.att === "no_show") continue;
+      const rating = h % 23 === 0 ? 3 : h % 9 === 0 ? 4 : h % 31 === 0 ? 3 : 5 - (h % 7 === 0 ? 1 : 0);
+      const pool = rating >= 4 ? RV_GOOD : RV_MID;
+      REVIEWS.push({ id: nextRvId++, sid: s.id, ci: r.ci, instr: s.instr, type: s.type, loc: s.loc, rating, comment: pool[(h >>> 3) % pool.length], at: addMin(s.end, 60 + (h % 600)), google: h % 3 === 0 ? "tapped" : "offered", handled: false, reply: null });
+    }
+  }
+  // Two low ones to follow up, so Needs attention has something in it.
+  {
+    const late = SESSIONS.filter((s) => s.end < NOW && s.end > addDays(NOW, -4) && s.roster.length > 2 && s.status === "scheduled");
+    if (late[0]) REVIEWS.push({ id: nextRvId++, sid: late[0].id, ci: late[0].roster[1].ci, instr: late[0].instr, type: late[0].type, loc: late[0].loc, rating: 2, comment: "The room was very warm and the aircon didn't seem to be on.", at: addMin(late[0].end, 90), google: "offered", handled: false, reply: null });
+    if (late[1]) REVIEWS.push({ id: nextRvId++, sid: late[1].id, ci: late[1].roster[2].ci, instr: late[1].instr, type: late[1].type, loc: late[1].loc, rating: 1, comment: "Class started 15 minutes late and nobody said why.", at: addMin(late[1].end, 40), google: "offered", handled: false, reply: null });
+  }
+  const CLIENT_RV = { snoozeUntil: null, skipped: new Set(), shownThisVisit: false };
+
+  // --- Sample feedback ----------------------------------------------------------------
+  const FEEDBACK = [
+    { id: 1, ci: 0, cat: "facilities", loc: "tp", message: "The aircon at Tanjong Pagar is really cold in the 7am classes. Could it be a little warmer?", status: "new", at: addMin(NOW, -95), replies: [] },
+    { id: 2, ci: 3, cat: "facilities", loc: "hv", message: "One of the showers at Holland Village has been dripping for a week.", status: "in_progress", at: addDays(NOW, -2), replies: [{ studio: true, by: "Fiona", text: "Thanks for telling us! A plumber is booked for Friday morning.", at: addDays(NOW, -1) }] },
+    { id: 3, ci: 5, cat: "classes", loc: null, message: "Could we have a 6am Reformer on Fridays? 7am is too late before work.", status: "new", at: addMin(NOW, -300), replies: [] },
+    { id: 4, ci: 8, cat: "instructors", loc: null, message: "Priya's Thursday yoga is amazing. Please tell her thank you from me!", status: "resolved", at: addDays(NOW, -6), replies: [{ studio: true, by: "Olivia", text: "We've passed it on. She was so happy to hear it!", at: addDays(NOW, -6) }] },
+    { id: 5, ci: 2, cat: "app", loc: null, message: "It would be great if classes could go straight into my Google Calendar.", status: "new", at: addDays(NOW, -1), replies: [] },
+    { id: 6, ci: 11, cat: "prices", loc: null, message: "Do you have a student price? I'm at NUS.", status: "in_progress", at: addDays(NOW, -3), replies: [{ studio: true, by: "Olivia", text: "Not yet, but we're looking at it for January. We'll let you know!", at: addDays(NOW, -3) }, { studio: false, text: "Thank you!", at: addDays(NOW, -2) }] },
+  ];
+  let nextFbId = 7;
+
+  // --- Client: the review pop-up ------------------------------------------------------
+  /** The client's latest finished class they came to, if not yet reviewed or skipped. */
+  function reviewPromptFor(ci) {
+    if (!STUDIO.reviewsOn || (CLIENT_RV.snoozeUntil && CLIENT_RV.snoozeUntil > NOW)) return null;
+    const last = SESSIONS.filter((s) => s.status === "scheduled" && s.end <= NOW && s.end > addDays(NOW, -14) && s.roster.some((r) => r.ci === ci && r.att !== "no_show")).sort((a, b) => b.end - a.end)[0];
+    if (!last || CLIENT_RV.skipped.has(last.id) || REVIEWS.some((r) => r.sid === last.id && r.ci === ci)) return null;
+    return last;
+  }
+  function openReviewPrompt(s, opts = {}) {
+    const st = { rating: 0, comment: "", snooze: false, weeks: 4 };
+    const paint = () => {
+      $("#modalRoot").innerHTML = `<div class="modal-wrap" data-mclose><form class="modal rvmodal" id="rvForm" role="dialog" aria-modal="true" aria-labelledby="rvTitle">
+        <header><div class="stack" style="gap:2px"><h2 id="rvTitle">How was ${esc(TYPES[s.type].name)}${s.instr ? ` with ${esc(firstName(STAFF[s.instr]))}` : ""}?</h2><span class="muted" style="font-size:13px">${fmtDay(s.start)} ${clock(s.start)} · ${esc(LOCS[s.loc])}</span></div></header>
+        <div class="mb">
+          <div class="rvstars" role="radiogroup" aria-label="Your rating">${[1, 2, 3, 4, 5].map((n) => `<button type="button" role="radio" aria-checked="${st.rating === n}" aria-label="${n} ${n === 1 ? "star" : "stars"}: ${STAR_WORDS[n]}" data-star="${n}" class="${n <= st.rating ? "on" : ""}">★</button>`).join("")}</div>
+          <div class="rvword" aria-live="polite">${st.rating ? STAR_WORDS[st.rating] : "Tap a star"}</div>
+          <div class="field"><label for="rvText">Anything you'd like to tell us? <span class="muted" style="font-weight:400">(optional)</span></label><textarea id="rvText" maxlength="500" rows="3" placeholder="What did you enjoy? What could be better?">${esc(st.comment)}</textarea><span class="counter" id="rvCount">${st.comment.length}/500</span></div>
+          <label class="check ${st.rating ? "" : "muted"}" for="rvSnooze"><input type="checkbox" id="rvSnooze" ${st.snooze ? "checked" : ""} ${st.rating ? "" : "disabled"}> Don't ask me again for <select id="rvWeeks" ${st.rating && st.snooze ? "" : "disabled"} aria-label="How long">${SNOOZE_WEEKS.map((w) => `<option value="${w}" ${st.weeks === w ? "selected" : ""}>${w} weeks</option>`).join("")}</select></label>
+          ${st.rating ? "" : '<span class="hint">Choose a rating to send a review. You can also skip: we\'ll ask again after your next class.</span>'}
+        </div>
+        <footer><button type="button" class="btn ghost" id="rvSkip">Skip for now</button><button type="submit" class="btn primary" id="rvSend" ${st.rating ? "" : "disabled"}>Send review</button></footer></form></div>`;
+      const keep = () => { st.comment = $("#rvText").value; st.snooze = $("#rvSnooze").checked; st.weeks = Number($("#rvWeeks").value); };
+      document.querySelectorAll("[data-star]").forEach((b) => (b.onclick = () => { keep(); st.rating = Number(b.dataset.star); paint(); document.querySelector(`[data-star="${st.rating}"]`)?.focus(); }));
+      $("#rvText").oninput = (e) => { $("#rvCount").textContent = `${e.target.value.length}/500`; };
+      $("#rvSnooze").onchange = () => { keep(); paint(); };
+      $("#rvSkip").onclick = () => { CLIENT_RV.skipped.add(s.id); closeModal(); toast("No problem. We'll ask again after your next class."); };
+      $("#rvForm").onsubmit = (e) => {
+        e.preventDefault(); keep();
+        if (!st.rating) return;
+        const rv = { id: nextRvId++, sid: s.id, ci: ME.client, instr: s.instr, type: s.type, loc: s.loc, rating: st.rating, comment: st.comment.trim() || null, at: NOW, google: STUDIO.googleUrl ? "offered" : null, handled: false, reply: null };
+        REVIEWS.push(rv);
+        if (st.snooze) CLIENT_RV.snoozeUntil = addDays(NOW, st.weeks * 7);
+        renderNav();
+        thanks(rv, st.snooze ? st.weeks : 0, opts.after);
+      };
+    };
+    paint();
+  }
+  /** After a review: thank them, and offer Google to everyone (whatever they gave). */
+  function thanks(rv, weeks, after) {
+    const g = STUDIO.googleUrl;
+    $("#modalRoot").innerHTML = `<div class="modal-wrap" data-mclose><div class="modal rvmodal" role="dialog" aria-modal="true" aria-labelledby="tyTitle">
+      <header><h2 id="tyTitle">Thank you, ${esc(firstName(CLIENTS[ME.client].name))}!</h2></header>
+      <div class="mb"><div class="rvdone" aria-label="${rv.rating} out of 5 stars">${starsText(rv.rating)}</div>
+        <span class="hint">${rv.rating <= LOW_STARS ? "Sorry it wasn't great. The studio has been told and will look into it." : "Your review helps the studio and your instructor."}${weeks ? ` We won't ask again for ${weeks} weeks.` : ""}</span>
+        ${g ? `<div class="gcard"><b>Would you share this on Google too?</b><span>It helps other people find the studio.${rv.comment ? " Your words are copied, ready to paste." : ""}</span></div>` : ""}
+      </div>
+      <footer>${g ? '<button type="button" class="btn ghost" data-mclose>Not now</button><button type="button" class="btn primary" id="tyGoogle">Share on Google</button>' : '<button type="button" class="btn primary" data-mclose>Done</button>'}</footer></div></div>`;
+    if ($("#tyGoogle")) $("#tyGoogle").onclick = async () => {
+      rv.google = "tapped";
+      if (rv.comment) { try { await navigator.clipboard.writeText(rv.comment); } catch {} }
+      try { window.open(g, "_blank", "noopener"); } catch {}
+      closeModal(); after?.();
+      toast(`Opening your studio's Google page${rv.comment ? ". Your review is copied: paste it there" : ""}. Thank you!`);
+    };
+  }
+
+  // --- Client: Feedback (and their reviews) -------------------------------------------
+  PAGES.feedback = function () { return state.role === "client" ? clientFeedback() : staffFeedback(); };
+  function thread(f, staffView) {
+    return f.replies.map((r) => `<div class="fbmsg ${r.studio ? "studio" : "client"}"><b>${r.studio ? (staffView ? esc(r.by || "Studio") : "Demo Studio") : staffView ? esc(firstName(CLIENTS[f.ci].name)) : "You"}</b><span>${esc(r.text)}</span><span class="muted" style="font-size:11.5px">${fmtDay(r.at)} ${clock(r.at)}</span></div>`).join("");
+  }
+  function clientFeedback() {
+    const tab = state.fbTab || "send";
+    const mine = FEEDBACK.filter((f) => f.ci === ME.client).sort((a, b) => b.at - a.at);
+    const myRv = REVIEWS.filter((r) => r.ci === ME.client).sort((a, b) => b.at - a.at);
+    const f = state.fbDraft || (state.fbDraft = { cat: "", loc: "", msg: "" });
+    const tabs = `<div class="tabs" role="tablist">${[["send", "Send feedback"], ["mine", `My feedback${mine.length ? `<span class="n">${mine.length}</span>` : ""}`], ["reviews", `My reviews${myRv.length ? `<span class="n">${myRv.length}</span>` : ""}`]].map(([k, l]) => `<button type="button" role="tab" data-fbt="${k}" aria-selected="${tab === k}">${l}</button>`).join("")}</div>`;
+    let body = "";
+    if (tab === "send") {
+      body = `<form class="card mform" id="fbForm"><h3>What would you like us to know?</h3>
+        <div class="fl">What's it about?<div class="fbcats" role="radiogroup" aria-label="Category">${Object.entries(FB_CATS).map(([k, [l, d]]) => `<button type="button" role="radio" aria-checked="${f.cat === k}" data-fbcat="${k}"><b>${l}</b><span>${d}</span></button>`).join("")}</div></div>
+        <label class="fl">Which location? <span class="h">(optional)</span><select id="fbLoc"><option value="">Not about one location</option>${Object.entries(LOCS).map(([k, v]) => `<option value="${k}" ${f.loc === k ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></label>
+        <label class="fl">Your message <span class="count" id="fbCount">${f.msg.length}/1000</span><textarea id="fbMsg" rows="4" maxlength="1000" placeholder="e.g. The aircon at Tanjong Pagar is really cold in the morning.">${esc(f.msg)}</textarea></label>
+        <div class="row" style="justify-content:flex-end"><button type="submit" class="btn primary">Send to the studio</button></div>
+        <span class="hint">The studio's team reads every message and usually replies within a couple of days. You'll get their reply by email and here under My feedback.</span></form>`;
+    } else if (tab === "mine") {
+      body = mine.length ? mine.map((x) => `<div class="card fbcard"><div class="row" style="justify-content:space-between;gap:8px"><span class="row" style="gap:6px"><span class="status ${FB_STATUS[x.status][1]}">${FB_STATUS[x.status][0]}</span><b>${FB_CATS[x.cat][0]}</b></span><span class="muted" style="font-size:12.5px">${fmtDay(x.at)}</span></div>
+        <div class="fbmsg client"><b>You${x.loc ? ` · ${esc(LOCS[x.loc])}` : ""}</b><span>${esc(x.message)}</span></div>${thread(x, false)}
+        <div class="row fbreply"><input id="fbr-${x.id}" maxlength="1000" placeholder="Reply to the studio" aria-label="Reply to the studio"><button type="button" class="btn" data-fbcr="${x.id}">Send</button></div></div>`).join("")
+        : '<div class="card"><span class="muted">You haven\'t sent any feedback yet.</span></div>';
+    } else {
+      const snoozed = CLIENT_RV.snoozeUntil && CLIENT_RV.snoozeUntil > NOW;
+      body = `<div class="card"><h3>Review pop-ups</h3><span class="muted" style="font-size:13px">${snoozed ? `Paused until ${fmtDay(CLIENT_RV.snoozeUntil)}.` : "After a class, we ask how it went. You can always skip."}</span>
+        <div class="inline2">${snoozed ? '<button type="button" class="btn" id="rvResume">Ask me again</button>' : `<label class="inline2" style="font-size:13px">Pause for <select id="rvPause">${SNOOZE_WEEKS.map((w) => `<option value="${w}">${w} weeks</option>`).join("")}</select></label><button type="button" class="btn" id="rvPauseGo">Pause</button>`}</div></div>
+        ${myRv.length ? myRv.map((r) => { const s = SESSIONS.find((x) => x.id === r.sid); return `<div class="card rvcard"><div class="row" style="justify-content:space-between"><span class="rvst" aria-label="${r.rating} stars">${starsText(r.rating)}</span><span class="muted" style="font-size:12.5px">${fmtDay(r.at)}</span></div><b>${esc(TYPES[r.type].name)}${s ? ` · ${fmtDay(s.start)} ${short(s.start)}` : ""}</b>${r.comment ? `<span>“${esc(r.comment)}”</span>` : ""}${r.reply ? `<div class="fbmsg studio"><b>Demo Studio replied</b><span>${esc(r.reply)}</span></div>` : ""}</div>`; }).join("") : '<div class="card"><span class="muted">No reviews yet.</span></div>'}`;
+    }
+    return head("Feedback", "Tell the studio what you'd like to see, and see your reviews.") + tabs + body;
+  }
+
+  // --- Staff: Feedback -----------------------------------------------------------------
+  const lowToHandle = () => REVIEWS.filter((r) => r.rating <= LOW_STARS && !r.handled).sort((a, b) => a.at - b.at);
+  const fbNew = () => FEEDBACK.filter((f) => f.status === "new");
+  function staffFeedback() {
+    const tab = state.fbStaffTab || "attention";
+    const low = lowToHandle(), fresh = fbNew();
+    const count = (k) => FEEDBACK.filter((f) => f.cat === k && f.status !== "resolved").length;
+    const tabs = `<div class="tabs" role="tablist" aria-label="Feedback">${[["attention", `Needs attention${low.length + fresh.length ? `<span class="n hot">${low.length + fresh.length}</span>` : ""}`], ...Object.entries(FB_CATS).map(([k, [l]]) => [k, `${l}${count(k) ? `<span class="n">${count(k)}</span>` : ""}`])].map(([k, l]) => `<button type="button" role="tab" data-fbst="${k}" aria-selected="${tab === k}">${l}</button>`).join("")}</div>`;
+    const item = (f) => `<article class="card fbcard" id="fb-${f.id}"><div class="row" style="justify-content:space-between;gap:8px;align-items:flex-start">
+        <span class="cellp">${avatar(CLIENTS[f.ci], "sm")}<span class="stack" style="gap:1px"><b>${esc(CLIENTS[f.ci].name)}</b><span class="muted" style="font-size:12.5px">${FB_CATS[f.cat][0]}${f.loc ? ` · ${esc(LOCS[f.loc])}` : ""} · ${fmtDay(f.at)} ${clock(f.at)}</span></span></span>
+        <select data-fbstat="${f.id}" aria-label="Status">${Object.entries(FB_STATUS).map(([k, [l]]) => `<option value="${k}" ${f.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+      <div class="fbmsg client"><span>${esc(f.message)}</span></div>${thread(f, true)}
+      <div class="row fbreply"><input id="fbs-${f.id}" maxlength="1000" placeholder="Reply to ${esc(firstName(CLIENTS[f.ci].name))} (they get it by email)" aria-label="Reply"><button type="button" class="btn primary" data-fbsr="${f.id}">Send reply</button></div></article>`;
+    let body = "";
+    if (tab === "attention") {
+      body = `<section class="stack"><h3 class="hsec">Low reviews to follow up${low.length ? ` · ${low.length}` : ""}</h3>
+        ${low.length ? low.map((r) => { const s = SESSIONS.find((x) => x.id === r.sid); return `<article class="card fbcard lowrv"><div class="row" style="justify-content:space-between;gap:8px"><span class="cellp">${avatar(CLIENTS[r.ci], "sm")}<span class="stack" style="gap:1px"><b>${esc(CLIENTS[r.ci].name)}</b><span class="muted" style="font-size:12.5px">${esc(TYPES[r.type].name)}${s ? ` · ${fmtDay(s.start)} ${short(s.start)}` : ""}${r.instr ? ` · ${esc(STAFF[r.instr])}` : ""}</span></span></span><span class="rvst low" aria-label="${r.rating} stars">${starsText(r.rating)}</span></div>
+          ${r.comment ? `<div class="fbmsg client"><span>“${esc(r.comment)}”</span></div>` : ""}
+          <div class="row fbreply"><input id="lrv-${r.id}" maxlength="1000" placeholder="Reply privately (optional): they get it by email" aria-label="Private reply"><button type="button" class="btn primary" data-lrv="${r.id}">Mark as followed up</button></div></article>`; }).join("") : '<div class="card"><span class="muted">No low reviews waiting. 🎉</span></div>'}
+        <h3 class="hsec" style="margin-top:6px">New feedback${fresh.length ? ` · ${fresh.length}` : ""}</h3>
+        ${fresh.length ? fresh.map(item).join("") : '<div class="card"><span class="muted">Nothing new. You\'re all caught up.</span></div>'}</section>`;
+    } else {
+      const show = state.fbShow || "open";
+      const list = FEEDBACK.filter((f) => f.cat === tab && (show === "all" || (show === "open" ? f.status !== "resolved" : f.status === "resolved"))).sort((a, b) => (a.status === "new" ? -1 : 0) - (b.status === "new" ? -1 : 0) || b.at - a.at);
+      body = `<span class="hint">${FB_CATS[tab][1]}.</span><div class="fbar">${[["open", "Open"], ["resolved", "Sorted"], ["all", "All"]].map(([k, l]) => `<button type="button" class="pickchip" data-fbshow="${k}" aria-pressed="${show === k}">${l}</button>`).join("")}</div>
+        ${list.length ? list.map(item).join("") : '<div class="card"><span class="muted">Nothing here.</span></div>'}`;
+    }
+    return head("Feedback", "What clients would like you to know, kept apart by topic, plus low reviews to follow up.") + tabs + body;
+  }
+
+  // --- Staff: Reviews -----------------------------------------------------------------
+  PAGES.reviews = function () {
+    const own = state.role === "instructor";
+    const f = state.rvf || (state.rvf = { days: 90, type: "", instr: "", stars: "", loc: "" });
+    const scope = REVIEWS.filter((r) => (own ? r.instr === ME.instructor : !f.instr || r.instr === f.instr) && (!f.type || r.type === f.type) && (!f.loc || r.loc === f.loc) && (f.days === "all" || r.at >= addDays(NOW, -Number(f.days))));
+    const list = scope.filter((r) => !f.stars || (f.stars === "low" ? r.rating <= LOW_STARS : r.rating === Number(f.stars))).sort((a, b) => b.at - a.at);
+    const n = scope.length, avg = n ? Math.round((scope.reduce((a, r) => a + r.rating, 0) / n) * 10) / 10 : null;
+    const dist = [5, 4, 3, 2, 1].map((s) => ({ s, c: scope.filter((r) => r.rating === s).length }));
+    const offered = scope.filter((r) => r.google).length, tapped = scope.filter((r) => r.google === "tapped").length;
+    const byI = own ? [] : Object.keys(STAFF).map((k) => { const m = scope.filter((r) => r.instr === k); return { k, n: m.length, avg: m.length ? Math.round((m.reduce((a, r) => a + r.rating, 0) / m.length) * 10) / 10 : null }; }).filter((x) => x.n);
+    const sel = (id, label, opts, val) => `<label class="hfilter">${label}<select id="${id}">${opts.map(([v, l]) => `<option value="${v}" ${String(val) === String(v) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`;
+    const filters = `<div class="fbar rvfilters">${sel("rvDays", "Period", [[30, "Last 30 days"], [90, "Last 90 days"], [365, "Last year"], ["all", "All time"]], f.days)}${sel("rvType", "Class", [["", "All classes"], ...Object.entries(liveTypes()).map(([k, t]) => [k, t.name])], f.type)}${own ? "" : sel("rvInstr", "Instructor", [["", "All instructors"], ...Object.entries(STAFF)], f.instr)}${sel("rvLoc", "Location", [["", "All locations"], ...Object.entries(LOCS)], f.loc)}${sel("rvStars", "Stars", [["", "Any rating"], ["5", "5 stars"], ["4", "4 stars"], ["3", "3 stars"], ["2", "2 stars"], ["1", "1 star"], ["low", `Low (${LOW_STARS} or fewer)`]], f.stars)}</div>`;
+    const max = Math.max(1, ...dist.map((d) => d.c));
+    const summary = `<div class="rvsum"><section class="card rvhero"><span class="muted" style="font-size:13px">${own ? "Your average" : "Average rating"}</span><div class="rvbig"><b>${avg ?? "–"}</b><span class="rvst" aria-hidden="true">${avg ? starsText(Math.round(avg)) : ""}</span></div><span class="muted" style="font-size:13px">${n ? `from ${plural(n, "review")}` : "No reviews for this choice yet"}</span></section>
+      <section class="card"><h3>How people rated</h3><div class="rvdist">${dist.map((d) => `<div class="rvrow"><span>${d.s} ★</span><span class="rvbar" role="img" aria-label="${d.s} stars: ${d.c}"><span style="width:${(d.c / max) * 100}%"></span></span><b>${d.c}</b></div>`).join("")}</div></section>
+      ${own ? "" : `<section class="card"><h3>Google reviews</h3>${STUDIO.googleUrl ? `<div class="rvbig sm"><b>${offered ? Math.round((tapped / offered) * 100) : 0}%</b></div><span class="muted" style="font-size:13px">${tapped} of ${offered} people who reviewed here tapped “Share on Google”. Everyone is asked, whatever they gave, as Google requires.</span>` : `<span class="muted" style="font-size:13px">Add your Google review link under Studio rules, and clients are offered it after they review.</span><button type="button" class="linkbtn" data-hgo="policies">Add the link →</button>`}</section>`}</div>`;
+    const instrTable = byI.length ? `<div class="card"><h3>By instructor</h3><div class="rvdist">${byI.sort((a, b) => b.n - a.n).map((x) => `<button type="button" class="rvrow rvinstr" data-rvi="${x.k}" aria-label="Show ${esc(STAFF[x.k])}'s reviews">${instrAvatar(x.k, "sm")}<span>${esc(STAFF[x.k])}</span><span class="rvbar"><span style="width:${(x.avg / 5) * 100}%"></span></span><b>${x.avg} ★</b><span class="muted">${x.n}</span></button>`).join("")}</div></div>` : "";
+    const rows = list.length ? list.slice(0, 60).map((r) => { const s = SESSIONS.find((x) => x.id === r.sid); const c = CLIENTS[r.ci]; return `<article class="card rvcard ${r.rating <= LOW_STARS ? "low" : ""}"><div class="row" style="justify-content:space-between;gap:8px"><span class="rvst ${r.rating <= LOW_STARS ? "low" : ""}" aria-label="${r.rating} stars">${starsText(r.rating)}</span><span class="muted" style="font-size:12.5px">${fmtDay(r.at)}</span></div>
+      <span class="muted" style="font-size:12.5px">${esc(TYPES[r.type].name)}${s ? ` · ${fmtDay(s.start)} ${short(s.start)}` : ""}${!own && r.instr ? ` · ${esc(STAFF[r.instr])}` : ""} · ${esc(LOCS[r.loc])} · ${esc(own ? `${firstName(c.name)} ${c.name.split(" ").pop()[0]}.` : c.name)}</span>
+      ${r.comment ? `<span>“${esc(r.comment)}”</span>` : '<span class="muted" style="font-size:13px">No comment</span>'}
+      ${r.rating <= LOW_STARS && !own ? (r.handled ? `<span class="status done" style="align-self:flex-start">Followed up</span>` : `<button type="button" class="linkbtn" data-hgo="feedback" style="align-self:flex-start">Follow up under Feedback →</button>`) : ""}</article>`; }).join("") : '<div class="card"><span class="muted">No reviews match.</span></div>';
+    return head(own ? "My reviews" : "Reviews", own ? "What clients said about your classes. Names are shortened to keep them private." : "What clients said after their classes. Filter by class, instructor, location or stars.") + filters + summary + instrTable + rows;
+  };
+  BIND.reviews = function () {
+    const f = state.rvf;
+    for (const [id, k] of [["rvDays", "days"], ["rvType", "type"], ["rvInstr", "instr"], ["rvLoc", "loc"], ["rvStars", "stars"]]) if ($(`#${id}`)) $(`#${id}`).onchange = (e) => { f[k] = e.target.value; render(); };
+    document.querySelectorAll("[data-rvi]").forEach((b) => (b.onclick = () => { f.instr = b.dataset.rvi; render(); }));
+    document.querySelectorAll("#pgOther [data-hgo]").forEach((b) => (b.onclick = () => go(b.dataset.hgo)));
+  };
+
+  BIND.feedback = function () {
+    const root = $("#pgOther");
+    root.querySelectorAll("[data-fbt]").forEach((b) => (b.onclick = () => { state.fbTab = b.dataset.fbt; render(); }));
+    root.querySelectorAll("[data-fbst]").forEach((b) => (b.onclick = () => { state.fbStaffTab = b.dataset.fbst; render(); }));
+    root.querySelectorAll("[data-fbshow]").forEach((b) => (b.onclick = () => { state.fbShow = b.dataset.fbshow; render(); }));
+    // Client: send feedback.
+    if ($("#fbForm")) {
+      const f = state.fbDraft;
+      root.querySelectorAll("[data-fbcat]").forEach((b) => (b.onclick = () => { f.msg = $("#fbMsg").value; f.loc = $("#fbLoc").value; f.cat = b.dataset.fbcat; render(); }));
+      $("#fbMsg").oninput = (e) => { f.msg = e.target.value; $("#fbCount").textContent = `${e.target.value.length}/1000`; };
+      $("#fbLoc").onchange = (e) => (f.loc = e.target.value);
+      $("#fbForm").onsubmit = (e) => {
+        e.preventDefault();
+        const msg = $("#fbMsg").value.trim();
+        if (!f.cat) return toast("Choose what it's about, so it reaches the right person.");
+        if (msg.length < 5) { $("#fbMsg").focus(); return toast("Tell us a little more (at least a few words)."); }
+        FEEDBACK.push({ id: nextFbId++, ci: ME.client, cat: f.cat, loc: f.loc || null, message: msg, status: "new", at: NOW, replies: [] });
+        state.fbDraft = null; state.fbTab = "mine"; renderNav(); render(); toast("Sent. Thank you! The studio will reply by email.");
+      };
+    }
+    root.querySelectorAll("[data-fbcr]").forEach((b) => (b.onclick = () => {
+      const f = FEEDBACK.find((x) => x.id === Number(b.dataset.fbcr)), t = $(`#fbr-${f.id}`).value.trim();
+      if (!t) return toast("Write your reply first.");
+      f.replies.push({ studio: false, text: t, at: NOW }); if (f.status === "resolved") f.status = "new"; render(); toast("Sent to the studio.");
+    }));
+    // Staff: reply, status, low reviews.
+    root.querySelectorAll("[data-fbsr]").forEach((b) => (b.onclick = () => {
+      const f = FEEDBACK.find((x) => x.id === Number(b.dataset.fbsr)), t = $(`#fbs-${f.id}`).value.trim();
+      if (!t) return toast("Write a reply first.");
+      f.replies.push({ studio: true, by: { admin: "Olivia", foh: "Fiona" }[state.role] || "Studio", text: t, at: NOW }); if (f.status === "new") f.status = "in_progress";
+      renderNav(); render(); toast(`Reply sent to ${firstName(CLIENTS[f.ci].name)} by email.`);
+    }));
+    root.querySelectorAll("[data-fbstat]").forEach((s) => (s.onchange = () => { const f = FEEDBACK.find((x) => x.id === Number(s.dataset.fbstat)); f.status = s.value; renderNav(); render(); toast(`Marked as “${FB_STATUS[s.value][0]}”.`); }));
+    root.querySelectorAll("[data-lrv]").forEach((b) => (b.onclick = () => {
+      const r = REVIEWS.find((x) => x.id === Number(b.dataset.lrv)), t = $(`#lrv-${r.id}`).value.trim();
+      Object.assign(r, { handled: true, reply: t || null }); renderNav(); render();
+      toast(t ? `Followed up. ${firstName(CLIENTS[r.ci].name)} gets your reply by email.` : "Marked as followed up.");
+    }));
+    // Client: review pop-up pause.
+    if ($("#rvPauseGo")) $("#rvPauseGo").onclick = () => {
+      if (!REVIEWS.some((r) => r.ci === ME.client)) return toast("Leave one review first, then you can pause the review pop-ups.");
+      CLIENT_RV.snoozeUntil = addDays(NOW, Number($("#rvPause").value) * 7); render(); toast(`Paused until ${fmtDay(CLIENT_RV.snoozeUntil)}.`);
+    };
+    if ($("#rvResume")) $("#rvResume").onclick = () => { CLIENT_RV.snoozeUntil = null; render(); toast("We'll ask after your next class."); };
+  };
+
+  // --- Celebrations -------------------------------------------------------------------
+  /** The last full fortnight (fortnights start on Mondays, counted from 5 Jan 2026). */
+  function lastFortnight() {
+    const epoch = new Date(2026, 0, 5), idx = Math.floor((day(NOW) - epoch) / 864e5 / 14) - 1;
+    const start = addDays(epoch, idx * 14);
+    return { start, end: addDays(start, 14), idx, label: `${start.getDate()} ${MON[start.getMonth()]} – ${addDays(start, 13).getDate()} ${MON[addDays(start, 13).getMonth()]}` };
+  }
+  function teachRecap(instr) {
+    const p = lastFortnight();
+    const mine = SESSIONS.filter((s) => s.instr === instr && s.status === "scheduled" && s.start >= p.start && s.start < p.end && s.end <= NOW);
+    if (!mine.length) return null;
+    const came = mine.flatMap((s) => s.roster.filter((r) => r.att !== "no_show").map((r) => r.ci));
+    const per = came.reduce((m, c) => m.set(c, (m.get(c) || 0) + 1), new Map());
+    const groups = mine.filter((s) => !isAppt(s));
+    const fill = Math.round((groups.reduce((a, s) => a + s.roster.length, 0) / Math.max(1, groups.reduce((a, s) => a + s.cap, 0))) * 100);
+    const minsT = mine.reduce((a, s) => a + mins(s), 0);
+    const fullest = [...groups].sort((a, b) => b.roster.length / b.cap - a.roster.length / a.cap)[0];
+    const rv = REVIEWS.filter((r) => r.instr === instr && r.at >= p.start && r.at < p.end);
+    const avg = rv.length ? Math.round((rv.reduce((a, r) => a + r.rating, 0) / rv.length) * 10) / 10 : null;
+    const quote = rv.find((r) => r.rating >= 4 && r.comment && r.comment.length < 160)?.comment;
+    const lines = [
+      ["🧘", `${plural(mine.length, "class", "classes")} taught: ${minsT < 120 ? plural(minsT, "minute") : plural(Math.round(minsT / 60), "hour")} of you at the front of the room.`],
+      ["👋", `${plural(came.length, "visit")} from ${plural(per.size, "different person", "different people")}. ${[...per.values()].filter((v) => v >= 2).length} of them came back more than once.`],
+      ["🔥", fill >= 90 ? `Your classes were ${fill}% full. Spots with you go fast!` : fill >= 70 ? `${fill}% of your spots were booked: busy, lively rooms.` : `${fill}% of your spots were booked. Everyone who came chose to spend that time with you.`],
+      ...(fullest ? [["🏆", `Busiest class: ${TYPES[fullest.type].name} on ${fmtDay(fullest.start)}, ${fullest.roster.length} of ${fullest.cap} spots.`]] : []),
+      ...(rv.length ? [["⭐", `${plural(rv.length, "review")}, averaging ${avg} stars.`]] : []),
+      ...(quote ? [["💬", `“${quote}”`]] : []),
+    ];
+    return { kind: "recap", period: p.label, headline: STUDIO.aiRecaps ? "Two weeks of happy, sweaty smiles 😊" : avg >= 4.8 ? "Clients love your classes! 💛" : "Two weeks of great work 🙌", lines,
+      summary: STUDIO.aiRecaps && rv.length ? "Clients keep mentioning your clear cues and great music, and several said your class is the best part of their week. A few beginners found the pace quick, so a short recap of the key moves at the start could help them feel at home." : null,
+      care: STUDIO.aiRecaps ? [`You taught ${mine.length} classes: block out one slow evening this week, just for you.`, "Your voice did a lot of work. Sip warm water between classes and rest it on your day off."] : ["Drink a glass of water between classes.", "Plan one evening off this week, just for you."], byAi: STUDIO.aiRecaps };
+  }
+  function studioRecap() {
+    const p = lastFortnight();
+    const held = SESSIONS.filter((s) => s.status === "scheduled" && s.start >= p.start && s.start < p.end && s.end <= NOW);
+    const visits = held.reduce((a, s) => a + s.roster.filter((r) => r.att !== "no_show").length, 0);
+    const groups = held.filter((s) => !isAppt(s));
+    const fill = Math.round((groups.reduce((a, s) => a + s.roster.length, 0) / Math.max(1, groups.reduce((a, s) => a + s.cap, 0))) * 100);
+    const rv = REVIEWS.filter((r) => r.at >= p.start && r.at < p.end);
+    const avg = rv.length ? Math.round((rv.reduce((a, r) => a + r.rating, 0) / rv.length) * 10) / 10 : null;
+    const top = Object.entries(groups.reduce((m, s) => ((m[s.type] = (m[s.type] || 0) + s.roster.length), m), {})).sort((a, b) => b[1] - a[1])[0];
+    return { kind: "recap", period: p.label, headline: STUDIO.aiRecaps ? "A full and happy fortnight! 🎉" : "Your studio's last two weeks 🙌",
+      lines: [["📅", `${plural(held.length, "class", "classes")} held, with ${plural(visits, "visit")}.`], ["🔥", `Classes were ${fill}% full: busy, lively rooms.`], ...(top ? [["🏆", `Most popular: ${TYPES[top[0]].name}.`]] : []), ...(rv.length ? [["⭐", `${plural(rv.length, "review")}, averaging ${avg} stars.`]] : [])],
+      summary: STUDIO.aiRecaps && rv.length ? "Clients love the music, the friendly welcome and how clear the instructors are. Two comments mentioned the rooms feeling warm, so the aircon may be worth a check." : null,
+      care: STUDIO.aiRecaps ? ["Thank one instructor in person for something specific they did this fortnight.", "Take a real day off this week. The studio will still be there tomorrow."] : ["Block out one hour this week with no messages, just to plan."], byAi: STUDIO.aiRecaps };
+  }
+  const CELEB = { seen: new Set(), off: new Set(), shown: new Set() };
+  function momentsFor(role) {
+    if (!STUDIO.celebOn || CELEB.off.has(role)) return [];
+    const out = [];
+    if (role === "instructor") {
+      out.push({ id: "ms-ana-250", kind: "milestone", headline: "250 classes taught! 🎉", lines: [["🏅", "You've now taught 250 classes here."], ["⏱️", "That's about 220 hours of teaching."], ["💛", "Thank you for every early start and every late class."]] });
+      const r = teachRecap(ME.instructor); if (r) out.push({ id: "rc-ana", ...r });
+    }
+    if (role === "admin") {
+      out.push({ id: "ms-studio-5000", kind: "milestone", headline: "5,000 visits! 🎉", lines: [["🏅", "Your studio has reached 5,000 visits."], ["💛", "Every one of them is someone who chose to come to you."]] });
+      out.push({ id: "rc-studio", ...studioRecap() });
+    }
+    return out.filter((m) => !CELEB.seen.has(m.id));
+  }
+  function openCelebration(list, i = 0) {
+    const m = list[i];
+    if (!m) return;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    $("#modalRoot").innerHTML = `<div class="modal-wrap" data-mclose><div class="modal celeb" role="dialog" aria-modal="true" aria-labelledby="ceTitle">
+      <div class="celebtop ${reduced ? "still" : ""}" aria-hidden="true">${["🎉", "⭐", "💛", "✨", "🎊", "💪", "✨", "🌟"].map((e, k) => `<i style="--k:${k}">${e}</i>`).join("")}</div>
+      <header class="stack" style="gap:2px"><span class="celebkind">${m.kind === "milestone" ? "Milestone" : `Your fortnight · ${esc(m.period)}`}</span><h2 id="ceTitle">${esc(m.headline)}</h2></header>
+      <div class="mb"><ul class="celeblines">${m.lines.map(([e, t]) => `<li><span aria-hidden="true">${e}</span><span>${esc(t)}</span></li>`).join("")}</ul>
+        ${m.summary ? `<div class="celebbox"><b>What clients said</b><span>${esc(m.summary)}</span><span class="aitag">Summary written by Claude from this fortnight's reviews</span></div>` : ""}
+        ${m.care?.length ? `<div class="celebbox care"><b>Look after yourself</b><ul>${m.care.map((c) => `<li>${esc(c)}</li>`).join("")}</ul></div>` : ""}</div>
+      <footer><button type="button" class="linkbtn" id="ceOff" style="margin-right:auto;font-weight:500;color:var(--muted)">Don't show these</button>${list.length > 1 ? `<span class="muted" style="font-size:12.5px">${i + 1} of ${list.length}</span>` : ""}<button type="button" class="btn primary" id="ceNext">${i + 1 < list.length ? "Next" : "Thanks!"}</button></footer></div></div>`;
+    $("#ceNext").onclick = () => { CELEB.seen.add(m.id); if (i + 1 < list.length) openCelebration(list, i + 1); else closeModal(); };
+    $("#ceOff").onclick = () => { list.forEach((x) => CELEB.seen.add(x.id)); CELEB.off.add(state.role); closeModal(); toast("Celebrations are off for you. Turn them back on under Preferences."); };
+    setTimeout(() => $("#ceNext")?.focus(), 0);
+  }
+  /** Shown once per visit, when Home opens. */
+  // Checks that aren't about these pop-ups set window.__quiet before the page loads, so a pop-up doesn't cover what they test.
+  function maybeCelebrate() {
+    if (window.__quiet || state.page !== "home" || CELEB.shown.has(state.role) || $("#modalRoot").innerHTML) return;
+    const list = momentsFor(state.role);
+    CELEB.shown.add(state.role);
+    if (list.length) setTimeout(() => openCelebration(list), 350);
+  }
+  function maybeAskReview() {
+    if (window.__quiet || state.role !== "client" || state.page !== "schedule" || CLIENT_RV.shownThisVisit || $("#modalRoot").innerHTML) return;
+    const s = reviewPromptFor(ME.client);
+    CLIENT_RV.shownThisVisit = true;
+    if (s) setTimeout(() => { if (!$("#modalRoot").innerHTML) openReviewPrompt(s); }, 400);
+  }
+  {
+    const homeBind = BIND.home;
+    BIND.home = function () { homeBind?.call(this); maybeCelebrate(); };
+  }
+
+  // Preferences: the personal switch for celebrations (staff).
+  {
+    const page = PAGES.preferences, bind = BIND.preferences;
+    PAGES.preferences = function () {
+      const base = page.call(this);
+      if (!["admin", "instructor"].includes(state.role)) return base;
+      return base + `<div class="card"><h3>Celebrations</h3><div class="row" style="justify-content:space-between;gap:12px"><span class="stack" style="gap:2px;min-width:0"><b style="font-size:14px">Show celebration pop-ups</b><span class="muted" style="font-size:12.5px">A fun recap every two weeks, and milestones like 100 classes taught.</span></span>${toggle("prefCeleb", !CELEB.off.has(state.role), "Show celebration pop-ups")}</div></div>`;
+    };
+    BIND.preferences = function () {
+      bind?.call(this);
+      if ($("#prefCeleb")) $("#prefCeleb").onchange = (e) => { if (e.target.checked) { CELEB.off.delete(state.role); CELEB.seen.clear(); CELEB.shown.delete(state.role); } else CELEB.off.add(state.role); toast(e.target.checked ? "Celebrations are on." : "Celebrations are off for you."); };
+    };
+  }
+
+  // --- Menu and icons -----------------------------------------------------------------
+  ICONS.reviews = '<path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.4 6.9 19.1l1-5.6-4.1-4 5.7-.8z"/>';
+  ICONS.feedback = '<path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v3M12 13.5v.5"/>';
+  NAV_ORDER.find(([g]) => g === "Growth")[1].push("reviews");
+  NAV_ORDER.find(([g]) => g === "Clients & sales")[1].push("feedback");
+  NAV.push(
+    { id: "reviews", roles: ["admin", "instructor"], label: (r) => (r === "instructor" ? "My reviews" : "Reviews"), help: "What clients said after their classes, with filters." },
+    { id: "feedback", roles: ["admin", "foh", "client"], label: "Feedback", help: "What clients would like the studio to know, by topic, plus low reviews to follow up.", count: () => (state.role === "client" ? 0 : lowToHandle().length + fbNew().length) },
+  );
+  {
+    const ng = navGroup;
+    // Instructors find their reviews under Account; clients find Feedback under Account.
+    for (const n of NAV) { const id = n.id; n.group = (role) => (id === "reviews" && role === "instructor") || (id === "feedback" && role === "client") ? "Account" : ng(id, role); }
+  }
+  NAV.sort((a, b) => navRank(a.id, "admin") - navRank(b.id, "admin"));
 
   // MKT-JS-END
   window.addEventListener("hashchange", () => { const id = location.hash.slice(1); if (id !== state.page && navFor(state.role).some((n) => n.id === id)) go(id); });

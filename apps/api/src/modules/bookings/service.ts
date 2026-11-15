@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { can, type Attendance, type RefundMethod } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
-import { bookings, classTypes, refunds, waitlistEntries } from "../../db/schema.js";
+import { bookings, classSessions, classTypes, fees, refunds, waitlistEntries } from "../../db/schema.js";
 import type { Flags } from "../../lib/flags.js";
 import { checkClientOverlap, clock } from "../checks/session-checks.js";
 import { badRequest, conflict, forbidden, notFound } from "../../lib/errors.js";
@@ -18,6 +18,7 @@ import type { BookingPayment } from "@studio/shared";
 import { userName } from "../sessions/context.js";
 import { paidRunFor } from "../payroll/service.js";
 import { classpassLead } from "../marketing/ads.js";
+import type { TZ } from "../../lib/time.js";
 import { DateTime } from "luxon";
 import { attendedEvent, bookedEvent } from "../marketing/events.js";
 import { loyaltyForAttendance, loyaltyForRefund } from "../marketing/loyalty.js";
@@ -409,11 +410,47 @@ export async function refundBooking(tx: DbOrTx, auth: AuthContext, bookingId: st
 }
 
 /** Instructors take attendance for their own classes; Front of House and admins for any class. */
-async function assertCanTakeAttendance(tx: DbOrTx, auth: AuthContext, sessionId: string, now: Date) {
+/**
+ * Attendance locks at midnight at the end of the class's day (in the location's time zone).
+ * Until then anyone who can take attendance can change it, and no-show fees follow it. After it,
+ * the record (and any no-show fee) is final: only owners and admins can correct it, after a warning.
+ */
+export function attendanceLocksAt(startsAt: Date, zone: TZ): Date {
+  return DateTime.fromJSDate(startsAt, { zone }).startOf("day").plus({ days: 1 }).toJSDate();
+}
+/** When a fee becomes final: no-show fees when the class's attendance locks; other fees straight away. */
+export async function feeFinalAt(db: DbOrTx, orgId: string, fee: { type: string; bookingId: string | null }): Promise<{ at: Date; text: string } | null> {
+  if (fee.type !== "no_show" || !fee.bookingId) return null;
+  const [r] = await db.select({ startsAt: classSessions.startsAt, locationId: classSessions.locationId }).from(bookings).innerJoin(classSessions, eq(classSessions.id, bookings.sessionId)).where(eq(bookings.id, fee.bookingId));
+  if (!r) return null;
+  const zone = await locationZone(db, orgId, r.locationId);
+  const at = attendanceLocksAt(r.startsAt, zone);
+  return { at, text: lockText(at, zone) };
+}
+/** Collecting a no-show fee before attendance locks: ask first, because correcting attendance would remove it. */
+export async function checkFeeFinal(db: DbOrTx, orgId: string, fee: { type: string; bookingId: string | null }, flags: Flags, now = new Date()) {
+  const f = await feeFinalAt(db, orgId, fee);
+  if (f && now < f.at) flags.confirm({ code: "fee_not_final", message: `Attendance for this class can still change until ${f.text}, which would remove this no-show fee. Collect it now anyway?` });
+}
+export const lockText = (at: Date, zone: TZ) => `midnight at the end of ${DateTime.fromJSDate(at, { zone }).minus({ days: 1 }).toFormat("ccc d LLL")}`;
+
+async function assertCanTakeAttendance(tx: DbOrTx, auth: AuthContext, sessionId: string, now: Date, flags?: Flags) {
   const session = await getSession(tx, auth.orgId, sessionId);
   if (!can(auth.role, "takeAttendanceAnyClass") && !(auth.role === "instructor" && session.instructorId === auth.userId)) throw forbidden();
   if (now.getTime() < session.startsAt.getTime() - 60 * 60_000) {
     throw conflict("too_early", "Attendance can be taken from an hour before class starts.");
+  }
+  const zone = await locationZone(tx, auth.orgId, session.locationId);
+  const locks = attendanceLocksAt(session.startsAt, zone);
+  if (now >= locks) {
+    if (!can(auth.role, "manageBookings")) {
+      throw conflict("attendance_locked", `Attendance for this class closed at ${lockText(locks, zone)}. Ask an admin if it needs correcting.`);
+    }
+    flags?.confirm({
+      code: "attendance_locked",
+      sessionId,
+      message: `Attendance for this class was locked at ${lockText(locks, zone)}, and any no-show fees are final. Changing it now adds or removes a no-show fee. Change it anyway?`,
+    });
   }
   return session;
 }
@@ -426,13 +463,15 @@ async function syncNoShowFee(tx: DbOrTx, auth: AuthContext, booking: BookingRow,
     if (fee) flags?.info({ code: "fee_applies", sessionId: session.id, message: `A no-show fee of ${feeFor(org, "no_show")!.text} has been added for this client. Admins can waive it.` });
   } else {
     await waivePendingFees(tx, booking.id, "no_show", auth.userId, "Attendance corrected");
+    const [paid] = await tx.select({ id: fees.id }).from(fees).where(and(eq(fees.bookingId, booking.id), eq(fees.type, "no_show"), eq(fees.status, "charged")));
+    if (paid) flags?.info({ code: "fee_applies", sessionId: session.id, message: "This client already paid the no-show fee. Refund it under Sales if they shouldn't have been charged." });
   }
 }
 
 export async function markAttendance(tx: DbOrTx, auth: AuthContext, bookingId: string, attendance: Attendance, flags: Flags, now = new Date()) {
   const booking = await getBooking(tx, auth.orgId, bookingId);
   if (booking.status !== "confirmed") throw conflict("not_active", "Attendance can only be taken for active bookings.");
-  const session = await assertCanTakeAttendance(tx, auth, booking.sessionId, now);
+  const session = await assertCanTakeAttendance(tx, auth, booking.sessionId, now, flags);
   const [b] = await tx
     .update(bookings)
     .set({ attendance, attendanceMarkedAt: now, attendanceMarkedBy: auth.userId })
@@ -470,7 +509,7 @@ export async function markAllAttendance(
   flags: Flags,
   now = new Date(),
 ) {
-  const session = await assertCanTakeAttendance(tx, auth, sessionId, now);
+  const session = await assertCanTakeAttendance(tx, auth, sessionId, now, flags);
   if (now < session.startsAt) {
     flags.confirm({ code: "class_not_started", sessionId, message: `This class hasn't started yet. Mark everyone as ${input.attendance === "present" ? "attended" : "no-show"} anyway?` });
   }

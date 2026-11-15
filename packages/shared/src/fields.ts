@@ -58,6 +58,7 @@ export const FIELDS = {
   // Waitlist
   waitlistMode: { label: "When a spot opens", help: "“Book me in automatically” takes the spot for you. “Ask me first” holds it for you for a short time so you can confirm." },
   waitlistExpiry: { label: "Stop waiting", help: "If you haven't got a spot by this long before class, we'll take you off the waitlist so you're not booked last-minute." },
+  waitlistModes: { label: "How waitlists work", help: "Let clients choose “Book me in automatically” or “Ask me first”, or use one way for everyone. People already waiting keep the choice they made." },
   waitlistHoldMinutes: { label: "Hold time", help: "How long a spot is held for someone who chose “Ask me first” before it goes to the next person." },
   waitlistExpiryOptions: { label: "Waitlist cut-off choices", help: "The three options clients can pick from for when to stop waiting, in hours before class." },
 
@@ -214,6 +215,9 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   no_refund: "No refund",
   already_happened: "Class has already happened",
   many_classes: "Lots of classes at once",
+  delete_template: "Delete this template?",
+  attendance_locked: "Attendance is locked",
+  fee_not_final: "Attendance can still change",
   closed_day: "The studio is closed that day",
   closure_cancels_classes: "Classes will be cancelled",
   closure_skips_classes: "Some dates skipped",
@@ -252,6 +256,9 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
 /** Friendly wording for option values shown in dropdowns and badges. */
 export const OPTION_LABELS = {
   waitlistMode: { automatic: "Book me in automatically", manual: "Ask me first" },
+  feedbackCategory: { facilities: "Facilities and comfort", classes: "Classes and schedule", instructors: "Instructors", app: "App and booking", prices: "Prices and packages", other: "Something else" },
+  feedbackStatus: { new: "New", in_progress: "Replied", resolved: "Sorted" },
+  waitlistModes: { both: "Clients choose", automatic: "Always book in automatically", manual: "Always ask first" },
   subApprovalMode: { automatic: "First to accept gets it", manual: "Admin chooses" },
   refundMethod: { none: "No refund", credit: "Return class credit", original_payment: "Refund payment" },
   attendance: { unmarked: "Not marked", present: "Attended", no_show: "No-show" },

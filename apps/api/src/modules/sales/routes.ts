@@ -13,6 +13,7 @@ import { creditGrants, fees, files, giftCards, invoiceRefunds, invoiceSettings, 
 import { audit } from "../../lib/audit.js";
 import { badRequest, conflict, notFound } from "../../lib/errors.js";
 import { inTx, withFlags } from "../../lib/route.js";
+import { checkFeeFinal } from "../bookings/service.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import type { AuthContext } from "../../plugins/auth.js";
@@ -178,10 +179,14 @@ export async function salesRoutes(app: FastifyInstance) {
   app.post("/sales/invoices/:id/mark-paid", async (req) => {
     requirePermission(req, "viewPayments");
     const { id } = parse(idParam, req.params);
-    const { method } = parse(markInvoicePaid, req.body ?? {});
-    return inTx(app, async (tx) => {
+    const { method, acknowledge } = parse(markInvoicePaid, req.body ?? {});
+    return withFlags(app, acknowledge, async (tx, flags) => {
       const inv = await getInvoice(tx, req.auth.orgId, id, true);
       if (inv.status !== "open") throw conflict("not_open", `This is already ${INVOICE_STATUSES[inv.status].toLowerCase()}.`);
+      if (inv.feeId) {
+        const [fee] = await tx.select().from(fees).where(eq(fees.id, inv.feeId));
+        if (fee) await checkFeeFinal(tx, req.auth.orgId, fee, flags);
+      }
       if (inv.orderId) await completeOrderById(tx, req.auth, inv.orderId, method);
       else {
         await markPaid(tx, inv, method);
@@ -248,11 +253,12 @@ export async function salesRoutes(app: FastifyInstance) {
   app.post("/fees/:id/mark-paid", async (req) => {
     requirePermission(req, "viewPayments");
     const { id } = parse(idParam, req.params);
-    const { method } = parse(markInvoicePaid, req.body ?? {});
-    return inTx(app, async (tx) => {
+    const { method, acknowledge } = parse(markInvoicePaid, req.body ?? {});
+    return withFlags(app, acknowledge, async (tx, flags) => {
       const [fee] = await tx.select().from(fees).where(and(eq(fees.id, id), eq(fees.orgId, req.auth.orgId))).for("update");
       if (!fee) throw notFound("fee");
       if (fee.status !== "pending") throw conflict("fee_not_pending", fee.status === "waived" ? "This fee was waived." : "This fee has already been paid.");
+      await checkFeeFinal(tx, req.auth.orgId, fee, flags);
       await tx.update(fees).set({ status: "charged" }).where(eq(fees.id, id));
       const [inv] = await tx.select().from(invoices).where(eq(invoices.feeId, id)).for("update");
       const paid = inv ? await markPaid(tx, inv, method) : null;
