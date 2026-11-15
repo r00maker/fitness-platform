@@ -27,7 +27,7 @@
   const totalStock = (p) => (p.options ? (p.options.some((o) => o.stock === null) ? null : p.options.reduce((a, o) => a + o.stock, 0)) : p.stock);
   const takeStock = (p, opt, qty) => { if (p.options) { const o = p.options.find((x) => x.name === opt); if (o && o.stock !== null) o.stock -= qty; } else if (p.stock !== null) p.stock -= qty; };
   function restockOrder(o) { for (const i of o.items) { const p = prodById(i.pid); if (p) takeStock(p, i.option, -i.qty); } }
-  const onSaleProducts = () => PRODUCTS.filter((p) => p.onSale);
+  const onSaleProducts = () => (featOn("shop") ? PRODUCTS.filter((p) => p.onSale) : []); // none while the shop is switched off
   /** Clients only see the Shop when there's something in it. */
   const shopVisible = () => onSaleProducts().length > 0 || GC.on;
   const prodPhoto = (p, cls = "") => p.photo ? `<div class="prodph ${cls}" style="background-image:url('${p.photo}')" role="img" aria-label="${esc(p.name)}"></div>` : `<div class="prodph ${cls} blank" style="--pt:${PROD_TINT[Number(p.id.slice(2)) % PROD_TINT.length]}" aria-hidden="true"><span>${esc(p.name.trim() ? initials(p.name.trim().replace(/\s+/g, " ")) : "?")}</span></div>`;
@@ -40,7 +40,10 @@
   };
   function adminShop() {
     const waiting = SHOP_ORDERS.filter((o) => o.status === "waiting");
-    const tabs = `<div class="tabs" role="tablist">${[["products", "Products"], ["orders", `Orders${waiting.length ? `<span class="n">${waiting.length}</span>` : ""}`], ["giftcards", "Gift cards"]].map(([k, l]) => `<button type="button" role="tab" data-shtab="${k}" aria-selected="${SHOP.tab === k}">${l}</button>`).join("")}</div>`;
+    // Products and orders need the Shop feature; gift cards need Gift cards (Setup, Features).
+    const shTabs = [["products", "Products"], ["orders", `Orders${waiting.length ? `<span class="n">${waiting.length}</span>` : ""}`], ["giftcards", "Gift cards"]].filter(([k]) => (k === "giftcards" ? featOn("giftCards") : k === "orders" ? featOn("shop") || waiting.length > 0 : featOn("shop")));
+    if (!shTabs.some(([k]) => k === SHOP.tab)) SHOP.tab = shTabs[0]?.[0] || "products";
+    const tabs = `<div class="tabs" role="tablist">${shTabs.map(([k, l]) => `<button type="button" role="tab" data-shtab="${k}" aria-selected="${SHOP.tab === k}">${l}</button>`).join("")}</div>`;
     let body = "";
     if (SHOP.tab === "products") {
       body = `${!shopVisible() ? alertBox("info", "Clients can't see the Shop yet", "Put a product on sale (or turn gift cards on) and the Shop appears in clients' menu.") : ""}

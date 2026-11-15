@@ -35,7 +35,10 @@ const file = "file://" + path.join(__dirname, "s10-test.html");
 
     // Menu
     const nav = await navLabels();
-    ok(`${label}: admin menu has Sales and Shop`, nav.includes("Sales") && nav.includes("Shop"));
+    // Sales and Shop are tabs of the Money menu item (grouped menu).
+    await p.evaluate(() => (location.hash = "sales")); await p.waitForTimeout(150);
+    const moneyTabs = await p.evaluate(() => [...document.querySelectorAll(".hubtabs [data-hubtab]")].map((b) => b.dataset.hubtab).join(","));
+    ok(`${label}: admin menu has Money, with Sales and Shop tabs (${moneyTabs})`, nav.includes("Money") && /sales/.test(moneyTabs) && /shop/.test(moneyTabs));
 
     // 1. Sales
     await go("sales");

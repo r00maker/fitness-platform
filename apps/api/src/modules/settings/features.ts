@@ -119,7 +119,7 @@ async function nextStep(db: DbOrTx, org: Org, key: FeatureKey): Promise<string |
   if (key === "giftCards") {
     const designs = n(await db.select({ n: count }).from(giftCardDesigns).where(and(eq(giftCardDesigns.orgId, org.id), eq(giftCardDesigns.active, true))));
     const amounts = org.giftCardAmounts.length > 0 || org.giftCardCustomMinCents !== null;
-    if (!designs || !amounts) return `Next, add ${[!amounts ? "at least one amount" : "", !designs ? "a design" : ""].filter(Boolean).join(" and ")} under Marketing, Gift cards. Clients see gift cards once that's done.`;
+    if (!designs || !amounts) return `Next, add ${[!amounts ? "at least one amount" : "", !designs ? "a design" : ""].filter(Boolean).join(" and ")} under Money, Shop, Gift cards. Clients see gift cards once that's done.`;
   }
   if (key === "loyalty") return "Next, check how many points each class earns and add rewards under Marketing, Loyalty.";
   if (key === "referrals") return "Next, choose the rewards for both sides under Marketing, Refer a friend.";

@@ -980,3 +980,23 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
 .wgrid.single .ev button { align-items: safe center; }
 .wgrid.single .ev .evcount { text-align: right; }
 @media (max-width: 640px) { .wgrid.single .ev .evr { min-width: 0; max-width: 66px; } .wgrid.single .ev button { gap: 10px; } }
+
+/* Grouped menu: tabs across the top of pages that share a menu item (mkt20.js). */
+.hubtabs { display: flex; align-items: center; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; margin: -4px 0 14px; }
+.hubtabs::-webkit-scrollbar { display: none; }
+.hubtabs .hubname { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 0 12px 0 2px; white-space: nowrap; }
+.hubtabs button { border: 0; background: transparent; padding: 10px 12px; font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; border-radius: 0; display: inline-flex; align-items: center; gap: 6px; }
+.hubtabs button:hover { color: var(--fg); }
+.hubtabs button[aria-selected="true"] { color: var(--fg); font-weight: 600; border-bottom-color: var(--accent); }
+.hubtabs .n { font-size: 11px; font-weight: 600; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 6px; }
+@media (max-width: 640px) { .hubtabs .hubname { display: none; } }
+
+/* Setup, Features */
+.featsum { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.featsum b { color: var(--fg); }
+.featlist { display: flex; flex-direction: column; }
+.featrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line-soft); }
+.featrow:first-child { border-top: 0; padding-top: 4px; }
+.featrow b { font-size: 14px; }
+.featrow p { margin: 2px 0 0; font-size: 13px; color: var(--muted); max-width: 60ch; }
+.featrow .switch { flex: none; }

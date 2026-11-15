@@ -72,13 +72,14 @@
       if (ext || conf) out.push({ kind: "packages", sev: "soon", count: ext + conf, title: [ext ? hp(ext, "extension request") : "", conf ? `${hp(conf, "order")} to confirm` : ""].filter(Boolean).join(" and "), detail: conf ? "Mark orders paid when clients pay at the desk, so their package starts" : "Clients are waiting for an answer", go: "packages", label: "Open packages" });
     }
     if (role === "admin" || role === "foh") {
+      // Orders and rewards already under way still show while their feature is off: they still need handing over.
       const pick = SHOP_ORDERS.filter((o) => o.status === "waiting").length + (role === "foh" ? LOY_PICKUPS.filter((x) => x.status === "waiting").length : 0);
       if (pick) out.push({ kind: "pickups", sev: "fyi", count: pick, title: `${hp(pick, role === "foh" ? "order" : "shop order")} to hand over`, detail: role === "foh" ? "Shop orders and rewards waiting at the front desk" : "Waiting at the front desk", go: role === "foh" ? "pickups" : "shop", label: role === "foh" ? "Open pickups" : "Open the shop" });
-      const unread = unreadTotal();
+      const unread = featOn("inbox") ? unreadTotal() : 0;
       if (unread) out.push({ kind: "messages", sev: "fyi", count: unread, title: `${hp(unread, "unread message")}`, detail: "From clients on WhatsApp and email", go: "comms", label: "Open Communication" });
     }
     if (role === "admin" || role === "foh") {
-      const low = typeof lowToHandle === "function" ? lowToHandle().length : 0, fresh = typeof fbNew === "function" ? fbNew().length : 0;
+      const low = typeof lowToHandle === "function" && featOn("reviews") ? lowToHandle().length : 0, fresh = typeof fbNew === "function" ? fbNew().length : 0;
       if (low) out.push({ kind: "low_reviews", sev: "soon", count: low, title: `${hp(low, "low review")} to follow up`, detail: "2 stars or fewer. A quick, kind reply often wins a client back", go: "feedback", label: "Open Feedback" });
       if (fresh) out.push({ kind: "feedback", sev: "fyi", count: fresh, title: `${hp(fresh, "new piece", "new pieces")} of feedback`, detail: "From clients, waiting for a reply", go: "feedback", label: "Open Feedback" });
     }

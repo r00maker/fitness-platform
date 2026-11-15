@@ -396,11 +396,11 @@ export const NAV_ITEMS = [
     ],
   },
   {
-    id: "money", label: "Money", group: "Clients and money", roles: ["owner", "admin"], help: "Sales, fees to collect and shop orders.",
+    id: "money", label: "Money", group: "Clients and money", roles: ["owner", "admin"], help: "Sales, fees to collect, the shop and gift cards.",
     tabs: [
       { id: "sales", label: "Sales", help: "Invoices, receipts and refunds." },
       { id: "fees", label: "Fees", help: "Late-cancellation and no-show fees to collect or waive." },
-      { id: "shop", label: "Shop", feature: "shop", help: "Products for sale and orders to hand over." },
+      { id: "shop", label: "Shop", feature: ["shop", "giftCards"], help: "Products, orders to hand over, and gift cards." },
     ],
   },
   { id: "packages", label: "Packages", group: "Clients and money", roles: ["owner", "admin"], help: "The packages and memberships you sell, and their rules." },
@@ -410,13 +410,12 @@ export const NAV_ITEMS = [
     tabs: [
       { id: "campaigns", label: "Emails and journeys", feature: "marketing", help: "Email campaigns and automatic journeys." },
       { id: "banners", label: "Banners", help: "Pictures with a link at the top of the client app." },
-      { id: "gift-cards", label: "Gift cards", feature: "giftCards", help: "Gift card designs, amounts and cards sold." },
       { id: "referrals", label: "Refer a friend", feature: "referrals", help: "Rewards for clients who bring a friend." },
       { id: "loyalty", label: "Loyalty", feature: "loyalty", help: "Points for classes, and the rewards they buy." },
     ],
   },
   {
-    id: "feedback", label: "Feedback and reviews", group: "Grow", roles: ["owner", "admin", "front_desk"], help: "What clients tell you, and how they rate their classes.",
+    id: "feedback", label: "Feedback", group: "Grow", roles: ["owner", "admin", "front_desk"], help: "What clients tell you, and how they rate their classes.",
     tabs: [
       { id: "feedback", label: "Feedback", help: "Messages from clients by topic, with replies." },
       { id: "reviews", label: "Reviews", feature: "reviews", roles: ["owner", "admin"], help: "Star ratings by class type and instructor." },

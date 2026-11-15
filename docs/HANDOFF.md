@@ -26,6 +26,7 @@ A booking platform for fitness studios in Southeast Asia (in the space of Momenc
 | #16 | Closures and holidays: recurring classes skip closed days, adding one cancels the classes on those days with one message per person, closed days shaded on the calendar, closed-day check when adding or moving a class. Also "Show cancelled" on the calendar, a Cancellations tab on each class, and Home (the staff front page) |
 | #17 | Waitlist setting (clients choose, or always automatic / always ask first) and a quick view for extension-request attachments. Also: attendance locks at midnight after each class (no-show fees final then), templates can be deleted, Studio rules save button no longer under Ask. Also reviews (with the Google offer), client feedback, celebration pop-ups for staff, and a fix for the sales chart dropping the current week just after local midnight |
 | #18 | Full class names on the calendar: names like "Reformer - Intermediate" wrap instead of being cut short, in every view, on computers and phones |
+| Not merged yet | Market review and launch plan (`docs/MARKET_AND_LAUNCH.md`). Feature switches (Setup, Features) and the grouped menu: related pages share one menu item with tabs, 14 admin items instead of 24 |
 
 The market review, pricing and launch plan are in `docs/MARKET_AND_LAUNCH.md`. Details of how each area works, and the decisions behind them, are in `docs/PRODUCT_NOTES.md`. The staff-facing guide (also what the support assistant reads) is `docs/help/STUDIO_GUIDE.md`.
 
@@ -84,10 +85,11 @@ service postgresql start   # if tests fail with ECONNREFUSED
 # Fresh container? Tests need a "studio" user and "studio_test" database:
 # su postgres -c "psql -c \"create user studio with password 'studio' superuser;\"" && su postgres -c "createdb -O studio studio_test"
 pnpm typecheck
-pnpm test                  # 288 API tests at the time of writing
+pnpm test                  # 293 API tests at the time of writing
 ```
 
 - New migration: edit `apps/api/src/db/schema.ts`, then `cd apps/api && npx drizzle-kit generate --name <name>`. To regenerate one that isn't merged yet, delete its SQL file and snapshot and remove its entry from `drizzle/meta/_journal.json` first.
+- Feature switches: a page for a switchable feature needs its route pattern in `ROUTES` in `apps/api/src/modules/settings/features.ts`, and its menu entry needs `feature` in `NAV_ITEMS`. Background jobs skip switched-off studios with `featureOnSql`.
 - Route helpers: `withFlags(app, acknowledge, fn)` (returns 409 `needs_confirmation` until acknowledged), `inTx`, `parse`, `requirePermission(req, perm)`. Public routes set `config: { public: true }`; rate limits go in `config.rateLimit`.
 - Notifications use templates in `apps/api/src/modules/notifications/templates.ts` (a template must exist before `notify` can use it).
 - Secrets: `encryptSecret` / `decryptSecret` in `apps/api/src/lib/secrets.ts` (key from `SECRETS_KEY`).

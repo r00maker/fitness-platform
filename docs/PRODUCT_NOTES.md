@@ -40,7 +40,7 @@ The full reasoning, competitor comparison and pricing are in `docs/MARKET_AND_LA
 
 **Feature-set improvements (making it simpler):**
 
-1. **Feature switches and a leaner menu:** studios switch features on as they need them, and related menu items are merged (about 12 instead of 24).
+1. ~~Feature switches and a leaner menu~~: built (see below).
 2. **Setup by studio type:** a first-run setup that fills sensible defaults for independent, boutique and multi-location studios, plus search within Studio rules.
 3. **Client booking on phones:** a date strip and class list first; banners and filters out of the way.
 4. **Instructors on phones:** "Up next: check in" first, and a Check-in mode.
@@ -244,3 +244,12 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
 - **Why:** studios run versions of a class and name them their own way ("Reformer - Beginner", "Reformer - Intermediate", "Sweat - Foundations", "Sweat - Essentials"). Cut short, they all read "Reformer - …", and instructors checking clients in on their phones had to open each class to find the right one.
 - **Rule:** a class's name is never cut short on the calendar. It wraps onto more lines instead, in the week, day and month views and the phone list. When a name needs more lines than the class's time slot has, the block first uses free time below it, then drops the instructor line (the name matters more), and only then grows over the next class, drawn on top with a shadow. Short classes put the time in front of the name to save a line. On phones, the "booked" count on the right is kept narrow so the name gets the room.
 - **For the web and mobile apps:** the same rule applies. Never use one-line truncation (ellipsis) for class names in schedule views; the API already returns the full name.
+
+## Feature switches and the grouped menu
+
+- **Why:** the admin menu had 24 items, and a new owner saw Leads, Agents, Shop, Loyalty and Payroll on day one. Studios now switch on what they use (Setup, Features), and related pages share one menu item with tabs. With everything on, the admin menu is 14 items; a lean studio sees fewer. It's also what makes pricing tiers possible later: a smaller tier is the same product with fewer things switched on.
+- **The ten features:** marketing emails and journeys, gift cards, loyalty, refer a friend, leads, reviews, shop, payroll, the communication inbox and agents. Gift cards, loyalty, referrals and reviews already had their own on/off setting, which stays the one source of truth; the rest are stored in `organizations.features_off`. Existing studios keep everything on. Lean defaults for new studios come with setup by studio type (next on the roadmap).
+- **Switching off** hides a feature and stops it running; nothing is deleted. The API refuses requests to its pages with `feature_off` (route patterns are mapped in `apps/api/src/modules/settings/features.ts`). Finishing what's under way stays possible: orders and rewards waiting to be handed over, and gift cards already sold. Live journeys pause, scheduled campaigns go back to drafts, lead follow-ups are cancelled, and agents and the email inbox stop. When something is running, it asks first (`feature_off` confirm) and says what will happen.
+- **Switching back on** never restarts journeys or campaigns (nothing is sent late by surprise) and returns `next`: what's left to set up. Gift cards switched on before they have an amount and a design stay hidden from clients until both exist.
+- **The menu** is defined once in `NAV_ITEMS` (`packages/shared/src/fields.ts`), served by `GET /meta/fields`. Items with `tabs` group pages (Communication, Clients, Money, Feedback, Staff and pay, Setup); `feature` hides an item or tab; an item with one tab left shows as a plain item. Tab ids are the old page ids, so existing links keep working. Gift card settings live in Money, Shop, so that tab shows while either the shop or gift cards is on.
+- **Apps** read the switches from `GET /settings` (`features`, for every role) and hide what's off, including Home's to-dos (unread messages with the inbox off, low reviews with reviews off).

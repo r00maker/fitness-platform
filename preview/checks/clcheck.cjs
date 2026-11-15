@@ -38,7 +38,9 @@ const file = "file://" + path.join(__dirname, "cl-test.html");
     const calendarWeek = async (date) => { await go("schedule"); await ev(`state.view = "week"; state.anchor = fromYmdHm("${date}", "00:00"); render()`); await p.waitForTimeout(150); };
 
     // Menu and page
-    ok(`${label}: admin menu has Closures & holidays`, (await navLabels()).includes("Closures & holidays"));
+    // Closures is a tab of the Setup menu item (grouped menu).
+    await go("closures");
+    ok(`${label}: Setup menu item has a Closures and holidays tab`, (await navLabels()).includes("Setup") && (await p.locator('.hubtabs [data-hubtab="closures"][aria-selected="true"]').count()) === 1);
     await go("closures");
     ok(`${label}: three sample closures`, (await p.locator(".clcard").count()) === 3);
     ok(`${label}: sample closure cancelled its classes`, /1 class cancelled for this closure/.test(await p.locator(".clcard").first().textContent()));

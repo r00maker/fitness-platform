@@ -22,18 +22,31 @@ Owners can do everything admins can. Only the owner can add or remove admins.
 
 ## Finding your way around
 
-The menu on the left is grouped by what you're doing. Staff see:
+The menu on the left is grouped by what you're doing. Related pages share one menu item, with tabs across the top of the page (for example **Money** has Sales, Fees and Shop). Owners and admins see:
 
-- **Day to day:** Home (or My day for instructors), Schedule (or My schedule), Cover requests, Communication, Announcements, Pickups (Front of House: shop orders and rewards to hand over).
-- **Clients & sales:** Clients, Leads, Sales, Packages, Shop, Fees, Feedback.
-- **Growth:** Marketing, Reports, Reviews.
-- **Team:** Staff & pay, Payroll, Agents.
-- **Setup:** Class types, Templates, Locations & rooms, Closures & holidays, Studio rules.
-- **Account:** My pay and My reviews (instructors), Preferences.
+- **Day to day:** Home, Schedule, Cover requests, Communication (tabs: Inbox, Announcements).
+- **Clients & sales:** Clients (tabs: Clients, Leads), Money (tabs: Sales, Fees, Shop), Packages.
+- **Growth:** Marketing, Reports, Feedback (tabs: Feedback, Reviews).
+- **Team:** Staff and pay (tabs: Staff, Payroll), Agents.
+- **Setup:** one item, with tabs for Class types, Templates, Locations and rooms, Closures and holidays, Studio rules and Features.
+- **Account:** Preferences.
+
+Front of House see Home, Schedule, Communication, Pickups (shop orders and rewards to hand over), Feedback and Preferences. Instructors see My day, My schedule, Cover requests, My reviews, My pay and Preferences.
+
+The menu only shows features your studio has switched on (see **Features** below), so yours may be shorter.
 
 Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My packages, Rewards, Refer a friend, and Shop when there's something in it) and **Account** (Feedback, Injuries & conditions, Profile & privacy, Preferences).
 
 The **Ask** button (bottom right) opens the assistant. The **bell** at the top shows messages from your studio's agents.
+
+## Features: switching things on and off
+
+**Setup, Features** lists the parts of the app your studio might not need: marketing emails and journeys, gift cards, loyalty, refer a friend, leads, reviews, the shop, payroll, the communication inbox and agents. Switch on what you use; the menus, Home and the client app only show what's on.
+
+- **Switching something off** hides it and stops it running. Nothing is deleted: switch it back on and everything is where you left it. If something is running (live journeys, orders waiting at the desk, agents), you're told what will happen and asked first.
+- **What stops:** live journeys pause and scheduled campaigns go back to drafts, follow-up emails to leads aren't sent, agents stop, and clients stop being asked for reviews or earning points.
+- **What carries on:** shop orders and rewards already waiting can still be handed over, and gift cards already sold can still be used.
+- **Switching back on** doesn't restart journeys or campaigns by itself, so nothing is sent late by surprise. You're told what's left to set up, for example adding a gift card design.
 
 ## Home
 

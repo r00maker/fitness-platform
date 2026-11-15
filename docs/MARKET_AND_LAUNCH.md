@@ -28,7 +28,7 @@ These answer the most common complaints about the incumbents: a confusing back e
 
 | # | Problem | Principle | Fix |
 |---|---|---|---|
-| 1 | The admin menu has 24 items in 6 groups. A new owner sees Leads, Agents, Shop, Loyalty and Payroll on day one. | Too many choices (Hick's law); show features as they're needed | Feature switches per studio with a lean default, and merged menu items. Aim for about 12. |
+| 1 (built) | The admin menu has 24 items in 6 groups. A new owner sees Leads, Agents, Shop, Loyalty and Payroll on day one. | Too many choices (Hick's law); show features as they're needed | Feature switches per studio with a lean default, and merged menu items. Aim for about 12. |
 | 2 | Studio rules has 32 settings in 8 sections on one ~3,200px page. | Too much to take in; good defaults (Tesler's law) | A first-run setup ("What kind of studio are you?") that fills sensible defaults, search within settings, and "Changed from default" marks. |
 | 3 | Clients on a phone see an announcement, a banner carousel and 5 filter controls before the first class. | Put the main task first; follow what clients already know (Jakob's law) | A horizontal date strip with a class list. Banners shrink to one line, and filters sit behind one "Filter" button. |
 | 4 | Instructors on a phone land on "24 people booked". Their next class and check-in are below the fold. | Match how long people spend in the app | "Up next: check in" first, and a Check-in mode with large name rows and search. |

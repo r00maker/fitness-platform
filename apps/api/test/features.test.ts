@@ -113,7 +113,7 @@ describe("feature switches", () => {
   it("features with their own setting use it, and gift cards stay hidden from clients until they're set up", async () => {
     const s = await studio();
     const on = await s.owner.call("PUT", "/features/giftCards", { on: true });
-    expect(on.body.next).toBe("Next, add a design under Marketing, Gift cards. Clients see gift cards once that's done.");
+    expect(on.body.next).toBe("Next, add a design under Money, Shop, Gift cards. Clients see gift cards once that's done.");
     const [org] = await db.select().from(organizations).where(eq(organizations.id, s.orgId));
     expect(org!.giftCardsEnabled).toBe(true);
     expect(org!.featuresOff).toEqual([]);
