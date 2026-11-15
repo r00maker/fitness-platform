@@ -1502,6 +1502,28 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
 .celebbox ul { margin: 0; padding-left: 18px; }
 .aitag { font-size: 11.5px; color: var(--muted); }
 
+/* Full class names on the calendar (mkt19.js): names wrap instead of being cut short. */
+.ev .en { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; }
+.ev .en .et { display: inline; margin-right: 4px; font-weight: 400; }
+.ev.nometa .em { display: none; }
+.ev.grown { z-index: 3; }
+.ev.grown button { box-shadow: 0 3px 10px rgb(0 0 0 / .16); }
+.wgrid.single .ev .evtop { flex-wrap: wrap; column-gap: 8px; row-gap: 0; }
+.wgrid.single .ev .evline { flex-wrap: wrap; column-gap: 8px; row-gap: 0; }
+.wgrid.single .ev .evline .en { min-width: 0; flex: 0 1 auto; }
+.wgrid.single .ev .evtop .en { min-width: 0; flex: 0 1 auto; }
+/* The warning badge needs room on the time line only, so names can use the full width. */
+.wgrid:not(.single) .ev button { padding-right: 6px; }
+.wgrid:not(.single) .ev button:has(.flag) > .et { padding-right: 14px; }
+.wgrid:not(.single) .ev button:has(.flag):has(.en > .et) { padding-right: 18px; }
+.mchip { white-space: normal; overflow: visible; align-items: stretch; line-height: 1.3; padding: 2px 5px; }
+.mchip span { overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; min-width: 0; }
+.ag-row .n { overflow-wrap: break-word; hyphens: auto; }
+/* Day view: stay centred when everything fits, but start at the top when a long name needs the room. */
+.wgrid.single .ev button { align-items: safe center; }
+.wgrid.single .ev .evcount { text-align: right; }
+@media (max-width: 640px) { .wgrid.single .ev .evr { min-width: 0; max-width: 66px; } .wgrid.single .ev button { gap: 10px; } }
+
 /* MKT-CSS-END */
 </style>
 
@@ -1605,11 +1627,11 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
   const closesText = () => { const m = STUDIO.bookingClosesMins; return m === 0 ? "when class starts" : m % 60 === 0 ? `${m / 60} hour${m === 60 ? "" : "s"} before class` : `${m} minutes before class`; };
 
   const TYPES = {
-    reformer: { name: "Reformer Pilates", usual: 50, color: "#4F46E5", dark: "#8d87ff", kind: "class" },
+    reformer: { name: "Reformer - Intermediate", usual: 50, color: "#4F46E5", dark: "#8d87ff", kind: "class" },
     yoga: { name: "Vinyasa Yoga", usual: 60, color: "#047857", dark: "#34d399", kind: "class" },
     barre: { name: "Barre", usual: 45, color: "#BE185D", dark: "#f472b6", kind: "class" },
-    hiit: { name: "HIIT Circuit", usual: 30, color: "#C2410C", dark: "#fb923c", kind: "class" },
-    mat: { name: "Mat Pilates", usual: 45, color: "#0E7490", dark: "#22d3ee", kind: "class" },
+    hiit: { name: "Sweat - Essentials", usual: 30, color: "#C2410C", dark: "#fb923c", kind: "class" },
+    mat: { name: "Mat Pilates - Foundations", usual: 45, color: "#0E7490", dark: "#22d3ee", kind: "class" },
     private: { name: "Private Reformer", usual: 55, color: "#7C3AED", dark: "#b197fc", kind: "appointment" },
   };
   /** Same palette as the API: each is dark enough to stand out on the calendar. */
@@ -1803,7 +1825,7 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
     { id: "t4", label: "Barre – 45 min", type: "barre", room: "hv1", instr: "ana", start: "09:30", dur: 45, cap: 16 },
     { id: "t5", label: "HIIT Express – 30 min", type: "hiit", room: "hv1", instr: "marcus", start: "12:30", dur: 30, cap: 16, ac: { h: 3, min: 4 } },
     { id: "t6", label: "HIIT – 45 min", type: "hiit", room: "hv1", instr: "marcus", start: "18:30", dur: 45, cap: 16 },
-    { id: "t7", label: "Mat Pilates – 45 min", type: "mat", room: "s2", instr: "priya", start: "09:30", dur: 45, cap: 20 },
+    { id: "t7", label: "Mat Pilates - Foundations – 45 min", type: "mat", room: "s2", instr: "priya", start: "09:30", dur: 45, cap: 20 },
     { id: "t8", label: "Private Reformer – 55 min", type: "private", room: "pr", instr: "ana", start: "10:00", dur: 55, cap: 1 },
   ];
   const TEMPLATES = Object.fromEntries(TEMPLATE_LIST.map((t) => [t.id, t]));
@@ -2424,7 +2446,9 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
       ? tight
         ? `<span class="evline"><span class="et">${short(s.start)}</span><span class="en">${esc(TYPES[s.type].name)}</span><span class="em">${s.status === "cancelled" ? metaLine : `${instrLabel(s)} · ${where}`}</span></span>${right}`
         : `<span class="col"><span class="evtop"><span class="en">${esc(TYPES[s.type].name)}</span><span class="et">${short(s.start)} – ${short(s.end)}</span>${isAppt(s) ? '<span class="evtag">Appointment</span>' : ""}</span><span class="em">${s.status === "cancelled" ? metaLine : `${instrLabel(s, { avatar: true })} · ${where}`}</span></span>${right}`
-      : `<span class="et">${short(s.start)}</span><span class="en">${esc(TYPES[s.type].name)}</span>${compact ? "" : `<span class="em">${metaLine}</span>`}`;
+      : compact
+        ? `<span class="en"><span class="et">${short(s.start)}</span>${esc(TYPES[s.type].name)}</span>`
+        : `<span class="et">${short(s.start)}</span><span class="en">${esc(TYPES[s.type].name)}</span><span class="em">${metaLine}</span>`;
     const style = `top:${top}px;height:${height}px;left:calc(${(s._lane / s._lanes) * 100}%);width:calc(${100 / s._lanes}%);--t:var(--t-${s.type})`;
     return `<div class="ev ${s.end < NOW ? "past" : ""} ${s.status === "cancelled" ? "cx" : ""} ${isAppt(s) ? "appt" : ""} ${single && tight ? "tight" : ""} ${state.selected.has(s.id) ? "selected" : ""}" style="${style}"><button type="button" data-open="${s.id}" aria-label="${esc(TYPES[s.type].name)}, ${fmtDay(s.start)} ${clock(s.start)}${s.status === "cancelled" ? ", cancelled" : ""}">${inner}${flagDot}</button></div>`;
   }
@@ -2513,6 +2537,7 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
     renderSelBar();
     if (state.openId) renderDrawer();
     maybeAskReview();
+    fitEvents();
   }
 
   // ---------------------------------------------------------------------------
@@ -10813,6 +10838,40 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
     for (const n of NAV) { const id = n.id; n.group = (role) => (id === "reviews" && role === "instructor") || (id === "feedback" && role === "client") ? "Account" : ng(id, role); }
   }
   NAV.sort((a, b) => navRank(a.id, "admin") - navRank(b.id, "admin"));
+  // ---- Full class names on the calendar -------------------------------------------------------
+  // Studios run versions of a class ("Reformer - Beginner", "Sweat - Foundations"), so a class's
+  // name is never cut short on the calendar. Names wrap onto more lines. After the calendar draws,
+  // a block whose name still doesn't fit first drops its instructor line, then grows taller (drawn
+  // above the grid, with a shadow) so the whole name shows without opening the class.
+  if (!document.documentElement.lang) document.documentElement.lang = "en"; // lets long words hyphenate
+  function fitEvents() {
+    if (state.page !== "schedule") return;
+    const evs = [...document.querySelectorAll("#canvas .ev")];
+    for (const ev of evs) {
+      if (!ev.dataset.h) ev.dataset.h = ev.style.height;
+      ev.style.height = ev.dataset.h;
+      ev.classList.remove("nometa", "grown");
+    }
+    for (const ev of evs) {
+      const b = ev.firstElementChild;
+      if (!b || b.scrollHeight <= b.clientHeight + 1) continue;
+      // Free space below: up to the next class in the same column that sits alongside this one.
+      const top = ev.offsetTop, left = ev.offsetLeft, right = left + ev.offsetWidth;
+      let room = ev.parentElement.clientHeight - top;
+      for (const o of evs) {
+        if (o === ev || o.parentElement !== ev.parentElement || o.offsetTop <= top) continue;
+        if (o.offsetLeft < right - 1 && o.offsetLeft + o.offsetWidth > left + 1) room = Math.min(room, o.offsetTop - top);
+      }
+      const full = b.scrollHeight + 4; // + the block's own 2px padding top and bottom
+      if (full <= room) { ev.style.height = `${full}px`; continue; } // everything fits in the gap
+      ev.classList.add("nometa"); // no room: the name matters more than the instructor line
+      if (b.scrollHeight <= b.clientHeight + 1) continue;
+      ev.classList.add("grown"); // still too long: grow over the next class, with a shadow
+      ev.style.height = `${b.scrollHeight + 4}px`;
+    }
+  }
+  let fitTimer = 0;
+  window.addEventListener("resize", () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitEvents, 80); });
 
   // MKT-JS-END
   window.addEventListener("hashchange", () => { const id = location.hash.slice(1); if (id !== state.page && navFor(state.role).some((n) => n.id === id)) go(id); });

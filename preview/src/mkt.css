@@ -958,3 +958,25 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
 .celebbox.care { background: var(--ok-soft); }
 .celebbox ul { margin: 0; padding-left: 18px; }
 .aitag { font-size: 11.5px; color: var(--muted); }
+
+/* Full class names on the calendar (mkt19.js): names wrap instead of being cut short. */
+.ev .en { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; }
+.ev .en .et { display: inline; margin-right: 4px; font-weight: 400; }
+.ev.nometa .em { display: none; }
+.ev.grown { z-index: 3; }
+.ev.grown button { box-shadow: 0 3px 10px rgb(0 0 0 / .16); }
+.wgrid.single .ev .evtop { flex-wrap: wrap; column-gap: 8px; row-gap: 0; }
+.wgrid.single .ev .evline { flex-wrap: wrap; column-gap: 8px; row-gap: 0; }
+.wgrid.single .ev .evline .en { min-width: 0; flex: 0 1 auto; }
+.wgrid.single .ev .evtop .en { min-width: 0; flex: 0 1 auto; }
+/* The warning badge needs room on the time line only, so names can use the full width. */
+.wgrid:not(.single) .ev button { padding-right: 6px; }
+.wgrid:not(.single) .ev button:has(.flag) > .et { padding-right: 14px; }
+.wgrid:not(.single) .ev button:has(.flag):has(.en > .et) { padding-right: 18px; }
+.mchip { white-space: normal; overflow: visible; align-items: stretch; line-height: 1.3; padding: 2px 5px; }
+.mchip span { overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; min-width: 0; }
+.ag-row .n { overflow-wrap: break-word; hyphens: auto; }
+/* Day view: stay centred when everything fits, but start at the top when a long name needs the room. */
+.wgrid.single .ev button { align-items: safe center; }
+.wgrid.single .ev .evcount { text-align: right; }
+@media (max-width: 640px) { .wgrid.single .ev .evr { min-width: 0; max-width: 66px; } .wgrid.single .ev button { gap: 10px; } }
