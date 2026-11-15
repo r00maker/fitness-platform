@@ -32,6 +32,9 @@ import {
   TIMES_OF_DAY,
   WAITLIST_MODES,
   WAITLIST_MODE_SETTINGS,
+  FEEDBACK_CATEGORIES,
+  FEEDBACK_STATUSES,
+  REVIEW_SNOOZE_WEEKS,
 } from "./enums.js";
 
 export const id = z.uuid({ message: "That ID doesn't look right." });
@@ -58,6 +61,10 @@ const timezone = z.string().refine(
 export const updateOrgSettings = z.object({
   substituteApproval: z.enum(SUB_APPROVAL_MODES).optional(),
   waitlistModes: z.enum(WAITLIST_MODE_SETTINGS).optional(),
+  reviewsEnabled: z.boolean().optional(),
+  googleReviewUrl: z.url({ protocol: /^https$/, message: "Use the full https:// link Google gives you for reviews." }).max(500).nullable().optional(),
+  celebrationsEnabled: z.boolean().optional(),
+  aiRecaps: z.boolean().optional(),
   waitlistHoldMinutes: z.number().int().min(1).max(120).optional(),
   waitlistExpiryOptionsHours: z
     .array(z.number().int().min(0).max(168))
@@ -376,6 +383,35 @@ export const deleteClosure = z.object({
   restoreClasses: z.boolean().default(true),
 });
 export const closureList = z.object({ include: z.enum(["upcoming", "all"]).default("upcoming") });
+
+// ---- Reviews, feedback, celebrations ---------------------------------------
+const snoozeWeeks = z.union(REVIEW_SNOOZE_WEEKS.map((w) => z.literal(w)) as unknown as [z.ZodLiteral<2>, z.ZodLiteral<4>, z.ZodLiteral<8>, z.ZodLiteral<12>]);
+export const createReview = z.object({
+  bookingId: id,
+  rating: z.number().int().min(1, "Choose from 1 to 5 stars.").max(5, "Choose from 1 to 5 stars."),
+  comment: z.string().trim().max(500, "Keep it under 500 characters.").nullish(),
+  /** "Don't ask me for N weeks": only with a review. */
+  snoozeWeeks: snoozeWeeks.optional(),
+});
+export const skipReview = z.object({ bookingId: id });
+export const reviewSnooze = z.object({ weeks: z.union([z.literal(0), snoozeWeeks]) });
+export const reviewQuery = z.object({
+  classTypeId: id.optional(),
+  instructorId: id.optional(),
+  locationId: id.optional(),
+  stars: z.enum(["1", "2", "3", "4", "5", "low"]).optional(),
+  days: z.enum(["30", "90", "365", "all"]).default("90"),
+});
+export const handleReview = z.object({ reply: z.string().trim().max(1000, "Keep the reply under 1,000 characters.").nullish() });
+export const createFeedback = z.object({
+  category: z.enum(FEEDBACK_CATEGORIES),
+  message: z.string().trim().min(5, "Tell us a little more (at least a few words).").max(1000, "Keep it under 1,000 characters."),
+  locationId: id.nullish(),
+});
+export const feedbackReply = z.object({ body: z.string().trim().min(1, "Write a reply.").max(1000, "Keep the reply under 1,000 characters.") });
+export const updateFeedback = z.object({ status: z.enum(FEEDBACK_STATUSES) });
+export const feedbackQuery = z.object({ category: z.enum(FEEDBACK_CATEGORIES).optional(), status: z.enum(FEEDBACK_STATUSES).optional() });
+export const celebrationsPref = z.object({ off: z.boolean() });
 
 // ---- Calendar ---------------------------------------------------------------
 export const calendarQuery = z.object({

@@ -47,7 +47,7 @@ export async function usageFor(db: DbOrTx, cfg: Pick<Config, "ASSISTANT_MONTHLY_
 }
 
 /** What each AI job uses. */
-export const AI_CREDITS = { answer: 1, announcement: 1, campaign: 3 } as const;
+export const AI_CREDITS = { answer: 1, announcement: 1, campaign: 3, recap: 1 } as const;
 
 /** Before asking the model: are there enough credits left? */
 export async function assertCanAsk(db: DbOrTx, cfg: Pick<Config, "ASSISTANT_MONTHLY_REPLIES">, orgId: string, now = new Date(), cost = 1) {

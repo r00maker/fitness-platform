@@ -256,6 +256,8 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
 /** Friendly wording for option values shown in dropdowns and badges. */
 export const OPTION_LABELS = {
   waitlistMode: { automatic: "Book me in automatically", manual: "Ask me first" },
+  feedbackCategory: { facilities: "Facilities and comfort", classes: "Classes and schedule", instructors: "Instructors", app: "App and booking", prices: "Prices and packages", other: "Something else" },
+  feedbackStatus: { new: "New", in_progress: "Replied", resolved: "Sorted" },
   waitlistModes: { both: "Clients choose", automatic: "Always book in automatically", manual: "Always ask first" },
   subApprovalMode: { automatic: "First to accept gets it", manual: "Admin chooses" },
   refundMethod: { none: "No refund", credit: "Return class credit", original_payment: "Refund payment" },

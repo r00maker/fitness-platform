@@ -37,6 +37,30 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
       pushBody: d.role === "waitlist" ? `Closed ${s(d.dates)}. You've been taken off the waitlist.` : `Closed ${s(d.dates)}. ${one ? "1 class has" : `${items.length} classes have`} been cancelled.`,
     };
   },
+  "review.low": (d) => ({
+    subject: `A ${s(d.stars)}-star review for ${s(d.className)}`,
+    body: `${s(d.clientName)} gave ${s(d.className)} on ${s(d.displayDate)} ${s(d.stars)} out of 5 stars.${d.comment ? ` They wrote: "${s(d.comment)}"` : ""} You can follow it up under Feedback, Needs attention.`,
+    pushTitle: "A low review to look at",
+    pushBody: `${s(d.stars)} stars for ${s(d.className)} on ${s(d.displayDate)}.`,
+  }),
+  "review.reply": (d) => ({
+    subject: `About your review of ${s(d.className)}`,
+    body: `Thanks for your review of ${s(d.className)} on ${s(d.displayDate)}. ${s(d.studioName)} replied: "${s(d.reply)}"`,
+    pushTitle: `${s(d.studioName)} replied to your review`,
+    pushBody: s(d.reply).slice(0, 120),
+  }),
+  "feedback.new": (d) => ({
+    subject: `${d.followUp ? "More from" : "New feedback from"} ${s(d.clientName)}: ${s(d.categoryLabel)}`,
+    body: `${s(d.clientName)} wrote${d.locationName ? ` about ${s(d.locationName)}` : ""}: "${s(d.message)}" Reply under Feedback, ${s(d.categoryLabel)}.`,
+    pushTitle: `Feedback: ${s(d.categoryLabel)}`,
+    pushBody: s(d.message).slice(0, 120),
+  }),
+  "feedback.replied": (d) => ({
+    subject: `${s(d.studioName)} replied to your feedback`,
+    body: `You wrote: "${s(d.message)}"\n\n${s(d.studioName)} replied: "${s(d.reply)}"\n\nYou can see it, and reply, under Feedback in the app.`,
+    pushTitle: `${s(d.studioName)} replied`,
+    pushBody: s(d.reply).slice(0, 120),
+  }),
   "membership.payment_failed": (d) => ({
     subject: `Payment didn't go through for ${s(d.packageName)}`,
     body: `We couldn't take ${s(d.amount)} for your ${s(d.packageName)}${d.reason ? ` (${s(d.reason)})` : ""}. Your membership is on hold, so you can't book with it for now. We'll try your card again on ${s(d.nextTry)}, or you can update your card or pay at the studio. If it isn't paid by ${s(d.holdUntil)}, the membership will end.`,
