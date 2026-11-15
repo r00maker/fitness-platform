@@ -10,6 +10,7 @@
  *  - Emails are stored as plain text (never as HTML), so nothing in an email can run in the app.
  *  - Unlike WhatsApp, email costs nothing to send, so there's no billing step.
  */
+import { featureOnSql } from "../settings/features.js";
 import type { FastifyInstance } from "fastify";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { z } from "zod";
@@ -190,7 +191,8 @@ export async function syncEmail(db: Db, cfg: Cfg, orgId: string, now = new Date(
 
 /** Worker: sync every connected mailbox. */
 export async function syncAllEmail(db: Db, cfg: Cfg) {
-  const all = await db.select({ orgId: emailAccounts.orgId }).from(emailAccounts);
+  // Skips studios that have switched the inbox off (Setup, Features).
+  const all = await db.select({ orgId: emailAccounts.orgId }).from(emailAccounts).where(featureOnSql(emailAccounts.orgId, "inbox"));
   let n = 0;
   for (const { orgId } of all) n += await syncEmail(db, cfg, orgId);
   return n;

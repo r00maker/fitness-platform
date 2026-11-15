@@ -35,6 +35,7 @@ import { closureRoutes } from "./modules/closures/routes.js";
 import { dashboardRoutes } from "./modules/dashboard/routes.js";
 import { reviewRoutes } from "./modules/reviews/routes.js";
 import { momentRoutes } from "./modules/moments/routes.js";
+import { featureGate, featureRoutes } from "./modules/settings/features.js";
 import { settingsRoutes } from "./modules/settings/routes.js";
 import { substituteRoutes } from "./modules/substitutes/routes.js";
 import { waitlistRoutes } from "./modules/waitlist/routes.js";
@@ -95,7 +96,9 @@ export async function buildApp(opts: { config: Config; db: Db }) {
   await app.register(
     async (v1) => {
       await v1.register(auth, { config: opts.config, db: opts.db });
+      await v1.register(featureGate);
       await v1.register(settingsRoutes);
+      await v1.register(featureRoutes);
       await v1.register(catalogRoutes);
       await v1.register(sessionRoutes);
       await v1.register(closureRoutes);

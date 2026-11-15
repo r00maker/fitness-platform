@@ -45,12 +45,13 @@ export async function shopRoutes(app: FastifyInstance) {
     soldOut: p.options.length ? p.options.every((o) => o.stock !== null && o.stock <= 0) : p.stock !== null && p.stock <= 0,
     ...(admin ? { stock: p.stock, onSale: p.onSale } : {}),
   });
-  const currencyOf = async (orgId: string) => (await db.select({ c: organizations.currency, gc: organizations.giftCardsEnabled }).from(organizations).where(eq(organizations.id, orgId)))[0]!;
+  const currencyOf = async (orgId: string) => (await db.select({ c: organizations.currency, gc: organizations.giftCardsEnabled, off: organizations.featuresOff }).from(organizations).where(eq(organizations.id, orgId)))[0]!;
 
   /** What clients see. `visible` is false when there's nothing to buy, so the app hides the Shop. */
   app.get("/shop", async (req) => {
     const org = await currencyOf(req.auth.orgId);
-    const list = await db.select().from(products).where(and(eq(products.orgId, req.auth.orgId), isNull(products.archivedAt), eq(products.onSale, true))).orderBy(asc(products.sortOrder), asc(products.name));
+    // Shop switched off (Setup, Features): gift cards can still be sold here, but no products.
+    const list = org.off.includes("shop") ? [] : await db.select().from(products).where(and(eq(products.orgId, req.auth.orgId), isNull(products.archivedAt), eq(products.onSale, true))).orderBy(asc(products.sortOrder), asc(products.name));
     return { visible: list.length > 0 || org.gc, giftCards: org.gc, products: list.map((p) => view(p, org.c, false)) };
   });
 

@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "features_off" text[] DEFAULT '{}'::text[] NOT NULL;

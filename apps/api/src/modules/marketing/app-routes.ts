@@ -469,6 +469,8 @@ export async function marketingAppRoutes(app: FastifyInstance) {
     const org = await getOrg(db, req.auth.orgId);
     if (!org.giftCardsEnabled) return { enabled: false };
     const designs = await db.select().from(giftCardDesigns).where(and(eq(giftCardDesigns.orgId, org.id), eq(giftCardDesigns.active, true))).orderBy(asc(giftCardDesigns.sortOrder));
+    // Switched on under Setup, Features but not set up yet: nothing to sell, so it stays hidden.
+    if (!designs.length || (!org.giftCardAmounts.length && org.giftCardCustomMinCents === null)) return { enabled: false };
     return {
       enabled: true,
       designs: designs.map((d) => ({ id: d.id, name: d.name, imageUrl: publicFileUrl(app.config.PUBLIC_API_URL, d.fileId) })),

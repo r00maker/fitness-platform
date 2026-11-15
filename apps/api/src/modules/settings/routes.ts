@@ -8,6 +8,7 @@ import { badRequest } from "../../lib/errors.js";
 import { money } from "../bookings/rules.js";
 import { getOrg } from "../sessions/context.js";
 import { instructorHistory } from "../sessions/people.js";
+import { featureState } from "./features.js";
 
 export async function settingsRoutes(app: FastifyInstance) {
   /** Labels and tooltips, so the apps can update wording without a new app release. */
@@ -57,8 +58,11 @@ export async function settingsRoutes(app: FastifyInstance) {
   /** Admins get every setting; everyone else gets the studio's policies in plain terms. */
   app.get("/settings", async (req) => {
     const org = await getOrg(app.db, req.auth.orgId);
-    if (can(req.auth.role, "manageSettings")) return org;
+    /** Which features the studio uses, so the apps can hide what's switched off. */
+    const features = featureState(org);
+    if (can(req.auth.role, "manageSettings")) return { ...org, features };
     return {
+      features,
       waitlistExpiryOptionsHours: org.waitlistExpiryOptionsHours,
       /** "both" = clients choose; otherwise every waitlist works this way (the app skips the choice). */
       waitlistModes: org.waitlistModes,

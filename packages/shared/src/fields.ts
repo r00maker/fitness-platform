@@ -216,6 +216,7 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   already_happened: "Class has already happened",
   many_classes: "Lots of classes at once",
   delete_template: "Delete this template?",
+  feature_off: "Switch this off?",
   attendance_locked: "Attendance is locked",
   fee_not_final: "Attendance can still change",
   closed_day: "The studio is closed that day",
@@ -365,27 +366,94 @@ export const ACTION_HELP = {
   monthView: "The whole month at a glance. Tap a day to open it.",
 } as const satisfies Record<string, string>;
 
-/** The left-hand menu. Each item shows only to the roles listed. */
+/**
+ * The menu. Related pages are grouped into one item with tabs, so the staff menu stays short
+ * (about 12 items with everything switched on). `feature` hides an item or tab when that
+ * feature is switched off (see features.ts); an item whose tabs are all hidden is hidden too.
+ * `labels` gives a different name for some roles. Tab ids are the old page ids, so links to
+ * them keep working (they open the item with that tab selected).
+ */
 export const NAV_ITEMS = [
-  { id: "schedule", label: "Schedule", group: "Studio", roles: ["owner", "admin", "front_desk", "instructor", "client"], help: "The class calendar." },
-  { id: "my-bookings", label: "My bookings", group: "Studio", roles: ["client"], help: "Classes you're booked into or waiting for." },
-  { id: "cover", label: "Cover requests", group: "Studio", roles: ["owner", "admin", "instructor"], help: "Classes that need another instructor, and requests waiting for you." },
-  { id: "clients", label: "Clients", group: "Studio", roles: ["owner", "admin"], help: "Everyone who books with you: contact details, history, tags and fees." },
-  { id: "fees", label: "Fees", group: "Studio", roles: ["owner", "admin"], help: "Late-cancellation and no-show fees to collect or waive." },
-  { id: "packages", label: "Packages", group: "Studio", roles: ["owner", "admin"], help: "The packages and memberships you sell, and their rules." },
-  { id: "payroll", label: "Payroll", group: "Studio", roles: ["owner", "admin"], help: "Pay rates and what each instructor and staff member is owed for each pay period." },
-  { id: "my-pay", label: "My pay", group: "Studio", roles: ["instructor"], help: "Your classes and earnings for each pay period." },
+  // Day to day
+  { id: "home", label: "Home", labels: { instructor: "My day" }, group: "Day to day", roles: ["owner", "admin", "front_desk", "instructor"], help: "Today at a glance, what needs you, and how the studio is doing." },
+  { id: "schedule", label: "Schedule", labels: { instructor: "My schedule", client: "Book a class" }, group: "Day to day", roles: ["owner", "admin", "front_desk", "instructor", "client"], help: "The class calendar." },
+  { id: "my-bookings", label: "My bookings", group: "Day to day", roles: ["client"], help: "Classes you're booked into or waiting for." },
+  { id: "cover", label: "Cover requests", group: "Day to day", roles: ["owner", "admin", "instructor"], help: "Classes that need another instructor, and requests waiting for you." },
+  {
+    id: "comms", label: "Communication", group: "Day to day", roles: ["owner", "admin", "front_desk"], help: "Client messages, and notices for everyone in the app.",
+    tabs: [
+      { id: "inbox", label: "Inbox", feature: "inbox", help: "Read and answer client WhatsApp messages." },
+      { id: "announcements", label: "Announcements", help: "Quick notices for clients, e.g. a lift out of order, shown in the app and sent as a push notification." },
+    ],
+  },
+  { id: "pickups", label: "Pickups", group: "Day to day", roles: ["front_desk"], feature: ["shop", "loyalty"], help: "Shop orders and rewards to hand over at the desk." },
+  // Clients and money
+  {
+    id: "clients", label: "Clients", group: "Clients and money", roles: ["owner", "admin"], help: "Everyone who books with you, and people who might.",
+    tabs: [
+      { id: "clients", label: "Clients", help: "Contact details, history, tags and fees." },
+      { id: "leads", label: "Leads", feature: "leads", help: "People who aren't paying members yet: ad enquiries, ClassPass clients and walk-ins." },
+    ],
+  },
+  {
+    id: "money", label: "Money", group: "Clients and money", roles: ["owner", "admin"], help: "Sales, fees to collect and shop orders.",
+    tabs: [
+      { id: "sales", label: "Sales", help: "Invoices, receipts and refunds." },
+      { id: "fees", label: "Fees", help: "Late-cancellation and no-show fees to collect or waive." },
+      { id: "shop", label: "Shop", feature: "shop", help: "Products for sale and orders to hand over." },
+    ],
+  },
+  { id: "packages", label: "Packages", group: "Clients and money", roles: ["owner", "admin"], help: "The packages and memberships you sell, and their rules." },
+  // Grow
+  {
+    id: "marketing", label: "Marketing", group: "Grow", roles: ["owner", "admin"], help: "Reach clients and reward them for coming back.",
+    tabs: [
+      { id: "campaigns", label: "Emails and journeys", feature: "marketing", help: "Email campaigns and automatic journeys." },
+      { id: "banners", label: "Banners", help: "Pictures with a link at the top of the client app." },
+      { id: "gift-cards", label: "Gift cards", feature: "giftCards", help: "Gift card designs, amounts and cards sold." },
+      { id: "referrals", label: "Refer a friend", feature: "referrals", help: "Rewards for clients who bring a friend." },
+      { id: "loyalty", label: "Loyalty", feature: "loyalty", help: "Points for classes, and the rewards they buy." },
+    ],
+  },
+  {
+    id: "feedback", label: "Feedback and reviews", group: "Grow", roles: ["owner", "admin", "front_desk"], help: "What clients tell you, and how they rate their classes.",
+    tabs: [
+      { id: "feedback", label: "Feedback", help: "Messages from clients by topic, with replies." },
+      { id: "reviews", label: "Reviews", feature: "reviews", roles: ["owner", "admin"], help: "Star ratings by class type and instructor." },
+    ],
+  },
+  { id: "reports", label: "Reports", group: "Grow", roles: ["owner", "admin"], help: "Money in, sales, how full classes are, whether clients come back, and how new people convert." },
+  // Team
+  {
+    id: "staff", label: "Staff and pay", group: "Team", roles: ["owner", "admin"], help: "Your team, their access levels and what each person is paid.",
+    tabs: [
+      { id: "staff", label: "Staff", help: "Your team and their access levels." },
+      { id: "payroll", label: "Payroll", feature: "payroll", help: "Pay rates and what each person is owed for each pay period." },
+    ],
+  },
+  { id: "agents", label: "Agents", group: "Team", roles: ["owner", "admin"], feature: "agents", help: "Automatic reminders and summaries for your staff." },
+  // Setup
+  {
+    id: "setup", label: "Setup", group: "Setup", roles: ["owner", "admin"], help: "Your classes, locations, rules and which features you use.",
+    tabs: [
+      { id: "class-types", label: "Class types", help: "Your classes, their calendar colours and who can teach them." },
+      { id: "templates", label: "Templates", help: "Saved class details so new classes take a couple of clicks." },
+      { id: "locations", label: "Locations and rooms", help: "Your studios, their rooms and the spots in each room." },
+      { id: "closures", label: "Closures and holidays", help: "Days the studio is closed, with the classes they cancel." },
+      { id: "policies", label: "Studio rules", help: "Booking window, cancellations, fees, waivers, waitlist and cover settings." },
+      { id: "features", label: "Features", help: "Switch on what your studio uses. Switching something off hides it; nothing is deleted." },
+    ],
+  },
+  // Instructors
+  { id: "my-reviews", label: "My reviews", group: "Day to day", roles: ["instructor"], feature: "reviews", help: "How clients rate your classes." },
+  { id: "my-pay", label: "My pay", group: "Day to day", roles: ["instructor"], feature: "payroll", help: "Your classes and earnings for each pay period." },
+  // Clients
   { id: "my-packages", label: "My packages", group: "Studio", roles: ["client"], help: "Your packages: classes left, expiry dates and who you share them with." },
-  { id: "marketing", label: "Marketing", group: "Studio", roles: ["owner", "admin"], help: "Segments, emails, journeys, banners, gift cards and referrals." },
-  { id: "announcements", label: "Announcements", group: "Studio", roles: ["owner", "admin", "front_desk"], help: "Quick notices for clients, e.g. a lift out of order, shown in the app and sent as a push notification." },
-  { id: "gift-cards", label: "Gift cards", group: "Studio", roles: ["client"], help: "Gift cards you've bought, given or received, and your studio credit." },
-  { id: "refer", label: "Refer a friend", group: "Studio", roles: ["client"], help: "Your referral link and the rewards you've earned." },
-  { id: "staff", label: "Staff & pay", group: "Setup", roles: ["owner", "admin"], help: "Your team, their access levels and how each person is paid." },
-  { id: "class-types", label: "Class types", group: "Setup", roles: ["owner", "admin"], help: "Your classes, their calendar colours and who can teach them." },
-  { id: "templates", label: "Templates", group: "Setup", roles: ["owner", "admin"], help: "Saved class details so new classes take a couple of clicks." },
-  { id: "locations", label: "Locations & rooms", group: "Setup", roles: ["owner", "admin"], help: "Your studios, their rooms and the spots in each room." },
-  { id: "policies", label: "Studio rules", group: "Setup", roles: ["owner", "admin"], help: "Booking window, cancellations, fees, waivers, spot booking, waitlist and cover settings." },
+  { id: "rewards", label: "Rewards", group: "Studio", roles: ["client"], feature: "loyalty", help: "Your points and the rewards you can swap them for." },
+  { id: "refer", label: "Refer a friend", group: "Studio", roles: ["client"], feature: "referrals", help: "Your referral link and the rewards you've earned." },
+  { id: "client-shop", label: "Shop", group: "Studio", roles: ["client"], feature: ["shop", "giftCards"], help: "Products and gift cards, and your studio credit." },
+  { id: "my-feedback", label: "Feedback", group: "Studio", roles: ["client"], help: "Tell the studio what's working and what isn't." },
   { id: "health", label: "Injuries & conditions", group: "Account", roles: ["client"], help: "Let your instructors know about an injury, pregnancy or condition, and mark it resolved when you're better." },
-  { id: "preferences", label: "Preferences", group: "Account", roles: ["owner", "admin", "front_desk", "instructor", "client"], help: "Appearance (light or dark) and other personal settings." },
   { id: "profile", label: "Profile & privacy", group: "Account", roles: ["client"], help: "Your details, your waiver and who can see you on class lists." },
+  { id: "preferences", label: "Preferences", group: "Account", roles: ["owner", "admin", "front_desk", "instructor", "client"], help: "Appearance (light or dark) and other personal settings." },
 ] as const;

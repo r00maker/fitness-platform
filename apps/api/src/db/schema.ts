@@ -231,6 +231,8 @@ export const organizations = pgTable("organizations", {
   referralsEnabled: boolean("referrals_enabled").notNull().default(false),
   /** Pause every agent at once (each agent can also be switched off on its own). */
   agentsPaused: boolean("agents_paused").notNull().default(false),
+  /** Features the studio has switched off (see FEATURES in @studio/shared). Features with their own setting aren't listed here. */
+  featuresOff: text("features_off").array().notNull().default(sql`'{}'::text[]`),
   referralQualify: text("referral_qualify").notNull().default("classes_attended"),
   referralQualifyValue: integer("referral_qualify_value").notNull().default(3),
   referralQualifyWithinDays: integer("referral_qualify_within_days").notNull().default(60),
