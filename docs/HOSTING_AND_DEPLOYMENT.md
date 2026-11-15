@@ -30,6 +30,8 @@ Both the API and the worker are the same Docker image (`apps/api/Dockerfile`) st
 
 The app only depends on containers and standard PostgreSQL, so moving from stage 1 to stage 2 is a migration of infrastructure, not a rewrite.
 
+**For the launch in Singapore, host in Singapore** (for example AWS ap-southeast-1, or a Singapore region on the managed platforms). The launch checklist (payments, data protection, pilots) is in `MARKET_AND_LAUNCH.md`.
+
 **Pick the region where your studios and their clients are**, because data-protection laws (GDPR in the UK/EU, PDPA in Singapore, the Privacy Act in Australia, etc.) can care where personal data is stored. If you expand to another region later, you can run a separate copy of the stack there.
 
 Mobile apps are built and published with **Expo EAS** (React Native) to the App Store and Google Play.
@@ -135,6 +137,8 @@ Claude only sees what our tools return. Every tool runs with the requesting stud
 
 ## 6. Email inbox (Gmail and Outlook)
 
+**Paused for launch** (see `MARKET_AND_LAUNCH.md`): Google needs a yearly independent security check for apps that read Gmail, and WhatsApp is the main channel in the region. The code stays; leave the Google and Microsoft settings empty to hide it.
+
 Studios connect their own mailbox by signing in with Google or Microsoft. The platform needs one OAuth app with each:
 
 1. **Google:** in Google Cloud Console, create an OAuth client (Web application). Add the redirect URI `https://<api-host>/v1/public/comms/email/callback/gmail`. Enable the Gmail API. The app asks for the `gmail.modify` scope, which Google treats as restricted: before going public, the app needs Google's verification (and a security assessment). Until then it works for up to 100 test users.
@@ -145,4 +149,4 @@ Refresh tokens are stored encrypted with `SECRETS_KEY`. The worker checks connec
 
 ## 7. Membership renewals and card payments
 
-Recurring memberships renew through a **renewal charger** (`setRenewalCharger` in `modules/packages/payments.ts`). Without a payment provider connected, renewals stay "pay at the desk" and nothing is put on hold. Once a provider (e.g. Stripe, which supports PayNow, GrabPay and cards in the region) is connected, a declined renewal puts the membership on hold for 7 days, retries on days 3 and 7, and then ends it and charges any early termination fee. The worker runs the retries every 15 minutes.
+Recurring memberships renew through a **renewal charger** (`setRenewalCharger` in `modules/packages/payments.ts`). Without a payment provider connected, renewals stay "pay at the desk" and nothing is put on hold. Use **Stripe Connect** so payments go straight to each studio's own account and the platform never holds clients' money (holding it could need a MAS licence; confirm with a lawyer). Once a provider (e.g. Stripe, which supports PayNow, GrabPay and cards in the region) is connected, a declined renewal puts the membership on hold for 7 days, retries on days 3 and 7, and then ends it and charges any early termination fee. The worker runs the retries every 15 minutes.

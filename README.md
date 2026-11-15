@@ -26,7 +26,7 @@ packages/shared/     Used by the API, web app and mobile app:
   fields.ts            plain-English labels + hover help for every field
   schemas.ts           request validation (same rules on the forms and the server)
   enums.ts             every option list (roles, statuses, modes…)
-docs/                Hosting, deployment and product-gap notes
+docs/                Hosting, product notes, the market review and launch plan
 ```
 
 ## Run it locally
@@ -98,6 +98,7 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Reviews | `GET /me/review-prompt`, `POST /reviews`, `POST /reviews/skip`, `PUT /me/review-snooze`, `GET /reviews` | clients review; admins see all, instructors their own |
 | Feedback | `POST /feedback`, `GET /me/feedback`, `GET /feedback`, `POST /feedback/:id/replies` | clients send; owner, admin, Front of House answer |
 | Celebrations | `GET /me/moments`, `POST /moments/:id/seen`, `PUT /me/celebrations` | owners, admins, instructors |
+| Feature switches | `GET /features`, `PUT /features/:key` (switching off asks first when something is running); the switches are also in `GET /settings` | owner, admin (everyone can read them) |
 | Home (staff front page) | `GET /dashboard?days=7\|30&locationId=` | staff; what's shown depends on role |
 | Cancelled classes on the calendar | `GET /calendar?includeCancelled=true` | staff (clients never see them) |
 | Who cancelled a class (Cancellations tab) | `cancellations` in `GET /sessions/:id` | admin, Front of House, the class's instructor |

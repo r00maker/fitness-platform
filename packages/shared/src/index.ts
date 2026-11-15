@@ -10,3 +10,4 @@ export * from "./marketing.js";
 export * from "./comms.js";
 export * from "./agents.js";
 export * from "./sales.js";
+export * from "./features.js";

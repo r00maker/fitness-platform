@@ -1524,6 +1524,26 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
 .wgrid.single .ev .evcount { text-align: right; }
 @media (max-width: 640px) { .wgrid.single .ev .evr { min-width: 0; max-width: 66px; } .wgrid.single .ev button { gap: 10px; } }
 
+/* Grouped menu: tabs across the top of pages that share a menu item (mkt20.js). */
+.hubtabs { display: flex; align-items: center; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; margin: -4px 0 14px; }
+.hubtabs::-webkit-scrollbar { display: none; }
+.hubtabs .hubname { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 0 12px 0 2px; white-space: nowrap; }
+.hubtabs button { border: 0; background: transparent; padding: 10px 12px; font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; border-radius: 0; display: inline-flex; align-items: center; gap: 6px; }
+.hubtabs button:hover { color: var(--fg); }
+.hubtabs button[aria-selected="true"] { color: var(--fg); font-weight: 600; border-bottom-color: var(--accent); }
+.hubtabs .n { font-size: 11px; font-weight: 600; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 6px; }
+@media (max-width: 640px) { .hubtabs .hubname { display: none; } }
+
+/* Setup, Features */
+.featsum { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.featsum b { color: var(--fg); }
+.featlist { display: flex; flex-direction: column; }
+.featrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line-soft); }
+.featrow:first-child { border-top: 0; padding-top: 4px; }
+.featrow b { font-size: 14px; }
+.featrow p { margin: 2px 0 0; font-size: 13px; color: var(--muted); max-width: 60ch; }
+.featrow .switch { flex: none; }
+
 /* MKT-CSS-END */
 </style>
 
@@ -2520,8 +2540,9 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
     $("#pgSchedule").hidden = !onSchedule;
     $("#pgOther").hidden = onSchedule;
     if (!onSchedule) {
-      $("#pgOther").innerHTML = PAGES[state.page]();
+      $("#pgOther").innerHTML = hubTabs() + PAGES[state.page]();
       BIND[state.page]?.();
+      bindHubTabs();
       renderSelBar();
       if (state.openId) renderDrawer();
       return;
@@ -3881,7 +3902,7 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
     { id: "preferences", group: "Account", roles: ["admin", "foh", "instructor", "client"], label: "Preferences", help: "Appearance (light or dark) and other personal settings." },
     { id: "profile", group: "Account", roles: ["client"], label: "Profile & privacy", help: "Your details, your waiver and who can see you on class lists." },
   ];
-  const navFor = (role) => NAV.filter((n) => n.roles.includes(role));
+  const navFor = (role) => NAV.filter((n) => n.roles.includes(role) && navAllowed(n.id, role));
   function renderNav() {
     const items = navFor(state.role).filter((i) => !i.hidden);
     const grp = (i) => (typeof i.group === "function" ? i.group(state.role) : i.group);
@@ -9269,7 +9290,7 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
   const totalStock = (p) => (p.options ? (p.options.some((o) => o.stock === null) ? null : p.options.reduce((a, o) => a + o.stock, 0)) : p.stock);
   const takeStock = (p, opt, qty) => { if (p.options) { const o = p.options.find((x) => x.name === opt); if (o && o.stock !== null) o.stock -= qty; } else if (p.stock !== null) p.stock -= qty; };
   function restockOrder(o) { for (const i of o.items) { const p = prodById(i.pid); if (p) takeStock(p, i.option, -i.qty); } }
-  const onSaleProducts = () => PRODUCTS.filter((p) => p.onSale);
+  const onSaleProducts = () => (featOn("shop") ? PRODUCTS.filter((p) => p.onSale) : []); // none while the shop is switched off
   /** Clients only see the Shop when there's something in it. */
   const shopVisible = () => onSaleProducts().length > 0 || GC.on;
   const prodPhoto = (p, cls = "") => p.photo ? `<div class="prodph ${cls}" style="background-image:url('${p.photo}')" role="img" aria-label="${esc(p.name)}"></div>` : `<div class="prodph ${cls} blank" style="--pt:${PROD_TINT[Number(p.id.slice(2)) % PROD_TINT.length]}" aria-hidden="true"><span>${esc(p.name.trim() ? initials(p.name.trim().replace(/\s+/g, " ")) : "?")}</span></div>`;
@@ -9282,7 +9303,10 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
   };
   function adminShop() {
     const waiting = SHOP_ORDERS.filter((o) => o.status === "waiting");
-    const tabs = `<div class="tabs" role="tablist">${[["products", "Products"], ["orders", `Orders${waiting.length ? `<span class="n">${waiting.length}</span>` : ""}`], ["giftcards", "Gift cards"]].map(([k, l]) => `<button type="button" role="tab" data-shtab="${k}" aria-selected="${SHOP.tab === k}">${l}</button>`).join("")}</div>`;
+    // Products and orders need the Shop feature; gift cards need Gift cards (Setup, Features).
+    const shTabs = [["products", "Products"], ["orders", `Orders${waiting.length ? `<span class="n">${waiting.length}</span>` : ""}`], ["giftcards", "Gift cards"]].filter(([k]) => (k === "giftcards" ? featOn("giftCards") : k === "orders" ? featOn("shop") || waiting.length > 0 : featOn("shop")));
+    if (!shTabs.some(([k]) => k === SHOP.tab)) SHOP.tab = shTabs[0]?.[0] || "products";
+    const tabs = `<div class="tabs" role="tablist">${shTabs.map(([k, l]) => `<button type="button" role="tab" data-shtab="${k}" aria-selected="${SHOP.tab === k}">${l}</button>`).join("")}</div>`;
     let body = "";
     if (SHOP.tab === "products") {
       body = `${!shopVisible() ? alertBox("info", "Clients can't see the Shop yet", "Put a product on sale (or turn gift cards on) and the Shop appears in clients' menu.") : ""}
@@ -10054,13 +10078,14 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
       if (ext || conf) out.push({ kind: "packages", sev: "soon", count: ext + conf, title: [ext ? hp(ext, "extension request") : "", conf ? `${hp(conf, "order")} to confirm` : ""].filter(Boolean).join(" and "), detail: conf ? "Mark orders paid when clients pay at the desk, so their package starts" : "Clients are waiting for an answer", go: "packages", label: "Open packages" });
     }
     if (role === "admin" || role === "foh") {
+      // Orders and rewards already under way still show while their feature is off: they still need handing over.
       const pick = SHOP_ORDERS.filter((o) => o.status === "waiting").length + (role === "foh" ? LOY_PICKUPS.filter((x) => x.status === "waiting").length : 0);
       if (pick) out.push({ kind: "pickups", sev: "fyi", count: pick, title: `${hp(pick, role === "foh" ? "order" : "shop order")} to hand over`, detail: role === "foh" ? "Shop orders and rewards waiting at the front desk" : "Waiting at the front desk", go: role === "foh" ? "pickups" : "shop", label: role === "foh" ? "Open pickups" : "Open the shop" });
-      const unread = unreadTotal();
+      const unread = featOn("inbox") ? unreadTotal() : 0;
       if (unread) out.push({ kind: "messages", sev: "fyi", count: unread, title: `${hp(unread, "unread message")}`, detail: "From clients on WhatsApp and email", go: "comms", label: "Open Communication" });
     }
     if (role === "admin" || role === "foh") {
-      const low = typeof lowToHandle === "function" ? lowToHandle().length : 0, fresh = typeof fbNew === "function" ? fbNew().length : 0;
+      const low = typeof lowToHandle === "function" && featOn("reviews") ? lowToHandle().length : 0, fresh = typeof fbNew === "function" ? fbNew().length : 0;
       if (low) out.push({ kind: "low_reviews", sev: "soon", count: low, title: `${hp(low, "low review")} to follow up`, detail: "2 stars or fewer. A quick, kind reply often wins a client back", go: "feedback", label: "Open Feedback" });
       if (fresh) out.push({ kind: "feedback", sev: "fyi", count: fresh, title: `${hp(fresh, "new piece", "new pieces")} of feedback`, detail: "From clients, waiting for a reply", go: "feedback", label: "Open Feedback" });
     }
@@ -10872,6 +10897,231 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
   }
   let fitTimer = 0;
   window.addEventListener("resize", () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitEvents, 80); });
+  // ===========================================================================
+  // Feature switches and the grouped menu. Same rules as features.ts in the API:
+  // switching a feature off hides it and stops it running; nothing is deleted.
+  // Related pages share one menu item with tabs, so the staff menu stays short.
+  // ===========================================================================
+  const FEATURE_LIST = [
+    { key: "marketing", group: "Grow", label: "Marketing emails and journeys", help: "Email campaigns to groups of clients, and automatic journeys such as a welcome series or a nudge for people who haven't been in for a while." },
+    { key: "giftCards", group: "Grow", label: "Gift cards", help: "Clients buy gift cards in the app to give or keep. Cards already sold can always be used." },
+    { key: "loyalty", group: "Grow", label: "Loyalty points and rewards", help: "Clients earn points for classes and swap them for rewards." },
+    { key: "referrals", group: "Grow", label: "Refer a friend", help: "Clients share a link and both sides get a reward when a friend joins." },
+    { key: "leads", group: "Grow", label: "Leads", help: "People who aren't paying members yet: ad enquiries, ClassPass clients and walk-ins, with follow-up emails." },
+    { key: "reviews", group: "Grow", label: "Reviews", help: "Clients are asked to rate their latest class, and you see the results by class type and instructor." },
+    { key: "shop", group: "Run", label: "Shop", help: "Sell drinks, merchandise and other products in the app, picked up at the front desk." },
+    { key: "payroll", group: "Run", label: "Payroll", help: "Pay rates for instructors and staff, and what each person is owed for each pay period." },
+    { key: "inbox", group: "Run", label: "Communication inbox", help: "Read and answer client WhatsApp messages in the app, alongside your phone." },
+    { key: "agents", group: "Run", label: "Agents", help: "Automatic reminders and summaries sent to your staff, such as tomorrow's classes that still need an instructor." },
+  ];
+  // Gift cards, loyalty, referrals and reviews already had their own switch; those stay the one source of truth.
+  STUDIO.featuresOff = new Set();
+  function featOn(k) {
+    if (k === "giftCards") return !!GC.on;
+    if (k === "loyalty") return !!LOY.on;
+    if (k === "referrals") return !!REF.on;
+    if (k === "reviews") return !!STUDIO.reviewsOn;
+    return !(STUDIO.featuresOff && STUDIO.featuresOff.has(k));
+  }
+  function setFeat(k, on) {
+    if (k === "giftCards") GC.on = on;
+    else if (k === "loyalty") LOY.on = on;
+    else if (k === "referrals") REF.on = on;
+    else if (k === "reviews") STUDIO.reviewsOn = on;
+    else if (on) STUDIO.featuresOff.delete(k);
+    else STUDIO.featuresOff.add(k);
+  }
+  /** Whether a page is available, given the features that are on (role checks happen in navFor). */
+  function navAllowed(id, role) {
+    if (!STUDIO.featuresOff) return true; // still starting up
+    switch (id) {
+      case "leads": return featOn("leads");
+      case "payroll": case "my-pay": return featOn("payroll");
+      case "reviews": return featOn("reviews");
+      case "agents": return featOn("agents");
+      case "loyalty": return featOn("loyalty");
+      case "refer": return featOn("referrals");
+      case "gift-cards": return featOn("giftCards");
+      case "comms": return featOn("inbox");
+      // Orders and rewards already waiting can always be handed over, even with the feature off.
+      case "shop": return featOn("shop") || featOn("giftCards") || (role !== "client" && SHOP_ORDERS.some((o) => o.status === "waiting"));
+      case "pickups": return featOn("shop") || featOn("loyalty") || SHOP_ORDERS.some((o) => o.status === "waiting") || LOY_PICKUPS.some((x) => x.status === "waiting");
+      default: return true;
+    }
+  }
+
+  // --- The grouped menu ---------------------------------------------------------
+  const HUBS = [
+    { id: "comms", label: "Communication", group: "Day to day", icon: "comms", help: "Client messages, and notices for everyone in the app.", tabs: [["comms", "Inbox"], ["announcements", "Announcements"]] },
+    { id: "clients", label: "Clients", group: "Clients & sales", icon: "clients", help: "Everyone who books with you, and people who might.", tabs: [["clients", "Clients"], ["leads", "Leads"]] },
+    { id: "money", label: "Money", group: "Clients & sales", icon: "sales", help: "Sales, fees to collect, the shop and gift cards.", tabs: [["sales", "Sales"], ["fees", "Fees"], ["shop", "Shop"]] },
+    { id: "feedback", label: "Feedback", group: "Growth", icon: "feedback", help: "What clients tell you, and how they rate their classes.", tabs: [["feedback", "Feedback"], ["reviews", "Reviews"]] },
+    { id: "staff", label: "Staff and pay", group: "Team", icon: "staff", help: "Your team, their access levels and what each person is paid.", tabs: [["staff", "Staff"], ["payroll", "Payroll"]] },
+    { id: "setup", label: "Setup", group: "Setup", icon: "policies", help: "Your classes, locations, rules and which features you use.", tabs: [["class-types", "Class types"], ["templates", "Templates"], ["locations", "Locations and rooms"], ["closures", "Closures and holidays"], ["policies", "Studio rules"], ["features", "Features"]] },
+  ];
+  const HUB_LAST = {};
+  NAV.push({ id: "features", group: "Setup", roles: ["admin"], label: "Features", help: "Switch on what your studio uses. Switching something off hides it; nothing is deleted." });
+  NAV_ORDER.find(([g]) => g === "Setup")[1].push("features");
+  ICONS.features = '<rect x="3.5" y="4" width="17" height="6" rx="3"/><circle cx="17" cy="7" r="1.6"/><rect x="3.5" y="14" width="17" height="6" rx="3"/><circle cx="7" cy="17" r="1.6"/>';
+
+  /** The hub a page belongs to for this role, if it shows as tabs (two or more visible). */
+  function hubFor(page, role = state.role) {
+    const hub = HUBS.find((h) => h.tabs.some(([t]) => t === page));
+    if (!hub) return null;
+    const ids = new Set(navFor(role).filter((n) => !n.hidden).map((n) => n.id));
+    const tabs = hub.tabs.filter(([t]) => ids.has(t));
+    return tabs.length > 1 && tabs.some(([t]) => t === page) ? { hub, tabs } : null;
+  }
+  const navLabel = (i) => (typeof i.label === "function" ? i.label(state.role) : i.label);
+  const navGrp = (g) => (typeof g === "function" ? g(state.role) : g);
+
+  function renderNav() {
+    const role = state.role;
+    const items = navFor(role).filter((i) => !i.hidden);
+    const byId = Object.fromEntries(items.map((i) => [i.id, i]));
+    const used = new Set();
+    const entries = [];
+    for (const i of items) {
+      if (used.has(i.id)) continue;
+      const h = hubFor(i.id, role);
+      if (h) {
+        h.tabs.forEach(([t]) => used.add(t));
+        const count = h.tabs.reduce((a, [t]) => a + (byId[t].count ? byId[t].count() : 0), 0);
+        const last = HUB_LAST[h.hub.id];
+        entries.push({ group: h.hub.group, sortId: h.tabs[0][0], id: h.tabs.some(([t]) => t === last) ? last : h.tabs[0][0], label: h.hub.label, help: h.hub.help, icon: h.hub.icon, count, current: h.tabs.some(([t]) => t === state.page) });
+      } else {
+        used.add(i.id);
+        // "Staff & pay" without Payroll is just Staff.
+        const label = i.id === "staff" && !navFor(role).some((n) => n.id === "payroll") ? "Staff" : navLabel(i);
+        entries.push({ group: navGrp(i.group), id: i.id, label, help: i.help, icon: i.id, count: i.count ? i.count() : 0, current: state.page === i.id });
+      }
+    }
+    const rank = (g) => { const k = NAV_ORDER.findIndex(([n]) => n === g); return k < 0 ? 99 : k; };
+    // Within a group, keep the group's own order; items that moved into it (like Feedback) go last.
+    const within = (e) => { const ids = NAV_ORDER.find(([n]) => n === e.group)?.[1] || []; const k = ids.indexOf(e.sortId || e.id); return k < 0 ? 999 : k; };
+    entries.sort((a, b) => rank(a.group) - rank(b.group) || within(a) - within(b));
+    const groups = [...new Set(entries.map((e) => e.group))];
+    $("#side").innerHTML = groups.map((g) => `<div class="navgrp"><h3>${g}</h3>${entries.filter((e) => e.group === g).map((e) =>
+      `<button type="button" class="navitem" data-nav="${e.id}" ${e.current ? 'aria-current="page"' : ""} data-help="${esc(e.help)}">${icon(e.icon)}<span>${esc(e.label)}</span>${e.count ? `<span class="count" aria-label="${e.count} need attention">${e.count}</span>` : ""}</button>`).join("")}</div>`).join("");
+  }
+
+  /** Tabs across the top of a page that shares a menu item with others. */
+  function hubTabs() {
+    const h = hubFor(state.page);
+    if (!h) return "";
+    HUB_LAST[h.hub.id] = state.page;
+    const byId = Object.fromEntries(navFor(state.role).map((i) => [i.id, i]));
+    return `<div class="hubtabs" role="tablist" aria-label="${esc(h.hub.label)}"><span class="hubname">${esc(h.hub.label)}</span>${h.tabs.map(([t, l]) => {
+      const n = byId[t].count ? byId[t].count() : 0;
+      return `<button type="button" role="tab" data-hubtab="${t}" aria-selected="${t === state.page}">${esc(l)}${n ? `<span class="n">${n}</span>` : ""}</button>`;
+    }).join("")}</div>`;
+  }
+  function bindHubTabs() {
+    document.querySelectorAll("[data-hubtab]").forEach((b) => (b.onclick = () => go(b.dataset.hubtab)));
+  }
+
+  // --- Pages that hide parts for switched-off features ----------------------------
+  // Marketing: emails, journeys, campaigns and segments need Marketing; loyalty, ads and referrals their own.
+  const MTABS_ALL = MTABS.slice();
+  const MTAB_FEATURE = { journeys: "marketing", emails: "marketing", campaigns: "marketing", segments: "marketing", loyalty: "loyalty", ads: "leads", referrals: "referrals" };
+  const pageMarketing = PAGES.marketing;
+  PAGES.marketing = function () {
+    MTABS.splice(0, MTABS.length, ...MTABS_ALL.filter(([k]) => !MTAB_FEATURE[k] || featOn(MTAB_FEATURE[k])));
+    if (!MTABS.some(([k]) => k === (state.mtab || "journeys"))) { state.mtab = MTABS[0][0]; state.jOpen = null; }
+    return pageMarketing();
+  };
+
+  // --- Setup, Features -------------------------------------------------------------
+  const plu = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+  /** What switching a feature off affects, in plain words (empty when nothing is running). */
+  function featWhatHappens(k) {
+    const out = [];
+    if (k === "marketing") {
+      const live = JOURNEYS.filter((j) => j.status === "live").length, sched = CAMPAIGNS.filter((c) => c.status === "scheduled").length;
+      if (live) out.push(`${plu(live, "live journey")} will be paused. When you switch Marketing back on, set ${live === 1 ? "it" : "them"} live again when you're ready.`);
+      if (sched) out.push(`${plu(sched, "scheduled campaign")} will go back to ${sched === 1 ? "a draft" : "drafts"} and won't be sent.`);
+    } else if (k === "leads") {
+      const due = LEADS.filter((l) => l.status === "new" || l.status === "contacted").length;
+      if (due) out.push(`${plu(due, "follow-up email")} to leads won't be sent.`);
+    } else if (k === "shop") {
+      const waiting = SHOP_ORDERS.filter((o) => o.status === "waiting").length;
+      if (waiting) out.push(`${plu(waiting, "order")} waiting at the desk can still be handed over.`);
+    } else if (k === "loyalty") {
+      const waiting = LOY_PICKUPS.filter((x) => x.status === "waiting").length;
+      out.push("Clients stop earning points. Their points are kept for when you switch it back on.");
+      if (waiting) out.push(`${plu(waiting, "reward")} waiting to be handed over can still be given.`);
+    } else if (k === "giftCards") {
+      out.push("Gift cards already sold can still be used. Clients just can't buy new ones.");
+    } else if (k === "agents") {
+      const on = AGENTS.filter((a) => a.enabled).length;
+      if (on) out.push(`${plu(on, "agent")} will stop sending reminders and summaries.`);
+    } else if (k === "inbox") {
+      const unread = CONVOS.filter((c) => c.status === "open" && c.unread > 0).length;
+      if (unread) out.push(`${plu(unread, "conversation")} with unread messages will be hidden. Reply from your phone in the meantime.`);
+    } else if (k === "payroll") {
+      out.push("Pay rates are kept, and instructors stop seeing My pay.");
+    } else if (k === "referrals") {
+      out.push("Referral links stop giving rewards. Rewards already earned are kept.");
+    } else if (k === "reviews") {
+      out.push("Clients stop being asked for reviews. Reviews already left are kept.");
+    }
+    return out;
+  }
+  function featStopRunning(k) {
+    if (k === "marketing") {
+      JOURNEYS.forEach((j) => { if (j.status === "live") j.status = "paused"; });
+      CAMPAIGNS.forEach((c) => { if (c.status === "scheduled") c.status = "draft"; });
+    }
+  }
+  /** After switching on: what's left to do before clients see it, if anything. */
+  function featNext(k) {
+    return {
+      giftCards: "Gift cards are on. Check the amounts and designs under Money, Shop, Gift cards.",
+      loyalty: "Loyalty is on. Check how many points each class earns and add rewards under Marketing, Loyalty.",
+      referrals: "Refer a friend is on. Choose the rewards for both sides under Marketing, Referrals.",
+      marketing: "Marketing is on. Journeys and campaigns you paused before stay paused; set them going again when you're ready.",
+      inbox: "The inbox is on. Connect your WhatsApp number under Communication if you haven't yet.",
+      payroll: "Payroll is on. Set each person's pay rate under Staff and pay.",
+      shop: "The shop is on. Add your products under Money, Shop.",
+    }[k] || `${FEATURE_LIST.find((f) => f.key === k).label} is on.`;
+  }
+  const staffMenuSize = () => {
+    const role = "admin", items = navFor(role).filter((i) => !i.hidden), used = new Set();
+    let n = 0;
+    for (const i of items) { if (used.has(i.id)) continue; const h = hubFor(i.id, role); (h ? h.tabs.map(([t]) => t) : [i.id]).forEach((t) => used.add(t)); n++; }
+    return n;
+  };
+
+  PAGES.features = function () {
+    const on = FEATURE_LIST.filter((f) => featOn(f.key)).length;
+    const card = (g, title) => `<div class="card"><h3>${title}</h3><div class="featlist">${FEATURE_LIST.filter((f) => f.group === g).map((f) =>
+      `<div class="featrow"><div><b>${esc(f.label)}</b><p>${esc(f.help)}</p></div>${toggle(`ft-${f.key}`, featOn(f.key), f.label)}</div>`).join("")}</div></div>`;
+    return head("Features", "Switch on what your studio uses. Switching something off hides it from the menus and stops it running. Nothing is deleted, so you can switch it back on any time.") +
+      `<p class="featsum"><b>${on} of ${FEATURE_LIST.length}</b> switched on · your menu has <b>${staffMenuSize()} items</b></p>` +
+      card("Grow", "Growing the studio") + card("Run", "Running the studio");
+  };
+  BIND.features = function () {
+    for (const f of FEATURE_LIST) {
+      const el = $(`#ft-${f.key}`);
+      if (!el) continue;
+      el.onchange = () => {
+        const want = el.checked;
+        const apply = () => {
+          if (!want) featStopRunning(f.key);
+          setFeat(f.key, want);
+          render();
+          toast(want ? featNext(f.key) : `${f.label} is off. Nothing is deleted; switch it back on any time.`);
+        };
+        const lines = want ? [] : featWhatHappens(f.key);
+        if (!lines.length) { apply(); return; }
+        confirmFlags([{ level: "confirm", title: "Switch this off?", msg: `Switch off ${f.label}? It's hidden from the menus, and nothing is deleted. ${lines.join(" ")}` }], {
+          proceed: apply,
+          back: () => { el.checked = true; },
+          proceedLabel: "Switch off",
+        });
+      };
+    }
+  };
 
   // MKT-JS-END
   window.addEventListener("hashchange", () => { const id = location.hash.slice(1); if (id !== state.page && navFor(state.role).some((n) => n.id === id)) go(id); });

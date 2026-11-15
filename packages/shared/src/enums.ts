@@ -335,6 +335,7 @@ export const FLAG_CODES = [
   "appointment_no_client",
   "delete_class_type",
   "delete_template",
+  "feature_off",
   "attendance_locked",
   "fee_not_final",
   "whatsapp_charge",

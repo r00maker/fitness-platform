@@ -101,7 +101,8 @@ export function nextRun(def: AgentDefinition, tz: string, after: Date): Date | n
   return null;
 }
 
-const paused = sql`exists (select 1 from organizations o where o.id = ${agents.orgId} and o.agents_paused)`;
+// Paused, or the Agents feature is switched off (Setup, Features).
+const paused = sql`exists (select 1 from organizations o where o.id = ${agents.orgId} and (o.agents_paused or 'agents' = any(o.features_off)))`;
 
 /** Worker: run every daily agent that's due, and before-class agents for classes coming up. */
 export async function runDueAgents(db: Db, now = new Date()) {

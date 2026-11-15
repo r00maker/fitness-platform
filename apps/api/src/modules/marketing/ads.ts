@@ -16,6 +16,7 @@
  *
  * Tokens are stored encrypted (see lib/secrets.ts) and are never sent back to the apps.
  */
+import { featureOnSql } from "../settings/features.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { createHmac } from "node:crypto";
 import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
@@ -136,7 +137,7 @@ export async function createLead(tx: DbOrTx, orgId: string, input: NewLead, urls
 /** Worker: reminders to leads who haven't joined yet. */
 export async function leadFollowUps(db: Db, urls: Urls, now = new Date()) {
   return db.transaction(async (tx) => {
-    const due = await tx.select().from(leads).where(and(isNotNull(leads.nextFollowUpAt), lte(leads.nextFollowUpAt, now), isNull(leads.clientId), inArray(leads.status, ["new", "contacted"]), eq(leads.unsubscribed, false))).limit(200).for("update", { skipLocked: true });
+    const due = await tx.select().from(leads).where(and(isNotNull(leads.nextFollowUpAt), lte(leads.nextFollowUpAt, now), isNull(leads.clientId), inArray(leads.status, ["new", "contacted"]), eq(leads.unsubscribed, false), featureOnSql(leads.orgId, "leads"))).limit(200).for("update", { skipLocked: true });
     for (const l of due) {
       const s = await settingsFor(tx, l.orgId);
       if (s.leadFollowUp && s.leadReminderEmailId) await emailLead(tx, await getOrg(tx, l.orgId), s.leadReminderEmailId, l, urls);
