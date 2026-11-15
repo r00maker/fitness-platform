@@ -490,7 +490,7 @@
       askState.msgs.push({ who: "bot", html: `<p>Done. ${esc(c.name)} is booked into ${esc(clsLabel(s))}${dg.pk ? ` with their ${esc(dg.pk.name)}` : ""}, and they've been sent a confirmation.</p>` });
     } else if (a.type === "cancel") {
       const r = s.roster.find((x) => x.ci === a.ci);
-      if (r) { giveBack(r, s, "Cancelled"); s.roster.splice(s.roster.indexOf(r), 1); }
+      if (r) { giveBack(r, s, "Cancelled"); logCancel(s, a.ci, { how: "staff", returned: r.pay?.kind === "package", reason: "Cancelled through the assistant" }); s.roster.splice(s.roster.indexOf(r), 1); }
       askState.msgs.push({ who: "bot", html: `<p>Done. ${esc(c.name)}'s booking is cancelled and the class is back on their package. They've been told.</p>` });
     } else {
       if (!s.waitlist.some((w) => w.ci === a.ci)) s.waitlist.push({ ci: a.ci, mode: "automatic", cutoff: null });

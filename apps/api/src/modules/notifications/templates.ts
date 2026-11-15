@@ -20,6 +20,23 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: "Class cancelled",
     pushBody: `${when(d)} has been cancelled.`,
   }),
+  /** One message per person when a closure cancels their classes, however many there are. */
+  "closure.cancelled": (d) => {
+    const items = ((d.items as string[] | undefined) ?? []).map(s);
+    const one = items.length === 1;
+    const bullets = items.map((i) => `- ${i}`).join("\n");
+    const what =
+      d.role === "waitlist" ? (one ? `You've been taken off the waitlist for ${items[0]}.` : `You've been taken off the waitlist for:\n${bullets}`)
+      : d.role === "teaching" ? (one ? `${items[0]}, which you were teaching, has been cancelled.` : `These classes you were teaching have been cancelled:\n${bullets}`)
+      : one ? `Your booking for ${items[0]} has been cancelled.` : `These bookings have been cancelled:\n${bullets}`;
+    const extra = [d.refundNote ? s(d.refundNote) : "", d.message ? s(d.message) : ""].filter(Boolean).join("\n\n");
+    return {
+      subject: `Studio closed: ${s(d.closureName)}`,
+      body: `${s(d.closureName)}: the studio is closed ${s(d.dates)}.\n\n${what}${extra ? `\n\n${extra}` : ""}`,
+      pushTitle: `Studio closed: ${s(d.closureName)}`,
+      pushBody: d.role === "waitlist" ? `Closed ${s(d.dates)}. You've been taken off the waitlist.` : `Closed ${s(d.dates)}. ${one ? "1 class has" : `${items.length} classes have`} been cancelled.`,
+    };
+  },
   "membership.payment_failed": (d) => ({
     subject: `Payment didn't go through for ${s(d.packageName)}`,
     body: `We couldn't take ${s(d.amount)} for your ${s(d.packageName)}${d.reason ? ` (${s(d.reason)})` : ""}. Your membership is on hold, so you can't book with it for now. We'll try your card again on ${s(d.nextTry)}, or you can update your card or pay at the studio. If it isn't paid by ${s(d.holdUntil)}, the membership will end.`,

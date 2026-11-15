@@ -28,7 +28,7 @@ export const PERMISSIONS = {
   viewAllRosters: ["owner", "admin", "front_desk"],
   /** Take attendance on any class. */
   takeAttendanceAnyClass: ["owner", "admin", "front_desk"],
-  /** Create, edit, cancel and duplicate classes; manage templates, rooms and class types. */
+  /** Create, edit, cancel and duplicate classes; manage templates, rooms, class types and closures. */
   editSchedule: ["owner", "admin"],
   /** Book, cancel, move, waitlist and refund on a client's behalf, and override booking rules. */
   manageBookings: ["owner", "admin"],
@@ -87,6 +87,9 @@ export const SESSION_STATUSES = ["scheduled", "cancelled"] as const;
 export type SessionStatus = (typeof SESSION_STATUSES)[number];
 
 export const BOOKING_STATUSES = ["confirmed", "cancelled", "late_cancelled"] as const;
+/** How a booking came to be cancelled: by the client, by staff, because the class was cancelled, moved to another class, or the membership paying for it ended. */
+export const CANCELLED_VIA = ["self", "staff", "class_cancelled", "moved", "membership_ended"] as const;
+export type CancelledVia = (typeof CANCELLED_VIA)[number];
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
 export const ATTENDANCE = ["unmarked", "present", "no_show"] as const;
@@ -285,6 +288,9 @@ export const FLAG_CODES = [
   "no_refund",
   "already_happened",
   "many_classes",
+  "closed_day",
+  "closure_cancels_classes",
+  "closure_skips_classes",
   "no_instructor",
   "instructor_not_listed",
   // Bookings, refunds and attendance

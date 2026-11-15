@@ -43,6 +43,7 @@ import {
   VALIDITY_UNITS,
   type PayTier,
   type ClassTypeKind,
+  type CancelledVia,
   EXTENSION_ATTACHMENT,
   EXTENSION_FEE_MODES,
   EXTENSION_MODES,
@@ -636,6 +637,27 @@ export const classSessions = pgTable(
   ],
 );
 
+/**
+ * Days the studio is closed (holidays, renovations). Recurring classes skip these dates.
+ * Dates are local to each location; no location means every location.
+ */
+export const closures = pgTable(
+  "closures",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    locationId: uuid("location_id").references(() => locations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date").notNull(),
+    /** Optional note shown to clients on the schedule and in the email, e.g. "Back on Monday!". */
+    message: text("message"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("closures_org_dates_idx").on(t.orgId, t.endDate), check("closures_end_after_start", sql`${t.endDate} >= ${t.startDate}`)],
+);
+
 export const bookings = pgTable(
   "bookings",
   {
@@ -653,6 +675,12 @@ export const bookings = pgTable(
     clientPackageId: uuid("client_package_id").references(() => clientPackages.id),
     bookedBy: uuid("booked_by").references(() => users.id),
     cancelledAt: ts("cancelled_at"),
+    /** Who cancelled it (the client themselves, or a member of staff). */
+    cancelledBy: uuid("cancelled_by").references(() => users.id, { onDelete: "set null" }),
+    /** How it was cancelled, for the class's Cancellations tab. Null for bookings cancelled before this was recorded. */
+    cancelledVia: text("cancelled_via").$type<CancelledVia>(),
+    /** The reason given, if any. Staff only. */
+    cancelReason: text("cancel_reason"),
     attendanceMarkedAt: ts("attendance_marked_at"),
     attendanceMarkedBy: uuid("attendance_marked_by").references(() => users.id),
     createdAt: createdAt(),

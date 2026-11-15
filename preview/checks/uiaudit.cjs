@@ -81,10 +81,17 @@ fs.mkdirSync(out, { recursive: true });
     await role("admin"); await p.evaluate(() => (location.hash = "schedule")); await p.waitForTimeout(120);
     await p.locator("[data-open]").first().click(); await p.waitForTimeout(150); await scan("class drawer"); await p.screenshot({ path: path.join(out, `${scheme}-drawer.png`) });
     await p.evaluate(() => document.querySelector("[data-close]")?.click());
+    await p.click("#fCxWrap"); await p.waitForTimeout(150); await scan("calendar with cancelled classes"); await p.screenshot({ path: path.join(out, `${scheme}-cancelled-classes.png`) });
+    await p.locator(".ev.cx [data-open], .ag-row.cx").first().click(); await p.waitForTimeout(150); await scan("cancelled class panel");
+    await p.evaluate(() => document.querySelector("[data-close]")?.click());
+    await p.locator(".ev:not(.cx) [data-open], .ag-row:not(.cx)").first().click(); await p.waitForTimeout(150); await p.click('[data-drtab="cx"]'); await p.waitForTimeout(150); await scan("cancellations tab");
+    await p.evaluate(() => document.querySelector("[data-close]")?.click()); await p.click("#fCxWrap"); await p.waitForTimeout(100);
     for (const btn of ["#newClass", "#newAppt", "#bulkChange"]) { await p.click(btn); await p.waitForTimeout(150); await scan(`modal ${btn}`); await p.locator(".modal").first().screenshot({ path: path.join(out, `${scheme}-modal-${btn.slice(1)}.png`) }); await p.evaluate(() => (document.querySelector("#modalRoot").innerHTML = "")); }
     await p.click("#askBtn"); await p.waitForTimeout(100); await p.locator(".asksugg button").first().click(); await p.waitForTimeout(600); await scan("ask"); await p.click("#askClose");
     await p.click("#bellBtn"); await p.waitForTimeout(100); await scan("bell"); await p.click("#bellBtn");
     await p.evaluate(() => (location.hash = "agents")); await p.waitForTimeout(100); await p.click('[data-agtab="agents"]'); await p.click("#agNew"); await p.waitForTimeout(100); await p.click('[data-agst="1"]'); await p.waitForTimeout(150); await scan("agent editor");
+    await p.evaluate(() => (document.querySelector("#modalRoot").innerHTML = ""));
+    await p.evaluate(() => (location.hash = "closures")); await p.waitForTimeout(100); await p.click("#clNew"); await p.waitForTimeout(150); await scan("closure window"); await p.locator(".modal").first().screenshot({ path: path.join(out, `${scheme}-modal-closure.png`) });
     await p.evaluate(() => (document.querySelector("#modalRoot").innerHTML = ""));
     await role("client"); await p.evaluate(() => (location.hash = "schedule")); await p.waitForTimeout(100);
     await p.locator("[data-open]").first().click(); await p.waitForTimeout(150); await scan("client class drawer"); await p.screenshot({ path: path.join(out, `${scheme}-client-drawer.png`) });

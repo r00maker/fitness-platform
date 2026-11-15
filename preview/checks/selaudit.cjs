@@ -40,6 +40,7 @@ const engine = process.argv[3] || "chromium";
   await role("admin"); await p.evaluate(() => (location.hash = "schedule")); await p.waitForTimeout(120);
   for (const btn of ["#newClass", "#newAppt", "#bulkChange"]) { await p.click(btn); await p.waitForTimeout(150); await collect(`modal${btn}`); if (btn === "#bulkChange") { await p.click('#bkForm button[type=submit]'); await p.waitForTimeout(150); await collect("modal-bulk2"); } await p.evaluate(() => (document.querySelector("#modalRoot").innerHTML = "")); }
   await p.evaluate(() => (location.hash = "agents")); await p.waitForTimeout(120); await p.click('[data-agtab="agents"]'); await p.waitForTimeout(100); await p.click("#agNew"); await p.waitForTimeout(100); await p.click('[data-agst="1"]'); await p.waitForTimeout(150); await collect("modal-agent");
+  await p.evaluate(() => (document.querySelector("#modalRoot").innerHTML = "")); await p.evaluate(() => (location.hash = "closures")); await p.waitForTimeout(120); await p.click("#clNew"); await p.waitForTimeout(150); await collect("modal-closure");
   for (const [k, v] of rows) console.log(`\n${v.length}x  ${k}\n   ${[...new Set(v)].slice(0, 6).join("\n   ")}${v.length > 6 ? `\n   …` : ""}`);
   const bad = [...rows.values()].flat().filter((x) => /LOWCONTRAST|CUT/.test(x));
   console.log("\nPROBLEMS:", bad.length); bad.slice(0, 40).forEach((x) => console.log("  ", x));

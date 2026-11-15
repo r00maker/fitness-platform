@@ -316,7 +316,7 @@ export async function cancelBooking(
 
   const [updated] = await tx
     .update(bookings)
-    .set({ status, cancelledAt: now })
+    .set({ status, cancelledAt: now, cancelledBy: auth.userId, cancelledVia: auth.userId === booking.clientId ? "self" : "staff", cancelReason: input.reason ?? null })
     .where(eq(bookings.id, booking.id))
     .returning();
   await recordRefund(tx, auth, booking, refund, { reason: input.reason });
@@ -361,7 +361,7 @@ export async function moveBooking(tx: DbOrTx, auth: AuthContext, bookingId: stri
     flags.info({ code: "late_move", sessionId: from.id, message: `This is inside the ${org.lateCancelWindowHours}-hour late-cancellation window. Clients can't do this themselves, but admins can.` });
   }
 
-  await tx.update(bookings).set({ status: "cancelled", cancelledAt: now }).where(eq(bookings.id, booking.id));
+  await tx.update(bookings).set({ status: "cancelled", cancelledAt: now, cancelledBy: auth.userId, cancelledVia: "moved" }).where(eq(bookings.id, booking.id));
   // The class goes back to the package and the new booking uses the same one if it can.
   await returnCredit(tx, org, booking, "returned", auth.userId, "Moved to another class", undefined, now);
   const moved = await createBooking(
