@@ -35,9 +35,9 @@ const file = "file://" + path.join(__dirname, "..", "studio-calendar-preview.htm
     const cg = await groups();
     ok(`${label}: client menu ${JSON.stringify(cg)}`, cg[0].startsWith("Classes: Book a class, My bookings") && cg[1].startsWith("Packages & rewards"));
     await role("instructor");
-    ok(`${label}: instructor menu ${JSON.stringify(await groups())}`, (await groups())[0].startsWith("Day to day: My schedule, Cover requests"));
+    ok(`${label}: instructor menu ${JSON.stringify(await groups())}`, (await groups())[0].startsWith("Day to day: My day, My schedule, Cover requests"));
     await role("foh");
-    ok(`${label}: foh menu ${JSON.stringify(await groups())}`, (await groups())[0].startsWith("Day to day: Schedule"));
+    ok(`${label}: foh menu ${JSON.stringify(await groups())}`, (await groups())[0].startsWith("Day to day: Home, Schedule"));
     await role("admin");
     if (!phone) await p.locator("#side").screenshot({ path: path.join(outDir, `${label}-01-menu.png`) });
 

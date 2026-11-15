@@ -13,6 +13,7 @@ The HTML file is both the base and the output. `inject.py` puts the feature code
   - `mkt11.js` Sales (invoices, receipts, refunds, invoice design) and membership payment holds.
   - `mkt12.js` Shop, Pickups, writing agents, report exports, menu entries.
   - `mkt13.js` Closures and holidays (with `patch11.py`, which shades closed days on the calendar and teaches the class form about them).
+  - `mkt15.js` Home, the staff front page (today, needs attention, how it's going, the week ahead).
   - `mkt14.js` Cancelled classes on the calendar ("Show cancelled") and each class's Cancellations tab (with `patch12.py`).
 
 Rebuild after editing anything in `src/` or the patches (run it from this folder; it's safe to run repeatedly):
@@ -32,6 +33,7 @@ node s10check.cjs
 ```
 
 - `s10check.cjs` sales, holds, shop, calendar, rooms, goals, class types, categories, writers, email, exports.
+- `hmcheck.cjs` Home for every role: the numbers, filters, the week-ahead chart and table, and where each button goes.
 - `cxcheck.cjs` cancelled classes on the calendar and the Cancellations tab, for every role.
 - `clcheck.cjs` closures and holidays: the page, adding one, the calendar for staff and clients, repeats, the closed-day warning, editing and removing.
 - `agcheck` agents and assistant, `cmcheck` communication, `apcheck` appointments and class types, `adcheck` ads and leads, `upcheck` earlier upgrades.

@@ -32,6 +32,7 @@ import { fileRoutes } from "./modules/files/routes.js";
 import { checkoutRoutes } from "./modules/checkout/routes.js";
 import { sessionRoutes } from "./modules/sessions/routes.js";
 import { closureRoutes } from "./modules/closures/routes.js";
+import { dashboardRoutes } from "./modules/dashboard/routes.js";
 import { settingsRoutes } from "./modules/settings/routes.js";
 import { substituteRoutes } from "./modules/substitutes/routes.js";
 import { waitlistRoutes } from "./modules/waitlist/routes.js";
@@ -96,6 +97,7 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(catalogRoutes);
       await v1.register(sessionRoutes);
       await v1.register(closureRoutes);
+      await v1.register(dashboardRoutes);
       await v1.register(bookingRoutes);
       await v1.register(waitlistRoutes);
       await v1.register(substituteRoutes);

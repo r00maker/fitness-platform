@@ -24,7 +24,7 @@ Owners can do everything admins can. Only the owner can add or remove admins.
 
 The menu on the left is grouped by what you're doing. Staff see:
 
-- **Day to day:** Schedule (or My schedule), Cover requests, Communication, Announcements, Pickups (Front of House: shop orders and rewards to hand over).
+- **Day to day:** Home (or My day for instructors), Schedule (or My schedule), Cover requests, Communication, Announcements, Pickups (Front of House: shop orders and rewards to hand over).
 - **Clients & sales:** Clients, Leads, Sales, Packages, Shop, Fees.
 - **Growth:** Marketing, Reports.
 - **Team:** Staff & pay, Payroll, Agents.
@@ -34,6 +34,18 @@ The menu on the left is grouped by what you're doing. Staff see:
 Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My packages, Rewards, Refer a friend, and Shop when there's something in it) and **Account** (Injuries & conditions, Profile & privacy, Preferences).
 
 The **Ask** button (bottom right) opens the assistant. The **bell** at the top shows messages from your studio's agents.
+
+## Home
+
+Home is the first page staff see. Instructors see it as **My day**, about their own classes. Clients don't have it; their first page is Book a class.
+
+- **Today:** how many people are booked into today's classes, how full the day is, and the class that's on now or up next (tap **Open class**).
+- **Today's classes:** every class today, with what needs doing: no instructor, a waiver missing, attendance to take. Tap a class to open it.
+- **Needs attention:** a short to-do list, most urgent first. Each item says **Urgent**, **Soon** or **When you can**, and has a button that takes you where to sort it (cover requests, fees, packages, pickups, messages). You only see things you can act on: Front of House never sees fees or pay, and instructors see their own classes and cover requests sent to them. When there's nothing, it says **All caught up**.
+- **How it's going:** bookings, how full classes were, new clients and (owners and admins) money in, for the last 7 or 30 days, each against the period before, with a small daily trend. These are the same numbers as Reports.
+- **The week ahead:** how full each of the next 7 days is so far. Rest the pointer on a day (or tap it) for the details, or choose **Show as table**. Tapping a day opens it on the schedule.
+- **Coming up:** closures in the next 30 days, and quiet classes in the next 3 days that might be worth a nudge to clients.
+- **Location:** choose one location at the top to see just that location. New clients and money in are always for the whole studio, and say so.
 
 ## The schedule
 

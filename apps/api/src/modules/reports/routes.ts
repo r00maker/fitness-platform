@@ -52,10 +52,10 @@ const scopeSql = (sc: Scope = {}) => {
 };
 const isScoped = (sc: Scope) => !!(sc.instructorId || sc.classTypeId || sc.locationId || sc.weekdays?.length || sc.timeOfDay);
 const n = (v: unknown) => Number(v ?? 0);
-const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 1000) / 10 : 0);
+export const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 1000) / 10 : 0);
 
 /** A headline number: this period, the one before, and what it means in plain words. */
-function metric(o: { key: string; label: string; value: number; previous: number; display: string; explain: string; goodWhenUp?: boolean; isPercent?: boolean }) {
+export function metric(o: { key: string; label: string; value: number; previous: number; display: string; explain: string; goodWhenUp?: boolean; isPercent?: boolean }) {
   const { value, previous } = o;
   let change: { text: string; direction: "up" | "down" | "flat"; good: boolean | null };
   if (o.isPercent) {
@@ -71,7 +71,7 @@ function metric(o: { key: string; label: string; value: number; previous: number
 }
 
 // --- The numbers ---------------------------------------------------------------------
-async function revenue(db: DbOrTx, orgId: string, from: Date, to: Date) {
+export async function revenue(db: DbOrTx, orgId: string, from: Date, to: Date) {
   const r = await db.execute<{ packages: string; gift_cards: string; fees: string; refunds: string; sold: string }>(sql`
     select
       (select coalesce(sum(price_paid_cents), 0) from client_packages where org_id = ${orgId} and purchased_at >= ${from} and purchased_at < ${to}) as packages,
@@ -84,7 +84,7 @@ async function revenue(db: DbOrTx, orgId: string, from: Date, to: Date) {
   return { packages: n(x.packages), giftCards: n(x.gift_cards), fees: n(x.fees), refunds: n(x.refunds), sold: n(x.sold), nett: gross - n(x.refunds) };
 }
 
-async function classStats(db: DbOrTx, orgId: string, from: Date, to: Date, kind: "class" | "appointment" = "class", sc: Scope = {}) {
+export async function classStats(db: DbOrTx, orgId: string, from: Date, to: Date, kind: "class" | "appointment" = "class", sc: Scope = {}) {
   const r = await db.execute<{ held: string; capacity: string; booked: string; present: string; no_show: string; cancelled: string; auto: string }>(sql`
     with s as (
       select cs.id, cs.capacity, cs.status, cs.auto_cancelled from class_sessions cs join class_types ct on ct.id = cs.class_type_id
@@ -103,7 +103,7 @@ async function classStats(db: DbOrTx, orgId: string, from: Date, to: Date, kind:
   return { held: n(x.held), capacity: n(x.capacity), booked: n(x.booked), present: n(x.present), noShow: n(x.no_show), cancelled: n(x.cancelled), autoCancelled: n(x.auto) };
 }
 
-async function clientCounts(db: DbOrTx, orgId: string, from: Date, to: Date) {
+export async function clientCounts(db: DbOrTx, orgId: string, from: Date, to: Date) {
   const r = await db.execute<{ active: string; new_clients: string }>(sql`
     select
       (select count(distinct b.client_id) from bookings b join class_sessions cs on cs.id = b.session_id

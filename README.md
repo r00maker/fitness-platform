@@ -9,6 +9,7 @@ apps/api/            The API server and background worker (TypeScript, Fastify, 
   src/modules/
     sessions/        Calendar, classes, recurring series, bulk edit, duplicate, cancel/delete
     closures/        Closures and holidays: recurring classes skip them, one action cancels the days
+    dashboard/       Home: today, what needs attention, how it's going, the week ahead
     bookings/        Book, cancel, move (reschedule), refund, attendance
     waitlist/        Join/leave/claim, auto vs "ask me first", hold timers, cut-offs
     substitutes/     Cover requests, accept/decline, automatic or admin-approved
@@ -91,6 +92,7 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Edit (this / this and later / whole series) | `PATCH /sessions/:id` | owner, admin |
 | Bulk edit / bulk cancel | `POST /sessions/bulk-update`, `POST /sessions/bulk-cancel` | owner, admin |
 | Cancel / delete | `POST /sessions/:id/cancel`, `DELETE /sessions/:id` | owner, admin |
+| Home (staff front page) | `GET /dashboard?days=7\|30&locationId=` | staff; what's shown depends on role |
 | Cancelled classes on the calendar | `GET /calendar?includeCancelled=true` | staff (clients never see them) |
 | Who cancelled a class (Cancellations tab) | `cancellations` in `GET /sessions/:id` | admin, Front of House, the class's instructor |
 | Duplicate a class / copy a week | `POST /sessions/:id/duplicate`, `POST /sessions/duplicate-range` | owner, admin |
