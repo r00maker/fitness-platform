@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "waitlist_modes" text DEFAULT 'both' NOT NULL;

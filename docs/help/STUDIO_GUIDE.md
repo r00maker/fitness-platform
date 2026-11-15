@@ -117,11 +117,15 @@ Owners and admins add studio merch under **Shop**: name, price, photo, sizes or 
 
 ## Waitlists
 
-Clients join a waitlist when a class is full. In automatic mode the first person waiting gets the spot; in manual mode the spot is held for them for a set time (Studio rules). Waitlists close when booking closes.
+Clients join a waitlist when a class is full. With **Book me in automatically**, the first person waiting gets the spot; with **Ask me first**, the spot is held for them for a set time while they confirm. Waitlists close when booking closes.
+
+- **How waitlists work** (Studio rules, Waitlist): **Clients choose** lets each client pick one of the two when they join. **Always book in automatically** or **Always ask first** uses one way for everyone, and clients aren't asked. People already waiting keep the choice they made. When staff add someone to a waitlist, the same setting applies.
 
 ## Packages
 
 Package types are set up under **Packages**: class packs or unlimited memberships, price, how long they last, which classes they cover, sharing and weekly limits. Selling one copies the terms, so editing a package type never changes packages already sold. Each booking uses the package that runs out soonest.
+
+- **Extension requests** show at the top of **Packages**. If the client attached something (for example a doctor's note), tap it to open a **quick view** right there: PDFs show page by page, and photos as they are. Zoom with **+** and **−**, go back with **Fit width**, and close with **✕** or Esc. Nothing opens in a new window. **Download** saves a copy if you need one.
 
 ## Cover
 

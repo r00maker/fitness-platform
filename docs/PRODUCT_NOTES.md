@@ -215,3 +215,8 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
 - **Charts** follow one set of rules: stat tiles (label, value, change against the period before with an arrow and words, and a small daily trend), one single-colour column chart for the week ahead with a hover/focus tooltip and a table view, and no second axis anywhere.
 - **API:** `GET /dashboard?days=7|30&locationId=` (staff only).
 
+## Waitlist setting and the attachment quick view
+
+- **How waitlists work** (`waitlistModes` in Studio rules): "both" (default, clients choose), "automatic" or "manual" for everyone. When it's one way, the app doesn't ask, and the API uses the studio's way; a request for the other way is refused with a plain message rather than quietly changed, so nobody is misled about what will happen. People already waiting keep their choice. Clients get the setting from `GET /settings`.
+- **Quick view for attachments:** extension-request attachments (PDF or photo) open in a viewer on the page, never a new window. The API still serves PDFs as downloads (`content-disposition: attachment`) so a browser never opens one on its own; the app fetches the file and draws it with pdf.js (loaded only when a PDF is opened, worker run on the page). `GET /extension-requests` now includes `attachment: { url, kind: "pdf" | "image", contentType, size }` so the app knows which viewer to use before fetching.
+

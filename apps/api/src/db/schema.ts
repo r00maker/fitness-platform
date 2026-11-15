@@ -44,6 +44,7 @@ import {
   type PayTier,
   type ClassTypeKind,
   type CancelledVia,
+  type WaitlistModeSetting,
   EXTENSION_ATTACHMENT,
   EXTENSION_FEE_MODES,
   EXTENSION_MODES,
@@ -146,6 +147,8 @@ export const organizations = pgTable("organizations", {
   name: text("name").notNull(),
   timezone: text("timezone").notNull().default("UTC"),
   substituteApproval: subApprovalEnum("substitute_approval").notNull().default("manual"),
+  /** Which waitlist choices clients get: both, or always automatic / always "ask me first". */
+  waitlistModes: text("waitlist_modes").$type<WaitlistModeSetting>().notNull().default("both"),
   waitlistHoldMinutes: integer("waitlist_hold_minutes").notNull().default(10),
   waitlistExpiryOptionsHours: integer("waitlist_expiry_options_hours")
     .array()

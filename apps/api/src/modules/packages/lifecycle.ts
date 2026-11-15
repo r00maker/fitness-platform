@@ -19,6 +19,7 @@ import {
   clientPackageMembers,
   clientPackages,
   fees,
+  files,
   memberships,
   orders,
   organizations,
@@ -335,16 +336,21 @@ export async function listExtensionRequests(db: DbOrTx, auth: AuthContext, statu
   const org = await getOrg(db, auth.orgId);
   const zone = orgZone(org);
   const rows = await db
-    .select({ r: packageExtensionRequests, p: clientPackages, first: users.firstName, last: users.lastName })
+    .select({ r: packageExtensionRequests, p: clientPackages, first: users.firstName, last: users.lastName, fileType: files.contentType, fileSize: files.sizeBytes })
     .from(packageExtensionRequests)
     .innerJoin(clientPackages, eq(clientPackages.id, packageExtensionRequests.packageId))
     .innerJoin(users, eq(users.id, packageExtensionRequests.requestedBy))
+    .leftJoin(files, eq(files.id, packageExtensionRequests.attachmentFileId))
     .where(and(eq(packageExtensionRequests.orgId, auth.orgId), eq(packageExtensionRequests.status, status)))
     .orderBy(asc(packageExtensionRequests.createdAt));
-  return rows.map(({ r, p, first, last }) => {
+  return rows.map(({ r, p, first, last, fileType, fileSize }) => {
     const current = !p.startedAt && p.startsOn === "first_booking" ? p.activateBy : p.expiresAt;
     return {
       ...presentRequest(r, org),
+      /** For the quick viewer: whether to draw it as a PDF or a photo, and how big it is. */
+      attachment: r.attachmentFileId && fileType
+        ? { url: `/v1/files/${r.attachmentFileId}`, kind: fileType === "application/pdf" ? "pdf" : "image", contentType: fileType, sizeBytes: fileSize, size: sizeText(fileSize ?? 0) }
+        : null,
       clientName: `${first} ${last}`,
       packageId: p.id,
       packageName: p.name,
@@ -750,3 +756,7 @@ export async function planTerms(db: DbOrTx, plan: Plan, currency = "SGD") {
   return describePackage(plan, plan.classTypeIds.map((id) => names.find((n) => n.id === id)?.name ?? "").filter(Boolean), (c) => money(c, currency));
 }
 
+/** "240 KB", "1.2 MB". */
+function sizeText(bytes: number) {
+  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}

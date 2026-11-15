@@ -1425,6 +1425,24 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 .cbtn:hover { background: var(--sunk); }
 .cbar { width: 4px; align-self: stretch; border-radius: 2px; background: var(--t); flex: none; }
 
+/* --- Attachment quick view ------------------------------------------------------- */
+.attchip { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.attchip:hover { background: var(--sunk); border-color: var(--accent); }
+.attchip .qvlink { color: var(--accent); font-weight: 600; }
+.qvwrap { padding: 12px; }
+.modal.qv { width: min(920px, 100%); height: min(92vh, 1000px); max-height: none; display: flex; flex-direction: column; overflow: hidden; }
+.qvhead { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.qvhead h2 { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qvtools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.qvz { font-size: 12.5px; color: var(--muted); min-width: 42px; text-align: center; font-variant-numeric: tabular-nums; }
+.qvbody { flex: 1; overflow: auto; background: var(--sunk); padding: 16px; outline: none; }
+.qvbody:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.qvpages { display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: min-content; }
+.qvpage { background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .18), 0 8px 24px -12px rgba(0, 0, 0, .3); border-radius: 2px; }
+.qvimg { display: block; margin: 0 auto; height: auto; border-radius: 4px; box-shadow: 0 1px 3px rgba(0, 0, 0, .18); }
+.qvmsg { display: grid; place-items: center; min-height: 200px; color: var(--muted); }
+@media (max-width: 520px) { .qvwrap { padding: 0; } .modal.qv { height: 100%; border-radius: 0; } .qvtools #qvFit { display: none; } }
+
 /* MKT-CSS-END */
 </style>
 
@@ -1516,7 +1534,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
   const STUDIO = {
     lateCancelHours: 12, bookingOpensDays: 14, bookingClosesMins: 60, weeklyLimit: null,
     lateFeeOn: true, lateFeeCents: 1500, noShowFeeOn: true, noShowFeeCents: 2000, currency: "SGD",
-    expiry: [5, 3, 1], hold: 10, coverApproval: "manual", tellClientsInstructorChange: true, dst: false,
+    expiry: [5, 3, 1], hold: 10, wlModes: "both", coverApproval: "manual", tellClientsInstructorChange: true, dst: false,
     waiverOn: true, spotsOn: true, needPackage: true, allowNoPkg: true, payPeriod: "monthly", payHeadcount: "attended", seeOwnPay: true,
     extMode: "review", extAuto: 14, extMax: 60, extAttach: "optional", extFeeMode: "flat", extFee: 2000,
     rollMode: "clients", rollMax: 4, rollWithin: 30,
@@ -2549,9 +2567,10 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     if (NOW >= win.closes) return `<div class="dr-sec">${alertBox("info", "Booking closed", `Booking for this class closed at ${clock(win.closes)} (${closesText()}).`)}</div>`;
     if (s.roster.length < s.cap) return `<div class="dr-sec"><div class="actions"><button type="button" class="btn primary" data-act="book" data-help="${spotsFor(s) ? "Pick where you'll be in the room. " : ""}You'll check the details before anything is booked.">${spotsFor(s) ? "Choose a spot" : "Book"}</button></div><span class="hint">${plural(s.cap - s.roster.length, "spot")} left. You'll check the details before anything is booked.</span></div>`;
     return `<div class="dr-sec"><h3>This class is full · join the waitlist</h3>
-      <div class="lbl" style="font-size:12.5px;font-weight:600;display:flex;gap:5px;align-items:center">When a spot opens ${tip("mode")}</div>
+      ${STUDIO.wlModes === "both" ? `<div class="lbl" style="font-size:12.5px;font-weight:600;display:flex;gap:5px;align-items:center">When a spot opens ${tip("mode")}</div>
       <label class="opt"><input type="radio" name="wlmode" id="wlAuto" value="automatic" checked><div><b>Book me in automatically</b><span>We take the spot for you and let you know.</span></div></label>
-      <label class="opt"><input type="radio" name="wlmode" id="wlAsk" value="manual"><div><b>Ask me first</b><span>We hold the spot for ${STUDIO.hold} minutes while you confirm.</span></div></label>
+      <label class="opt"><input type="radio" name="wlmode" id="wlAsk" value="manual"><div><b>Ask me first</b><span>We hold the spot for ${STUDIO.hold} minutes while you confirm.</span></div></label>`
+        : `<input type="radio" name="wlmode" value="${STUDIO.wlModes}" checked hidden>${alertBox("info", "When a spot opens", STUDIO.wlModes === "automatic" ? "We'll book you in automatically and let you know." : `We'll hold the spot for ${STUDIO.hold} minutes and ask you to confirm.`)}`}
       <div class="field"><span class="lbl">Stop waiting ${tip("expiry")}</span>
         <select id="wlExpiry">${STUDIO.expiry.map((h) => `<option value="${h}">${h} hours before class</option>`).join("")}<option value="0">When class starts</option></select></div>
       <div class="actions"><button type="button" class="btn primary" data-act="joinWl">Join waitlist</button></div></div>`;
@@ -4005,6 +4024,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
           ${rule("Clients choose a spot", "Off: clients just book. They still see who's coming and confirm before booking.", toggle("pSpots", STUDIO.spotsOn, "Clients choose a spot"), "spotBookingEnabled")}
         </div></div>
         <div class="card"><h3>Waitlist</h3><div class="rules">
+          ${rule("How waitlists work", "Let clients choose, or use one way for everyone. People already waiting keep the choice they made.", sel("pWlModes", [["both", "Clients choose"], ["automatic", "Always book in automatically"], ["manual", "Always ask first"]], STUDIO.wlModes), "waitlistModes")}
           ${rule("Hold time", "How long a spot is held for someone who chose “Ask me first”.", sel("pHold", [5, 10, 15, 20, 30].map((m) => [m, `${m} minutes`]), STUDIO.hold), "waitlistHoldMinutes")}
           ${rule("Cut-off choices", "The three options clients pick from for when to stop waiting.", STUDIO.expiry.map((h, i) => `<input type="number" id="pExp${i}" min="0" max="168" value="${h}" aria-label="Choice ${i + 1}, hours before class">`).join("") + '<span class="muted">hours before</span>', "waitlistExpiryOptions", "pExpErr")}
         </div></div>
@@ -4047,7 +4067,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       const tidy = PLANS.filter(suggest);
       const pend = EXTREQ.filter((r) => r.status === "pending"), ords = ORDERS.filter((o) => o.status === "pending");
       return head("Packages", "What you sell, grouped the way clients see them.", `<button type="button" class="btn" data-plan="cats" data-help="Add, rename, reorder or remove the groups on the buying page.">Categories</button><button type="button" class="btn primary" data-plan="new" data-help="Set up a package you sell: one-time or recurring, with its own rules.">New package type</button>`) +
-        (pend.length ? `<div class="card"><h3>Extension requests · ${pend.length}</h3><div class="stack">${pend.map((r) => { const pk = CPKG.find((x) => x.id === r.pkg); return `<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><span class="cellp" style="align-items:flex-start">${avatar(CLIENTS[r.ci], "sm")}<span><b>${esc(CLIENTS[r.ci].name)}</b> asked for <b>${plural(r.days, "day")}</b> on their ${esc(pk.name)} <span class="muted">· ${esc(r.when)}</span><br><span style="font-size:13px">“${esc(r.reason)}”</span>${r.file ? `<br><span class="tag">📎 ${esc(r.file)}</span>` : ""}<br><span class="muted" style="font-size:12.5px">Valid until ${lastDayOf(pk.expires) || "–"} → ${lastDayOf(addDays(pk.expires > day(NOW) ? pk.expires : day(NOW), r.days))}${extFee(r.days) ? ` · fee ${m$(extFee(r.days))}` : ""}</span></span></span><span class="inline2"><button type="button" class="btn primary" data-ext="approve:${r.id}">Approve</button><button type="button" class="btn" data-ext="change:${r.id}">Change…</button><button type="button" class="btn ghost" data-ext="decline:${r.id}">Decline</button></span></div>`; }).join("")}</div></div>` : "") +
+        (pend.length ? `<div class="card"><h3>Extension requests · ${pend.length}</h3><div class="stack">${pend.map((r) => { const pk = CPKG.find((x) => x.id === r.pkg); return `<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><span class="cellp" style="align-items:flex-start">${avatar(CLIENTS[r.ci], "sm")}<span><b>${esc(CLIENTS[r.ci].name)}</b> asked for <b>${plural(r.days, "day")}</b> on their ${esc(pk.name)} <span class="muted">· ${esc(r.when)}</span><br><span style="font-size:13px">“${esc(r.reason)}”</span>${r.file ? `<br>${attachChip(r)}` : ""}<br><span class="muted" style="font-size:12.5px">Valid until ${lastDayOf(pk.expires) || "–"} → ${lastDayOf(addDays(pk.expires > day(NOW) ? pk.expires : day(NOW), r.days))}${extFee(r.days) ? ` · fee ${m$(extFee(r.days))}` : ""}</span></span></span><span class="inline2"><button type="button" class="btn primary" data-ext="approve:${r.id}">Approve</button><button type="button" class="btn" data-ext="change:${r.id}">Change…</button><button type="button" class="btn ghost" data-ext="decline:${r.id}">Decline</button></span></div>`; }).join("")}</div></div>` : "") +
         (ords.length ? `<div class="card"><h3>Orders to confirm · ${ords.length}</h3><span class="hint">Clients who checked out and will pay at the desk. Marking one paid adds the package to their account.</span>${ords.map((o) => `<div class="row" style="justify-content:space-between"><span class="cellp">${avatar(CLIENTS[o.ci], "sm")}<b>${esc(CLIENTS[o.ci].name)}</b><span class="muted">${esc(PLANS.find((x) => x.id === o.plan).name)} · ${esc(o.when)}</span></span><span class="inline2"><b>${m$(PLANS.find((x) => x.id === o.plan).price)}</b><button type="button" class="btn primary" data-order="paid:${o.id}">Mark paid</button><button type="button" class="btn ghost" data-order="cancel:${o.id}">Cancel</button></span></div>`).join("")}</div>` : "") +
         (tidy.length && !showArch ? `<div class="card tidy">${alertBox("info", `${plural(tidy.length, "package type looks", "package types look")} unused`, `${tidy.map((pl) => esc(pl.name)).join(", ")}: no one's using ${tidy.length === 1 ? "it" : "them"} and ${tidy.length === 1 ? "it hasn't" : "they haven't"} sold for 6 months (or ${tidy.length === 1 ? "isn't" : "aren't"} on sale). Archive to tidy up; nothing is lost.`)}</div>` : "") +
         `<div class="seg" role="group" aria-label="Show" style="align-self:flex-start"><button type="button" data-arch="0" aria-pressed="${!showArch}">Current</button><button type="button" data-arch="1" aria-pressed="${showArch}">Archived (${PLANS.filter((x) => x.archived).length})</button></div>
@@ -4245,6 +4265,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
     lateCancelFeeEnabled: "Clients who cancel inside the late-cancellation window are charged this fee, on top of losing their credit.",
     noShowFeeEnabled: "Clients marked as a no-show are charged this fee. It's removed automatically if attendance is corrected.",
     currency: "The currency your fees and prices are shown in.",
+    waitlistModes: "“Clients choose”: each client picks “Book me in automatically” or “Ask me first” when they join. Or choose one way for everyone, and clients aren't asked.",
     waitlistHoldMinutes: "How long a spot is held for someone who chose “Ask me first” before it goes to the next person.",
     waitlistExpiryOptions: "The three options clients can pick from for when to stop waiting, in hours before class.",
     subApprovalMode: "“First to accept gets it” gives the class to the first instructor who accepts. “An admin chooses” lets an admin pick from everyone who accepted.",
@@ -4536,13 +4557,14 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
         <footer><button type="button" class="btn ghost" data-mclose>Cancel</button><button type="submit" class="btn primary">Send request</button></footer></form></div>`;
       const keep = () => { st.days = Math.max(1, Math.min(STUDIO.extMax, Number($("#exDays").value) || 1)); st.why = $("#exWhy").value; };
       $("#exDays").onchange = () => { keep(); paint(); };
-      if ($("#exFile")) $("#exFile").onchange = (e) => { const f = e.target.files[0]; if (!f) return; if (f.size > 5 * 1024 * 1024) { toast("That file is too big. The limit is 5 MB."); return; } keep(); st.file = f.name; paint(); };
+      if ($("#exFile")) $("#exFile").onchange = (e) => { const f = e.target.files[0]; if (!f) return; if (f.size > 5 * 1024 * 1024) { toast("That file is too big. The limit is 5 MB."); return; } keep(); st.file = f.name; st.blob = f; paint(); };
       $("#exForm").onsubmit = (e) => {
         e.preventDefault(); keep();
         if ((st.why || "").trim().length < 3) { toast("Tell the studio why, e.g. “Knee injury”."); return; }
         if (STUDIO.extAttach === "required" && !st.file) { toast("Your studio asks for a document, e.g. a doctor's note."); return; }
         if (auto) { pk.autoUsed = true; const to = extendPkg(pk, st.days, `Approved automatically: ${st.why}`, "Automatic"); closeModal(); render(); toast(`Approved: ${pk.name} now lasts until ${lastDayOf(to)}.${fee ? ` A ${m$(fee)} fee has been added.` : ""}`); return; }
         EXTREQ.push({ id: nextReqId++, pkg: pk.id, ci: ME.client, days: st.days, reason: st.why.trim(), file: st.file, status: "pending", when: "Just now" });
+        if (st.blob) { const f = st.blob; ATTACH.set(EXTREQ.at(-1).id, { name: st.file, type: f.type || (/\.pdf$/i.test(st.file) ? "application/pdf" : "image/jpeg"), data: () => Promise.resolve(f) }); }
         closeModal(); render(); toast("Request sent. The studio will get back to you by email and push.");
       };
     };
@@ -4653,7 +4675,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
           })()}
           ${studio.length ? `<div class="dr-sec"><h3>Changes by the studio</h3>${studio.map((h) => `<div class="hnote"><b>${esc(h.text)}</b>${h.detail ? `<span>${esc(h.detail)}</span>` : ""}<span class="hmeta">${esc(h.when)}${client ? "" : " · Olivia (Admin)"}</span></div>`).join("")}</div>` : ""}
           <div class="dr-sec"><h3>Everything else</h3>${pk.history.filter((h) => h.by !== "The studio").map((h) => `<div class="row" style="justify-content:space-between;font-size:13px"><span>${esc(h.text)}${h.detail ? ` <span class="muted">· ${esc(h.detail)}</span>` : ""}</span><span class="muted">${esc(h.when)}${h.change ? ` · ${esc(h.change)}` : ""}</span></div>`).join("")}
-            ${EXTREQ.filter((r) => r.pkg === pk.id).map((r) => `<div class="row" style="justify-content:space-between;font-size:13px"><span>Extension request: ${plural(r.days, "day")}, “${esc(r.reason)}”</span><span class="status ${r.status === "pending" ? "wait" : r.status === "approved" ? "done" : "off2"}">${r.status === "pending" ? "Waiting" : r.status}</span></div>`).join("")}
+            ${EXTREQ.filter((r) => r.pkg === pk.id).map((r) => `<div class="row" style="justify-content:space-between;font-size:13px"><span>Extension request: ${plural(r.days, "day")}, “${esc(r.reason)}”${r.file ? ` ${attachChip(r)}` : ""}</span><span class="status ${r.status === "pending" ? "wait" : r.status === "approved" ? "done" : "off2"}">${r.status === "pending" ? "Waiting" : r.status}</span></div>`).join("")}
             <span class="hint">Bought ${fmtDay(pk.bought)} for ${m$(pk.paid)}.</span></div>
         </div>
         <footer><button type="button" class="btn primary" data-mclose>Done</button></footer></div></div>`;
@@ -4960,7 +4982,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
         Object.assign(STUDIO, {
           bookingOpensDays: Number($("#pOpen").value), bookingClosesMins: Number($("#pClose").value), weeklyLimit: $("#pLimitOn").checked ? limit : null,
           lateCancelHours: Number($("#pLate").value), lateFeeOn: $("#pLateOn").checked, lateFeeCents: lateFee, noShowFeeOn: $("#pNoShowOn").checked, noShowFeeCents: noShow,
-          currency: $("#pCur").value, hold: Number($("#pHold").value), expiry: exp.sort((a, b) => b - a), coverApproval: $("#pCover").value,
+          currency: $("#pCur").value, hold: Number($("#pHold").value), wlModes: $("#pWlModes").value, expiry: exp.sort((a, b) => b - a), coverApproval: $("#pCover").value,
           tellClientsInstructorChange: $("#pTell").checked, dst: $("#pDst").checked,
           extMode: $("#pExtMode").value, extAuto: Number($("#pExtAuto")?.value || STUDIO.extAuto), extMax: Number($("#pExtMax")?.value || STUDIO.extMax), extAttach: $("#pExtAttach")?.value || STUDIO.extAttach,
           extFeeMode: $("#pExtFeeMode")?.value || STUDIO.extFeeMode, extFee: $("#pExtFee") ? Math.round(Number($("#pExtFee").value || 0) * 100) : STUDIO.extFee,
@@ -8271,7 +8293,7 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
       if (r) { giveBack(r, s, "Cancelled"); logCancel(s, a.ci, { how: "staff", returned: r.pay?.kind === "package", reason: "Cancelled through the assistant" }); s.roster.splice(s.roster.indexOf(r), 1); }
       askState.msgs.push({ who: "bot", html: `<p>Done. ${esc(c.name)}'s booking is cancelled and the class is back on their package. They've been told.</p>` });
     } else {
-      if (!s.waitlist.some((w) => w.ci === a.ci)) s.waitlist.push({ ci: a.ci, mode: "automatic", cutoff: null });
+      if (!s.waitlist.some((w) => w.ci === a.ci)) s.waitlist.push({ ci: a.ci, mode: STUDIO.wlModes === "manual" ? "manual" : "automatic", cutoff: null });
       askState.msgs.push({ who: "bot", html: `<p>Done. ${esc(c.name)} is on the waitlist for ${esc(clsLabel(s))}. They'll be told if a spot opens.</p>` });
     }
     a.status = "done";
@@ -10101,6 +10123,182 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
   for (const n of NAV) { const id = n.id; n.group = (role) => navGroup(id, role); }
   NAV.sort((a, b) => navRank(a.id, "admin") - navRank(b.id, "admin"));
   state.page = "home";
+  // ===========================================================================
+  // Quick view for attachments (e.g. a physio's note on an extension request), on the page:
+  // PDFs are drawn page by page with pdf.js, photos shown as they are. Nothing opens in a new
+  // window. The API keeps serving PDFs as downloads; the app fetches the file and draws it.
+  // Also: the studio's waitlist setting (clients choose, or one way for everyone).
+  // ===========================================================================
+  const PDFJS_BASE = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
+  let pdfjsReady = null;
+  /** pdf.js loads only when someone opens a PDF. Its worker runs on the page (no separate worker file to fetch). */
+  function loadPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (!pdfjsReady) {
+      const add = (src) => new Promise((ok, fail) => { const el = document.createElement("script"); el.src = src; el.onload = ok; el.onerror = () => fail(new Error("load")); document.head.appendChild(el); });
+      pdfjsReady = add(`${PDFJS_BASE}/pdf.worker.min.js`).then(() => add(`${PDFJS_BASE}/pdf.min.js`)).then(() => {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.js`;
+        return window.pdfjsLib;
+      }).catch((e) => { pdfjsReady = null; throw e; });
+    }
+    return pdfjsReady;
+  }
+
+  // --- A real sample PDF for the sample request, made here so the preview needs no files ---
+  function samplePdf(pages) {
+    const esc_ = (s) => s.replace(/[\\()]/g, (c) => `\\${c}`);
+    const stream = (lines) => {
+      const out = ["0.05 0.38 0.34 RG 2 w 60 764 m 535 764 l S"];
+      let y = 795;
+      for (const [size, bold, text, gap] of lines) {
+        y -= gap ?? size + 8;
+        out.push(`BT /${bold ? "F2" : "F1"} ${size} Tf 60 ${y} Td (${esc_(text)}) Tj ET`);
+      }
+      return out.join("\n");
+    };
+    const objs = ["<</Type/Catalog/Pages 2 0 R>>", "", "<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>", "<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold>>"];
+    const kids = [];
+    for (const lines of pages) {
+      const body = stream(lines);
+      objs.push(`<</Length ${body.length}>>\nstream\n${body}\nendstream`);
+      objs.push(`<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Resources<</Font<</F1 3 0 R/F2 4 0 R>>>>/Contents ${objs.length} 0 R>>`);
+      kids.push(`${objs.length} 0 R`);
+    }
+    objs[1] = `<</Type/Pages/Kids[${kids.join(" ")}]/Count ${kids.length}>>`;
+    let pdf = "%PDF-1.4\n";
+    const at = [];
+    objs.forEach((o, i) => { at.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+    const xref = pdf.length;
+    pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${at.map((n) => `${String(n).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<</Size ${objs.length + 1}/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF`;
+    return new Uint8Array([...pdf].map((c) => c.charCodeAt(0)));
+  }
+  const PHYSIO_NOTE = () => samplePdf([
+    [[20, true, "Bukit Timah Physio Clinic", 0], [10, false, "12 Jalan Jurong Kechil, Singapore 598593  |  6466 1234"], [12, true, "Medical certificate", 34], [11, false, "Date: 10 November 2026"],
+      [11, false, "Patient: Sarah Lee", 22], [11, false, "To whom it may concern,", 30], [11, false, "Ms Lee was seen today for a sprained right ankle (grade 1)."],
+      [11, false, "She should avoid exercise classes, including Pilates and yoga, for"], [11, false, "two weeks, from 10 November to 24 November 2026."],
+      [11, false, "She can return to normal activity after that, starting gently.", 30], [11, false, "Yours sincerely,", 40], [11, true, "Dr Mei Chen, Physiotherapist"], [10, false, "Registration no. PT-04567"]],
+    [[16, true, "Treatment plan", 0], [11, false, "Week 1: rest, ice, compression and keeping the ankle raised.", 30], [11, false, "Week 2: gentle range-of-motion exercises at home."],
+      [11, false, "Review appointment: 24 November 2026, 10:00am.", 22], [10, false, "This note is for the patient's studio and may be shared with them.", 40]],
+  ]);
+  /** Bytes or a File for each attachment, keyed by its request. */
+  const ATTACH = new Map();
+  { const r = EXTREQ.find((x) => x.file === "physio-note.pdf"); if (r) ATTACH.set(r.id, { name: r.file, type: "application/pdf", data: () => Promise.resolve(PHYSIO_NOTE()) }); }
+  const attachOf = (r) => ATTACH.get(r.id) || (r.file ? { name: r.file, type: /\.pdf$/i.test(r.file) ? "application/pdf" : "image/*", data: null } : null);
+  /** The attachment chip on an extension request: opens the quick view. */
+  function attachChip(r) {
+    if (!r.file) return "";
+    const isPdf = /\.pdf$/i.test(r.file);
+    return `<button type="button" class="attchip" data-qv="${r.id}" data-help="Open it here, without leaving the page."><span aria-hidden="true">${isPdf ? "📄" : "🖼"}</span> ${esc(r.file)} <span class="qvlink">Quick view</span></button>`;
+  }
+
+  // --- The viewer ---------------------------------------------------------------------
+  const QV = { zoom: null, doc: null, img: null, page: 1, url: null, fit: true };
+  async function openQuickView(reqId) {
+    const r = EXTREQ.find((x) => x.id === reqId);
+    const a = r && attachOf(r);
+    if (!a) return;
+    const isPdf = a.type === "application/pdf";
+    Object.assign(QV, { zoom: 1, doc: null, img: null, page: 1, fit: true, name: a.name });
+    if (QV.url) { URL.revokeObjectURL(QV.url); QV.url = null; }
+    $("#modalRoot").innerHTML = `<div class="modal-wrap qvwrap" data-mclose><div class="modal qv" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
+      <header class="qvhead"><div class="stack" style="gap:1px;min-width:0"><h2 id="qvTitle">${esc(a.name)}</h2><span class="muted" style="font-size:12.5px">${esc(CLIENTS[r.ci].name)} · extension request · <span id="qvMeta">${isPdf ? "PDF" : "Photo"}</span></span></div>
+        <div class="qvtools" role="toolbar" aria-label="Quick view">
+          <button type="button" class="iconbtn" id="qvOut" aria-label="Zoom out" data-help="Zoom out">−</button><span id="qvZoom" class="qvz" aria-live="polite">Fit</span><button type="button" class="iconbtn" id="qvIn" aria-label="Zoom in" data-help="Zoom in">+</button>
+          <button type="button" class="btn" id="qvFit">Fit width</button>
+          ${isPdf ? '<span id="qvPage" class="qvz" aria-live="polite"></span>' : ""}
+          <button type="button" class="btn" id="qvDl" data-help="Save a copy to your device.">Download</button>
+          <button type="button" class="iconbtn" data-mclose aria-label="Close quick view">✕</button></div></header>
+      <div class="qvbody" id="qvBody" tabindex="0" aria-label="${esc(a.name)}"><div class="qvmsg" id="qvMsg">Opening…</div></div></div></div>`;
+    const body = $("#qvBody");
+    const fail = (why) => { body.innerHTML = `<div class="qvmsg">${alertBox("warn", "This file couldn't be shown here", `${esc(why)} You can download it instead.`)}</div>`; };
+    $("#qvIn").onclick = () => zoomBy(1.25);
+    $("#qvOut").onclick = () => zoomBy(0.8);
+    $("#qvFit").onclick = () => { QV.fit = true; QV.zoom = 1; draw(); };
+    $("#qvDl").onclick = async () => {
+      const bytes = a.data ? await a.data() : null;
+      if (!bytes) return toast("This sample file is only a name. Attach a real file to an extension request to try it.");
+      const res = await offerFile(a.name, bytes instanceof Uint8Array ? bytes : new Uint8Array(await bytes.arrayBuffer()), a.type);
+      toast(res === "saved" ? `Downloaded ${a.name}.` : res === "busy" ? "A download is already waiting for you to confirm." : "Your browser didn't allow the download.");
+    };
+    body.onkeydown = (e) => { if (e.key === "+" || e.key === "=") zoomBy(1.25); if (e.key === "-") zoomBy(0.8); };
+    if (!a.data) return fail("This sample request only has a file name, not a real file.");
+    try {
+      const raw = await a.data();
+      const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(await raw.arrayBuffer());
+      if (!$("#qvBody")) return; // closed while loading
+      if (isPdf) {
+        const lib = await loadPdfJs();
+        QV.doc = await lib.getDocument({ data: bytes }).promise;
+        $("#qvMeta").textContent = `PDF, ${plural(QV.doc.numPages, "page")}`;
+      } else {
+        QV.url = URL.createObjectURL(new Blob([bytes], { type: a.type }));
+        QV.img = QV.url;
+      }
+      await draw();
+      body.focus();
+    } catch (e) {
+      fail(e?.message === "load" ? "The PDF reader didn't load. Check your connection and try again." : "It may be damaged or in a format we can't show.");
+    }
+  }
+  function zoomBy(f) {
+    if (!QV.doc && !QV.img) return;
+    QV.fit = false;
+    QV.zoom = Math.min(4, Math.max(0.25, Math.round(QV.zoom * f * 100) / 100));
+    draw();
+  }
+  let drawing = 0;
+  async function draw() {
+    const body = $("#qvBody");
+    if (!body) return;
+    const run = ++drawing;
+    const avail = Math.max(200, body.clientWidth - 32);
+    if (QV.img) {
+      body.innerHTML = `<img class="qvimg" src="${QV.img}" alt="${esc(QV.name)}" style="${QV.fit ? "width:100%;max-width:100%" : `width:${Math.round(avail * QV.zoom)}px;max-width:none`}">`;
+      $("#qvZoom").textContent = QV.fit ? "Fit" : `${Math.round(QV.zoom * 100)}%`;
+      return;
+    }
+    if (!QV.doc) return;
+    const first = await QV.doc.getPage(1);
+    const base = first.getViewport({ scale: 1 });
+    const fitScale = avail / base.width;
+    const scale = QV.fit ? fitScale : fitScale * QV.zoom;
+    $("#qvZoom").textContent = QV.fit ? "Fit" : `${Math.round(QV.zoom * 100)}%`;
+    const frag = document.createElement("div");
+    frag.className = "qvpages";
+    const dpr = window.devicePixelRatio || 1;
+    for (let n = 1; n <= QV.doc.numPages; n++) {
+      const page = await QV.doc.getPage(n);
+      if (run !== drawing) return; // a newer zoom started
+      const vp = page.getViewport({ scale });
+      const c = document.createElement("canvas");
+      c.width = Math.floor(vp.width * dpr); c.height = Math.floor(vp.height * dpr);
+      c.style.width = `${Math.floor(vp.width)}px`; c.style.height = `${Math.floor(vp.height)}px`;
+      c.className = "qvpage"; c.dataset.page = String(n);
+      c.setAttribute("role", "img"); c.setAttribute("aria-label", `Page ${n} of ${QV.doc.numPages}`);
+      await page.render({ canvasContext: c.getContext("2d"), viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null }).promise;
+      frag.appendChild(c);
+    }
+    if (run !== drawing || !$("#qvBody")) return;
+    body.replaceChildren(frag);
+    const pageNow = () => {
+      const top = body.scrollTop + body.clientHeight / 3;
+      const pages = [...body.querySelectorAll(".qvpage")];
+      const cur = pages.filter((p) => p.offsetTop <= top).pop() || pages[0];
+      QV.page = Number(cur?.dataset.page || 1);
+      if ($("#qvPage")) $("#qvPage").textContent = `Page ${QV.page} of ${QV.doc.numPages}`;
+    };
+    body.onscroll = pageNow;
+    pageNow();
+  }
+
+  // Clicking an attachment opens the quick view (anywhere it appears).
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest?.("[data-qv]");
+    if (!b) return;
+    e.preventDefault();
+    openQuickView(Number(b.dataset.qv));
+  });
+  window.addEventListener("resize", () => { if ($("#qvBody") && QV.fit) draw(); });
 
   // MKT-JS-END
   window.addEventListener("hashchange", () => { const id = location.hash.slice(1); if (id !== state.page && navFor(state.role).some((n) => n.id === id)) go(id); });

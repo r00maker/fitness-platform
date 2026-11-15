@@ -154,7 +154,7 @@ describe("extension requests", () => {
     expect((await s.c1.call("POST", `/client-packages/${p.id}/extension-requests`, { days: 5, reason: "Again" })).body.error.code).toBe("already_requested");
 
     const list = (await s.owner.call("GET", "/extension-requests")).body;
-    expect(list[0]).toMatchObject({ days: 10, feeIfApproved: "SGD 20.00", packageName: "10-class pack" });
+    expect(list[0]).toMatchObject({ days: 10, feeIfApproved: "SGD 20.00", packageName: "10-class pack", attachment: { url: note.body.url, kind: "pdf", contentType: "application/pdf", size: "1 KB" } });
     const ok = await s.owner.call("POST", `/extension-requests/${list[0].id}/approve`, {});
     expect(ok.body.request).toMatchObject({ status: "approved", daysGranted: 10, fee: "SGD 20.00" });
     expect(await db.select().from(fees).where(eq(fees.type, "package_extension"))).toHaveLength(1);

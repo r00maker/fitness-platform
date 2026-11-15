@@ -60,6 +60,8 @@ export async function settingsRoutes(app: FastifyInstance) {
     if (can(req.auth.role, "manageSettings")) return org;
     return {
       waitlistExpiryOptionsHours: org.waitlistExpiryOptionsHours,
+      /** "both" = clients choose; otherwise every waitlist works this way (the app skips the choice). */
+      waitlistModes: org.waitlistModes,
       lateCancelWindowHours: org.lateCancelWindowHours,
       bookingOpensDaysBefore: org.bookingOpensDaysBefore,
       bookingClosesMinutesBefore: org.bookingClosesMinutesBefore,

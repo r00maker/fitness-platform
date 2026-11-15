@@ -23,7 +23,8 @@ A booking platform for fitness studios in Southeast Asia (in the space of Momenc
 | #12 | Claude API setup documented (`docs/HOSTING_AND_DEPLOYMENT.md`, section 5) |
 | #13 | Report zoom, "Edit many", grouped menu, reminder agents, support assistant, light/dark UI audit, security audit |
 | #14 | Sales (invoices, receipts, refunds, invoice design), membership payment holds, shop (gift cards moved here), writing agents, Gmail and Outlook inbox, report exports (CSV and visual), rooms optional, simpler journey goals, class types split, calendar double-click/drag, tidier Categories window |
-| Not merged yet | Closures and holidays: recurring classes skip closed days, adding one cancels the classes on those days with one message per person, closed days shaded on the calendar, closed-day check when adding or moving a class. Also "Show cancelled" on the calendar, a Cancellations tab on each class, and Home (the staff front page) |
+| #16 | Closures and holidays: recurring classes skip closed days, adding one cancels the classes on those days with one message per person, closed days shaded on the calendar, closed-day check when adding or moving a class. Also "Show cancelled" on the calendar, a Cancellations tab on each class, and Home (the staff front page) |
+| Not merged yet | Waitlist setting (clients choose, or always automatic / always ask first) and a quick view for extension-request attachments |
 
 Details of how each area works, and the decisions behind them, are in `docs/PRODUCT_NOTES.md`. The staff-facing guide (also what the support assistant reads) is `docs/help/STUDIO_GUIDE.md`.
 

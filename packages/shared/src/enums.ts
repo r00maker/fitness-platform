@@ -100,6 +100,9 @@ export type BookingSource = (typeof BOOKING_SOURCES)[number];
 
 export const WAITLIST_MODES = ["automatic", "manual"] as const;
 export type WaitlistMode = (typeof WAITLIST_MODES)[number];
+/** Which waitlist choices a studio offers: let clients choose, or always one way. */
+export const WAITLIST_MODE_SETTINGS = ["both", "automatic", "manual"] as const;
+export type WaitlistModeSetting = (typeof WAITLIST_MODE_SETTINGS)[number];
 
 export const WAITLIST_STATUSES = [
   "waiting", // in the queue

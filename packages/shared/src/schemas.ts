@@ -31,6 +31,7 @@ import {
   SUB_APPROVAL_MODES,
   TIMES_OF_DAY,
   WAITLIST_MODES,
+  WAITLIST_MODE_SETTINGS,
 } from "./enums.js";
 
 export const id = z.uuid({ message: "That ID doesn't look right." });
@@ -56,6 +57,7 @@ const timezone = z.string().refine(
 // ---- Studio settings -------------------------------------------------------
 export const updateOrgSettings = z.object({
   substituteApproval: z.enum(SUB_APPROVAL_MODES).optional(),
+  waitlistModes: z.enum(WAITLIST_MODE_SETTINGS).optional(),
   waitlistHoldMinutes: z.number().int().min(1).max(120).optional(),
   waitlistExpiryOptionsHours: z
     .array(z.number().int().min(0).max(168))
@@ -473,7 +475,8 @@ export const joinWaitlist = z.object({
   sessionId: id,
   clientId: id.optional(),
   acknowledge,
-  mode: z.enum(WAITLIST_MODES),
+  /** Only needed when the studio lets clients choose; otherwise the studio's way is used. */
+  mode: z.enum(WAITLIST_MODES).optional(),
   /** Must be one of the studio's three expiry options, or null to wait until class starts. */
   expiresHoursBeforeStart: z.number().int().min(0).nullable().default(null),
   waiver: signWaiver.optional(),
