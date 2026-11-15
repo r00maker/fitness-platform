@@ -168,7 +168,8 @@ async function overview(db: DbOrTx, org: Org, p: Period) {
   return { metrics, highlights, summary: summaryLine(metrics, p.days) };
 }
 
-async function sales(db: DbOrTx, org: Org, p: Period) {
+/** Exported for tests. */
+export async function sales(db: DbOrTx, org: Org, p: Period) {
   const cur = await revenue(db, org.id, p.from, p.to), prev = await revenue(db, org.id, p.prevFrom, p.from);
   const avg = cur.sold ? Math.round(cur.packages / cur.sold) : 0, avgPrev = prev.sold ? Math.round(prev.packages / prev.sold) : 0;
   const metrics = [
@@ -190,8 +191,14 @@ async function sales(db: DbOrTx, org: Org, p: Period) {
     select to_char(date_trunc(${unit}, at at time zone ${zone}), 'YYYY-MM-DD') as bucket, sum(cents) as cents from money_in group by 1 order by 1`);
   const byBucket = new Map(bars.rows.map((b) => [b.bucket, n(b.cents)]));
   const series: { label: string; start: string; cents: number; display: string }[] = [];
-  const first = await db.execute<{ d: string }>(sql`select to_char(date_trunc(${unit}, ${p.from}::timestamptz at time zone ${zone}), 'YYYY-MM-DD') as d`);
-  for (let d = new Date(`${first.rows[0]!.d}T00:00:00Z`); d < p.to; ) {
+  // First and last week (or month) in the studio's own time zone. Both are local dates, so the
+  // loop compares them with each other: comparing with p.to (a moment) dropped the current week
+  // whenever the studio's date was ahead of UTC's (e.g. just after midnight on Monday in Singapore).
+  const ends = await db.execute<{ first: string; last: string }>(sql`select
+    to_char(date_trunc(${unit}, ${p.from}::timestamptz at time zone ${zone}), 'YYYY-MM-DD') as first,
+    to_char(date_trunc(${unit}, (${p.to}::timestamptz - interval '1 millisecond') at time zone ${zone}), 'YYYY-MM-DD') as last`);
+  const last = ends.rows[0]!.last;
+  for (let d = new Date(`${ends.rows[0]!.first}T00:00:00Z`); d.toISOString().slice(0, 10) <= last; ) {
     const key = d.toISOString().slice(0, 10);
     const cents = byBucket.get(key) ?? 0;
     series.push({ start: key, label: d.toLocaleDateString("en-GB", unit === "month" ? { month: "short", year: "2-digit", timeZone: "UTC" } : { day: "numeric", month: "short", timeZone: "UTC" }), cents, display: money(cents, org.currency) });
