@@ -18,6 +18,7 @@ const file = "file://" + path.join(__dirname, "fx-test.html");
     ["phone", { ...devices["iPhone 13"], colorScheme: "light" }],
   ]) {
     const p = await browser.newPage(opts);
+    await p.addInitScript(() => { window.__quiet = true; }); // no celebration or review pop-ups over the page
     const errors = [];
     p.on("pageerror", (e) => errors.push(e.message));
     p.on("dialog", (d) => d.dismiss());

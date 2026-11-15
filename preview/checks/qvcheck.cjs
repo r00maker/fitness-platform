@@ -29,6 +29,7 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR
       route.fulfill({ status: 200, contentType: "application/javascript", body: fs.readFileSync(path.join(PDFJS_DIR, name)) });
     });
     const p = await ctx.newPage();
+    await p.addInitScript(() => { window.__quiet = true; }); // no celebration or review pop-ups over the page
     const errors = [];
     let popups = 0;
     p.on("pageerror", (e) => errors.push(e.message));
@@ -111,6 +112,7 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR
   const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 } });
   await ctx.route("https://cdnjs.cloudflare.com/**", (r) => r.abort());
   const p = await ctx.newPage();
+  await p.addInitScript(() => { window.__quiet = true; }); // no celebration or review pop-ups over the page
   await p.goto(file);
   await p.evaluate(() => (location.hash = "packages"));
   await p.waitForTimeout(200);

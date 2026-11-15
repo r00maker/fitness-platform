@@ -902,3 +902,59 @@ body:has(.askbtn) .main { padding-bottom: 72px; }
 
 /* Pages with a save bar (Studio rules): the Ask button sits above it instead of covering it. */
 body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+
+/* --- Reviews, feedback and celebrations --------------------------------------------- */
+.rvmodal { width: min(480px, 100%); }
+.rvstars { display: flex; justify-content: center; gap: 6px; }
+.rvstars button { border: 0; background: transparent; font-size: 40px; line-height: 1; padding: 4px; color: color-mix(in srgb, var(--muted) 50%, var(--surface)); border-radius: 10px; min-width: 48px; min-height: 48px; }
+.rvstars button.on { color: #e8a317; }
+.rvstars button:hover { color: #f0b63a; }
+.rvword { text-align: center; font-weight: 600; min-height: 20px; }
+.rvdone { font-size: 30px; color: #e8a317; letter-spacing: 2px; text-align: center; }
+.gcard { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); font-size: 13.5px; }
+.rvst { color: #c98a0c; letter-spacing: 1px; font-size: 15px; }
+.rvst.low { color: var(--danger); }
+.rvcard { gap: 6px; }
+.rvcard.low { border-left: 3px solid var(--danger); }
+.rvfilters { gap: 8px 12px; }
+.rvsum { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 900px) { .rvsum { grid-template-columns: minmax(0, 1fr); } }
+.rvhero { align-items: flex-start; }
+.rvbig { display: flex; align-items: baseline; gap: 10px; }
+.rvbig b { font-size: 52px; font-weight: 600; line-height: 1; letter-spacing: -.02em; }
+.rvbig.sm b { font-size: 30px; }
+.rvdist { display: flex; flex-direction: column; gap: 6px; }
+.rvrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) 30px; gap: 10px; align-items: center; font-size: 13px; border: 0; background: transparent; color: var(--fg); padding: 2px 0; text-align: left; width: 100%; }
+.rvrow.rvinstr { grid-template-columns: 26px minmax(90px, 160px) minmax(0, 1fr) 48px 24px; border-radius: 8px; padding: 4px; }
+.rvrow.rvinstr:hover { background: var(--sunk); }
+.rvbar { height: 8px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; }
+.rvbar span { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.fbcats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.fbcats button { display: flex; flex-direction: column; gap: 2px; text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 10px; padding: 9px 11px; font-size: 13px; }
+.fbcats button span { font-weight: 400; font-size: 12px; color: var(--muted); }
+.fbcats button[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+.fbcard { gap: 8px; }
+.fbcard.lowrv { border-left: 3px solid var(--danger); }
+.fbmsg { display: flex; flex-direction: column; gap: 2px; padding: 8px 11px; border-radius: 10px; background: var(--sunk); font-size: 13.5px; max-width: 92%; }
+.fbmsg.studio { background: var(--accent-soft); align-self: flex-end; }
+.fbmsg b { font-size: 12px; }
+.fbreply { flex-wrap: nowrap; }
+.fbreply input { flex: 1; min-width: 0; height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 13px; }
+.tabs .n.hot { background: var(--danger); color: var(--surface); }
+/* Celebration pop-up */
+.modal.celeb { width: min(500px, 100%); overflow-x: hidden; position: relative; }
+.celebtop { height: 74px; margin: 0; background: linear-gradient(120deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #f0b63a)); position: relative; overflow: hidden; border-radius: 14px 14px 0 0; }
+.celebtop i { position: absolute; font-style: normal; font-size: 22px; left: calc(6% + var(--k) * 12%); top: 18px; animation: celebfloat 2.6s ease-in-out calc(var(--k) * -.3s) infinite alternate; }
+.celebtop.still i { animation: none; }
+@keyframes celebfloat { from { transform: translateY(-6px) rotate(-8deg); } to { transform: translateY(14px) rotate(8deg); } }
+@media (prefers-reduced-motion: reduce) { .celebtop i { animation: none; } }
+.modal.celeb header { padding-top: 14px; }
+.celebkind { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.modal.celeb h2 { font-size: 22px; }
+.celeblines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.celeblines li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; font-size: 14px; align-items: start; }
+.celeblines li > span:first-child { font-size: 18px; line-height: 1.2; }
+.celebbox { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; background: var(--sunk); font-size: 13.5px; }
+.celebbox.care { background: var(--ok-soft); }
+.celebbox ul { margin: 0; padding-left: 18px; }
+.aitag { font-size: 11.5px; color: var(--muted); }

@@ -25,13 +25,13 @@ Owners can do everything admins can. Only the owner can add or remove admins.
 The menu on the left is grouped by what you're doing. Staff see:
 
 - **Day to day:** Home (or My day for instructors), Schedule (or My schedule), Cover requests, Communication, Announcements, Pickups (Front of House: shop orders and rewards to hand over).
-- **Clients & sales:** Clients, Leads, Sales, Packages, Shop, Fees.
-- **Growth:** Marketing, Reports.
+- **Clients & sales:** Clients, Leads, Sales, Packages, Shop, Fees, Feedback.
+- **Growth:** Marketing, Reports, Reviews.
 - **Team:** Staff & pay, Payroll, Agents.
 - **Setup:** Class types, Templates, Locations & rooms, Closures & holidays, Studio rules.
-- **Account:** My pay (instructors), Preferences.
+- **Account:** My pay and My reviews (instructors), Preferences.
 
-Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My packages, Rewards, Refer a friend, and Shop when there's something in it) and **Account** (Injuries & conditions, Profile & privacy, Preferences).
+Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My packages, Rewards, Refer a friend, and Shop when there's something in it) and **Account** (Feedback, Injuries & conditions, Profile & privacy, Preferences).
 
 The **Ask** button (bottom right) opens the assistant. The **bell** at the top shows messages from your studio's agents.
 
@@ -145,6 +145,35 @@ Read and reply to WhatsApp messages and emails from clients in one inbox. Filter
 
 WhatsApp works alongside the WhatsApp Business app on your phone. Meta charges for some messages (marketing templates always; service updates outside 24 hours of the client's last message). Before using it, an owner or admin chooses how messages are paid for under Communication, Settings: pay Meta directly, or buy message credits. Replies within 24 hours of a client's message are free.
 
+## Reviews
+
+After a class they came to, clients are asked how it went: 1 to 5 stars and an optional comment. Only their most recent class is ever asked about, so nobody is asked after every booking.
+
+- **Skipping is fine.** If they skip, they're asked again after their next class.
+- **"Don't ask me again for…"** Clients who leave a review can pause the pop-ups for 2, 4, 8 or 12 weeks (they can also do it later under **Feedback**, **My reviews**, once they've left one review).
+- **Google reviews:** add your studio's Google review link under **Studio rules**, **Reviews and celebrations** (in your Google Business Profile, choose "Ask for reviews" and copy the link). After any review, the client is offered **Share on Google**, with their words copied so they can paste them. **Everyone is offered it, whatever they gave.** Offering it only to happy clients ("review gating") is against Google's rules and can get a studio's Google reviews removed. The Reviews page shows how many people tap it.
+- **The Reviews page** (owners and admins, under Growth) shows the average, how people rated (5 to 1), the Google share rate, each instructor's average, and every review. Filter by period, class, instructor, location and stars; tap an instructor to see just theirs.
+- **Instructors** see **My reviews**: reviews of their own classes, with clients' first names and initials only.
+- **Low reviews** (2 stars or fewer) tell owners and admins straight away, and wait under **Feedback**, **Needs attention** until someone follows them up.
+
+## Feedback
+
+Clients can tell the studio what they'd like to see under **Feedback** in their menu: they choose what it's about (Facilities and comfort, Classes and schedule, Instructors, App and booking, Prices and packages, or Something else), optionally a location, and write a short message. For example: "The aircon at Tanjong Pagar is really cold."
+
+- **Owners, admins and Front of House** see it under **Feedback**. Each topic has its own tab, so facilities issues don't get mixed up with schedule requests.
+- **Needs attention** (the first tab) lists new feedback nobody has answered yet, and low reviews to follow up.
+- **Reply** from the item: the client gets it by email and sees it in the app, and can reply back. Mark items **Replied** or **Sorted** as you go. If a client writes again about something marked Sorted, it goes back to New.
+- **Follow up a low review** with **Mark as followed up**, adding a private reply if you like (the client gets it by email).
+
+## Celebrations
+
+Owners, admins and instructors get a pop-up on **Home** when there's something to celebrate:
+
+- **Every two weeks, a recap.** Instructors: classes taught, people who came (and how many came back), how full their classes were, their busiest class and their reviews. Owners and admins: the same for the whole studio.
+- **Milestones:** 50, 100, 250, 500 and more classes taught; for the studio, classes held and total visits.
+- **With AI recaps on** (Studio rules), Claude writes the headline, a kind summary of what clients said in their reviews, and two self-care tips. It sees numbers and review text only, never names or contact details, and uses 1 AI credit per recap. With it off, the same card uses set wording.
+- Each person can turn the pop-ups off for themselves with **Don't show these**, and back on under **Preferences**. Owners and admins can turn them off for everyone under Studio rules.
+
 ## Reports
 
 **Reports** has tabs: Overview, Sales, Classes, Clients, Conversion and Instructors. Each number is compared with the period before. On the **Classes** tab, **Zoom in** narrows everything to a class type, location, instructor, days of the week or time of day (mornings, afternoons, evenings), and shows how full each location and time slot was.
@@ -177,7 +206,7 @@ The assistant (the **Ask** button) answers questions about using the app and abo
 
 It can't do anything involving money (refunds, payments, prices, selling packages, fees, pay), change settings, staff or the schedule, delete anything, or share client contact details or health notes. For those, it tells you who can and where.
 
-Owners and admins can switch it off, choose which roles can use it, and stop it doing things for people, under **Agents**, then **Assistant**. Each plan includes a number of AI credits a month, shared by the assistant (1 per answer) and the writers (see **Agents**, then **Usage**). Reminder agents are free. Owners and admins are told at 80% and when they're used up, and can buy a top-up.
+Owners and admins can switch it off, choose which roles can use it, and stop it doing things for people, under **Agents**, then **Assistant**. Each plan includes a number of AI credits a month, shared by the assistant (1 per answer), the writers and AI recaps (1 per recap) (see **Agents**, then **Usage**). Reminder agents are free. Owners and admins are told at 80% and when they're used up, and can buy a top-up.
 
 ## Class types
 

@@ -9,7 +9,8 @@ swap('''          ${rule("Hold time", "How long a spot is held for someone who c
 swap('''    waitlistHoldMinutes: "How long a spot is held''',
      '''    waitlistModes: "“Clients choose”: each client picks “Book me in automatically” or “Ask me first” when they join. Or choose one way for everyone, and clients aren't asked.",
     waitlistHoldMinutes: "How long a spot is held''')
-swap('''hold: Number($("#pHold").value), expiry:''', '''hold: Number($("#pHold").value), wlModes: $("#pWlModes").value, expiry:''')
+# (patch15's review and celebration settings are saved on the same line.)
+swap('''hold: Number($("#pHold").value), expiry:''', '''hold: Number($("#pHold").value), wlModes: $("#pWlModes").value, reviewsOn: $("#pRevOn").checked, googleUrl: $("#pGoogle").value.trim() || null, celebOn: $("#pCelebOn").checked, aiRecaps: $("#pAiRecaps").checked, expiry:''')
 
 # Joining a waitlist: clients only choose when the studio lets them.
 swap('''      <div class="lbl" style="font-size:12.5px;font-weight:600;display:flex;gap:5px;align-items:center">When a spot opens ${tip("mode")}</div>

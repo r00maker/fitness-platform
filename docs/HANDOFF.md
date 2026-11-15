@@ -24,7 +24,7 @@ A booking platform for fitness studios in Southeast Asia (in the space of Momenc
 | #13 | Report zoom, "Edit many", grouped menu, reminder agents, support assistant, light/dark UI audit, security audit |
 | #14 | Sales (invoices, receipts, refunds, invoice design), membership payment holds, shop (gift cards moved here), writing agents, Gmail and Outlook inbox, report exports (CSV and visual), rooms optional, simpler journey goals, class types split, calendar double-click/drag, tidier Categories window |
 | #16 | Closures and holidays: recurring classes skip closed days, adding one cancels the classes on those days with one message per person, closed days shaded on the calendar, closed-day check when adding or moving a class. Also "Show cancelled" on the calendar, a Cancellations tab on each class, and Home (the staff front page) |
-| Not merged yet | Waitlist setting (clients choose, or always automatic / always ask first) and a quick view for extension-request attachments. Also: attendance locks at midnight after each class (no-show fees final then), templates can be deleted, Studio rules save button no longer under Ask |
+| Not merged yet | Waitlist setting (clients choose, or always automatic / always ask first) and a quick view for extension-request attachments. Also: attendance locks at midnight after each class (no-show fees final then), templates can be deleted, Studio rules save button no longer under Ask. Also reviews (with the Google offer), client feedback, and celebration pop-ups for staff |
 
 Details of how each area works, and the decisions behind them, are in `docs/PRODUCT_NOTES.md`. The staff-facing guide (also what the support assistant reads) is `docs/help/STUDIO_GUIDE.md`.
 
@@ -90,5 +90,5 @@ pnpm test                  # 266 API tests at the time of writing
 - Route helpers: `withFlags(app, acknowledge, fn)` (returns 409 `needs_confirmation` until acknowledged), `inTx`, `parse`, `requirePermission(req, perm)`. Public routes set `config: { public: true }`; rate limits go in `config.rateLimit`.
 - Notifications use templates in `apps/api/src/modules/notifications/templates.ts` (a template must exist before `notify` can use it).
 - Secrets: `encryptSecret` / `decryptSecret` in `apps/api/src/lib/secrets.ts` (key from `SECRETS_KEY`).
-- Claude API: one platform key (`ANTHROPIC_API_KEY`), usage tracked per studio as AI credits (answer 1, announcement draft 1, campaign draft 3). See `apps/api/src/modules/assistant/`.
+- Claude API: one platform key (`ANTHROPIC_API_KEY`), usage tracked per studio as AI credits (answer 1, announcement draft 1, campaign draft 3, AI recap 1). See `apps/api/src/modules/assistant/`.
 - Preview: edit `preview/src/*` or the patches, run `python3 inject.py` in `preview/`, run the checks in `preview/checks/`, then republish the artifact to the same URL.

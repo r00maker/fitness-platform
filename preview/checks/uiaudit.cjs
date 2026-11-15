@@ -14,6 +14,7 @@ fs.mkdirSync(out, { recursive: true });
   const report = [];
   for (const scheme of ["light", "dark"]) {
     const p = await b.newPage({ viewport: { width, height: 900 }, colorScheme: scheme, deviceScaleFactor: 1 });
+    await p.addInitScript(() => { window.__quiet = true; }); // no celebration or review pop-ups over the page
     const errs = [];
     p.on("pageerror", (e) => errs.push(e.message));
     await p.goto("file://" + path.join(__dirname, "..", "studio-calendar-preview.html"));

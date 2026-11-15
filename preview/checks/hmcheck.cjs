@@ -18,6 +18,7 @@ const file = "file://" + path.join(__dirname, "hm-test.html");
     ["phone", { ...devices["iPhone 13"], colorScheme: "light" }],
   ]) {
     const p = await browser.newPage(opts);
+    await p.addInitScript(() => { window.__quiet = true; }); // no celebration or review pop-ups over the page
     const errors = [];
     p.on("pageerror", (e) => errors.push(e.message + " @@ " + (e.stack || "").split("\n").slice(1, 3).join(" / ")));
     p.on("dialog", (d) => d.dismiss());
@@ -99,7 +100,7 @@ const file = "file://" + path.join(__dirname, "hm-test.html");
     ok(`${label}: Front of House stays on Home`, (await ev("state.page")) === "home" && /Good morning, Fiona/.test(await text("#pgOther .pagehead h2")));
     ok(`${label}: Front of House sees no money`, JSON.stringify(await kpiKeys()) === JSON.stringify(["bookings", "fill", "new_clients"]));
     const fohKinds = await p.evaluate(() => [...document.querySelectorAll(".attrow b")].map((b) => b.textContent).join(" | "));
-    ok(`${label}: Front of House to-dos are theirs (${fohKinds})`, !/fee|instructor|extension|cover/i.test(fohKinds) && /waiver/.test(fohKinds));
+    ok(`${label}: Front of House to-dos are theirs (${fohKinds})`, !/\bfees?\b|instructor|extension|cover/i.test(fohKinds) && /waiver/.test(fohKinds));
 
     // Instructor: their day
     await role("instructor");

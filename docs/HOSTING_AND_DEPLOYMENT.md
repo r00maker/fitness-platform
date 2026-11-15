@@ -102,7 +102,7 @@ Agents run on the **Claude API**, Anthropic's pay-as-you-go developer platform. 
 
 1. Create an organisation on the **Claude Console** (platform.claude.com) and add a payment method. You can pay as you go from prepaid credit, and move to invoicing later.
 2. Create two **workspaces**, `staging` and `production`. Each gets its own API key and a **monthly spend limit**. The spend limit is a backstop in case the platform's own caps fail.
-3. Put each key in that environment's secret manager as `ANTHROPIC_API_KEY`. Never commit it, and never put it in the web or mobile app. Optional settings: `ASSISTANT_MODEL` (default `claude-opus-5-5`), `ASSISTANT_MONTHLY_REPLIES` (AI credits included per studio each month, default 300; an answer costs 1, an announcement draft 1, a campaign draft 3) and `ASSISTANT_DISABLED=true` (a kill switch for every studio).
+3. Put each key in that environment's secret manager as `ANTHROPIC_API_KEY`. Never commit it, and never put it in the web or mobile app. Optional settings: `ASSISTANT_MODEL` (default `claude-opus-5-5`), `ASSISTANT_MONTHLY_REPLIES` (AI credits included per studio each month, default 300; an answer costs 1, an announcement draft 1, a campaign draft 3, an AI recap 1) and `ASSISTANT_DISABLED=true` (a kill switch for every studio).
 4. Accept Anthropic's **data processing agreement** for the organisation. Add "AI processing (Anthropic)" to the platform's list of subprocessors, and tell studios so their own privacy notices can mention it. This matters under data-protection laws such as PDPA in Singapore, Malaysia and Thailand. By default, data sent through the API under the commercial terms is not used to train models.
 
 ### How usage and cost are tracked
