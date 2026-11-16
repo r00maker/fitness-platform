@@ -233,6 +233,9 @@ export const organizations = pgTable("organizations", {
   agentsPaused: boolean("agents_paused").notNull().default(false),
   /** Features the studio has switched off (see FEATURES in @studio/shared). Features with their own setting aren't listed here. */
   featuresOff: text("features_off").array().notNull().default(sql`'{}'::text[]`),
+  /** Setup by studio type: the kind of studio chosen (independent, boutique, multi) and when. */
+  studioType: text("studio_type").$type<"independent" | "boutique" | "multi">(),
+  setupDoneAt: ts("setup_done_at"),
   referralQualify: text("referral_qualify").notNull().default("classes_attended"),
   referralQualifyValue: integer("referral_qualify_value").notNull().default(3),
   referralQualifyWithinDays: integer("referral_qualify_within_days").notNull().default(60),

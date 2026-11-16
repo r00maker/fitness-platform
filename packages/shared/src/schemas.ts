@@ -2,7 +2,7 @@
  * Request shapes for the API. The API validates every request against these,
  * and the web/mobile forms use the same schemas so errors show before submitting.
  */
-import { FEATURE_KEYS } from "./features.js";
+import { FEATURE_KEYS, STUDIO_TYPES } from "./features.js";
 import { z } from "zod";
 import {
   ATTENDANCE,
@@ -323,6 +323,8 @@ export const deleteTemplate = z.object({ acknowledge });
 /** Switch a feature on or off (Setup, Features). Switching off asks first when something is running. */
 export const featureKeyParam = z.object({ key: z.enum(FEATURE_KEYS) });
 export const setFeature = z.object({ on: z.boolean(), acknowledge });
+/** First-run setup: the kind of studio, which fills features and rules (asks first if it changes anything). */
+export const runSetup = z.object({ studioType: z.enum(STUDIO_TYPES), acknowledge });
 
 export const createSeries = z
   .object({

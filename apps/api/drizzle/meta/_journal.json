@@ -190,6 +190,13 @@
       "when": 1794764050224,
       "tag": "0026_feature_switches",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1794800955878,
+      "tag": "0027_studio_type_setup",
+      "breakpoints": true
     }
   ]
 }

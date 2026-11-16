@@ -140,6 +140,28 @@ async function stopRunning(tx: DbOrTx, orgId: string, key: FeatureKey) {
   }
 }
 
+/**
+ * Switch one feature on or off, stopping what runs on its own when it goes off. The caller has
+ * already asked the user (see whatHappens). Used by Setup, Features and by setup by studio type.
+ */
+export async function switchFeature(tx: DbOrTx, orgId: string, key: FeatureKey, on: boolean, actorId: string) {
+  const org = await getOrg(tx, orgId);
+  if (featureOn(org, key) === on) return false;
+  if (!on) await stopRunning(tx, orgId, key);
+  const setting = settingOf(key);
+  if (setting) await tx.update(organizations).set({ [setting]: on }).where(eq(organizations.id, orgId));
+  else {
+    const off = new Set(org.featuresOff);
+    if (on) off.delete(key);
+    else off.add(key);
+    await tx.update(organizations).set({ featuresOff: [...off].filter((k) => (STORED_FEATURES as readonly string[]).includes(k)) }).where(eq(organizations.id, orgId));
+  }
+  await audit(tx, { orgId, actorId, action: on ? "feature.on" : "feature.off", entityType: "organization", entityId: orgId, details: { feature: key } });
+  return true;
+}
+
+export { whatHappens as featureOffEffects };
+
 export async function featureRoutes(app: FastifyInstance) {
   const { db } = app;
 
@@ -163,17 +185,8 @@ export async function featureRoutes(app: FastifyInstance) {
       if (!on) {
         const lines = await whatHappens(tx, org.id, key);
         if (lines.length) flags.confirm({ code: "feature_off", details: { feature: key, lines }, message: `Switch off ${FEATURE_LABELS[key]}? It's hidden from the menus, and nothing is deleted. ${lines.join(" ")}` });
-        await stopRunning(tx, org.id, key);
       }
-      const setting = settingOf(key);
-      if (setting) await tx.update(organizations).set({ [setting]: on }).where(eq(organizations.id, org.id));
-      else {
-        const off = new Set(org.featuresOff);
-        if (on) off.delete(key);
-        else off.add(key);
-        await tx.update(organizations).set({ featuresOff: [...off].filter((k) => (STORED_FEATURES as readonly string[]).includes(k)) }).where(eq(organizations.id, org.id));
-      }
-      await audit(tx, { orgId: org.id, actorId: req.auth.userId, action: on ? "feature.on" : "feature.off", entityType: "organization", entityId: org.id, details: { feature: key } });
+      await switchFeature(tx, org.id, key, on, req.auth.userId);
       return { features: list(await getOrg(tx, org.id)), changed: true, ...(on ? { next: await nextStep(tx, org, key) } : {}) };
     });
   });
