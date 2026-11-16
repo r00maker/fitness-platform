@@ -52,6 +52,12 @@ const envSchema = z
     ASSISTANT_MONTHLY_REPLIES: z.coerce.number().int().min(0).default(300),
     /** Kill switch: turn the assistant off for every studio at once. */
     ASSISTANT_DISABLED: z.stringbool().default(false),
+    /**
+     * HQ assistant (our own team): the most capable model at high effort, because accuracy matters
+     * more than speed or cost for a handful of internal users. Change it here if needed.
+     */
+    HQ_ASSISTANT_MODEL: z.string().default("claude-fable-5-2"),
+    HQ_ASSISTANT_EFFORT: z.enum(["medium", "high", "xhigh", "max"]).default("high"),
     /** Where the help guide lives (the assistant reads it). Defaults to ./docs next to the app. */
     HELP_DOCS_DIR: z.string().optional(),
     /**

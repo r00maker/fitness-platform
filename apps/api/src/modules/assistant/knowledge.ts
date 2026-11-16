@@ -29,3 +29,22 @@ export function knowledge(configured?: string): string {
   cached = { dir, text: parts.join("\n\n") };
   return cached.text;
 }
+
+/**
+ * Everything, for our own team's HQ assistant: every doc (product notes, hosting, security,
+ * handoff, market, migration and HQ), the studio help guide and the README with the API list.
+ */
+let platformCached: { dir: string; text: string } | null = null;
+export function platformKnowledge(configured?: string): string {
+  const dir = docsDir(configured);
+  if (!dir) return "";
+  if (platformCached?.dir === dir) return platformCached.text;
+  const files = [
+    ...readdirSync(dir).filter((x) => x.endsWith(".md")).sort().map((x) => path.join(dir, x)),
+    ...(existsSync(path.join(dir, "help")) ? readdirSync(path.join(dir, "help")).filter((x) => x.endsWith(".md")).sort().map((x) => path.join(dir, "help", x)) : []),
+    path.join(dir, "..", "README.md"),
+  ].filter((f) => existsSync(f));
+  const text = files.map((file) => `<document name="${path.relative(path.join(dir, ".."), file)}">\n${readFileSync(file, "utf8").trim()}\n</document>`).join("\n\n");
+  platformCached = { dir, text };
+  return text;
+}

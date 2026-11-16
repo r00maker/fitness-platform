@@ -145,6 +145,8 @@ export const planIncludes = (plan: Plan, key: FeatureKey) => PLAN_INFO[plan].fea
 export const planWith = (key: FeatureKey): Plan => PLANS.find((p) => planIncludes(p, key)) ?? "signature";
 /** AI workflows (agents, AI writing, AI recaps) come with the Agents feature. Ask (chat) is on every plan. */
 export const planHasAiWorkflows = (plan: Plan) => planIncludes(plan, "agents");
+/** Reports with locations side by side: Signature (it's for brands with several locations). */
+export const planHasLocationReport = (plan: Plan) => plan === "signature";
 export const planHasApp = (plan: Plan, brandedApp: boolean) => PLAN_INFO[plan].app === "included" || (PLAN_INFO[plan].app === "add_on" && brandedApp);
 
 /** Admin seats for a plan with this many locations; null means no limit. */

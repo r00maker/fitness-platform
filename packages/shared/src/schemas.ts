@@ -349,6 +349,41 @@ export const platformNote = z.object({ kind: z.enum(["note", "call", "issue"]).d
 export const supportAccessInput = z.object({ reason: z.string().trim().min(5, "Say why you need access (the studio sees this).").max(500), minutes: z.number().int().min(15).max(240).default(60) });
 export const platformStudiosQuery = z.object({ q: z.string().trim().max(100).optional(), lifecycle: z.enum(STUDIO_LIFECYCLES).optional(), plan: z.enum(PLANS).optional() });
 
+// --- Moving from another system -----------------------------------------------------------------
+export const MIGRATION_KINDS = ["clients", "packages", "memberships", "bookings", "visits", "ignore"] as const;
+export const MIGRATION_ACCESS = ["staff_login", "password", "files"] as const;
+const count0 = z.number().int().min(0).max(1_000_000).nullable().optional();
+/** The form the studio fills in (all optional until they submit; see `submit`). */
+export const migrationIntake = z.object({
+  oldPlatform: z.string().trim().max(60).optional(),
+  switchDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.").optional(),
+  activeClients: count0,
+  activeMemberships: count0,
+  activePackages: count0,
+  /** How the old system writes dates like 03/04/2026. */
+  dateFormat: z.enum(["dmy", "mdy", "ymd", "unsure"]).optional(),
+  includeInactive: z.boolean().optional(),
+  packagesSold: z.string().trim().max(2000).optional(),
+  classTypes: z.string().trim().max(2000).optional(),
+  access: z.enum(MIGRATION_ACCESS).optional(),
+  /** Only with access "password": a temporary password, encrypted and deleted after the move (7 days at most). */
+  accessLogin: z.string().trim().max(200).optional(),
+  accessPassword: z.string().max(200).optional(),
+  accessNotes: z.string().trim().max(1000).optional(),
+  contactName: z.string().trim().max(120).optional(),
+  contactPhone: z.string().trim().max(40).optional(),
+  notes: z.string().trim().max(4000).optional(),
+  consent: z.boolean().optional(),
+  submit: z.boolean().default(false),
+});
+export const migrationUpload = z.object({ filename: z.string().trim().min(1).max(200), data: z.string().min(1, "The file is empty.").max(28_000_000, "Files can be up to 20 MB. Split bigger exports by date or export as CSV.") });
+export const migrationFileUpdate = z.object({ kind: z.enum(MIGRATION_KINDS).optional(), mapping: z.record(z.string(), z.number().int().min(0).max(500).nullable()).optional(), headerRow: z.number().int().min(0).max(50).optional() });
+export const migrationJobUpdate = z.object({ sourcePlatform: z.string().trim().max(60).optional(), dateOrder: z.enum(["dmy", "mdy", "ymd"]).nullable().optional() });
+export const migrationIdParam = z.object({ orgId: z.string().uuid(), jobId: z.string().uuid() });
+export const migrationFileParam = z.object({ orgId: z.string().uuid(), jobId: z.string().uuid(), fileId: z.string().uuid() });
+export const migrationImport = z.object({ acknowledge });
+export const migrationVerify = z.object({ checked: z.number().int().min(1, "Check at least one client against the old system first."), note: z.string().trim().max(2000).optional() });
+
 export const createSeries = z
   .object({
     templateId: id.optional(),

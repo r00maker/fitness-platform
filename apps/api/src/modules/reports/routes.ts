@@ -17,7 +17,9 @@ import type { FastifyInstance } from "fastify";
 import { sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import type { DbOrTx } from "../../db/client.js";
+import { conflict } from "../../lib/errors.js";
 import { parse } from "../../lib/validate.js";
+import { PLAN_INFO, planHasLocationReport } from "@studio/shared";
 import { requirePermission } from "../../plugins/auth.js";
 import { money } from "../bookings/rules.js";
 import { funnel } from "../marketing/ads.js";
@@ -444,6 +446,53 @@ async function instructorDetail(db: DbOrTx, org: Org, p: Period, instructorId: s
   };
 }
 
+/**
+ * Locations side by side (Signature): each location's classes, how full, visits, no-shows, late
+ * cancellations, new clients and fees, against the period before. Sales from packs and memberships
+ * aren't split, because they work at every location.
+ */
+export async function locationsReport(db: DbOrTx, org: Org, p: Period) {
+  const locs = await db.execute<{ id: string; name: string }>(sql`select id, name from locations where org_id = ${org.id} order by created_at, name`);
+  const extra = async (locationId: string, from: Date, to: Date) => {
+    const r = await db.execute<{ late: string; fresh: string; fees: string }>(sql`
+      select
+        (select count(*) from bookings b join class_sessions cs on cs.id = b.session_id where cs.org_id = ${org.id} and cs.location_id = ${locationId} and cs.starts_at >= ${from} and cs.starts_at < ${to} and b.status = 'late_cancelled') as late,
+        (select count(*) from (
+          select distinct on (b.client_id) b.client_id, cs.location_id, cs.starts_at from bookings b join class_sessions cs on cs.id = b.session_id
+          where b.org_id = ${org.id} and b.status = 'confirmed' and cs.status = 'scheduled' order by b.client_id, cs.starts_at
+        ) f where f.location_id = ${locationId} and f.starts_at >= ${from} and f.starts_at < ${to} and f.starts_at < now()) as fresh,
+        (select coalesce(sum(fe.amount_cents), 0) from fees fe join bookings b on b.id = fe.booking_id join class_sessions cs on cs.id = b.session_id where fe.org_id = ${org.id} and fe.status = 'charged' and cs.location_id = ${locationId} and fe.created_at >= ${from} and fe.created_at < ${to}) as fees`);
+    const x = r.rows[0]!;
+    return { late: n(x.late), fresh: n(x.fresh), fees: n(x.fees) };
+  };
+  const rows: { id: string; name: string; metrics: ReturnType<typeof metric>[] }[] = [];
+  for (const l of locs.rows) {
+    const sc: Scope = { locationId: l.id, tz: org.timezone };
+    const [now, before] = [await classStats(db, org.id, p.from, p.to, "class", sc), await classStats(db, org.id, p.prevFrom, p.from, "class", sc)];
+    const [e, eb] = [await extra(l.id, p.from, p.to), await extra(l.id, p.prevFrom, p.from)];
+    const fill = (s: typeof now) => (s.capacity ? Math.round((s.booked / s.capacity) * 1000) / 10 : 0);
+    const noShowRate = (s: typeof now) => (s.booked ? Math.round((s.noShow / s.booked) * 1000) / 10 : 0);
+    rows.push({
+      id: l.id, name: l.name,
+      metrics: [
+        metric({ key: "classes", label: "Classes held", value: now.held, previous: before.held, display: String(now.held), explain: "Classes that went ahead (not cancelled) and have finished." }),
+        metric({ key: "fill", label: "How full", value: fill(now), previous: fill(before), display: `${fill(now)}%`, explain: "Spots booked out of all spots in classes held.", isPercent: true }),
+        metric({ key: "visits", label: "Visits", value: now.present, previous: before.present, display: String(now.present), explain: "Clients checked in to classes." }),
+        metric({ key: "newClients", label: "New clients", value: e.fresh, previous: eb.fresh, display: String(e.fresh), explain: "Clients whose first ever class with you was at this location." }),
+        metric({ key: "noShows", label: "No-shows", value: noShowRate(now), previous: noShowRate(before), display: `${noShowRate(now)}%`, explain: "Bookings marked as no-show, out of all bookings in classes held.", goodWhenUp: false, isPercent: true }),
+        metric({ key: "lateCancels", label: "Late cancellations", value: e.late, previous: eb.late, display: String(e.late), explain: "Bookings cancelled inside your late-cancellation window.", goodWhenUp: false }),
+        metric({ key: "cancelledClasses", label: "Classes cancelled", value: now.cancelled, previous: before.cancelled, display: String(now.cancelled), explain: "By the studio, or automatically for too few bookings.", goodWhenUp: false }),
+        metric({ key: "fees", label: "Fees charged", value: e.fees, previous: eb.fees, display: money(e.fees, org.currency), explain: "Late-cancellation and no-show fees charged for this location's classes." }),
+      ],
+    });
+  }
+  // The headline: which location is fullest and which moved most, in one sentence.
+  const fillOf = (r: (typeof rows)[number]) => r.metrics.find((m) => m.key === "fill")!;
+  const ranked = [...rows].filter((r) => r.metrics[0]!.value > 0).sort((a, b) => fillOf(b).value - fillOf(a).value);
+  const summary = ranked.length < 2 ? (rows.length < 2 ? "Add another location to compare them side by side." : "Not enough classes yet to compare locations.") : `${ranked[0]!.name} is the fullest (${fillOf(ranked[0]!).display}); ${ranked.at(-1)!.name} has the most room (${fillOf(ranked.at(-1)!).display}).`;
+  return { summary, locations: rows, note: "Sales from packs and memberships aren't split by location, because they can be used at any of them." };
+}
+
 /** One sentence at the top of each tab: the biggest change worth knowing about. */
 function summaryLine(metrics: ReturnType<typeof metric>[], days: number): string {
   const period = days === 365 ? "the year before" : `the previous ${days} days`;
@@ -463,6 +512,15 @@ export async function reportRoutes(app: FastifyInstance) {
   };
   const periodView = (p: Period) => ({ days: p.days, from: p.from.toISOString(), to: p.to.toISOString(), label: p.days === 365 ? "Last 12 months" : `Last ${p.days} days`, comparedWith: p.days === 365 ? "the 12 months before" : `the ${p.days} days before` });
 
+  /** Locations side by side (Signature). */
+  app.get("/reports/locations", async (req) => {
+    requirePermission(req, "viewReports");
+    const { days } = parse(query, req.query);
+    const org = await getOrg(app.db, req.auth.orgId);
+    if (!planHasLocationReport(org.plan)) throw conflict("not_in_plan", `Reports by location come with Signature. You're on ${PLAN_INFO[org.plan].label}: talk to us to change your plan.`);
+    const p = periodOf(days);
+    return { section: "locations", period: periodView(p), currency: org.currency, ...(await locationsReport(app.db, org, p)) };
+  });
   /** Everyone who teaches: classes, how full, no-shows, covers. */
   app.get("/reports/instructors", async (req) => {
     requirePermission(req, "viewReports");

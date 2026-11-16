@@ -2072,3 +2072,137 @@ export const supportAccess = pgTable(
   (t) => [index("support_access_org_idx").on(t.orgId, t.createdAt)],
 );
 
+// ---------------------------------------------------------------------------
+// Moving a studio from its old system (see modules/migration)
+// ---------------------------------------------------------------------------
+/** One move from an old system: the studio's form, our files, the latest check and the import. */
+export const migrationJobs = pgTable(
+  "migration_jobs",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    /** intake (form not sent) → submitted → files → checked → imported → verified; or undone. */
+    status: text("status").$type<"intake" | "submitted" | "files" | "checked" | "imported" | "verified" | "undone">().notNull().default("intake"),
+    sourcePlatform: text("source_platform"),
+    /** The studio's answers (see MIGRATION_FORM in modules/migration/fields.ts). */
+    intake: jsonb("intake").$type<Record<string, unknown>>().notNull().default({}),
+    /** A temporary password for the old system, if the studio chose to share one: encrypted, deleted after the move or 7 days. */
+    accessSecretEnc: text("access_secret_enc"),
+    accessDeleteAfter: ts("access_delete_after"),
+    /** How dates are written in the files: day first, month first, or worked out per column. */
+    dateOrder: text("date_order").$type<"dmy" | "mdy" | "ymd">(),
+    lastCheck: jsonb("last_check").$type<Record<string, unknown>>(),
+    checkedAt: ts("checked_at"),
+    importedAt: ts("imported_at"),
+    verifiedAt: ts("verified_at"),
+    undoneAt: ts("undone_at"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("migration_jobs_org_idx").on(t.orgId, t.createdAt)],
+);
+
+/** A file from the old system, parsed into rows. Raw rows are deleted 30 days after the move is verified. */
+export const migrationFiles = pgTable(
+  "migration_files",
+  {
+    id: pk(),
+    jobId: uuid("job_id").notNull().references(() => migrationJobs.id, { onDelete: "cascade" }),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    filename: text("filename").notNull(),
+    format: text("format").$type<"csv" | "tsv" | "xlsx" | "html">().notNull(),
+    sheet: text("sheet"),
+    /** clients, packages, memberships, bookings, visits or ignore. */
+    kind: text("kind").notNull(),
+    kindDetected: text("kind_detected").notNull(),
+    headerRow: integer("header_row").notNull(),
+    headers: text("headers").array().notNull(),
+    /** Our field → column number. Detected, and changeable by our staff. */
+    mapping: jsonb("mapping").$type<Record<string, number>>().notNull(),
+    rows: jsonb("rows").$type<string[][]>(),
+    rowCount: integer("row_count").notNull(),
+    sha256: text("sha256").notNull(),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+    purgedAt: ts("purged_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("migration_files_job_idx").on(t.jobId)],
+);
+
+/** What happened to every row: created, linked to an existing account, merged, or skipped with a reason. */
+export const migrationRecords = pgTable(
+  "migration_records",
+  {
+    id: pk(),
+    jobId: uuid("job_id").notNull().references(() => migrationJobs.id, { onDelete: "cascade" }),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    fileId: uuid("file_id").references(() => migrationFiles.id, { onDelete: "set null" }),
+    rowNumber: integer("row_number").notNull(),
+    entity: text("entity").notNull(),
+    entityId: uuid("entity_id"),
+    action: text("action").$type<"created" | "linked" | "merged" | "skipped">().notNull(),
+    reason: text("reason"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("migration_records_job_idx").on(t.jobId, t.entity)],
+);
+
+/** Visit history moved from an old system: a summary per client (the old visits themselves aren't recreated). */
+export const clientHistory = pgTable(
+  "client_history",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    visits: integer("visits").notNull().default(0),
+    firstVisitAt: ts("first_visit_at"),
+    lastVisitAt: ts("last_visit_at"),
+    memberSince: ts("member_since"),
+    /** Kept as written in the old system, for staff: notes, emergency contact and date of birth. */
+    notes: text("notes"),
+    emergencyContact: text("emergency_contact"),
+    dateOfBirth: text("date_of_birth"),
+    source: text("source").notNull(),
+    jobId: uuid("job_id").references(() => migrationJobs.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("client_history_org_client_uq").on(t.orgId, t.clientId)],
+);
+
+
+/** HQ assistant chats: our own team asking about studios, the product and technical issues. */
+export const platformChats = pgTable(
+  "platform_chats",
+  {
+    id: pk(),
+    staffUserId: uuid("staff_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** The studio the chat started about, if any (it can look at others too). */
+    orgId: uuid("org_id").references(() => organizations.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    turns: integer("turns").notNull().default(0),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    cachedTokens: integer("cached_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("platform_chats_staff_idx").on(t.staffUserId, t.updatedAt)],
+);
+
+export const platformChatMessages = pgTable(
+  "platform_chat_messages",
+  {
+    id: pk(),
+    seq: bigserial("seq", { mode: "number" }).notNull(),
+    chatId: uuid("chat_id").notNull().references(() => platformChats.id, { onDelete: "cascade" }),
+    role: text("role").$type<"user" | "assistant">().notNull(),
+    /** Exactly as sent and received (thinking included), so the conversation can carry on unchanged. */
+    content: jsonb("content").$type<unknown>().notNull(),
+    text: text("text"),
+    /** Which tools it used for this answer, for our own review. */
+    tools: text("tools").array(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("platform_chat_messages_chat_idx").on(t.chatId, t.seq)],
+);

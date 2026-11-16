@@ -220,6 +220,7 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   setup_changes: "Use these settings?",
   plan_changes: "Change this studio's plan?",
   extra_location_cost: "This adds to the monthly price",
+  migration_warnings: "Import with these warnings?",
   attendance_locked: "Attendance is locked",
   fee_not_final: "Attendance can still change",
   closed_day: "The studio is closed that day",

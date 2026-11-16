@@ -24,6 +24,8 @@ import { getOrg } from "../sessions/context.js";
 import { adminCount, locationCount, planView, setPlan, usd } from "../settings/plans.js";
 import { sendStaffInvite } from "../staff/routes.js";
 import { studioHealth } from "./health.js";
+import { platformMigrationRoutes } from "../migration/routes.js";
+import { platformAssistantRoutes } from "./assistant.js";
 
 export type PlatformRole = (typeof schemas.PLATFORM_ROLES)[number];
 declare module "fastify" {
@@ -79,6 +81,8 @@ export async function platformRoutes(app: FastifyInstance) {
     req.platform = { userId: sub, role: s.role, name: `${s.first} ${s.last}` };
   });
   const hq = { config: { public: true } } as const;
+  await platformMigrationRoutes(app);
+  await platformAssistantRoutes(app);
 
   app.get("/platform/me", hq, async (req) => ({ ...req.platform, can: Object.fromEntries(Object.entries(CAN).map(([k, roles]) => [k, roles.includes(req.platform.role)])) }));
 
