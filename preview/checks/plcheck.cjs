@@ -67,7 +67,7 @@ const file = "file://" + path.join(__dirname, "pl-test.html");
     await plan("essentials"); await press("#mProceed");
     ok(`${label}: now on Essentials (${await toast()})`, (await ev("STUDIO.plan")) === "essentials" && /Now on Essentials: USD 99 a month\./.test(await toast()));
     const m = await nav();
-    ok(`${label}: Essentials menu is 12 items without Marketing or Agents (${m.length})`, m.length === 12 && !m.includes("Marketing") && !m.includes("Agents") && m.includes("Announcements") && m.includes("Staff and pay"));
+    ok(`${label}: Essentials menu is 12 items without Marketing or Agents (${m.length})`, m.length === 12 && !m.includes("Marketing") && !m.includes("Agents") && m.includes("Tell clients") && !m.includes("Automations") && m.includes("Staff and pay"));
     await go("features");
     const card2 = await text(".plancard");
     ok(`${label}: plan card: USD 99, over-limit notes`, /USD 99\s*a month/.test(card2) && (await p.locator(".planover").count()) === 2);

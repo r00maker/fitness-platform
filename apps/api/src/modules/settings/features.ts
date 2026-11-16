@@ -54,7 +54,7 @@ const ROUTES: { feature: FeatureKey; match: RegExp }[] = [
   { feature: "shop", match: /^\/v1\/shop\/(products(\/.*)?|checkout)$/ },
   { feature: "payroll", match: /^\/v1\/(pay-rates|pay-adjustments|payroll)(\/|$)|^\/v1\/(staff\/:id\/pay|me\/pay)$/ },
   { feature: "inbox", match: /^\/v1\/(comms\/(conversations|email)|whatsapp\/templates)(\/|$)/ },
-  { feature: "agents", match: /^\/v1\/(agents|me\/agent-messages|me\/agents)(\/|$)/ },
+  { feature: "agents", match: /^\/v1\/(agents|me\/agent-messages|me\/agents|ai)(\/|$)/ },
 ];
 
 export function featureForRoute(url: string | undefined): FeatureKey | null {

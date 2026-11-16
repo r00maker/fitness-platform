@@ -44,8 +44,8 @@ The full reasoning, competitor comparison and pricing are in `docs/MARKET_AND_LA
 2. ~~Setup by studio type~~: built (see below).
 3. ~~Client booking on phones~~: built (see below).
 4. ~~Instructors on phones~~: built (see below).
-5. **One AI entry point:** Ask, plus "Write with AI" next to text boxes; reminder agents become journeys.
-6. **One "Tell clients" flow** for announcements, banners and campaigns.
+5. ~~One AI entry point~~: built (see below).
+6. ~~One "Tell clients" flow~~: built (see below).
 
 **Before launch (blocking):** online payments (Stripe Connect: cards, PayNow, GrabPay, cards on file), client booking on the web plus a website widget, and data import (CSV, and exports from Mindbody, Momence and Glofox).
 
@@ -244,6 +244,12 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
 - **Why:** studios run versions of a class and name them their own way ("Reformer - Beginner", "Reformer - Intermediate", "Sweat - Foundations", "Sweat - Essentials"). Cut short, they all read "Reformer - …", and instructors checking clients in on their phones had to open each class to find the right one.
 - **Rule:** a class's name is never cut short on the calendar. It wraps onto more lines instead, in the week, day and month views and the phone list. When a name needs more lines than the class's time slot has, the block first uses free time below it, then drops the instructor line (the name matters more), and only then grows over the next class, drawn on top with a shadow. Short classes put the time in front of the name to save a line. On phones, the "booked" count on the right is kept narrow so the name gets the room.
 - **For the web and mobile apps:** the same rule applies. Never use one-line truncation (ellipsis) for class names in schedule views; the API already returns the full name.
+
+## One place for each job: Tell clients, Automations, Write with AI
+
+- **Tell clients** (`POST /tell-clients`, list at `GET /tell-clients`) replaces separate starts for announcements, banners and campaigns. One title and message; news or an offer; who (everyone, a location, people booked at a location soon, a segment); where (a notice, a banner, a push, an email); now or scheduled. One confirm (`send_to_many`) with the reach of each place. News reaches everyone it's about (service messages); offers only reach people who agreed to marketing (push and email separately), can't be notices, and need Marketing on the plan. Banners show to everyone or a segment. It creates the same records as before (announcement, banner, email and campaign), so those pages still manage them. Front of House can send news.
+- **Automations** (`GET /automations`) lists client journeys and team reminders (what were "reminder agents") the same way: name, when, what it does, on or off, and which editor opens it. Each part shows only if the plan includes it (journeys: Marketing; team reminders: AI workflows).
+- **Write with AI** (`POST /ai/write`): one writer behind a button next to text boxes: messages to clients, inbox and review replies, class and package descriptions, journey messages, rewrites. Each kind has its own length and who can use it; client text is passed as information only. 1 AI credit; part of AI workflows. **Ask** stays the one chat. The menu no longer has Agents or Announcements: they're under Automations and Tell clients.
 
 ## Phones: client booking, Up next and check-in mode
 

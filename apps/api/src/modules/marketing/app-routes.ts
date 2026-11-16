@@ -73,7 +73,7 @@ const page = (title: string, body: string) =>
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 /** When an announcement disappears, from the duration chosen. */
-function announcementEnd(duration: keyof typeof ANNOUNCEMENT_DURATIONS, start: Date, zone: string, custom?: Date | null) {
+export function announcementEnd(duration: keyof typeof ANNOUNCEMENT_DURATIONS, start: Date, zone: string, custom?: Date | null) {
   const s = DateTime.fromJSDate(start, { zone });
   switch (duration) {
     case "2h": return s.plus({ hours: 2 }).toJSDate();
@@ -86,7 +86,7 @@ function announcementEnd(duration: keyof typeof ANNOUNCEMENT_DURATIONS, start: D
 }
 
 /** Who an announcement is for. */
-async function announcementAudience(db: DbOrTx, orgId: string, a: { audience: string; locationId: string | null; bookedWithinDays: number }, now: Date): Promise<string[]> {
+export async function announcementAudience(db: DbOrTx, orgId: string, a: { audience: string; locationId: string | null; bookedWithinDays: number }, now: Date): Promise<string[]> {
   if (a.audience === "everyone") return allClients(db, orgId);
   const until = new Date(now.getTime() + (a.audience === "booked_at_location" ? a.bookedWithinDays : 3650) * 86_400_000);
   const from = a.audience === "booked_at_location" ? now : new Date(now.getTime() - 90 * 86_400_000);

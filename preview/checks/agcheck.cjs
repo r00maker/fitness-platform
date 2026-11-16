@@ -31,7 +31,7 @@ const file = "file://" + path.join(__dirname, "..", "studio-calendar-preview.htm
     // 1. Grouped menu
     const adminGroups = await groups();
     ok(`${label}: admin menu groups ${JSON.stringify(adminGroups)}`, JSON.stringify(adminGroups.map((g) => g.split(":")[0])) === JSON.stringify(["Day to day", "Clients & sales", "Growth", "Team", "Setup", "Account"]));
-    ok(`${label}: Agents under Team`, adminGroups.find((g) => g.startsWith("Team")).includes("Agents"));
+    ok(`${label}: Automations under Growth (team reminders, formerly Agents)`, adminGroups.find((g) => g.startsWith("Growth")).includes("Automations") && !adminGroups.some((g) => g.includes("Agents")));
     await role("client");
     const cg = await groups();
     ok(`${label}: client menu ${JSON.stringify(cg)}`, cg[0].startsWith("Classes: Book a class, My bookings") && cg[1].startsWith("Packages & rewards"));

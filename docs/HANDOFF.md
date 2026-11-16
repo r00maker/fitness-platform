@@ -86,7 +86,7 @@ service postgresql start   # if tests fail with ECONNREFUSED
 # Fresh container? Tests need a "studio" user and "studio_test" database:
 # su postgres -c "psql -c \"create user studio with password 'studio' superuser;\"" && su postgres -c "createdb -O studio studio_test"
 pnpm typecheck
-pnpm test                  # 316 API tests at the time of writing
+pnpm test                  # 320 API tests at the time of writing
 ```
 
 - New migration: edit `apps/api/src/db/schema.ts`, then `cd apps/api && npx drizzle-kit generate --name <name>`. To regenerate one that isn't merged yet, delete its SQL file and snapshot and remove its entry from `drizzle/meta/_journal.json` first.

@@ -24,7 +24,7 @@ Owners can do everything admins can. Only the owner can add or remove admins.
 
 The menu on the left is grouped by what you're doing. Related pages share one menu item, with tabs across the top of the page (for example **Money** has Sales, Fees and Shop). Owners and admins see:
 
-- **Day to day:** Home, Schedule, Cover requests, Communication (tabs: Inbox, Announcements).
+- **Day to day:** Home, Schedule, Cover requests, Communication (tabs: Inbox, Tell clients).
 - **Clients & sales:** Clients (tabs: Clients, Leads), Money (tabs: Sales, Fees, Shop), Packages.
 - **Growth:** Marketing, Reports, Feedback (tabs: Feedback, Reviews).
 - **Team:** Staff and pay (tabs: Staff, Payroll), Agents.
@@ -224,25 +224,29 @@ Until your studio opens, signing in shows a welcome page instead of the dashboar
 
 Press **Send to our team** when you're done. If anything changes afterwards, edit it and press **Send updates**: we're told what changed. The welcome page then shows where your move is up to. We check every row and move everything within a day, then double-check a sample against your old system. When that's done, your studio opens and the welcome page gives way to your dashboard. Card details can't be moved in a file, so members add a card before their next billing date.
 
-## Agents
+## Tell clients
 
-Agents are helpers that send reminders to staff (never clients) as push notifications to the staff app, and to the bell in the app. Owners and admins set them up under **Agents**:
+**Communication, Tell clients** is the one place to tell clients anything. Write a title and message once, then choose:
 
-1. Pick a ready-made agent (for example "Remind instructors about cover classes" or "Warn about quiet classes the night before").
-2. Give it a name.
-3. Adjust when it runs, what it checks and who it tells.
-4. Choose what it can see: class times, who teaches, booking numbers (never names), and cover.
+- **What it is:** **Studio news** (a closure, a change, something people need to know) reaches everyone it's about. **An offer** only reaches people who agreed to marketing, and can't be a notice.
+- **Who:** everyone, people who come to one location, people booked at a location in the next few days, or a segment.
+- **Where:** a **notice in the app** (at the top of Home and Book a class; tick **Important** for disruptions), a **banner** (Growth and Signature), a **push notification** and/or an **email**. Each shows how many people it reaches.
+- **When:** now, or scheduled.
 
-Agents never see client names, contact details, health notes, payments, prices, packages or pay, and they never change anything. They tell a person, who decides. Instructors only hear about their own classes. Anyone can mute an agent for themselves (Agents in the bell menu). **Pause all** stops every agent at once. **Preview** shows exactly what an agent would send right now, without sending it.
+You see how it looks before sending, and you're asked once, with the numbers. What you send still shows under Announcements, Banners and Campaigns, and the right-hand list shows everything clients have been told lately. Front of House can send studio news; offers, banners and emails are for owners and admins.
 
-## Writers
+## Automations
 
-Two writing agents save time on words:
+**Automations** lists everything that runs by itself, in one place:
 
-- **Announcement writer:** on **Announcements**, use **Write it for me**. Describe it in a sentence ("lift broken at Tanjong Pagar, use the stairs") and it fills in the form for you to check. 1 AI credit.
-- **Campaign drafter:** on **Marketing**, **Campaigns**, choose **Draft with AI**. It writes a marketing email in your studio's look and makes a draft campaign. Open the email to check it, then **Send…**. 3 AI credits.
+- **For clients:** journeys (welcome new members, win back people who stopped coming, follow up intro offers). Marketing, on Growth and Signature.
+- **For your team:** reminders that tell staff (never clients) about things, as push notifications and in the bell: cover classes, quiet classes the night before, tomorrow's teaching line-up, classes without an instructor, busy waitlists, unfilled cover. AI workflows, on Signature.
 
-They write in your studio's voice, only use facts you give them (anything missing becomes a [placeholder] to fill in), and never post or send anything themselves. They see class and location names, never client details.
+Open any of them to change it. To set up a team reminder, pick a ready-made one, name it, adjust when it runs, what it checks and who it tells, and choose what it can see (class times, who teaches, booking numbers but never names, and cover). Team reminders never see client names, contact details, health notes, payments, prices, packages or pay, and never change anything. Instructors only hear about their own classes. **Preview** shows exactly what one would send right now.
+
+## Write with AI
+
+Next to text boxes (Tell clients, replies in the inbox, package descriptions, journey messages), **Write with AI** drafts the text for that box from a sentence or two, or tidies up what you've written. It writes in your studio's voice, only uses facts you give it (anything missing becomes a [placeholder] to fill in), and never sends anything itself. 1 AI credit per draft; part of AI workflows, on Signature. On **Marketing, Campaigns**, **Draft with AI** writes a whole marketing email in your studio's look (3 AI credits).
 
 ## The assistant
 
@@ -250,7 +254,7 @@ The assistant (the **Ask** button) answers questions about using the app and abo
 
 It can't do anything involving money (refunds, payments, prices, selling packages, fees, pay), change settings, staff or the schedule, delete anything, or share client contact details or health notes. For those, it tells you who can and where.
 
-Owners and admins can switch it off, choose which roles can use it, and stop it doing things for people, under **Agents**, then **Assistant**. Each plan includes a number of AI credits a month, shared by the assistant (1 per answer), the writers and AI recaps (1 per recap) (see **Agents**, then **Usage**). Reminder agents are free. Owners and admins are told at 80% and when they're used up, and can buy a top-up.
+Ask is the one place to ask anything; to write something, use **Write with AI** next to the text box. Owners and admins can switch Ask off, choose which roles can use it, and stop it doing things for people, under its settings. Each plan includes a number of AI credits a month, shared by Ask (1 per answer), Write with AI and AI recaps (1 each). Team reminders are free. Owners and admins are told at 80% and when they're used up, and can buy a top-up.
 
 ## Class types
 
