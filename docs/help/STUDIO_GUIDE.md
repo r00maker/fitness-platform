@@ -206,6 +206,18 @@ Owners, admins and instructors get a pop-up on **Home** when there's something t
 
 **Export** (top right) gives you either **Raw data (CSV)**, every row behind the numbers for a spreadsheet or your accountant, or a **Visual report**, a one-page summary with the key numbers and charts to print or save as a PDF. Both follow the tab, period and zoom you're looking at. Client exports never include contact details.
 
+On **Signature**, the **Locations** tab shows every location side by side: classes held, how full, visits, new clients, no-shows and cancellations, each compared with the period before. Sales from packs and memberships aren't split by location, because clients can use them at any location.
+
+## Moving your data
+
+Moving from another booking system? Go to **Setup**, **Moving your data**. Tell us which system you use, when you'd like to switch, roughly how many clients, memberships and class packs you have, and how your old system writes dates. Then choose how we get your data:
+
+1. **Invite our team as a staff user** in your old system (easiest). Remove us once we're done.
+2. **Share a temporary password.** It's kept encrypted, seen only by the person doing your move, and deleted after the move (7 days at most). Change it afterwards.
+3. **Upload the exports yourself.** CSV and Excel files both work. The page lists the reports to download from your system.
+
+Press **Send to our team**. We check every row and move everything within a day, then send you a summary: clients, class packs and classes left, memberships, upcoming bookings, credit, and anything that couldn't move with the reason (for example a client with no email address). Nothing changes for your clients until your switch date. Card details can't be moved in a file, so members add a card before their next billing date.
+
 ## Agents
 
 Agents are helpers that send reminders to staff (never clients) as push notifications to the staff app, and to the bell in the app. Owners and admins set them up under **Agents**:
