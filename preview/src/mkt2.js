@@ -210,7 +210,8 @@
     const f = factsOf(me);
     const anns = placement === "home" ? ANNOUNCEMENTS.filter((a) => a.state === "showing" && !dismissedAnn.has(a.id) && (a.audience === "everyone" || f.locations.includes(a.loc) || state.clientSource !== "new")).sort((a, b) => (a.importance === "important" ? -1 : 0) - (b.importance === "important" ? -1 : 0)) : [];
     const isNew = state.clientSource === "new" || f.classesAttended === 0;
-    const bans = BANNERS.filter((b) => b.placement === placement && bannerState(b) === "live" && (b.audience === "everyone" || (b.audience === "new_clients" && isNew) || (b.audience === "segment" && matchSet(SEGMENTS.find((s) => s.id === b.segId)?.def || { rules: [] }).includes(me))));
+    // Banners are marketing tools: they come with Growth and Signature (see plans in mkt21.js).
+    const bans = typeof inPlan === "function" && !inPlan("marketing") ? [] : BANNERS.filter((b) => b.placement === placement && bannerState(b) === "live" && (b.audience === "everyone" || (b.audience === "new_clients" && isNew) || (b.audience === "segment" && matchSet(SEGMENTS.find((s) => s.id === b.segId)?.def || { rules: [] }).includes(me))));
     return anns.map((a) => `<div class="annbar ${a.importance}" role="${a.importance === "important" ? "alert" : "status"}"><span class="ic">${a.importance === "important" ? "!" : "i"}</span><div><b>${esc(a.title)}</b>${a.loc ? `<span class="muted"> · ${esc(LOCS[a.loc])}</span>` : ""}<br><span>${esc(a.message)}</span></div><button type="button" class="iconbtn" data-dismiss="${a.id}" aria-label="Dismiss">×</button></div>`).join("") +
       (bans.length ? carouselHTML(bans) : "");
   }

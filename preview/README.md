@@ -13,7 +13,7 @@ The HTML file is both the base and the output. `inject.py` puts the feature code
   - `mkt11.js` Sales (invoices, receipts, refunds, invoice design) and membership payment holds.
   - `mkt12.js` Shop, Pickups, writing agents, report exports, menu entries.
   - `mkt13.js` Closures and holidays (with `patch11.py`, which shades closed days on the calendar and teaches the class form about them).
-  - `mkt21.js` Setup by studio type: the welcome on Home, "Your kind of studio" on Setup, Features, and Studio rules search with "Changed from the usual" marks (with `patch18.py`, which tags each Studio rules row with its setting).
+  - `mkt21.js` Plans: the plan card on Setup, Features, features locked with the plan that includes them, banners and AI workflows by plan, the getting-started list on Home, and Studio rules search with "Changed from the usual" marks (with `patch18.py`, which tags each Studio rules row with its setting). The **Plan** control in the header is for the preview only; in the real app only our staff change plans.
   - `mkt20.js` Feature switches (Setup, Features) and the grouped menu: related pages share one menu item with tabs, and switched-off features disappear from menus, tabs, Home and the client app (with `patch17.py`, which adds the tabs to pages and hides switched-off pages).
   - `mkt19.js` Full class names on the calendar: names wrap instead of being cut short, and blocks make room for them (with `patch16.py`, which also gives the sample class types versioned names like "Reformer - Intermediate").
   - `mkt18.js` Reviews (the client pop-up and the Reviews page), client feedback and the staff Feedback page, and celebration pop-ups (with `patch15.py`).
@@ -39,7 +39,7 @@ node s10check.cjs
 ```
 
 - `s10check.cjs` sales, holds, shop, calendar, rooms, goals, class types, categories, writers, email, exports.
-- `stcheck.cjs` setup by studio type: choosing a kind from Home and from Features, asking first with exactly what changes, Studio rules search, and "Changed" marks with one-tap undo.
+- `plcheck.cjs` plans: the plan card and price, moving down (asks first, says what switches off and what's over the limits), moving up, locked features, banners and AI workflows by plan, Studio rules search and "Changed" marks, and the getting-started list.
 - `ftcheck.cjs` feature switches and the grouped menu: old page addresses, tabs, the menu remembering the last tab, asking before switching off, what hides and what carries on, and switching back on.
 - `nmcheck.cjs` full class names in the week, day, month and phone list views (computer, laptop, iPhone 13 and iPhone SE; admin, instructor and client), including a much longer name.
 - `rvcheck.cjs` reviews, the Google offer, feedback for clients and staff, and celebrations for owners and instructors.

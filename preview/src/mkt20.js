@@ -13,7 +13,7 @@
     { key: "shop", group: "Run", label: "Shop", help: "Sell drinks, merchandise and other products in the app, picked up at the front desk." },
     { key: "payroll", group: "Run", label: "Payroll", help: "Pay rates for instructors and staff, and what each person is owed for each pay period." },
     { key: "inbox", group: "Run", label: "Communication inbox", help: "Read and answer client WhatsApp messages in the app, alongside your phone." },
-    { key: "agents", group: "Run", label: "Agents", help: "Automatic reminders and summaries sent to your staff, such as tomorrow's classes that still need an instructor." },
+    { key: "agents", group: "Run", label: "AI workflows", help: "Agents that send your staff reminders and summaries (such as tomorrow's classes that still need an instructor), and AI that drafts announcements, campaigns and staff recaps." },
   ];
   // Gift cards, loyalty, referrals and reviews already had their own switch; those stay the one source of truth.
   STUDIO.featuresOff = new Set();

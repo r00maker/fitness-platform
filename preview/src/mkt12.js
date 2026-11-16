@@ -258,11 +258,13 @@
       const box = `<div class="card writer"><div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap"><h3 style="margin:0">✦ Write it for me</h3><span class="muted" style="font-size:12.5px">1 AI credit · ${credLeft()} left</span></div>
         <label class="fl">What's it about? <span class="h">A sentence or two is plenty.</span><textarea id="wrBrief" rows="2" maxlength="1000" placeholder="e.g. lift broken at Tanjong Pagar today, use the stairs">${esc(w)}</textarea></label>
         <div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn" id="wrGo">Write a draft</button><span class="hint">It fills in the form below for you to check. Nothing is posted until you press Post.</span></div></div>`;
-      return out.replace('<form class="card mform" id="annForm">', `${box}<form class="card mform" id="annForm">`);
+      // The writer is an AI workflow: it comes with Agents (Signature).
+      return featOn("agents") ? out.replace('<form class="card mform" id="annForm">', `${box}<form class="card mform" id="annForm">`) : out;
     };
     BIND.announcements = function () {
       bind?.call(this);
       if (state.annWriter) { state.annWriter = false; setTimeout(() => $("#wrBrief")?.focus(), 0); }
+      if (!$("#wrBrief")) return; // no writer outside Signature
       $("#wrBrief").oninput = (e) => (state.annBrief = e.target.value);
       $("#wrGo").onclick = () => {
         const brief = $("#wrBrief").value.trim();
@@ -302,6 +304,7 @@
   {
     const page = PAGES.marketing, bind = BIND.marketing;
     PAGES.marketing = function () {
+      if (!featOn("agents")) return page.call(this); // the campaign drafter is an AI workflow (Signature)
       return page.call(this).replace('<button type="button" class="btn primary" id="mNewCamp">New campaign</button>', '<button type="button" class="btn" id="mDraftCamp" data-help="Describe the campaign in a sentence or two and get a draft email and campaign to check. Uses 3 AI credits.">✦ Draft with AI</button><button type="button" class="btn primary" id="mNewCamp">New campaign</button>');
     };
     BIND.marketing = function () {

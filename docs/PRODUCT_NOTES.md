@@ -256,12 +256,26 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
 
 ## Setup by studio type
 
-- **Why:** a new owner faced 32 settings and every feature at once. Now the first question is "What kind of studio do you run?", and the answer switches on what that kind of studio usually needs and fills sensible rules. It's a starting point; everything can be changed afterwards.
-- **The three kinds** (presets in `STUDIO_TYPE_PRESETS`, `packages/shared/src/features.ts`):
-  - **Independent studio** (one room, a small team or just you): gift cards and reviews only. Bookings close when class starts, clients can pay at the studio, a 6-hour late-cancellation window, no spot picking, automatic waitlists, no celebration pop-ups.
-  - **Boutique studio** (one or two locations, a team, classes that fill up): adds marketing, refer a friend, shop, payroll and the WhatsApp inbox. Bookings close 1 hour before, packages are needed, a 12-hour window, spots, and clients choose how waitlists work.
-  - **Several locations**: everything on, with the boutique rules.
-- **Asking first:** a brand-new studio (no classes, nothing running) just gets the settings. A studio that already has classes, or is choosing again, sees exactly what will change: features switching on and off, each rule from and to, and what stops (for example "1 live journey will be paused"). Features switch through the same code as Setup, Features, so nothing is deleted.
-- **Where it shows:** on Home, owners and admins see a welcome card until they've chosen, with a getting-started list (location, classes, packages, team, first classes). Setup, Features has "Your kind of studio" at the top to change it later.
-- **Studio rules** now has a search box (it filters settings and whole sections, and says when nothing matches), plus a "Changed" mark on settings that differ from the usual for the studio's kind, with "Use the usual: …" to put one back in a tap.
-- **API:** `GET /setup` returns the kinds (what each switches on and fills in, and what choosing it would change), the usual values, `changedFromUsual` and the checklist. `POST /setup { studioType }` applies it (`setup_changes` confirmation when needed). Stored in `organizations.studio_type` and `setup_done_at`.
+- **Why:** a new owner faced 32 settings and every feature at once. Each studio now starts with the rules that suit its kind, and with plans (below) our staff set that up, so owners don't have to.
+- **The three kinds** (presets in `STUDIO_TYPE_PRESETS`, `packages/shared/src/features.ts`), one per plan:
+  - **Independent studio** (Essentials): bookings close when class starts, clients can pay at the studio, a 6-hour late-cancellation window, no spot picking, automatic waitlists, no celebration pop-ups.
+  - **Boutique studio** (Growth): bookings close 1 hour before, packages are needed, a 12-hour window, spots, and clients choose how waitlists work.
+  - **Several locations** (Signature): the boutique rules.
+- **When rules are filled in:** the first time a studio gets a plan. Later plan changes never overwrite rules; Studio rules shows what differs from the usual instead.
+- **Studio rules** has a search box (it filters settings and whole sections, and says when nothing matches), plus a "Changed" mark on settings that differ from the usual for the studio's kind, with "Use the usual: …" to put one back in a tap.
+- **Home** shows owners and admins a getting-started list (plan set up, location, classes, packages, team, first classes) until it's done; it can be hidden.
+- **API:** `GET /setup` returns the studio's kind, the usual values, `changedFromUsual` and the checklist. Stored in `organizations.studio_type` and `setup_done_at`. (Studios no longer choose their kind themselves; the plan does it.)
+
+## Plans: Essentials, Growth and Signature
+
+- **The plans** (`PLAN_INFO`, `packages/shared/src/features.ts`; pricing reasoning in `MARKET_AND_LAUNCH.md`):
+  - **Essentials**, USD 99: 1 location, 1 admin. Gift cards, reviews and payroll, on top of everything for running classes.
+  - **Growth**, USD 299: up to 3 locations, 1 admin per location. Adds marketing (emails, journeys, campaigns, banners, loyalty, refer a friend), the shop and the WhatsApp inbox. Own app +USD 100 a month.
+  - **Signature**, USD 599: up to 5 locations, +USD 150 each after that, no admin limit. Adds leads and AI workflows; own app included.
+  - Every plan: Ask (AI chat), unlimited instructor and front desk accounts, booking messages, and the same setup, data move and support.
+- **Our staff set the plan**, never the studio: `POST /v1/platform/studios/:orgId/plan` with header `x-platform-key` (`PLATFORM_ADMIN_KEY`; the route doesn't exist without it, and a studio sign-in can't reach it), or `pnpm --filter @studio/api plan:set <studio id> <plan> [--app] [--yes]`. Existing studios are on Signature, so nothing changed for them.
+- **Changing plan:** features the new plan doesn't include switch off the same way as from Setup, Features (nothing deleted; journeys pause, and so on); features it adds switch on; features in both keep the studio's choice. It asks first (`plan_changes`) when something switches off, limits are exceeded, or rules would change for a running studio. Locations and admins over a new plan's limits keep working; no more can be added.
+- **Limits, checked by the API:** switching on a feature outside the plan (`not_in_plan`, which says which plans include it), loyalty and referral settings, banners (marketing tools: Growth and Signature, whatever the switch says), adding a location (`plan_location_limit`; on Signature an extra location asks first because it adds USD 150), adding an admin (`plan_admin_limit`; owners count), and AI recaps (Signature).
+- **AI workflows** are the "AI workflows" feature (agents, the announcement and campaign writers under `/agents/write`, and AI staff recaps). Ask stays on every plan.
+- **Studios see** their plan at `GET /plan`: price with its parts (extra locations, the app), locations and admins used against the limits (with notes when over), the app, AI workflows, each feature with the plan that includes it, the three plans, and "talk to us" to change. Setup, Features shows this as the plan card, with locked features marked "In Growth" or "In Signature".
+- **Not built yet:** billing (prices are shown, not charged), location managers (admins for one location), and Signature's brand-wide tools (comparing locations side by side, rules set once for the brand).

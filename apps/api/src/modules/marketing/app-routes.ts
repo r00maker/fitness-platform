@@ -59,6 +59,7 @@ import { adsOnJoin } from "./ads.js";
 import { applyReferral, describeReferralRules, myReferrals, referralReport } from "./referrals.js";
 import { allClients, matchSegment } from "./segments.js";
 import { assertPlanAllows } from "../settings/plans.js";
+import { planIncludes } from "@studio/shared";
 
 const idParam = z.object({ id: schemas.id });
 const tokenParam = z.object({ token: z.string().regex(/^[a-f0-9]{32,80}$/) });
@@ -274,6 +275,8 @@ export async function marketingAppRoutes(app: FastifyInstance) {
    */
   app.get("/me/banners", async (req) => {
     const { placement } = parse(placementQuery, req.query);
+    const planOrg = await getOrg(db, req.auth.orgId);
+    if (!planIncludes(planOrg.plan, "marketing")) return { rotateSeconds: planOrg.bannerRotateSeconds, banners: [] }; // banners come with Growth and Signature
     const now = new Date();
     const rows = await db
       .select()

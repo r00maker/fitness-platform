@@ -39,19 +39,19 @@ Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My 
 
 The **Ask** button (bottom right) opens the assistant. The **bell** at the top shows messages from your studio's agents.
 
-## Getting started: your kind of studio
+## Your plan
 
-The first time you open Home, you're asked what kind of studio you run:
+Your studio is on one of three plans, and we set it up for you:
 
-- **Independent studio:** one room and a small team, or just you. You get booking, packages, reviews and gift cards, and simple rules (walk-ins welcome, clients can pay at the studio).
-- **Boutique studio:** one or two locations, a team of instructors, and classes that fill up. This adds marketing, refer a friend, the shop, payroll and the WhatsApp inbox, with rules suited to busy classes (book ahead with a package, pick a spot).
-- **Several locations:** everything is switched on.
+- **Essentials:** one independent studio. Everything to run classes, take bookings, pay instructors and get paid, plus reviews and gift cards. One admin account.
+- **Growth:** studios with a team, up to 3 locations. Adds marketing (emails, journeys, banners, loyalty, refer a friend), the WhatsApp inbox and the shop. One admin account per location. Your own app can be added.
+- **Signature:** brands with several locations. Adds leads and ad tracking, and AI workflows (agents and AI writing). Your own app is included, and there's no limit on admin accounts.
 
-Choose one and press **Use these settings**. If your studio is already running, you're shown exactly what will change first. It's only a starting point: change anything later under **Setup**, and change the kind of studio under **Setup, Features**. Home also shows a short getting-started list until you've added your location, classes, packages and team.
+Every plan includes Ask, as many instructor and front desk accounts as you need, and the same setup, data move and support. See your plan, its price and its limits under **Setup, Features**. Features your plan doesn't include are marked with the plan that has them. To change plans, choose **Talk to us about your plan**: we'll set it up for you, and nothing is deleted if you move down. Home shows a short getting-started list until you've added your location, classes, packages and team.
 
 ## Features: switching things on and off
 
-**Setup, Features** lists the parts of the app your studio might not need: marketing emails and journeys, gift cards, loyalty, refer a friend, leads, reviews, the shop, payroll, the communication inbox and agents. Switch on what you use; the menus, Home and the client app only show what's on.
+**Setup, Features** lists the parts of the app your studio might not need: marketing emails and journeys, gift cards, loyalty, refer a friend, leads, reviews, the shop, payroll, the communication inbox and AI workflows. Switch on what you use from what your plan includes; the menus, Home and the client app only show what's on.
 
 - **Switching something off** hides it and stops it running. Nothing is deleted: switch it back on and everything is where you left it. If something is running (live journeys, orders waiting at the desk, agents), you're told what will happen and asked first.
 - **What stops:** live journeys pause and scheduled campaigns go back to drafts, follow-up emails to leads aren't sent, agents stop, and clients stop being asked for reviews or earning points.

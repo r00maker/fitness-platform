@@ -62,10 +62,18 @@ export function featureForRoute(url: string | undefined): FeatureKey | null {
   return ROUTES.find((r) => r.match.test(url))?.feature ?? null;
 }
 
+/** Banners belong to the marketing tools: they come with plans that include marketing, whatever the switch says. */
+const PLAN_ONLY_ROUTES: { feature: FeatureKey; match: RegExp }[] = [{ feature: "marketing", match: /^\/v1\/banners(\/|$)/ }];
+
 /** Refuses requests to switched-off features. Registered right after sign-in. */
 export const featureGate = fp(async (app: FastifyInstance) => {
   app.addHook("preHandler", async (req: FastifyRequest) => {
     if (!req.auth?.orgId) return;
+    const planOnly = PLAN_ONLY_ROUTES.find((r) => r.match.test(req.routeOptions.url ?? ""));
+    if (planOnly) {
+      const [org] = await app.db.select({ plan: organizations.plan }).from(organizations).where(eq(organizations.id, req.auth.orgId));
+      if (org) assertPlanAllows(org, planOnly.feature);
+    }
     const key = featureForRoute(req.routeOptions.url);
     if (!key) return;
     const [org] = await app.db.select({ featuresOff: organizations.featuresOff }).from(organizations).where(eq(organizations.id, req.auth.orgId));

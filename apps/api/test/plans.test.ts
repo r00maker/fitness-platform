@@ -30,7 +30,7 @@ describe("plans", () => {
     const ask = await platform(s.orgId, { plan: "essentials" });
     expect(ask.body.error.code).toBe("needs_confirmation");
     expect(ask.body.error.flags[0].title).toBe("Change this studio's plan?");
-    expect(ask.body.error.message).toMatch(/^Move Test Studio from Signature to Essentials\? Switches on Gift cards\. Switches off Marketing emails and journeys, Leads, Shop, Communication inbox and Agents \(nothing is deleted\)\. Fills in the usual rules for Essentials: booking closes from 1 hour before to when class starts; /);
+    expect(ask.body.error.message).toMatch(/^Move Test Studio from Signature to Essentials\? Switches on Gift cards\. Switches off Marketing emails and journeys, Leads, Shop, Communication inbox and AI workflows \(nothing is deleted\)\. Fills in the usual rules for Essentials: booking closes from 1 hour before to when class starts; /);
     expect((await orgOf(s.orgId)).plan).toBe("signature"); // nothing until confirmed
     const done = await platform(s.orgId, { plan: "essentials", acknowledge: ["plan_changes"] });
     expect(done.status, JSON.stringify(done.body)).toBe(200);
@@ -65,6 +65,11 @@ describe("plans", () => {
     expect((await s.owner.call("PATCH", "/loyalty/settings", { loyaltyEnabled: true })).body.error.code).toBe("not_in_plan");
     expect((await s.owner.call("PATCH", "/referrals/settings", { referralsEnabled: true })).body.error.code).toBe("not_in_plan");
     expect((await s.owner.call("GET", "/features")).body.features.find((f: { key: string }) => f.key === "agents")).toMatchObject({ inPlan: false, includedIn: "Signature" });
+
+    // Banners are part of the marketing tools, so they come with Growth and Signature.
+    expect((await s.owner.call("GET", "/banners")).body.error.code).toBe("not_in_plan");
+    expect((await s.c1.call("GET", "/me/banners")).body.banners).toEqual([]);
+    expect((await s.owner.call("GET", "/announcements")).status).toBe(200); // announcements are on every plan
 
     const loc = await s.owner.call("POST", "/locations", { name: "East", timezone: tz });
     expect(loc.body.error).toMatchObject({ code: "plan_location_limit", message: "Your Essentials plan includes 1 location. Talk to us about Growth to add more." });
@@ -113,7 +118,7 @@ describe("plans", () => {
     const j = (await s.owner.call("POST", "/journeys/from-recipe", { recipe: "intro_funnel" })).body;
     await db.update(journeys).set({ status: "live" }).where(eq(journeys.id, j.id));
     const down = await platform(s.orgId, { plan: "growth" });
-    expect(down.body.error.message).toBe("Move Test Studio from Signature to Growth? Switches off Leads and Agents (nothing is deleted). 1 agent will stop sending reminders and summaries. It has 6 locations and Growth includes 3: they keep working, but no more can be added.");
+    expect(down.body.error.message).toBe("Move Test Studio from Signature to Growth? Switches off Leads and AI workflows (nothing is deleted). 1 agent will stop sending reminders and summaries. It has 6 locations and Growth includes 3: they keep working, but no more can be added.");
     await platform(s.orgId, { plan: "growth", acknowledge: ["plan_changes"] });
     expect((await db.select().from(agents).where(eq(agents.id, a.id))).length).toBe(1); // kept, just not running
     expect((await db.select().from(journeys).where(eq(journeys.id, j.id)))[0]!.status).toBe("live"); // marketing is still in Growth

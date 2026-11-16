@@ -72,7 +72,7 @@ const file = "file://" + path.join(__dirname, "ft-test.html");
     ok(`${label}: Go back keeps it on`, (await ev(`featOn("agents")`)) === true && (await p.locator("#ft-agents").isChecked()));
     await flip("agents"); await proceed();
     ok(`${label}: agents off: menu item gone (${(await nav()).length})`, !(await nav()).includes("Agents") && (await nav()).length === 13);
-    ok(`${label}: toast says nothing is deleted`, /Agents is off\. Nothing is deleted/.test(await toast()));
+    ok(`${label}: toast says nothing is deleted`, /AI workflows is off\. Nothing is deleted/.test(await toast()));
     ok(`${label}: count updates on the page`, /9 of 10/.test(await p.locator(".featsum").textContent()) && /13 items/.test(await p.locator(".featsum").textContent()));
     await go("agents");
     ok(`${label}: a switched-off page can't be opened by address`, (await ev("state.page")) !== "agents");
