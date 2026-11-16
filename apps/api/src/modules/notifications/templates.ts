@@ -113,13 +113,6 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: d.full ? "AI credits used up" : "AI credits running low",
     pushBody: d.full ? `All ${s(d.allowance)} AI credits for this month are used. Top up under Agents → Usage.` : `${s(d.used)} of ${s(d.allowance)} AI credits used this month.`,
   }),
-  /** Before the studio's app is set up: the form for moving from their old system (a private link, no sign-in). */
-  "migration.form": (d) => ({
-    subject: `Moving ${s(d.studioName)} to us: a few questions`,
-    body: `Hi ${s(d.firstName)}, to move your clients, packs, memberships and bookings from your old system, we need a few answers and a way to get your data. It takes about 5 minutes: ${s(d.link)} The link works for ${s(d.days)} days. We check everything and do the move within a day, and you'll get a summary of what moved.`,
-    pushTitle: "Moving your data",
-    pushBody: "A few questions so we can move your data.",
-  }),
   "staff.invite": (d) => ({
     subject: `You've been added to ${s(d.studioName)}`,
     body: `Hi ${s(d.firstName)}, ${s(d.invitedBy)} has added you to ${s(d.studioName)} as ${s(d.roleLabel)}. To sign in, set your password here: ${s(d.link)} The link works for 7 days. After that, ask them to send a new one. Your sign-in email is ${s(d.email)}.`,

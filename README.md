@@ -100,11 +100,11 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Celebrations | `GET /me/moments`, `POST /moments/:id/seen`, `PUT /me/celebrations` | owners, admins, instructors |
 | Plan | `GET /plan` (price and its parts, limits, what's included and which plan has the rest) | owner, admin |
 | Setup | `GET /setup` (the studio's kind, the usual rules, what's changed, a getting-started list) | owner, admin |
-| The moving form (before the studio's app is set up; private link, no sign-in) | `GET/PUT /public/moving-form/:token`, `POST /public/moving-form/:token/files` | whoever has the emailed link |
+| The welcome page (first sign-in, until the studio opens): the form, send, send updates, uploads | `GET/PUT /welcome`, `POST /welcome/send`, `POST /welcome/update`, `POST /welcome/files` | owner, admin |
 | Reports by location (Signature) | `GET /reports/locations?days=` | owner, admin (Signature plan) |
 | HQ: overview, studios, plans, notes | `GET /platform/me`, `GET /platform/overview`, `GET/POST /platform/studios`, `GET/PATCH /platform/studios/:orgId`, `POST /platform/studios/:orgId/plan`, `POST /platform/studios/:orgId/notes`, `GET /platform/staff` | our team (HQ roles: owner, onboarding, support) |
 | HQ: support access | `POST /platform/studios/:orgId/support-access`, `POST /platform/support-access/:id/end`, `GET /platform/studios/:orgId/clients` (only while open); the studio sees and ends it at `GET /support-access`, `POST /support-access/:id/end` | our team; studio owners and admins |
-| HQ: moving data | `GET /platform/migrations`, `POST /platform/studios/:orgId/migrations`, `GET/PATCH .../migrations/:jobId`, `POST .../files`, `PATCH/DELETE .../files/:fileId`, `POST .../check\|import\|verify\|undo`, `GET .../sample`, `POST .../access`, `POST .../form-link`, `PUT .../intake`; `POST /platform/studios/:orgId/invite-owner` | HQ owner, onboarding |
+| HQ: moving data | `GET /platform/migrations`, `POST /platform/studios/:orgId/migrations`, `GET/PATCH .../migrations/:jobId`, `POST .../files`, `PATCH/DELETE .../files/:fileId`, `POST .../check\|import\|verify\|undo`, `GET .../sample`, `POST .../access`, `PUT .../intake`; `POST /platform/studios/:orgId/invite-owner` | HQ owner, onboarding |
 | HQ assistant | `POST /platform/assistant/ask`, `GET /platform/assistant/chats[/:id]` | our team |
 | Feature switches | `GET /features`, `PUT /features/:key` (switching off asks first when something is running); the switches are also in `GET /settings` | owner, admin (everyone can read them) |
 | Phone date strip (clients) | `GET /calendar/strip?date=&days=` (same filters as the calendar) | everyone |

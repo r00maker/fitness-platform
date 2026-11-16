@@ -2,6 +2,8 @@
 
 `studio-calendar-preview.html` is a single-file, clickable preview of the app with sample data (admin, Front of House, instructor and client views; light and dark). It mirrors the rules in `apps/api` so features can be tried before the web and mobile apps are built. Open it in a browser; nothing is sent anywhere. (Opening a PDF attachment loads the pdf.js reader from cdnjs.)
 
+`phone-preview.html` is built by `python3 build-phone.py` (after `inject.py`): the studio preview running in phone-sized frames (client booking, instructor's My day, check-in mode), published as its own artifact. It's git-ignored; rebuild it rather than editing it.
+
 `hq-preview.html` is a separate clickable preview of HQ, our own team's dashboard (overview, studios, a studio's page with plan, support access, team invites and notes, adding a studio, the moving form as the studio sees it, the data-move workspace and the assistant with sample answers). The move workspace runs the same rules as the API's migration engine in the browser: upload a real CSV (or use the sample exports) to see it read, mapped and checked row by row. It's one hand-written file with no build step; it's published as its own artifact (the publish adds the page skeleton, so the file starts at `<title>`).
 
 ## How it's built
@@ -15,6 +17,7 @@ The HTML file is both the base and the output. `inject.py` puts the feature code
   - `mkt11.js` Sales (invoices, receipts, refunds, invoice design) and membership payment holds.
   - `mkt12.js` Shop, Pickups, writing agents, report exports, menu entries.
   - `mkt13.js` Closures and holidays (with `patch11.py`, which shades closed days on the calendar and teaches the class form about them).
+  - `mkt24.js` The welcome page: the owner's first sign-in until the studio opens (the stage with the week filling up, the form with its rail, Send to our team, Send updates, the move's progress, the studio opening), and Setup, Studio details. The **Studio** control in the header (Open / Setting up) is for the preview only; `#welcome` opens straight on it.
   - `mkt23.js` Phones: clients' date strip, day list, one-line notices and one Filter button on Book a class; instructors' Up next with Check in on My day, and check-in mode.
   - `mkt22.js` Reports by location: the Locations tab on Reports (Signature), locked with "In Signature" on other plans.
   - `mkt21.js` Plans: the plan card on Setup, Features, features locked with the plan that includes them, banners and AI workflows by plan, the getting-started list on Home, and Studio rules search with "Changed from the usual" marks (with `patch18.py`, which tags each Studio rules row with its setting). The **Plan** control in the header is for the preview only; in the real app only our staff change plans.
@@ -44,6 +47,7 @@ node s10check.cjs
 
 - `s10check.cjs` sales, holds, shop, calendar, rooms, goals, class types, categories, writers, email, exports.
 - `hqcheck.cjs` the HQ preview: overview, search and filter, plan changes (asks before moving down), support access and notes, the assistant, the moving form, reading an uploaded CSV, the data move (blocked on ambiguous dates, columns, accept warnings, sample, verify, undo), starting a move, inviting the owner, roles, and adding a studio.
+- `wccheck.cjs` the welcome page: what's needed before sending (UEN format too), answers kept, Send to our team, changes named, Send updates, the move finishing, the dashboard opening with the business details in Setup.
 - `pncheck.cjs` phones: the client date strip and day list, notices on one line, the Filter button, opening a class; Up next and check-in mode (search, waiver prompt, undo, big rows). Desktop keeps the calendar.
 - `lrcheck.cjs` reports by location: both locations side by side against the period before, the period switch, and the locked tab on Growth.
 - `plcheck.cjs` plans: the plan card and price, moving down (asks first, says what switches off and what's over the limits), moving up, locked features, banners and AI workflows by plan, Studio rules search and "Changed" marks, and the getting-started list.

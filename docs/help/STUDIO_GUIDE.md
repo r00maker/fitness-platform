@@ -214,11 +214,15 @@ Owners, admins and instructors get a pop-up on **Home** when there's something t
 
 On **Signature**, the **Locations** tab shows every location side by side: classes held, how full, visits, new clients, no-shows and cancellations, each compared with the period before. Sales from packs and memberships aren't split by location, because clients can use them at any location.
 
-## Moving from another system
+## Your first sign-in: the welcome page
 
-We move your data for you before your studio is ready, so there's nothing to do in the app. When you sign up, we email you a short form (or go through it with you on a call): which system you use, when you'd like to switch, roughly how many clients, memberships and class packs you have, and how we get your data: invite our team as a staff user (easiest), share a temporary password (kept encrypted and deleted after the move), or upload the exports yourself.
+Until your studio opens, signing in shows a welcome page instead of the dashboard. Fill in the form at your own pace; answers save as you go, and the list on the left ticks off each section:
 
-We check every row and move everything within a day, then send you a summary: clients, class packs and classes left, memberships, upcoming bookings, credit, and anything that couldn't move with the reason (for example a client with no email address). Your invite to the app comes once your studio is set up. Nothing changes for your clients until your switch date. Card details can't be moved in a file, so members add a card before their next billing date.
+- **Your business:** studio name, registered business name, UEN, GST registration number (if you're registered), address, phone, website and Instagram. These go on your invoices and receipts; change them later under **Setup, Studio details**.
+- **Locations and rooms, what you teach, what you sell, your team:** we set these up for you from your answers. Your team is added now and invited when your studio opens.
+- **Moving your data:** tick **We're a new studio** if there's nothing to move. Otherwise choose your old system and how we get your data: add our team as a staff user (easiest), share a temporary password (kept encrypted and deleted after the move), or upload the exports yourself. The page lists the reports to download from your system.
+
+Press **Send to our team** when you're done. If anything changes afterwards, edit it and press **Send updates**: we're told what changed. The welcome page then shows where your move is up to. We check every row and move everything within a day, then double-check a sample against your old system. When that's done, your studio opens and the welcome page gives way to your dashboard. Card details can't be moved in a file, so members add a card before their next billing date.
 
 ## Agents
 

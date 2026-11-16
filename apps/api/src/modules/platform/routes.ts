@@ -24,7 +24,7 @@ import { getOrg } from "../sessions/context.js";
 import { adminCount, locationCount, planView, setPlan, usd } from "../settings/plans.js";
 import { sendStaffInvite } from "../staff/routes.js";
 import { studioHealth } from "./health.js";
-import { platformMigrationRoutes, sendMovingForm } from "../migration/routes.js";
+import { platformMigrationRoutes } from "../migration/routes.js";
 import { platformAssistantRoutes } from "./assistant.js";
 
 export type PlatformRole = (typeof schemas.PLATFORM_ROLES)[number];
@@ -139,13 +139,10 @@ export async function platformRoutes(app: FastifyInstance) {
       u ??= (await tx.insert(users).values({ email, firstName: input.owner.firstName, lastName: input.owner.lastName }).returning())[0];
       await tx.insert(memberships).values({ orgId: org!.id, userId: u!.id, role: "owner" });
       const inviteExpiresAt = input.inviteOwner ? await sendStaffInvite(tx, appUrl, org!.id, u!.id, "owner", null) : null;
-      await audit(tx, { orgId: org!.id, actorId: req.platform.userId, action: "studio.created", entityType: "organization", entityId: org!.id, details: { by: "hq", plan: input.plan, ownerEmail: email, ownerInvited: input.inviteOwner, movingForm: input.sendMovingForm } });
-      let movingForm = null;
-      if (input.sendMovingForm) {
-        const [job] = await tx.insert(migrationJobs).values({ orgId: org!.id, createdBy: req.platform.userId }).returning();
-        movingForm = { jobId: job!.id, ...(await sendMovingForm(tx, appUrl, job!, req.platform.userId)) };
-      }
-      return { id: org!.id, name: org!.name, plan: input.plan, lifecycle: "onboarding", owner: { id: u!.id, email, invited: input.inviteOwner, inviteExpiresAt }, movingForm };
+      await audit(tx, { orgId: org!.id, actorId: req.platform.userId, action: "studio.created", entityType: "organization", entityId: org!.id, details: { by: "hq", plan: input.plan, ownerEmail: email, ownerInvited: input.inviteOwner } });
+      // The welcome form (and the data move behind it), ready for the owner's first sign-in.
+      const [job] = await tx.insert(migrationJobs).values({ orgId: org!.id, createdBy: req.platform.userId }).returning();
+      return { id: org!.id, name: org!.name, plan: input.plan, lifecycle: "onboarding", owner: { id: u!.id, email, invited: input.inviteOwner, inviteExpiresAt }, moveId: job!.id };
     });
     reply.code(201);
     return out;
@@ -165,7 +162,7 @@ export async function platformRoutes(app: FastifyInstance) {
     const access = await db.select({ id: supportAccess.id, reason: supportAccess.reason, endsAt: supportAccess.endsAt, endedAt: supportAccess.endedAt, at: supportAccess.createdAt, staff: sql<string>`(select first_name || ' ' || last_name from users where id = ${supportAccess.staffUserId})`, staffUserId: supportAccess.staffUserId }).from(supportAccess).where(eq(supportAccess.orgId, orgId)).orderBy(desc(supportAccess.createdAt)).limit(20);
     const mine = await activeSupportAccess(db, orgId, req.platform.userId);
     const invites = await db.select({ userId: staffInvites.userId, sentAt: staffInvites.createdAt, expiresAt: staffInvites.expiresAt, acceptedAt: staffInvites.acceptedAt }).from(staffInvites).where(eq(staffInvites.orgId, orgId)).orderBy(desc(staffInvites.createdAt));
-    const [move] = await db.select({ id: migrationJobs.id, status: migrationJobs.status, sourcePlatform: migrationJobs.sourcePlatform, formSentAt: migrationJobs.formSentAt, formSubmittedAt: migrationJobs.formSubmittedAt }).from(migrationJobs).where(and(eq(migrationJobs.orgId, orgId), ne(migrationJobs.status, "undone"))).orderBy(desc(migrationJobs.createdAt)).limit(1);
+    const [move] = await db.select({ id: migrationJobs.id, status: migrationJobs.status, sourcePlatform: migrationJobs.sourcePlatform, formSubmittedAt: migrationJobs.formSubmittedAt, formUpdatedAt: migrationJobs.formUpdatedAt }).from(migrationJobs).where(and(eq(migrationJobs.orgId, orgId), ne(migrationJobs.status, "undone"))).orderBy(desc(migrationJobs.createdAt)).limit(1);
     return {
       studio: { id: org.id, name: org.name, lifecycle: org.lifecycle, timezone: org.timezone, currency: org.currency, createdAt: org.createdAt, studioType: org.studioType },
       plan: await planView(db, org),

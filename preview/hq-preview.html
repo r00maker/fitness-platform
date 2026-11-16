@@ -181,16 +181,16 @@ details.issue p { padding: 0 0 8px 0 }
 
   // --- Sample studios -------------------------------------------------------------------
   const STUDIOS = [
-    { id: "core-flow", name: "Core & Flow", plan: "growth", app: true, lifecycle: "onboarding", locations: 2, clients: 0, health: "watch", signals: [["watch", "Setup has stalled for 14 days (5 of 8 done)"]], setup: 5, since: "2 Nov 2026", last: "today, 10:42", type: "Boutique studio", team: [["Mei Tan", "owner", "not invited"], ["Arif Rahman", "admin", "not invited"]], notes: [["call", "Kick-off call: moving from Momence on 1 Dec. 2 locations, ~60 active clients.", "Hana", "3 Nov"]], classes: ["Reformer - Beginner", "Reformer - Intermediate", "Mat Pilates"], locs: ["Tiong Bahru", "Robertson Quay"] },
+    { id: "core-flow", name: "Core & Flow", plan: "growth", app: true, lifecycle: "onboarding", locations: 2, clients: 0, health: "watch", signals: [["watch", "Setup has stalled for 14 days (5 of 8 done)"]], setup: 5, since: "2 Nov 2026", last: "today, 10:42", type: "Boutique studio", team: [["Mei Tan", "owner", "signed in"], ["Arif Rahman", "admin", "not invited"]], notes: [["call", "Kick-off call: moving from Momence on 1 Dec. 2 locations, ~60 active clients.", "Hana", "3 Nov"]], classes: ["Reformer - Beginner", "Reformer - Intermediate", "Mat Pilates"], locs: ["Tiong Bahru", "Robertson Quay"] },
     { id: "sweat-lab", name: "Sweat Lab", plan: "signature", app: false, lifecycle: "live", locations: 6, clients: 2140, health: "problem", signals: [["problem", "7 messages failed to send in the last 7 days"], ["watch", "2 memberships on hold because a card payment failed"]], setup: 8, since: "14 Mar 2026", last: "today, 09:15", type: "Several locations", team: [["Daniel Koh", "owner", "signed in"], ["Priya Nair", "admin", "signed in"], ["Wen Li", "admin", "signed in"]], notes: [["issue", "WhatsApp templates rejected once in Sept; resubmitted with plainer wording.", "Sam", "28 Sep"]] },
     { id: "still-point", name: "Still Point Yoga", plan: "essentials", app: false, lifecycle: "live", locations: 1, clients: 186, health: "good", signals: [], setup: 8, since: "2 Jun 2026", last: "yesterday", type: "Independent studio", team: [["Aisha Lim", "owner", "signed in"]], notes: [] },
     { id: "reform-co", name: "Reform Co.", plan: "growth", app: false, lifecycle: "live", locations: 3, clients: 690, health: "problem", signals: [["problem", "No bookings in the last 7 days"]], setup: 8, since: "20 Apr 2026", last: "9 days ago", type: "Boutique studio", team: [["Jonas Ong", "owner", "signed in"], ["Kai Tan", "admin", "signed in"], ["Lena Goh", "admin", "signed in"]], notes: [["note", "Owner mentioned a renovation in November.", "Hana", "30 Oct"]] },
-    { id: "barre-house", name: "Barre House", plan: "signature", app: false, lifecycle: "onboarding", locations: 4, clients: 0, health: "good", signals: [], setup: 2, since: "12 Nov 2026", last: "today, 08:03", type: "Several locations", team: [["Grace Chua", "owner", "not invited"]], notes: [], classes: ["Barre Burn", "Barre Sculpt"], locs: ["Orchard", "Novena", "Katong", "Jurong"] },
+    { id: "barre-house", name: "Barre House", plan: "signature", app: false, lifecycle: "onboarding", locations: 4, clients: 0, health: "good", signals: [], setup: 2, since: "12 Nov 2026", last: "today, 08:03", type: "Several locations", team: [["Grace Chua", "owner", "invited"]], notes: [], classes: ["Barre Burn", "Barre Sculpt"], locs: ["Orchard", "Novena", "Katong", "Jurong"] },
     { id: "ride-club", name: "Ride Club", plan: "growth", app: true, lifecycle: "paused", locations: 1, clients: 310, health: "good", signals: [], setup: 8, since: "8 Jan 2026", last: "31 days ago", type: "Boutique studio", team: [["Marcus Yeo", "owner", "signed in"]], notes: [["note", "Paused for 2 months while they move premises. Back mid-Dec.", "Hana", "16 Oct"]] },
   ];
   const byId = (id) => STUDIOS.find((s) => s.id === id);
   const SETUP = ["Your plan is set up", "Add your locations and rooms", "Add your class types", "Put your schedule in", "Set up your packages and memberships", "Invite your team", "Write your waiver", "Move your clients from your old system"];
-  const ACTIVITY = [["migration.file_added", "our team (onboarding)", "today, 10:42"], ["migration.form_sent", "the studio (moving form)", "4 Nov, 21:13"], ["migration.form_link_sent", "our team (onboarding)", "3 Nov, 11:20"], ["plan.changed", "our team (owner)", "3 Nov, 11:00"], ["studio.created", "our team (onboarding)", "2 Nov, 15:31"]];
+  const ACTIVITY = [["migration.file_added", "our team (onboarding)", "today, 10:42"], ["studio.welcome_updated", "owner (welcome form)", "6 Nov, 09:02"], ["studio.welcome_sent", "owner (welcome form)", "4 Nov, 21:13"], ["plan.changed", "our team (owner)", "3 Nov, 11:00"], ["studio.created", "our team (onboarding)", "2 Nov, 15:31"]];
 
   // =====================================================================================
   // Moving data: the same rules as the API's migration engine (modules/migration), run in
@@ -388,12 +388,12 @@ details.issue p { padding: 0 0 8px 0 }
   }
 
   const MOVES = {
-    "core-flow": { studio: "core-flow", status: "files", form: { sentAt: "3 Nov", openedAt: "4 Nov", submittedAt: "4 Nov" }, passwordSaved: false, dateOrder: null, intake: { oldPlatform: "Momence", switchDate: "2026-12-01", activeClients: 62, activeMemberships: 20, activePackages: 26, dateFormat: "unsure", access: "staff_login", packagesSold: "10 Class Pack SGD 280, 5 Class Pack SGD 150, Intro 3 for $45, Unlimited Monthly SGD 189", consent: true, contactName: "Mei Tan", contactPhone: "+65 9123 4567" }, files: [] },
-    "barre-house": { studio: "barre-house", status: "form", form: { sentAt: "12 Nov", openedAt: "13 Nov", submittedAt: null }, passwordSaved: false, dateOrder: null, intake: { oldPlatform: "Mindbody", switchDate: "2026-12-15" }, files: [] },
-    "sweat-lab": { studio: "sweat-lab", status: "verified", form: { sentAt: "2 Mar", openedAt: "2 Mar", submittedAt: "3 Mar" }, passwordSaved: false, dateOrder: "dmy", intake: { oldPlatform: "Glofox", switchDate: "2026-04-01", access: "files" }, files: [], done: "2,086 clients, 640 packs, 512 memberships and 1,190 bookings moved on 31 Mar; 41 rows not moved, each with a reason. Verified 1 Apr." },
+    "core-flow": { studio: "core-flow", status: "files", form: { submittedAt: "4 Nov", updatedAt: "6 Nov" }, passwordSaved: false, dateOrder: null, intake: { legalName: "Core and Flow Pte. Ltd.", uen: "201912345K", oldPlatform: "Momence", switchDate: "2026-12-01", activeClients: 62, activeMemberships: 20, activePackages: 26, dateFormat: "unsure", access: "staff_login", packagesSold: "10 Class Pack SGD 280, 5 Class Pack SGD 150, Intro 3 for $45, Unlimited Monthly SGD 189", consent: true, contactName: "Mei Tan", contactPhone: "+65 9123 4567" }, files: [] },
+    "barre-house": { studio: "barre-house", status: "form", form: { submittedAt: null, updatedAt: null }, passwordSaved: false, dateOrder: null, intake: { oldPlatform: "Mindbody", switchDate: "2026-12-15" }, files: [] },
+    "sweat-lab": { studio: "sweat-lab", status: "verified", form: { submittedAt: "3 Mar", updatedAt: null }, passwordSaved: false, dateOrder: "dmy", intake: { oldPlatform: "Glofox", switchDate: "2026-04-01", access: "files" }, files: [], done: "2,086 clients, 640 packs, 512 memberships and 1,190 bookings moved on 31 Mar; 41 rows not moved, each with a reason. Verified 1 Apr." },
   };
   MOVES["core-flow"].files = sampleFiles(byId("core-flow"));
-  const STATUS = { form: ["Moving form sent", "Waiting for the studio's form"], submitted: ["Form received", "Get the data out of the old system"], files: ["Data received", "Check the files"], checked: ["Checked", "Import"], imported: ["Imported", "Compare a sample and verify"], verified: ["Done", "Done"], undone: ["Undone", "Fix the files and check again"] };
+  const STATUS = { form: ["Welcome form not sent yet", "Waiting for the welcome form"], submitted: ["Form received", "Get the data out of the old system"], files: ["Data received", "Check the files"], checked: ["Checked", "Import"], imported: ["Imported", "Compare a sample and verify"], verified: ["Done", "Done"], undone: ["Undone", "Fix the files and check again"] };
   const STEPS = ["Form sent", "Form back", "Data in", "Checked", "Imported", "Verified"];
   const stepOf = (mv) => ({ form: 0, submitted: 1, files: 2, undone: 2, checked: 3, imported: 4, verified: 6 })[mv.status];
 
@@ -446,7 +446,7 @@ details.issue p { padding: 0 0 8px 0 }
         <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
           <section class="panel" aria-labelledby="hMove"><div class="row between"><h2 id="hMove">Moving data</h2>${mv ? `<span class="pill plain">${STATUS[mv.status][0]}</span>` : ""}</div>
             ${mv ? `<p>From ${esc(mv.intake.oldPlatform || "their old system")}${mv.intake.switchDate ? `, switching ${nice(mv.intake.switchDate)}` : ""}. Next: ${STATUS[mv.status][1].toLowerCase()}.</p><a class="btn primary" href="#move-${s.id}" style="align-self:flex-start">Open the move</a>`
-              : `<p class="muted">No move from another system. Start one to send the moving form and bring their clients, packs, memberships and bookings over.</p>${can("moves") ? `<button type="button" class="btn primary" id="startMove" style="align-self:flex-start">Start a move</button>` : ""}`}
+              : `<p class="muted">No move from another system. Start one and the owner sees the moving questions in their app, to bring their clients, packs, memberships and bookings over.</p>${can("moves") ? `<button type="button" class="btn primary" id="startMove" style="align-self:flex-start">Start a move</button>` : ""}`}
           </section>
           <section class="panel" aria-labelledby="hPlan"><div class="row between"><h2 id="hPlan">Plan</h2><span class="mono">${usd(price(s))} a month</span></div>
             <p>${p.label}${s.plan === "growth" && s.app ? " with its own app" : ""}. ${p.seats}, ${p.max ? `up to ${p.max} location${p.max > 1 ? "s" : ""}` : `${p.incl} locations included, then ${usd(p.extra)} each`}.</p>
@@ -465,7 +465,7 @@ details.issue p { padding: 0 0 8px 0 }
         <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
           <section class="panel"><h2>Setup</h2><ul class="checks">${SETUP.map((t, i) => `<li class="${i < s.setup ? "" : "todo"}"><b>${i < s.setup ? "✓" : "○"}</b>${t}</li>`).join("")}</ul></section>
           <section class="panel" aria-labelledby="hTeam"><h2 id="hTeam">Team</h2>${s.team.map(([n, r, st]) => `<div class="row between"><span>${esc(n)} <span class="small muted">· ${r}</span></span><span class="pill ${st === "signed in" ? "good" : st === "invited" ? "watch" : "plain"}">${st === "not invited" ? "Not invited yet" : st === "invited" ? "Invited" : "Signed in"}</span></div>`).join("")}
-            ${owner && owner[2] !== "signed in" && can("manage") ? `<p class="small muted">Invite the owner once their studio is set up, so they arrive to a working app.</p><button type="button" class="btn" id="inviteOwner" style="align-self:flex-start">${owner[2] === "invited" ? "Send the invite again" : "Invite the owner to the app"}</button>` : ""}</section>
+            ${owner && owner[2] !== "signed in" && can("manage") ? `<p class="small muted">Their first sign-in opens the welcome form. The rest of the team is invited when the studio opens.</p><button type="button" class="btn" id="inviteOwner" style="align-self:flex-start">${owner[2] === "invited" ? "Send the invite again" : "Invite the owner to the app"}</button>` : ""}</section>
           <section class="panel" aria-labelledby="hNotes"><h2 id="hNotes">Our notes</h2><p class="small muted">Only our team sees these.</p>
             <div id="notes" style="display:flex;flex-direction:column;gap:10px">${s.notes.map(([k, b, a, d]) => `<div style="border-top:1px solid var(--line);padding-top:8px"><span class="pill plain">${k}</span> <span class="small muted">${a} · ${d}</span><p style="margin-top:4px">${esc(b)}</p></div>`).join("") || `<p class="muted">No notes yet.</p>`}</div>
             <label class="f" for="noteBody">Add a note<textarea id="noteBody" placeholder="Calls, issues, decisions"></textarea></label>
@@ -477,7 +477,7 @@ details.issue p { padding: 0 0 8px 0 }
 
   PAGES["new-studio"] = () => {
     if (!can("manage")) return head("Add a studio", "") + `<div class="callout warn"><b>Your HQ role can't add studios.</b><p>Ask an HQ owner or someone in onboarding.</p></div>`;
-    return head("Add a studio", "Creates the studio with its first location and plan (features and the usual rules for its kind switched on). The moving form goes out first; the owner's invite to the app follows once their studio is set up.") +
+    return head("Add a studio", "Creates the studio with its first location and plan (features and the usual rules for its kind switched on), and invites the owner. Their first sign-in opens the welcome page with the form.") +
       `<form class="panel" id="newForm" novalidate><div class="form">
         <label class="f" for="nsName">Studio name<input id="nsName" required placeholder="e.g. Pilates Loft"></label>
         <label class="f" for="nsLoc">First location <span class="h">Defaults to the studio name</span><input id="nsLoc" placeholder="e.g. Tiong Bahru"></label>
@@ -488,10 +488,9 @@ details.issue p { padding: 0 0 8px 0 }
         <label class="f" for="nsFirst">Owner's first name<input id="nsFirst" required></label>
         <label class="f" for="nsLast">Owner's last name<input id="nsLast" required></label>
         <label class="f wide" for="nsEmail">Owner's email<input id="nsEmail" type="email" required></label>
-        <label class="row wide small" for="nsForm" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="nsForm" checked style="width:auto;margin-top:3px"><span><b>Email the owner the moving form now</b><br><span class="muted">A private link, no account needed: their old system, switch date, and how we get the data.</span></span></label>
-        <label class="row wide small" for="nsInvite" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="nsInvite" style="width:auto;margin-top:3px"><span><b>Invite the owner to the app now</b><br><span class="muted">Usually later, from the studio's page, once their schedule, packages and clients are in.</span></span></label>
+        <label class="row wide small" for="nsInvite" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="nsInvite" checked style="width:auto;margin-top:3px"><span><b>Invite the owner now</b><br><span class="muted">On first sign-in they see the welcome page and fill in the form. Untick to invite them later from the studio's page.</span></span></label>
       </div><p class="small" id="nsPrice"></p><div class="row"><button class="btn primary" type="submit">Add studio</button><span class="small" id="nsErr" role="alert" style="color:var(--bad)"></span></div></form>
-      <section class="panel"><h2>Then</h2><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>The owner fills in the moving form (or we do it with them on the kick-off call).</li><li>We get the exports out, check and import them within a day, and compare a sample with the old system.</li><li>We finish setup, invite the owner to the app, and switch the studio to Live on their switch date.</li></ol></section>`;
+      <section class="panel"><h2>Then</h2><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>The owner signs in and fills in the welcome form (or we do it with them on the kick-off call). Their answers set the studio up.</li><li>We get the exports out, check and import them within a day, and compare a sample with the old system.</li><li>Verifying the move opens the studio: the welcome page gives way to their dashboard, and their team is invited.</li></ol></section>`;
   };
 
   PAGES.moves = () => {
@@ -499,10 +498,10 @@ details.issue p { padding: 0 0 8px 0 }
     return head("Moving data", "Every studio moving from another system. Open one to see the form, upload their exports, check, import and verify.") +
       `<div class="tblwrap"><table id="moveTable"><thead><tr><th>Studio</th><th>From</th><th>Where it's up to</th><th>Next</th><th>Switch date</th><th></th></tr></thead><tbody>${rows.map(({ mv, s }) => `<tr class="click" data-move="${s.id}" tabindex="0"><td><b>${esc(s.name)}</b></td><td>${esc(mv.intake.oldPlatform || "Not said yet")}</td><td><span class="pill plain">${STATUS[mv.status][0]}</span></td><td>${STATUS[mv.status][1]}</td><td>${mv.intake.switchDate ? nice(mv.intake.switchDate) : "—"}</td><td><a class="btn" href="#move-${s.id}">Open</a></td></tr>`).join("")}</tbody></table></div>
       <section class="panel"><h2>How data moves</h2><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
-        <li><b>The moving form</b>, before the studio's app is set up: a private link we email the owner (or we fill it in with them on a call). Old system, switch date, rough counts, how dates are written, and how we get the data: invite our team as a staff user, a temporary password (encrypted, deleted after the move), or upload the exports.</li>
+        <li><b>The welcome form</b>: the owner's first sign-in opens a welcome page with one form (or we fill it in with them on a call). Their business details, locations, classes, packages and team set the studio up; the rest says how to move their data: old system, switch date, rough counts, how dates are written, and how we get it (staff user, temporary password, or uploads).</li>
         <li><b>Data in</b>: we (or they) upload the exports. CSV, Excel (every sheet) and the web-page "XLS" some systems produce. Each file's kind and columns are recognised; we can change them.</li>
         <li><b>Check</b>: a full rehearsal of the import that changes nothing. Every row is accounted for, problems are listed with file and row, and totals are compared with the form.</li>
-        <li><b>Import</b>, then <b>compare a sample</b> side by side with the old system, then <b>verify</b>. An import can be undone until anything happens.</li></ol></section>`;
+        <li><b>Import</b>, then <b>compare a sample</b> side by side with the old system, then <b>verify</b>. Verifying opens the studio: the welcome page gives way to the dashboard. An import can be undone until anything happens.</li></ol></section>`;
   };
 
   // --- One move ---------------------------------------------------------------------------
@@ -516,10 +515,10 @@ details.issue p { padding: 0 0 8px 0 }
       ${!canMove ? `<div class="callout warn"><b>Your HQ role can look but not run moves.</b><p>Ask an HQ owner or someone in onboarding.</p></div>` : ""}`;
     if (mv.done) return out + `<div class="callout good"><b>Done and verified.</b><p>${esc(mv.done)} The old files' rows were deleted 30 days after verifying.</p></div>`;
     out += `<div class="grid2">
-      <section class="panel" aria-labelledby="hForm"><div class="row between"><h2 id="hForm">The moving form</h2><span class="pill ${form.submittedAt ? "good" : "watch"}">${form.submittedAt ? `Sent back ${form.submittedAt}` : form.openedAt ? `Opened ${form.openedAt}, not sent yet` : `Emailed ${form.sentAt}, not opened`}</span></div>
-        ${form.submittedAt || i.oldPlatform ? `<dl class="kv">${[["Old system", i.oldPlatform], ["Switch date", i.switchDate && nice(i.switchDate)], ["Active clients", i.activeClients], ["Active memberships", i.activeMemberships], ["Active class packs", i.activePackages], ["03/04/2026 means", { dmy: "3 April (day first)", mdy: "4 March (month first)", ymd: "Dates like 2026-04-03", unsure: "Not sure" }[i.dateFormat]], ["How we get the data", ACCESS[i.access]], ["Packages they sell", i.packagesSold], ["Contact", [i.contactName, i.contactPhone].filter(Boolean).join(", ")]].filter(([, v]) => v !== undefined && v !== null && v !== "").map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : `<p class="muted">Not filled in yet.</p>`}
+      <section class="panel" aria-labelledby="hForm"><div class="row between"><h2 id="hForm">The welcome form</h2><span class="pill ${form.submittedAt ? "good" : "watch"}">${form.submittedAt ? `Sent ${form.submittedAt}${form.updatedAt ? `, updated ${form.updatedAt}` : ""}` : "Not sent yet"}</span></div>
+        ${!form.submittedAt ? `<p class="small muted">The owner fills this in on their first sign-in, on the welcome page. Their answers set up the studio (business details, locations, classes, packages, team) and tell us how to move their data.</p>` : ""}${form.submittedAt || i.oldPlatform ? `<dl class="kv">${[["Registered name", i.legalName], ["UEN", i.uen], ["Old system", i.oldPlatform], ["Switch date", i.switchDate && nice(i.switchDate)], ["Active clients", i.activeClients], ["Active memberships", i.activeMemberships], ["Active class packs", i.activePackages], ["03/04/2026 means", { dmy: "3 April (day first)", mdy: "4 March (month first)", ymd: "Dates like 2026-04-03", unsure: "Not sure" }[i.dateFormat]], ["How we get the data", ACCESS[i.access]], ["Packages they sell", i.packagesSold], ["Contact", [i.contactName, i.contactPhone].filter(Boolean).join(", ")]].filter(([, v]) => v !== undefined && v !== null && v !== "").map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : `<p class="muted">Not filled in yet.</p>`}
         ${i.access === "password" && mv.passwordSaved && canMove ? `<div class="row"><button type="button" class="btn" id="revealPw">Show the temporary password</button><span class="small muted">Logged in the studio's activity. Deleted at import.</span></div><div id="pw"></div>` : ""}
-        ${canMove && !locked ? `<div class="row"><a class="btn" href="#form-${s.id}">${form.submittedAt ? "Edit the answers" : "Fill it in on a call"}</a><button type="button" class="btn" id="copyLink">Copy the link</button><button type="button" class="btn" id="resend">Email it again</button></div><input id="linkText" readonly value="https://app.example.com/moving-form/3f9c…e21a" aria-label="Moving form link" hidden>` : ""}
+        ${canMove && !locked ? `<div class="row"><a class="btn" href="#form-${s.id}">${form.submittedAt ? "See their answers as they do" : "Fill it in with them on a call"}</a></div>` : ""}
       </section>
       <section class="panel" aria-labelledby="hTips"><h2 id="hTips">What to take from ${esc(i.oldPlatform || "their system")}</h2><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${(TIPS[i.oldPlatform] || TIPS.Other).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
         <p class="small muted">${i.access === "staff_login" ? `They've added our team as a staff user: sign in to ${esc(i.oldPlatform)} and download these.` : i.access === "password" ? "Use the temporary password above, download these, then sign out." : i.access === "files" ? "They're uploading these themselves through the form." : "Waiting for the form to say how we get the data."}</p></section>
@@ -581,12 +580,12 @@ details.issue p { padding: 0 0 8px 0 }
     </section>`;
   }
 
-  // --- The moving form (as the studio sees it at their private link) -------------------------
+  // --- The welcome form (as the owner sees it in their app on first sign-in) -------------------------
   PAGES.form = () => {
     const mv = MOVES[state.move], s = byId(mv.studio), i = mv.intake, sent = !!mv.form.submittedAt && !state.editForm;
     const opt = (v, l, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(l)}</option>`;
     const card = (v, t, b) => `<label class="acc ${i.access === v ? "on" : ""}"><input type="radio" name="mvAccess" value="${v}" ${i.access === v ? "checked" : ""}><span><b>${t}</b><br><span class="muted small">${b}</span></span></label>`;
-    return `<div class="callout"><b>The moving form, as ${esc(s.name)} sees it</b><p class="small">At a private link we email the owner; no account or app needed. You can fill it in here with them on a call. <a href="#move-${s.id}">Back to the move</a></p></div>
+    return `<div class="callout"><b>The welcome form, as ${esc(s.name)}'s owner sees it</b><p class="small">In their app, on first sign-in, until the studio opens. You can fill it in here with them on a call. (A shortened version: the real one also asks for business details, locations, classes, packages and the team.) <a href="#move-${s.id}">Back to the move</a></p></div>
       <div class="formpage">
       <div class="head"><div><h1>Moving ${esc(s.name)} to us</h1><p class="sub">A few questions so we can move your clients, packs, memberships and bookings. It takes about 5 minutes. We check everything and do the move within a day, and nothing is guessed: anything unclear comes back to you.</p></div></div>
       <section class="panel"><h2>About your move</h2><div class="form">
@@ -674,7 +673,7 @@ details.issue p { padding: 0 0 8px 0 }
     }
     if (page === "studio") {
       const s = byId(state.studio);
-      if ($("#startMove")) $("#startMove").onclick = () => { MOVES[s.id] = { studio: s.id, status: "form", form: { sentAt: "today", openedAt: null, submittedAt: null }, passwordSaved: false, dateOrder: null, intake: {}, files: [] }; s.classes ||= ["Reformer - Beginner"]; s.locs ||= [s.name]; location.hash = `move-${s.id}`; toast(`Move started. The moving form was emailed to ${s.team[0][0]}.`); };
+      if ($("#startMove")) $("#startMove").onclick = () => { MOVES[s.id] = { studio: s.id, status: "form", form: { submittedAt: null, updatedAt: null }, passwordSaved: false, dateOrder: null, intake: {}, files: [] }; s.classes ||= ["Reformer - Beginner"]; s.locs ||= [s.name]; location.hash = `move-${s.id}`; toast(`Move started. ${s.team[0][0]} sees the moving questions in their app.`); };
       if ($("#planGo")) $("#planGo").onclick = () => {
         const to = $("#planSel").value; if (to === s.plan) return;
         const down = Object.keys(PLANS).indexOf(to) < Object.keys(PLANS).indexOf(s.plan);
@@ -698,19 +697,17 @@ details.issue p { padding: 0 0 8px 0 }
         const missing = [!v("#nsName") && "the studio's name", !v("#nsFirst") && "the owner's first name", !v("#nsLast") && "the owner's last name", !/^\S+@\S+\.\S+$/.test(v("#nsEmail")) && "the owner's email address"].filter(Boolean);
         if (missing.length) { $("#nsErr").textContent = `Add ${missing.join(", ")}.`; return; }
         const id = v("#nsName").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "new-studio";
-        const invite = $("#nsInvite").checked, form = $("#nsForm").checked, plan = $("#nsPlan").value;
+        const invite = $("#nsInvite").checked, plan = $("#nsPlan").value;
         STUDIOS.push({ id, name: v("#nsName"), plan, app: $("#nsApp").value === "yes", lifecycle: "onboarding", locations: 1, clients: 0, health: "good", signals: [], setup: 1, since: "today", last: "just now", type: { essentials: "Independent studio", growth: "Boutique studio", signature: "Several locations" }[plan], team: [[`${v("#nsFirst")} ${v("#nsLast")}`, "owner", invite ? "invited" : "not invited"]], notes: [], classes: ["Reformer - Beginner"], locs: [v("#nsLoc") || v("#nsName")] });
-        if (form) MOVES[id] = { studio: id, status: "form", form: { sentAt: "today", openedAt: null, submittedAt: null }, passwordSaved: false, dateOrder: null, intake: {}, files: [] };
+        MOVES[id] = { studio: id, status: "form", form: { submittedAt: null, updatedAt: null }, passwordSaved: false, dateOrder: null, intake: {}, files: [] };
         location.hash = `studio-${id}`;
-        toast(`${v("#nsName")} added.${form ? ` Moving form sent to ${v("#nsEmail")}.` : ""}${invite ? " App invite sent." : " The app invite waits until setup is done."}`);
+        toast(`${v("#nsName")} added.${invite ? ` Invite sent to ${v("#nsEmail")}: their first sign-in opens the welcome form.` : " Invite the owner from the studio's page when you're ready."}`);
       };
     }
     if (page === "moves") document.querySelectorAll("[data-move]").forEach((tr) => { tr.onclick = (e) => { if (!e.target.closest("a")) location.hash = `move-${tr.dataset.move}`; }; tr.onkeydown = (e) => { if (e.key === "Enter") tr.click(); }; });
     if (page === "move") {
       const mv = MOVES[state.move];
       if ($("#revealPw")) $("#revealPw").onclick = () => { $("#pw").innerHTML = `<p class="mono">Login: ${esc(mv.intake.accessLogin || "")} · Password: temp-•••• (shown here in the real tool)</p>`; toast("Viewed. This is in the studio's activity log."); };
-      if ($("#copyLink")) $("#copyLink").onclick = async () => { const t = $("#linkText").value; try { await navigator.clipboard.writeText(t); toast("Link copied. Send it on WhatsApp if email isn't reaching them."); } catch { $("#linkText").hidden = false; $("#linkText").select(); toast("Select and copy the link."); } };
-      if ($("#resend")) $("#resend").onclick = () => { mv.form.sentAt = "today"; render(); toast("Emailed again. The old link stopped working."); };
       if ($("#useSample")) $("#useSample").onclick = () => { mv.files = sampleFiles(byId(mv.studio)); if (["form", "submitted"].includes(mv.status)) mv.status = "files"; render(); toast("Sample exports added: 5 files read."); };
       if ($("#upFile")) $("#upFile").onchange = (e) => readFiles(e.target.files, mv, (skipped) => { invalidate(mv); if (mv.files.length && ["form", "submitted", "undone"].includes(mv.status)) mv.status = "files"; render(); toast(skipped.length ? `${skipped.join(", ")}: this preview reads CSV only. Excel works in the real tool.` : "Files read."); });
       if ($("#dateOrder")) $("#dateOrder").onchange = (e) => { mv.dateOrder = e.target.value || null; invalidate(mv); render(); toast("Saved. Run the check again."); };
@@ -740,7 +737,7 @@ details.issue p { padding: 0 0 8px 0 }
         read();
         const missing = [!i.oldPlatform && "which system you use now", !i.switchDate && "when you'd like to switch", !i.access && "how we get your data", i.access === "password" && !i.accessLogin && "the login to use", i.access === "password" && !mv.passwordSaved && "the temporary password", !i.consent && "your OK for us to move your clients' details"].filter(Boolean);
         if (missing.length) { $("#fErr").textContent = `Before sending, add ${missing.join(", ")}.`; return; }
-        mv.form.submittedAt = "today"; mv.form.openedAt ||= "today"; state.editForm = false;
+        mv.form.submittedAt ||= "today"; state.editForm = false;
         mv.dateOrder = ["dmy", "mdy"].includes(i.dateFormat) ? i.dateFormat : mv.dateOrder;
         if (mv.status === "form") mv.status = mv.files.length ? "files" : "submitted";
         render(); toast("Sent to our team.");

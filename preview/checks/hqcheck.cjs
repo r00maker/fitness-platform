@@ -87,7 +87,7 @@ const file = "file://" + path.join(__dirname, "hq-test.html");
     await go("moves");
     ok(`${label}: every move opens`, (await p.locator("[data-move]").count()) === 3);
     await click('[data-move="barre-house"]');
-    ok(`${label}: a move waiting for its form`, /Opened 13 Nov, not sent yet/.test(await txt("#hForm + span, .panel .pill")) || /not sent yet/.test(await p.locator("#hForm").locator("..").textContent()));
+    ok(`${label}: a move waiting for its form`, /Not sent yet/.test(await p.locator("#hForm").locator("..").textContent()) && /first sign-in, on the welcome page/.test(await p.locator("#hForm").locator("../..").textContent()));
     await click('a[href="#form-barre-house"]');
     ok(`${label}: the form as the studio sees it`, /Moving Barre House to us/.test(await txt("h1")) && /Mailing Lists/.test(await p.locator(".formpage").textContent()));
     await click("#fSend");
@@ -146,10 +146,10 @@ const file = "file://" + path.join(__dirname, "hq-test.html");
     await go("studio-reform-co");
     await click("#startMove");
     ok(`${label}: start a move from the studio`, /Reform Co\.: moving data/.test(await txt("h1")) && /Move started/.test(await toast()));
-    await go("studio-core-flow");
-    ok(`${label}: owner not invited yet`, /Not invited yet/.test(await txt("#hTeam + div")));
+    await go("studio-barre-house");
+    ok(`${label}: owner invited, not signed in yet`, /Invited/.test(await txt("#hTeam + div")) && /Send the invite again/.test(await txt("#inviteOwner")));
     await click("#inviteOwner");
-    ok(`${label}: invite the owner`, /Invite sent to Mei Tan/.test(await toast()) && /Invited/.test(await p.locator("#hTeam").locator("..").textContent()));
+    ok(`${label}: send the invite again`, /Invite sent to Grace Chua/.test(await toast()));
 
     // Roles
     await p.selectOption("#asRole", "support");
@@ -167,8 +167,8 @@ const file = "file://" + path.join(__dirname, "hq-test.html");
     ok(`${label}: price shown`, /Essentials: USD 99 a month/.test(await txt("#nsPrice")));
     await shot("new", false);
     await click('#newForm button[type="submit"]');
-    ok(`${label}: studio added (${await toast()})`, /Pilates Loft added\. Moving form sent to lin@example\.com\. The app invite waits until setup is done\./.test(await toast()) && /Pilates Loft/.test(await txt("h1")));
-    ok(`${label}: its move is waiting for the form`, /Moving form sent/.test(await p.locator("#hMove").locator("..").textContent()));
+    ok(`${label}: studio added (${await toast()})`, /Pilates Loft added\. Invite sent to lin@example\.com: their first sign-in opens the welcome form\./.test(await toast()) && /Pilates Loft/.test(await txt("h1")));
+    ok(`${label}: its move is waiting for the form`, /Welcome form not sent yet/.test(await p.locator("#hMove").locator("..").textContent()));
 
     ok(`${label}: no page errors (${errors.join(" | ")})`, errors.length === 0);
     await p.close();

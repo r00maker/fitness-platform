@@ -2,3 +2,6 @@
 checks/*/
 checks/s10-test.html
 checks/*-test.html
+
+# Built by build-phone.py from studio-calendar-preview.html
+phone-preview.html

@@ -60,6 +60,14 @@ const timezone = z.string().refine(
 
 // ---- Studio settings -------------------------------------------------------
 export const updateOrgSettings = z.object({
+  // Business details (first filled in from the welcome form).
+  legalName: z.string().trim().max(160).nullable().optional(),
+  uen: z.string().trim().toUpperCase().max(20).nullable().optional(),
+  gstNumber: z.string().trim().toUpperCase().max(20).nullable().optional(),
+  address: z.string().trim().max(300).nullable().optional(),
+  phone: z.string().trim().max(40).nullable().optional(),
+  website: z.string().trim().max(200).nullable().optional(),
+  instagram: z.string().trim().max(100).nullable().optional(),
   substituteApproval: z.enum(SUB_APPROVAL_MODES).optional(),
   waitlistModes: z.enum(WAITLIST_MODE_SETTINGS).optional(),
   reviewsEnabled: z.boolean().optional(),
@@ -338,9 +346,7 @@ export const createStudio = z.object({
   plan: z.enum(PLANS),
   brandedApp: z.boolean().optional(),
   locationName: z.string().trim().min(1).max(120).optional(),
-  /** Email the owner the moving form now (before their app is set up). */
-  sendMovingForm: z.boolean().default(false),
-  /** Email the owner their invite to the app now; leave off to send it once the studio is set up. */
+  /** Email the owner their invite now (they see the welcome form on first sign-in). Off: invite them later from HQ. */
   inviteOwner: z.boolean().default(true),
   owner: z.object({
     email: z.email("Enter the owner's email address.").max(200),
@@ -358,7 +364,43 @@ export const MIGRATION_KINDS = ["clients", "packages", "memberships", "bookings"
 export const MIGRATION_ACCESS = ["staff_login", "password", "files"] as const;
 const count0 = z.number().int().min(0).max(1_000_000).nullable().optional();
 /** The form the studio fills in (all optional until they submit; see `submit`). */
+/** Singapore UEN: businesses (8 digits + letter), local companies (9 digits + letter), others (T/S/R…). */
+export const UEN_PATTERN = /^(\d{8}[A-Z]|\d{9}[A-Z]|[TSR]\d{2}[A-Z]{2}\d{4}[A-Z])$/;
+const txt = (n: number) => z.string().trim().max(n).optional();
+export const welcomeLocation = z.object({ name: z.string().trim().min(1, "Give the location a name.").max(120), address: txt(300), rooms: z.array(z.string().trim().min(1).max(80)).max(30).default([]) });
+export const welcomeClassType = z.object({ name: z.string().trim().min(1, "Give the class a name.").max(120), minutes: z.number().int().min(5).max(480).optional(), capacity: z.number().int().min(1).max(500).optional() });
+export const welcomePackage = z.object({
+  name: z.string().trim().min(1, "Give the package a name.").max(120),
+  /** A class pack, or a membership that renews. */
+  type: z.enum(["pack", "membership"]).default("pack"),
+  /** Classes in the pack (or each period of a membership); null or missing = unlimited. */
+  classes: z.number().int().min(1).max(1000).nullable().optional(),
+  price: z.number().min(0).max(100000).optional(),
+  /** Packs: how long they last. Memberships: how often they renew. */
+  validityValue: z.number().int().min(1).max(36).optional(),
+  validityUnit: z.enum(["days", "weeks", "months"]).optional(),
+});
+export const welcomeTeamMember = z.object({ firstName: z.string().trim().min(1, "Add a first name.").max(60), lastName: z.string().trim().max(60).default(""), email: z.email("Enter a valid email address.").max(200), role: z.enum(["admin", "front_desk", "instructor"]).default("instructor") });
+/** The welcome form: getting to know the studio, and moving its data. Everything is optional until it's sent. */
 export const migrationIntake = z.object({
+  // About the business
+  tradingName: txt(120),
+  legalName: txt(160),
+  uen: z.string().trim().toUpperCase().max(20).optional(),
+  gstRegistered: z.boolean().optional(),
+  gstNumber: z.string().trim().toUpperCase().max(20).optional(),
+  address: txt(300),
+  phone: txt(40),
+  website: txt(200),
+  instagram: txt(100),
+  // Setting the studio up
+  locations: z.array(welcomeLocation).max(30).optional(),
+  classTypeList: z.array(welcomeClassType).max(80).optional(),
+  packages: z.array(welcomePackage).max(80).optional(),
+  team: z.array(welcomeTeamMember).max(100).optional(),
+  // Moving the data
+  /** A new studio with nothing to move. */
+  nothingToMove: z.boolean().optional(),
   oldPlatform: z.string().trim().max(60).optional(),
   switchDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.").optional(),
   activeClients: count0,
@@ -378,7 +420,6 @@ export const migrationIntake = z.object({
   contactPhone: z.string().trim().max(40).optional(),
   notes: z.string().trim().max(4000).optional(),
   consent: z.boolean().optional(),
-  submit: z.boolean().default(false),
 });
 export const migrationUpload = z.object({ filename: z.string().trim().min(1).max(200), data: z.string().min(1, "The file is empty.").max(28_000_000, "Files can be up to 20 MB. Split bigger exports by date or export as CSV.") });
 export const migrationFileUpdate = z.object({ kind: z.enum(MIGRATION_KINDS).optional(), mapping: z.record(z.string(), z.number().int().min(0).max(500).nullable()).optional(), headerRow: z.number().int().min(0).max(50).optional() });

@@ -179,6 +179,16 @@ export const organizations = pgTable("organizations", {
   noShowFeeEnabled: boolean("no_show_fee_enabled").notNull().default(false),
   noShowFeeCents: integer("no_show_fee_cents").notNull().default(0),
   // Waivers
+  /** Business details from the welcome form (for invoices, receipts and the studio's profile). */
+  legalName: text("legal_name"),
+  /** Singapore Unique Entity Number, or the business registration number elsewhere. */
+  uen: text("uen"),
+  /** Set when GST-registered: shown on invoices and receipts. */
+  gstNumber: text("gst_number"),
+  address: text("address"),
+  phone: text("phone"),
+  website: text("website"),
+  instagram: text("instagram"),
   waiverRequired: boolean("waiver_required").notNull().default(true),
   /** The studio's own wording. Null = a short standard waiver is shown until the studio adds theirs. */
   waiverText: text("waiver_text"),
@@ -2092,14 +2102,12 @@ export const migrationJobs = pgTable(
     /** How dates are written in the files: day first, month first, or worked out per column. */
     dateOrder: text("date_order").$type<"dmy" | "mdy" | "ymd">(),
     /**
-     * The moving form is sent before the studio's app is set up: a private link (only its hash is
-     * stored) that works without an account, for 21 days or until the data is checked.
+     * The welcome form (in the studio app, on the owner's first sign-in): when it was first sent,
+     * when updates were last sent, and the answers as last sent (to show what's changed since).
      */
-    formTokenHash: text("form_token_hash"),
-    formExpiresAt: ts("form_expires_at"),
-    formSentAt: ts("form_sent_at"),
-    formOpenedAt: ts("form_opened_at"),
     formSubmittedAt: ts("form_submitted_at"),
+    formUpdatedAt: ts("form_updated_at"),
+    sentIntake: jsonb("sent_intake").$type<Record<string, unknown>>(),
     lastCheck: jsonb("last_check").$type<Record<string, unknown>>(),
     checkedAt: ts("checked_at"),
     importedAt: ts("imported_at"),
@@ -2109,7 +2117,7 @@ export const migrationJobs = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("migration_jobs_org_idx").on(t.orgId, t.createdAt), uniqueIndex("migration_jobs_form_token_uq").on(t.formTokenHash)],
+  (t) => [index("migration_jobs_org_idx").on(t.orgId, t.createdAt)],
 );
 
 /** A file from the old system, parsed into rows. Raw rows are deleted 30 days after the move is verified. */

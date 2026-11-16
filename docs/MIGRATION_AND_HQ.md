@@ -1,6 +1,6 @@
 # Moving data and HQ
 
-How we move a studio's data from its old system, and HQ, our own team's dashboard for onboarding studios, looking after them and fixing problems. Code: `apps/api/src/modules/migration/` and `apps/api/src/modules/platform/`. Preview: `preview/hq-preview.html` (HQ, including the moving form as the studio sees it).
+How we move a studio's data from its old system, and HQ, our own team's dashboard for onboarding studios, looking after them and fixing problems. Code: `apps/api/src/modules/migration/` and `apps/api/src/modules/platform/`. Previews: `preview/hq-preview.html` (HQ) and the welcome page in the studio preview (`#welcome`, or the header's Studio control).
 
 ## The promise
 
@@ -21,14 +21,16 @@ Researched from each system's own help pages (November 2026):
 
 So the tool reads **CSV and TSV** (UTF-8 with or without a byte-order mark, UTF-16, Windows-1252; comma, semicolon, tab or pipe), **Excel .xlsx** (every sheet; real dates), and **"XLS" files that are web pages**. Old binary .xls files are refused with a clear fix (save as .xlsx or .csv) rather than guessed at. Card details never come in a file: memberships move, and clients add a card before their next billing date (or cards move Stripe to Stripe where the old system allows it).
 
-## The moving form (before the studio's app is set up)
+## The welcome page (the owner's first sign-in)
 
-The form comes first, before the studio has an app to sign in to. When we add a studio in HQ we tick **Email the owner the moving form now**; the owner gets a private link (`/moving-form/<token>`, no account needed, 21 days, a new link replaces the old one; `GET/PUT /public/moving-form/:token`, uploads at `POST /public/moving-form/:token/files`). Our team can also fill it in with them on the kick-off call (`PUT /platform/studios/:orgId/migrations/:jobId/intake`), copy the link to send on WhatsApp, or email it again (`POST .../form-link`). The studio app has no moving page.
+When we add a studio in HQ, the owner is invited straight away. Their first sign-in opens the **welcome page** instead of the dashboard: a short introduction (a week of classes dropping into place: the studio moving in) and one form to get to know the studio (`GET/PUT /welcome`, owners and admins):
 
-- Old system, switch date, rough counts (active clients, memberships, class packs; used to reconcile), how the old system writes 03/04/2026, the packages they sell, whether to include long-inactive clients, who we talk to, and their OK to move clients' details.
-- How we get the data: **invite our team as a staff user** (easiest, and they remove us afterwards), **share a temporary password** (encrypted with `SECRETS_KEY`, viewable only by HQ owner and onboarding roles with the view logged, deleted at import or after 7 days), or **upload the exports**. Uploading is allowed with any choice.
-- Sending checks the form is complete and says what's missing in plain words. HQ shows when the link was sent, opened and sent back. After the import, the same link shows the studio a plain summary (clients, packs and classes left, memberships, bookings, credit, rows not moved).
-- The owner's **invite to the app** is separate: by default it waits until the studio is set up and the data is in, then our team sends it from the studio's page (**Invite the owner to the app**, `POST /platform/studios/:orgId/invite-owner`), so the owner arrives to a working studio.
+- **Your business:** studio name, registered business name, UEN (checked against ACRA's formats: 8 digits and a letter, 9 digits and a letter, or T/S/R…), GST registration number if registered, registered address, phone, website, Instagram.
+- **Locations and rooms, what you teach, what you sell, your team.**
+- **Moving your data:** nothing to move (a new studio), or the old system, switch date, rough counts (used to reconcile), how dates are written, how we get the data (add our team as a staff user, a temporary password kept encrypted and deleted after the move, or upload the exports at `POST /welcome/files`) and their OK.
+- **Who we talk to.**
+
+Answers save as you go. **Send to our team** (`POST /welcome/send`) checks the form is complete (saying what's missing in plain words), then fills the studio in from it: business details (shown on invoices and receipts, and editable later under Setup, Studio details), locations (the first one we made is renamed rather than duplicated), rooms, class types, packages (which the data move then matches clients' packs to by name) and the team (added without invites; they're invited when the studio opens). **Send updates** (`POST /welcome/update`) does the same again after a change and tells our team which sections changed; matching is by name, so nothing is duplicated or removed. The welcome page then shows the move's progress. Verifying the move in HQ opens the studio: the welcome page gives way to the dashboard (a studio with nothing to move is opened by our team in HQ). Our team can also fill the form in with them on a call (`PUT /platform/studios/:orgId/migrations/:jobId/intake`).
 
 ## Our side (HQ)
 

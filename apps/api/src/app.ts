@@ -39,7 +39,7 @@ import { featureGate, featureRoutes } from "./modules/settings/features.js";
 import { setupRoutes } from "./modules/settings/setup.js";
 import { planRoutes } from "./modules/settings/plans.js";
 import { platformRoutes, studioSupportAccessRoutes } from "./modules/platform/routes.js";
-import { movingFormRoutes } from "./modules/migration/routes.js";
+import { welcomeRoutes } from "./modules/welcome/routes.js";
 import { settingsRoutes } from "./modules/settings/routes.js";
 import { substituteRoutes } from "./modules/substitutes/routes.js";
 import { waitlistRoutes } from "./modules/waitlist/routes.js";
@@ -106,7 +106,7 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(setupRoutes);
       await v1.register(planRoutes);
       await v1.register(studioSupportAccessRoutes);
-      await v1.register(movingFormRoutes);
+      await v1.register(welcomeRoutes);
       await v1.register(platformRoutes);
       await v1.register(catalogRoutes);
       await v1.register(sessionRoutes);

@@ -18,14 +18,13 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { schemas } from "@studio/shared";
 import { z } from "zod";
-import { memberships, migrationFiles, migrationJobs, organizations, users } from "../../db/schema.js";
+import { migrationFiles, migrationJobs, organizations } from "../../db/schema.js";
 import type { DbOrTx } from "../../db/client.js";
 import { audit } from "../../lib/audit.js";
 import { badRequest, conflict, notFound } from "../../lib/errors.js";
-import { decryptSecret, encryptSecret, randomToken, sha256 as hashToken } from "../../lib/secrets.js";
+import { decryptSecret, encryptSecret } from "../../lib/secrets.js";
 import { inTx, withFlags } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
-import { notify } from "../notifications/outbox.js";
 import { requirePlatform } from "../platform/routes.js";
 import { migrate, runMigration, undoMigration, verificationSample, type Report } from "./engine.js";
 import { EXPORT_TIPS, FIELD_LABELS, FIELDS, KIND_LABELS, SOURCE_PLATFORMS, detectKind, findHeaderRow, mapHeaders, type Kind } from "./fields.js";
@@ -56,21 +55,6 @@ async function loadJob(db: DbOrTx, orgId: string, jobId: string) {
   const [j] = await db.select().from(migrationJobs).where(and(eq(migrationJobs.id, jobId), eq(migrationJobs.orgId, orgId)));
   if (!j) throw notFound("move");
   return j;
-}
-
-/** What the studio sees: their answers (never the password), the files, and where it's up to. */
-async function studioView(db: DbOrTx, job: Job | null) {
-  const files = job ? await db.select({ id: migrationFiles.id, filename: migrationFiles.filename, sheet: migrationFiles.sheet, kind: migrationFiles.kind, rows: migrationFiles.rowCount, at: migrationFiles.createdAt }).from(migrationFiles).where(eq(migrationFiles.jobId, job.id)).orderBy(migrationFiles.createdAt) : [];
-  const intake = { ...(job?.intake ?? {}) } as Record<string, unknown>;
-  const platform = (intake.oldPlatform as string | undefined) ?? job?.sourcePlatform ?? null;
-  const step = job ? MIGRATION_STEPS.findIndex((s) => s.status === job.status) : -1;
-  return {
-    job: job ? { id: job.id, status: job.status, step: step + 1, steps: MIGRATION_STEPS.map((s) => s.label), passwordSaved: !!job.accessSecretEnc, importedAt: job.importedAt, verifiedAt: job.verifiedAt, summary: job.status === "imported" || job.status === "verified" ? summarise(job.lastCheck as unknown as Report | null) : null } : null,
-    intake,
-    files: files.map((f) => ({ ...f, kindLabel: KIND_LABELS[f.kind as Kind] ?? f.kind })),
-    platforms: SOURCE_PLATFORMS,
-    exportTips: EXPORT_TIPS[platform ?? "Other"] ?? EXPORT_TIPS.Other,
-  };
 }
 
 /** A short, plain summary of a report for the studio. */
@@ -126,107 +110,27 @@ function fileView(f: typeof migrationFiles.$inferSelect) {
   };
 }
 
-// --- The moving form ---------------------------------------------------------------------------------
-// Filled in before the studio's app is set up: by the owner through a private link we send them
-// (no account needed), or by our team on a call. The studio app itself has no moving page.
+// --- The welcome form's answers ---------------------------------------------------------------------
+// The studio fills the form in the app on the owner's first sign-in (modules/welcome); our team can
+// also fill it in with them on a call. Both save here; sending (and applying) is in modules/welcome.
 
-const FORM_DAYS = 21;
-const tokenParam = z.object({ token: z.string().regex(/^[a-f0-9]{48}$/) });
 type IntakeInput = z.infer<typeof schemas.migrationIntake>;
 
-/** Save the form's answers; with `submit`, check it's complete first. `by` is our staff member, or null for the studio's link. */
-export async function saveIntake(tx: DbOrTx, job: Job, input: IntakeInput, by: string | null) {
-  if (!["intake", "submitted", "files"].includes(job.status)) throw conflict("migration_started", "We've already started moving the data, so the form can't be changed. Message us with anything new.");
-  const { accessPassword, submit, ...answers } = input;
+/** Save answers (a draft: nothing is applied). `by` is who saved them, for the audit log. */
+export async function saveIntake(tx: DbOrTx, job: Job, input: IntakeInput) {
+  if (!["intake", "submitted", "files", "checked", "imported", "verified"].includes(job.status)) throw conflict("migration_started", "This move was undone. Start a new one.");
+  const { accessPassword, ...answers } = input;
   const intake = { ...(job.intake as Record<string, unknown>), ...Object.fromEntries(Object.entries(answers).filter(([, v]) => v !== undefined)) };
-  const set: Partial<typeof migrationJobs.$inferInsert> = { intake, sourcePlatform: (intake.oldPlatform as string) ?? job.sourcePlatform, dateOrder: intake.dateFormat && intake.dateFormat !== "unsure" ? (intake.dateFormat as "dmy" | "mdy" | "ymd") : job.dateOrder };
+  const set: Partial<typeof migrationJobs.$inferInsert> = { intake, sourcePlatform: (intake.oldPlatform as string) || job.sourcePlatform, dateOrder: intake.dateFormat && intake.dateFormat !== "unsure" ? (intake.dateFormat as "dmy" | "mdy" | "ymd") : job.dateOrder };
   if (accessPassword) {
     set.accessSecretEnc = encryptSecret(accessPassword);
     set.accessDeleteAfter = new Date(Date.now() + 7 * DAY);
   }
   if (intake.access && intake.access !== "password") { set.accessSecretEnc = null; set.accessDeleteAfter = null; }
-  if (submit) {
-    const missing = [
-      !intake.oldPlatform && "which system you use now",
-      !intake.switchDate && "when you'd like to switch",
-      !intake.access && "how we get your data",
-      intake.access === "password" && !intake.accessLogin && "the login to use",
-      intake.access === "password" && !accessPassword && !job.accessSecretEnc && "the temporary password",
-      intake.consent !== true && "your OK for us to move your clients' details",
-    ].filter(Boolean);
-    if (missing.length) throw badRequest("form_incomplete", `Before sending, add ${missing.join(", ")}.`);
-    if (job.status === "intake") set.status = "submitted";
-    set.formSubmittedAt = new Date();
-  }
   const [updated] = await tx.update(migrationJobs).set(set).where(eq(migrationJobs.id, job.id)).returning();
-  if (submit) await audit(tx, { orgId: job.orgId, actorId: by, action: "migration.form_sent", entityType: "migration_job", entityId: job.id, details: { by: by ? "hq" : "studio", oldPlatform: intake.oldPlatform, access: intake.access, switchDate: intake.switchDate } });
   return updated!;
 }
-
-/** A fresh private link to the form (earlier links stop working), emailed to the studio's owner. */
-export async function sendMovingForm(tx: DbOrTx, appUrl: string, job: Job, by: string) {
-  const token = randomToken(24);
-  const expiresAt = new Date(Date.now() + FORM_DAYS * DAY);
-  await tx.update(migrationJobs).set({ formTokenHash: hashToken(token), formExpiresAt: expiresAt, formSentAt: new Date() }).where(eq(migrationJobs.id, job.id));
-  const [org] = await tx.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, job.orgId));
-  const [owner] = await tx.select({ id: users.id, firstName: users.firstName }).from(memberships).innerJoin(users, eq(users.id, memberships.userId)).where(and(eq(memberships.orgId, job.orgId), eq(memberships.role, "owner"))).limit(1);
-  const url = `${appUrl}/moving-form/${token}`;
-  if (owner) await notify(tx, { orgId: job.orgId, userIds: [owner.id], template: "migration.form", channels: ["email"], data: { firstName: owner.firstName, studioName: org!.name, link: url, days: FORM_DAYS } });
-  await audit(tx, { orgId: job.orgId, actorId: by, action: "migration.form_link_sent", entityType: "migration_job", entityId: job.id, details: { by: "hq", to: owner ? "owner" : "nobody yet (copy the link)" } });
-  return { url, expiresAt, emailedOwner: !!owner };
-}
-
-/** What the form page shows: the answers so far (never the password), the files and where it's up to. */
-async function formView(db: DbOrTx, job: Job) {
-  const [org] = await db.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, job.orgId));
-  const files = await db.select({ id: migrationFiles.id, filename: migrationFiles.filename, sheet: migrationFiles.sheet, kind: migrationFiles.kind, rows: migrationFiles.rowCount, at: migrationFiles.createdAt }).from(migrationFiles).where(eq(migrationFiles.jobId, job.id)).orderBy(migrationFiles.createdAt);
-  const intake = { ...(job.intake as Record<string, unknown>) };
-  const platform = (intake.oldPlatform as string | undefined) ?? job.sourcePlatform ?? null;
-  const step = MIGRATION_STEPS.findIndex((x) => x.status === job.status);
-  return {
-    studio: org!.name,
-    job: { status: job.status, step: step + 1, steps: MIGRATION_STEPS.map((x) => x.label), sent: !!job.formSubmittedAt, passwordSaved: !!job.accessSecretEnc, canEdit: ["intake", "submitted", "files"].includes(job.status), summary: job.status === "imported" || job.status === "verified" ? summarise(job.lastCheck as unknown as Report | null) : null },
-    intake,
-    files: files.map((f) => ({ ...f, kindLabel: KIND_LABELS[f.kind as Kind] ?? f.kind })),
-    platforms: SOURCE_PLATFORMS,
-    exportTips: EXPORT_TIPS[platform ?? "Other"] ?? EXPORT_TIPS.Other,
-  };
-}
-
-/** The private form page's API: works with the emailed link only, no sign-in. */
-export async function movingFormRoutes(app: FastifyInstance) {
-  const { db } = app;
-  const pub = (max: number) => ({ config: { public: true, rateLimit: { max, timeWindow: "1 minute" } } });
-  async function byToken(tx: DbOrTx, token: string) {
-    const [j] = await tx.select().from(migrationJobs).where(eq(migrationJobs.formTokenHash, hashToken(token)));
-    if (!j || j.status === "undone") throw notFound("form");
-    if (j.formExpiresAt && j.formExpiresAt <= new Date() && !["imported", "verified"].includes(j.status)) throw conflict("form_expired", "This link has expired. Ask us for a new one.");
-    return j;
-  }
-  app.get("/public/moving-form/:token", pub(30), async (req) => {
-    const { token } = parse(tokenParam, req.params);
-    const j = await byToken(db, token);
-    if (!j.formOpenedAt) await db.update(migrationJobs).set({ formOpenedAt: new Date() }).where(eq(migrationJobs.id, j.id));
-    return formView(db, j);
-  });
-  app.put("/public/moving-form/:token", pub(30), async (req) => {
-    const { token } = parse(tokenParam, req.params);
-    const input = parse(schemas.migrationIntake, req.body ?? {});
-    return inTx(app, async (tx) => formView(tx, await saveIntake(tx, await byToken(tx, token), input, null)));
-  });
-  app.post("/public/moving-form/:token/files", { ...pub(20), bodyLimit: UPLOAD_LIMIT }, async (req, reply) => {
-    const { token } = parse(tokenParam, req.params);
-    const input = parse(schemas.migrationUpload, req.body);
-    const out = await inTx(app, async (tx) => {
-      const j = await byToken(tx, token);
-      if (!["intake", "submitted", "files", "checked"].includes(j.status)) throw conflict("migration_started", "Your data has already been moved. Message us if there's more to add.");
-      const files = await addFiles(tx, j, input, null);
-      return { files: files.map((f) => ({ id: f.id, filename: f.filename, sheet: f.sheet, kind: f.kind, kindLabel: KIND_LABELS[f.kind as Kind], rows: f.rowCount })) };
-    });
-    reply.code(201);
-    return out;
-  });
-}
+export { addFiles, summarise };
 
 // --- Our side (HQ) -------------------------------------------------------------------------------------
 
@@ -275,7 +179,7 @@ export async function platformMigrationRoutes(app: FastifyInstance) {
     const { accessPassword: _p, ...intake } = j.intake as Record<string, unknown>;
     return {
       job: { id: j.id, orgId: j.orgId, status: j.status, sourcePlatform: j.sourcePlatform, dateOrder: j.dateOrder, passwordSaved: !!j.accessSecretEnc, passwordDeletedBy: j.accessDeleteAfter, checkedAt: j.checkedAt, importedAt: j.importedAt, verifiedAt: j.verifiedAt, undoneAt: j.undoneAt },
-      form: { sentAt: j.formSentAt, openedAt: j.formOpenedAt, submittedAt: j.formSubmittedAt, linkExpiresAt: j.formExpiresAt },
+      form: { sentAt: j.formSubmittedAt, updatedAt: j.formUpdatedAt },
       intake,
       steps: MIGRATION_STEPS,
       exportTips: EXPORT_TIPS[j.sourcePlatform ?? "Other"] ?? EXPORT_TIPS.Other,
@@ -294,25 +198,14 @@ export async function platformMigrationRoutes(app: FastifyInstance) {
     return { id: u!.id, sourcePlatform: u!.sourcePlatform, dateOrder: u!.dateOrder, status: u!.status };
   });
 
-  /** Send (or re-send) the studio's owner a private link to the moving form. Returns the link to copy too. */
-  app.post("/platform/studios/:orgId/migrations/:jobId/form-link", hq, async (req) => {
-    requirePlatform(req, "migrations");
-    const { orgId, jobId } = job(req);
-    return inTx(app, async (tx) => {
-      const j = await loadJob(tx, orgId, jobId);
-      // After the import, the same page shows the studio a summary of what moved.
-      if (j.status === "undone") throw conflict("migration_undone", "This move was undone. Start a new one.");
-      return sendMovingForm(tx, app.config.PUBLIC_APP_URL.replace(/\/$/, ""), j, req.platform.userId);
-    });
-  });
-
   /** Fill in (or correct) the moving form on the studio's behalf, for example on the kick-off call. */
   app.put("/platform/studios/:orgId/migrations/:jobId/intake", hq, async (req) => {
     requirePlatform(req, "migrations");
     const { orgId, jobId } = job(req);
     const input = parse(schemas.migrationIntake, req.body ?? {});
     return inTx(app, async (tx) => {
-      const u = await saveIntake(tx, await loadJob(tx, orgId, jobId), input, req.platform.userId);
+      const u = await saveIntake(tx, await loadJob(tx, orgId, jobId), input);
+      await audit(tx, { orgId, actorId: req.platform.userId, action: "migration.answers_saved", entityType: "migration_job", entityId: u.id, details: { by: "hq" } });
       const { accessPassword: _p, ...intake } = u.intake as Record<string, unknown>;
       return { id: u.id, status: u.status, intake, passwordSaved: !!u.accessSecretEnc };
     });
@@ -435,8 +328,14 @@ export async function platformMigrationRoutes(app: FastifyInstance) {
       const j = await loadJob(tx, orgId, jobId);
       if (j.status !== "imported") throw conflict("not_imported", j.status === "verified" ? "This move is already verified." : "Import first, then verify.");
       await tx.update(migrationJobs).set({ status: "verified", verifiedAt: new Date(), accessSecretEnc: null }).where(eq(migrationJobs.id, j.id));
+      // The move is done: the studio's dashboard replaces the welcome page.
+      const [org] = await tx.select({ lifecycle: organizations.lifecycle }).from(organizations).where(eq(organizations.id, orgId));
+      if (org?.lifecycle === "onboarding") {
+        await tx.update(organizations).set({ lifecycle: "live" }).where(eq(organizations.id, orgId));
+        await audit(tx, { orgId, actorId: req.platform.userId, action: "studio.lifecycle", entityType: "organization", entityId: orgId, details: { from: "onboarding", to: "live", by: "hq", reason: "data move verified" } });
+      }
       await audit(tx, { orgId, actorId: req.platform.userId, action: "migration.verified", entityType: "migration_job", entityId: j.id, details: { by: "hq", checked: input.checked, note: input.note } });
-      return { status: "verified", rowsDeletedAfter: new Date(Date.now() + 30 * DAY) };
+      return { status: "verified", studioLive: org?.lifecycle === "onboarding" || org?.lifecycle === "live", rowsDeletedAfter: new Date(Date.now() + 30 * DAY) };
     });
   });
 
