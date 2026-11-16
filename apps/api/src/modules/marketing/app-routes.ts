@@ -58,6 +58,7 @@ import { SOCIAL_ICONS } from "./social-icons.js";
 import { adsOnJoin } from "./ads.js";
 import { applyReferral, describeReferralRules, myReferrals, referralReport } from "./referrals.js";
 import { allClients, matchSegment } from "./segments.js";
+import { assertPlanAllows } from "../settings/plans.js";
 
 const idParam = z.object({ id: schemas.id });
 const tokenParam = z.object({ token: z.string().regex(/^[a-f0-9]{32,80}$/) });
@@ -565,6 +566,7 @@ export async function marketingAppRoutes(app: FastifyInstance) {
   app.patch("/referrals/settings", async (req) => {
     requirePermission(req, "manageMarketing");
     const input = parse(referralSettings, req.body);
+    if (input.referralsEnabled) assertPlanAllows(await getOrg(db, req.auth.orgId), "referrals");
     const [u] = await db.update(organizations).set(input).where(eq(organizations.id, req.auth.orgId)).returning();
     return referralView(u!);
   });

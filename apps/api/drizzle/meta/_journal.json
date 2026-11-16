@@ -197,6 +197,13 @@
       "when": 1794800955878,
       "tag": "0027_studio_type_setup",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794807637478,
+      "tag": "0028_plans",
+      "breakpoints": true
     }
   ]
 }

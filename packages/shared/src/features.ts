@@ -90,3 +90,74 @@ export function presetRuleText(key: PresetRuleKey, value: unknown): string {
     default: return value ? "On" : "Off";
   }
 }
+
+/**
+ * Plans. Each plan sets which features a studio can switch on, how many locations and admins it
+ * includes, and whether it has its own branded app. Our staff set the plan (after the "help me
+ * choose" questionnaire or a first call); studios can switch off anything their plan includes.
+ * Every plan gets the same done-for-you setup, data move and support.
+ */
+export const PLANS = ["essentials", "growth", "signature"] as const;
+export type Plan = (typeof PLANS)[number];
+
+export interface PlanInfo {
+  label: string;
+  /** Who it's for and what it adds, as shown on the pricing page. */
+  tagline: string;
+  priceCents: number;
+  locationsIncluded: number;
+  /** null: no maximum (extra locations cost extraLocationCents each). */
+  maxLocations: number | null;
+  extraLocationCents: number | null;
+  /** The branded app: included, a flat add-on, or not available. */
+  app: "included" | "add_on" | "not_available";
+  appAddOnCents: number | null;
+  /** Admin accounts (owners count): a number, one per location, or no limit. Instructor and front desk accounts are always unlimited. */
+  adminSeats: number | "per_location" | "unlimited";
+  features: readonly FeatureKey[];
+  /** The rules a new studio on this plan starts with. */
+  studioType: StudioType;
+}
+
+export const PLAN_INFO: Record<Plan, PlanInfo> = {
+  essentials: {
+    label: "Essentials",
+    tagline: "For one independent studio. Everything to run classes, take bookings, pay instructors and get paid.",
+    priceCents: 9900, locationsIncluded: 1, maxLocations: 1, extraLocationCents: null, app: "not_available", appAddOnCents: null, adminSeats: 1,
+    features: ["giftCards", "reviews", "payroll"], studioType: "independent",
+  },
+  growth: {
+    label: "Growth",
+    tagline: "For studios with a team, up to 3 locations. Adds marketing, WhatsApp and the shop.",
+    priceCents: 29900, locationsIncluded: 3, maxLocations: 3, extraLocationCents: null, app: "add_on", appAddOnCents: 10000, adminSeats: "per_location",
+    features: ["giftCards", "reviews", "payroll", "marketing", "loyalty", "referrals", "shop", "inbox"], studioType: "boutique",
+  },
+  signature: {
+    label: "Signature",
+    tagline: "For brands with up to 5 locations. Your own app included, plus AI that does the work for you.",
+    priceCents: 59900, locationsIncluded: 5, maxLocations: null, extraLocationCents: 15000, app: "included", appAddOnCents: null, adminSeats: "unlimited",
+    features: FEATURES.map((f) => f.key), studioType: "multi",
+  },
+};
+
+export const planIncludes = (plan: Plan, key: FeatureKey) => PLAN_INFO[plan].features.includes(key);
+/** The first plan that includes a feature, for "Included in Growth" prompts. */
+export const planWith = (key: FeatureKey): Plan => PLANS.find((p) => planIncludes(p, key)) ?? "signature";
+/** AI workflows (agents, AI writing, AI recaps) come with the Agents feature. Ask (chat) is on every plan. */
+export const planHasAiWorkflows = (plan: Plan) => planIncludes(plan, "agents");
+export const planHasApp = (plan: Plan, brandedApp: boolean) => PLAN_INFO[plan].app === "included" || (PLAN_INFO[plan].app === "add_on" && brandedApp);
+
+/** Admin seats for a plan with this many locations; null means no limit. */
+export function planAdminSeats(plan: Plan, locations: number): number | null {
+  const s = PLAN_INFO[plan].adminSeats;
+  return s === "unlimited" ? null : s === "per_location" ? Math.max(1, locations) : s;
+}
+
+/** What a studio pays each month (USD cents), with the parts. */
+export function planPrice(plan: Plan, locations: number, brandedApp: boolean) {
+  const p = PLAN_INFO[plan];
+  const extra = p.extraLocationCents ? Math.max(0, locations - p.locationsIncluded) : 0;
+  const extraCents = extra * (p.extraLocationCents ?? 0);
+  const appCents = p.app === "add_on" && brandedApp ? p.appAddOnCents ?? 0 : 0;
+  return { baseCents: p.priceCents, extraLocations: extra, extraCents, appCents, totalCents: p.priceCents + extraCents + appCents };
+}

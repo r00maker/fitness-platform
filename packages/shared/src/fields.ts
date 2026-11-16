@@ -218,6 +218,8 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   delete_template: "Delete this template?",
   feature_off: "Switch this off?",
   setup_changes: "Use these settings?",
+  plan_changes: "Change this studio's plan?",
+  extra_location_cost: "This adds to the monthly price",
   attendance_locked: "Attendance is locked",
   fee_not_final: "Attendance can still change",
   closed_day: "The studio is closed that day",

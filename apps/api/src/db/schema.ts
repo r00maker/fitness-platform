@@ -236,6 +236,10 @@ export const organizations = pgTable("organizations", {
   /** Setup by studio type: the kind of studio chosen (independent, boutique, multi) and when. */
   studioType: text("studio_type").$type<"independent" | "boutique" | "multi">(),
   setupDoneAt: ts("setup_done_at"),
+  /** The plan our staff set (see PLAN_INFO in @studio/shared). Studios from before plans keep everything (signature). */
+  plan: text("plan").$type<"essentials" | "growth" | "signature">().notNull().default("signature"),
+  /** Growth only: the branded app add-on. Signature always includes the app. */
+  brandedApp: boolean("branded_app").notNull().default(false),
   referralQualify: text("referral_qualify").notNull().default("classes_attended"),
   referralQualifyValue: integer("referral_qualify_value").notNull().default(3),
   referralQualifyWithinDays: integer("referral_qualify_within_days").notNull().default(60),

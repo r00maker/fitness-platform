@@ -20,6 +20,8 @@ import { randomToken, sha256 } from "../../lib/secrets.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { notify } from "../notifications/outbox.js";
+import { checkAdminSeats } from "../settings/plans.js";
+import { getOrg } from "../sessions/context.js";
 
 const INVITE_DAYS = 7;
 const STAFF_ROLES = ["owner", "admin", "front_desk", "instructor"] as const;
@@ -79,6 +81,7 @@ export async function staffRoutes(app: FastifyInstance) {
       if (input.role === "admin" && req.auth.role !== "owner") throw forbidden("Only the owner can add admins.");
       const email = input.email.trim().toLowerCase();
       const out = await inTx(app, async (tx) => {
+        if (input.role === "admin") await checkAdminSeats(tx, await getOrg(tx, req.auth.orgId));
         let [u] = await tx.select().from(users).where(sql`lower(${users.email}) = ${email}`);
         if (u) {
           const [m] = await tx.select().from(memberships).where(and(eq(memberships.orgId, req.auth.orgId), eq(memberships.userId, u.id)));
@@ -118,6 +121,7 @@ export async function staffRoutes(app: FastifyInstance) {
         if (m.role === "owner") throw forbidden("The owner's role can't be changed here.");
         if (userId === req.auth.userId) throw badRequest("own_role", "You can't change your own role. Ask the owner.");
         if ((role === "admin" || m.role === "admin") && req.auth.role !== "owner") throw forbidden("Only the owner can make someone an admin or change an admin's role.");
+        if (role === "admin" && m.role !== "admin") await checkAdminSeats(tx, await getOrg(tx, req.auth.orgId));
         await tx.update(memberships).set({ role }).where(eq(memberships.id, m.id));
         await audit(tx, { orgId: req.auth.orgId, actorId: req.auth.userId, action: "staff.role_changed", entityType: "user", entityId: userId, details: { from: m.role, to: role } });
         return { id: userId, role, roleLabel: roleLabel(role) };
