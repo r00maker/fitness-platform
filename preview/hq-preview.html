@@ -1,0 +1,463 @@
+<title>Studio HQ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@500;600&display=swap">
+<style>
+/* Layout: an operations console. Fixed rail of sections on the left, one working surface on the right; collapses to a top bar on phones. */
+:root {
+  --bg: #f3f5f8; --panel: #ffffff; --sunk: #eaeef4; --line: #d9dfe8; --ink: #17202e; --muted: #5b6678;
+  --accent: #2448c9; --accent-ink: #ffffff; --accent-soft: #e4eafc;
+  --good: #17784a; --good-soft: #dcf2e6; --warn: #9a5a00; --warn-soft: #fbedd2; --bad: #b42335; --bad-soft: #fbe0e3;
+  --display: "Sora", "IBM Plex Sans", system-ui, sans-serif; --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10151e; --panel: #171e2a; --sunk: #1d2533; --line: #2b3546; --ink: #e6ebf3; --muted: #9aa6b8;
+  --accent: #7d9bff; --accent-ink: #0d1424; --accent-soft: #22305a;
+  --good: #5fd39a; --good-soft: #163527; --warn: #f0b75a; --warn-soft: #3a2c12; --bad: #ff8a98; --bad-soft: #3d1b22; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #10151e; --panel: #171e2a; --sunk: #1d2533; --line: #2b3546; --ink: #e6ebf3; --muted: #9aa6b8;
+  --accent: #7d9bff; --accent-ink: #0d1424; --accent-soft: #22305a;
+  --good: #5fd39a; --good-soft: #163527; --warn: #f0b75a; --warn-soft: #3a2c12; --bad: #ff8a98; --bad-soft: #3d1b22; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--body); }
+.app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+.rail { background: var(--panel); border-right: 1px solid var(--line); padding-block: 18px; padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: 14px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
+.brand { font: 600 17px/1.2 var(--display); padding: 4px 10px 14px; display: flex; gap: 8px; align-items: center }
+.brand i { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font: 600 13px var(--display); font-style: normal }
+.rail a { color: var(--ink); text-decoration: none; padding: 8px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px }
+.rail a:hover { background: var(--sunk) }
+.rail a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600 }
+.rail .n { font: 500 12px var(--mono); background: var(--sunk); border-radius: 10px; padding: 0 7px; color: var(--muted) }
+.rail .who { margin-top: auto; font-size: 12.5px; color: var(--muted); padding: 10px; border-top: 1px solid var(--line) }
+.rail select { font: inherit; margin-top: 4px; width: 100%; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink) }
+main { padding-block: 22px 60px; padding-left: max(16px, 28px); padding-right: max(16px, env(safe-area-inset-right, 0px), 28px); min-width: 0; display: flex; flex-direction: column; gap: 18px; max-width: 1240px }
+h1 { font: 600 24px/1.2 var(--display); margin: 0; text-wrap: balance }
+h2 { font: 600 15px/1.3 var(--display); margin: 0 }
+h3 { font: 600 13px/1.3 var(--body); margin: 0; text-transform: uppercase; letter-spacing: .06em; color: var(--muted) }
+p { margin: 0 }
+.sub { color: var(--muted); max-width: 70ch }
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap }
+.head > div { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
+.grid2 { display: grid; gap: 14px; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) }
+.tiles { display: grid; gap: 1px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden }
+.tile { background: var(--panel); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px }
+.tile b { font: 600 24px/1.2 var(--display); font-variant-numeric: tabular-nums }
+.tile span { color: var(--muted); font-size: 12.5px }
+.btn { font: 500 13.5px var(--body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 7px 12px; cursor: pointer; white-space: nowrap }
+.btn:hover { background: var(--sunk) }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
+.btn.primary:hover { filter: brightness(1.08) }
+.btn.danger { color: var(--bad) }
+.btn:disabled { opacity: .5; cursor: not-allowed }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.between { justify-content: space-between }
+.tblwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r) }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top }
+thead th { font: 600 11.5px var(--body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--sunk); white-space: nowrap }
+tbody tr:last-child td { border-bottom: 0 }
+tbody tr.click { cursor: pointer }
+tbody tr.click:hover td { background: var(--sunk) }
+.num { text-align: right }
+.mono { font-family: var(--mono); font-size: 12.5px }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 1px 8px; border-radius: 10px; white-space: nowrap; background: var(--sunk); color: var(--muted) }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor }
+.pill.good { background: var(--good-soft); color: var(--good) } .pill.watch { background: var(--warn-soft); color: var(--warn) } .pill.problem { background: var(--bad-soft); color: var(--bad) }
+.pill.plain::before { display: none }
+.sig { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none }
+.sig li { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px }
+.sig li::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 2px; background: var(--warn); transform: translateY(-1px) }
+.sig li.problem::before { background: var(--bad) }
+.muted { color: var(--muted) }
+.small { font-size: 12.5px }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; min-width: 0 }
+label.f span.h { font-weight: 400; color: var(--muted); font-size: 12px }
+input, select, textarea { font: 14px var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%; min-width: 0 }
+textarea { resize: vertical; min-height: 64px }
+.form { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) }
+.form .wide { grid-column: 1 / -1 }
+.checks { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none }
+.checks li { display: flex; gap: 8px; align-items: baseline }
+.checks li b { width: 16px; flex: none; color: var(--good) }
+.checks li.todo b { color: var(--muted) }
+.steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; counter-reset: s }
+.steps li { border-top: 3px solid var(--line); padding-top: 6px; font-size: 12.5px; color: var(--muted); counter-increment: s }
+.steps li::before { content: counter(s) ". "; font-family: var(--mono) }
+.steps li.done { border-color: var(--good); color: var(--ink) }
+.steps li.now { border-color: var(--accent); color: var(--ink); font-weight: 600 }
+.bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--sunk) }
+.bar i { display: block; height: 100% }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px }
+.legend span { display: inline-flex; gap: 6px; align-items: center }
+.legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block }
+.issue { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px }
+.issue:last-child { border-bottom: 0 }
+.sev { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 4px }
+.sev.blocking { background: var(--bad-soft); color: var(--bad) } .sev.warning { background: var(--warn-soft); color: var(--warn) } .sev.info { background: var(--sunk); color: var(--muted) }
+.callout { border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); background: var(--sunk) }
+.callout.warn { background: var(--warn-soft); border-color: transparent }
+.callout.good { background: var(--good-soft); border-color: transparent }
+.callout.bad { background: var(--bad-soft); border-color: transparent }
+.cmp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px }
+.cmp dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; font-size: 13px }
+.cmp dt { color: var(--muted) } .cmp dd { margin: 0; overflow-wrap: anywhere }
+.chat { display: flex; flex-direction: column; gap: 12px; max-height: 60vh; overflow-y: auto; padding-right: 4px }
+.msg { max-width: 78ch; padding: 10px 13px; border-radius: 10px; display: flex; flex-direction: column; gap: 8px; line-height: 1.55 }
+.msg.me { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 3px }
+.msg.ai { align-self: flex-start; background: var(--sunk); border-bottom-left-radius: 3px }
+.msg ol, .msg ul { margin: 0; padding-left: 20px }
+.looked { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 12px; color: var(--muted) }
+.looked code { font: 11.5px var(--mono); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px }
+.draft { border-left: 3px solid var(--accent); padding: 6px 10px; background: var(--panel); border-radius: 4px; font-size: 13.5px }
+.suggest { display: flex; flex-wrap: wrap; gap: 6px }
+.toast { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 8px; font-size: 13.5px; max-width: min(420px, calc(100vw - 32px)); z-index: 20 }
+.sample { font: 500 11px var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--warn); background: var(--warn-soft); border-radius: 4px; padding: 2px 6px }
+.timer { font: 500 13px var(--mono); color: var(--good) }
+@media (max-width: 820px) {
+  .app { grid-template-columns: minmax(0, 1fr) }
+  .rail { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; border-right: 0; border-bottom: 1px solid var(--line); padding-block: 10px; padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)) }
+  .brand { padding: 0 8px 0 0; width: 100% }
+  .rail a { padding: 6px 9px }
+  .rail .who { margin: 0; border: 0; padding: 4px 0 0; width: 100% }
+  main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+  .grid2, .cmp { grid-template-columns: minmax(0, 1fr) }
+  .steps { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
+</style>
+
+<div class="app">
+  <nav class="rail" aria-label="HQ">
+    <div class="brand"><i>HQ</i> Studio HQ <span class="sample">Sample data</span></div>
+    <a href="#overview" data-nav="overview">Overview</a>
+    <a href="#studios" data-nav="studios">Studios <span class="n" id="nStudios"></span></a>
+    <a href="#new-studio" data-nav="new-studio">Add a studio</a>
+    <a href="#moves" data-nav="moves">Moving data <span class="n" id="nMoves"></span></a>
+    <a href="#assistant" data-nav="assistant">Assistant</a>
+    <div class="who"><label for="asRole">Signed in as Hana, our team</label>
+      <select id="asRole"><option value="owner">HQ owner</option><option value="onboarding">Onboarding</option><option value="support">Support</option></select></div>
+  </nav>
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const usd = (c) => `USD ${Math.round(c / 100).toLocaleString("en")}`;
+  const PLANS = {
+    essentials: { label: "Essentials", price: 9900, incl: 1, max: 1, extra: 0, app: "no", seats: "1 admin" },
+    growth: { label: "Growth", price: 29900, incl: 3, max: 3, extra: 0, app: 10000, seats: "1 admin per location" },
+    signature: { label: "Signature", price: 59900, incl: 5, max: null, extra: 15000, app: "included", seats: "Unlimited admins" },
+  };
+  const price = (s) => { const p = PLANS[s.plan]; return p.price + Math.max(0, s.locations - p.incl) * p.extra + (s.plan === "growth" && s.app ? p.app : 0); };
+  const CAN = { owner: ["manage", "moves", "staff"], onboarding: ["manage", "moves"], support: [] };
+  const state = { role: "owner", studio: "core-flow", access: {}, chat: [], moveStep: null };
+  const can = (w) => CAN[state.role].includes(w);
+
+  // --- Sample studios -------------------------------------------------------------------
+  const STUDIOS = [
+    { id: "core-flow", name: "Core & Flow", plan: "growth", app: true, lifecycle: "onboarding", locations: 2, clients: 0, health: "watch", signals: [["watch", "Setup has stalled for 14 days (5 of 8 done)"]], setup: 5, since: "2 Nov 2026", last: "today, 10:42", type: "Boutique studio", team: [["Mei Tan", "owner"], ["Arif Rahman", "admin"]], notes: [["call", "Kick-off call: moving from Momence on 1 Dec. 2 locations, ~420 active clients.", "Hana", "3 Nov"]], move: "files" },
+    { id: "sweat-lab", name: "Sweat Lab", plan: "signature", app: false, lifecycle: "live", locations: 6, clients: 2140, health: "problem", signals: [["problem", "7 messages failed to send in the last 7 days"], ["watch", "2 memberships on hold because a card payment failed"]], setup: 8, since: "14 Mar 2026", last: "today, 09:15", type: "Several locations", team: [["Daniel Koh", "owner"], ["Priya Nair", "admin"], ["Wen Li", "admin"]], notes: [["issue", "WhatsApp templates rejected once in Sept; resubmitted with plainer wording.", "Sam", "28 Sep"]], move: "verified" },
+    { id: "still-point", name: "Still Point Yoga", plan: "essentials", app: false, lifecycle: "live", locations: 1, clients: 186, health: "good", signals: [], setup: 8, since: "2 Jun 2026", last: "yesterday", type: "Independent studio", team: [["Aisha Lim", "owner"]], notes: [], move: null },
+    { id: "reform-co", name: "Reform Co.", plan: "growth", app: false, lifecycle: "live", locations: 3, clients: 690, health: "problem", signals: [["problem", "No bookings in the last 7 days"]], setup: 8, since: "20 Apr 2026", last: "9 days ago", type: "Boutique studio", team: [["Jonas Ong", "owner"], ["Kai Tan", "admin"], ["Lena Goh", "admin"]], notes: [["note", "Owner mentioned a renovation in November.", "Hana", "30 Oct"]], move: null },
+    { id: "barre-house", name: "Barre House", plan: "signature", app: false, lifecycle: "onboarding", locations: 4, clients: 0, health: "good", signals: [], setup: 2, since: "12 Nov 2026", last: "today, 08:03", type: "Several locations", team: [["Grace Chua", "owner"]], notes: [], move: "submitted" },
+    { id: "ride-club", name: "Ride Club", plan: "growth", app: true, lifecycle: "paused", locations: 1, clients: 310, health: "good", signals: [], setup: 8, since: "8 Jan 2026", last: "31 days ago", type: "Boutique studio", team: [["Marcus Yeo", "owner"]], notes: [["note", "Paused for 2 months while they move premises. Back mid-Dec.", "Hana", "16 Oct"]], move: null },
+  ];
+  const byId = (id) => STUDIOS.find((s) => s.id === id);
+  const SETUP = ["Your plan is set up", "Add your locations and rooms", "Add your class types", "Put your schedule in", "Set up your packages and memberships", "Invite your team", "Write your waiver", "Move your clients from your old system"];
+  const ACTIVITY = [["migration.file_added", "our team (onboarding)", "today, 10:42"], ["staff.invited", "owner", "today, 10:05"], ["package_plan.created", "owner", "yesterday, 16:20"], ["plan.changed", "our team (owner)", "3 Nov, 11:00"], ["studio.created", "our team (onboarding)", "2 Nov, 15:31"]];
+
+  // --- The move for Core & Flow (same engine as the API: check, import, sample, verify) ----
+  const MOVE = {
+    status: "files", source: "Momence", dateOrder: null, switchDate: "1 Dec 2026", access: "Invited our team as a staff user", told: { clients: 420, memberships: 160, packs: 190 },
+    files: [
+      { name: "customers.csv", kind: "Clients", rows: 431, fmt: "CSV", mapped: [["Client ID in the old system", "Customer ID"], ["First name", "First Name"], ["Last name", "Last Name"], ["Email", "Email"], ["Phone", "Phone Number"], ["Client since", "Created At"], ["Agreed to marketing emails", "Marketing Opt-in"], ["Credit balance", "Account Credit"], ["Tags", "Tags"]], unmapped: ["Referral Source", "Instagram"] },
+      { name: "credit-packs.xlsx · Active", kind: "Class packs (classes left)", rows: 204, fmt: "Excel", mapped: [["Client ID in the old system", "Customer ID"], ["Name", "Pack"], ["Classes left", "Credits Left"], ["Total classes", "Credits Total"], ["Expires", "Expiry"]], unmapped: [] },
+      { name: "credit-packs.xlsx · Price list", kind: "Not needed", rows: 9, fmt: "Excel", mapped: [], unmapped: ["Pack", "Price"] },
+      { name: "subscriptions.csv", kind: "Memberships (recurring)", rows: 171, fmt: "CSV", mapped: [["Email", "Customer Email"], ["Name", "Subscription"], ["Price", "Amount"], ["How often it renews", "Billing Interval"], ["Status", "Status"], ["Next billing date", "Next Payment"]], unmapped: ["Stripe ID"] },
+      { name: "upcoming-bookings.csv", kind: "Upcoming bookings", rows: 388, fmt: "CSV", mapped: [["Client ID in the old system", "Customer ID"], ["Class", "Session"], ["Date", "Date"], ["Time", "Start Time"], ["Location", "Location"]], unmapped: ["Instructor"] },
+    ],
+  };
+  const STEPS = ["Form sent", "Data received", "Checked", "Imported", "Sample compared", "Verified"];
+  const stepIndex = () => ({ intake: 0, submitted: 1, files: 1, checked: 2, imported: 3, verified: 5 })[MOVE.status] + (MOVE.sampled && MOVE.status === "imported" ? 1 : 0);
+  function report() {
+    const ambiguous = !MOVE.dateOrder;
+    const blocking = ambiguous ? [["blocking", "customers.csv", "Dates in “Created At” could be day-first or month-first (like 03/04/2025). Set how Momence writes dates.", 1]] : [];
+    const warnings = [
+      ["warning", "customers.csv", "No email, so no account (and a pack or membership won't move): add one and check again", 4],
+      ["warning", "customers.csv", "Phone damaged by Excel (shown in scientific notation); check the original", 3],
+      ["warning", "upcoming-bookings.csv", "No class on our schedule for that date and time: put the schedule in first, then check again", 6],
+      ["warning", "credit-packs.xlsx", "Can't match the pack to a client (add their email or client ID): not moved", 2],
+    ];
+    const info = [
+      ["info", "customers.csv", "Marketing opt-in isn't clearly yes or no; treated as not agreed", 11],
+      ["info", "", "37 packs don't match a package you sell here by name; they move with their own name and terms", 1],
+      ["info", "", "Card details can't be moved in a file: clients add a card before their next billing date", 1],
+    ];
+    return {
+      ready: !ambiguous, issues: [...blocking, ...warnings, ...info],
+      acc: { rows: 1194, created: 1041, linked: 12, merged: 9, skipped: 132 },
+      totals: [["Clients", "417 (405 new, 12 already had an account)"], ["Class packs", "183 moved · 1,206 classes left · 14 expired, 7 used up"], ["Memberships", "158 moved · 13 not active"], ["Upcoming bookings", "376 moved · 6 no matching class · 6 class full"], ["Credit", "USD 2,340 for 61 clients"]],
+      rec: [["Clients", 420, 417, true], ["Active memberships", 160, 158, true], ["Active class packs", 190, 183, false]],
+    };
+  }
+  const SAMPLE = [
+    { old: { "Customer ID": "M-20931", "First Name": "Jia Hui", "Last Name": "Ong", Email: "jiahui.ong@example.com", "Phone Number": "9734 2210", "Account Credit": "SGD 15.00", Pack: "10 Class Pack", "Credits Left": "4", Expiry: "2027-03-31" }, now: { Name: "Jia Hui Ong", Email: "jiahui.ong@example.com", Phone: "+65 9734 2210", Credit: "SGD 15.00", Packs: "10 Class Pack: 4 left, until 31 Mar 2027", "Upcoming bookings": "2" } },
+    { old: { "Customer ID": "M-18820", "First Name": "Rahul", "Last Name": "Menon", Email: "rahul.m@example.com", Subscription: "Unlimited Monthly", Amount: "189.00", "Next Payment": "05/12/2026" }, now: { Name: "Rahul Menon", Email: "rahul.m@example.com", Packs: "Unlimited Monthly: renews 5 Dec 2026", "Agreed to marketing": "No (blank in the file)", "Upcoming bookings": "1" } },
+    { old: { "Customer ID": "M-21007", "First Name": "Siew Ling", "Last Name": "Chan", Email: "SLCHAN@example.com", Tags: "Prenatal", "Marketing Opt-in": "Yes" }, now: { Name: "Siew Ling Chan (already a client at Core & Flow East)", Email: "slchan@example.com", Tags: "Prenatal", "Agreed to marketing": "Yes", Note: "Linked to her existing account; her details were kept" } },
+  ];
+
+  // --- Pages ------------------------------------------------------------------------------
+  const pill = (h) => `<span class="pill ${h}">${{ good: "Good", watch: "Watch", problem: "Needs us" }[h]}</span>`;
+  const life = (l) => `<span class="pill plain">${{ onboarding: "Onboarding", live: "Live", paused: "Paused", cancelled: "Cancelled" }[l]}</span>`;
+  const head = (t, sub, actions = "") => `<div class="head"><div><h1>${t}</h1>${sub ? `<p class="sub">${sub}</p>` : ""}</div>${actions ? `<div class="row">${actions}</div>` : ""}</div>`;
+  const PAGES = {};
+
+  PAGES.overview = () => {
+    const live = STUDIOS.filter((s) => s.lifecycle === "live");
+    const mrr = live.reduce((a, s) => a + price(s), 0);
+    const attention = STUDIOS.filter((s) => s.health !== "good" && s.lifecycle !== "cancelled").sort((a, b) => (a.health === "problem" ? -1 : 1));
+    const onb = STUDIOS.filter((s) => s.lifecycle === "onboarding");
+    return head("Overview", "What needs our team today, and how the studios are doing.") +
+      `<div class="tiles">
+        <div class="tile"><b>${STUDIOS.length}</b><span>Studios: ${live.length} live, ${onb.length} onboarding, ${STUDIOS.filter((s) => s.lifecycle === "paused").length} paused</span></div>
+        <div class="tile"><b>${usd(mrr)}</b><span>A month from live studios at plan prices (billing isn't connected yet)</span></div>
+        <div class="tile"><b>${attention.length}</b><span>Studios that need a look</span></div>
+        <div class="tile"><b>${STUDIOS.filter((s) => s.move && s.move !== "verified").length}</b><span>Data moves in progress</span></div>
+      </div>
+      <div class="grid2">
+        <section class="panel" aria-labelledby="hAtt"><h2 id="hAtt">Needs attention</h2>
+          ${attention.map((s) => `<div class="row between" style="align-items:flex-start;border-top:1px solid var(--line);padding-top:10px"><div style="min-width:0;display:flex;flex-direction:column;gap:6px"><a href="#studio-${s.id}"><b>${esc(s.name)}</b></a><ul class="sig">${s.signals.map(([l, t]) => `<li class="${l}">${esc(t)}</li>`).join("")}</ul></div>${pill(s.health)}</div>`).join("")}
+        </section>
+        <section class="panel" aria-labelledby="hOnb"><h2 id="hOnb">Onboarding</h2>
+          ${onb.map((s) => `<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px"><div class="row between"><a href="#studio-${s.id}"><b>${esc(s.name)}</b></a><span class="muted small">${PLANS[s.plan].label} · since ${s.since}</span></div><div class="bar" role="img" aria-label="Setup ${s.setup} of 8 done"><i style="width:${(s.setup / 8) * 100}%;background:var(--accent)"></i></div><span class="small muted">Setup ${s.setup} of 8 done${s.move ? ` · data move: ${{ submitted: "form sent, waiting for data", files: "checking files" }[s.move] ?? s.move}` : ""}</span></div>`).join("")}
+        </section>
+      </div>
+      <section class="panel"><h2>By plan</h2><div class="tblwrap"><table><thead><tr><th>Plan</th><th class="num">Studios</th><th class="num">Live</th><th>Price</th></tr></thead><tbody>${Object.entries(PLANS).map(([k, p]) => `<tr><td>${p.label}</td><td class="num">${STUDIOS.filter((s) => s.plan === k).length}</td><td class="num">${STUDIOS.filter((s) => s.plan === k && s.lifecycle === "live").length}</td><td class="small">${usd(p.price)} a month${p.extra ? `, ${p.incl} locations included, ${usd(p.extra)} each after` : `, up to ${p.max} location${p.max > 1 ? "s" : ""}`}</td></tr>`).join("")}</tbody></table></div></section>`;
+  };
+
+  PAGES.studios = () => {
+    const q = state.q || "", f = state.filter || "";
+    const list = STUDIOS.filter((s) => (!q || s.name.toLowerCase().includes(q.toLowerCase())) && (!f || s.lifecycle === f || s.plan === f));
+    return head("Studios", "Every studio on the platform. Open one to see its plan, health, setup, team and notes.", can("manage") ? `<a class="btn primary" href="#new-studio">Add a studio</a>` : "") +
+      `<div class="row"><input id="q" type="search" placeholder="Search by name" value="${esc(q)}" style="max-width:260px" aria-label="Search studios">
+        <select id="filter" style="max-width:200px" aria-label="Filter"><option value="">All studios</option>${["onboarding", "live", "paused"].map((v) => `<option value="${v}" ${f === v ? "selected" : ""}>${v[0].toUpperCase() + v.slice(1)}</option>`).join("")}${Object.entries(PLANS).map(([k, p]) => `<option value="${k}" ${f === k ? "selected" : ""}>${p.label}</option>`).join("")}</select></div>
+      <div class="tblwrap"><table id="studioTable"><thead><tr><th>Studio</th><th>Status</th><th>Plan</th><th class="num">Locations</th><th class="num">Clients</th><th>Price a month</th><th>Health</th><th>Last activity</th></tr></thead>
+        <tbody>${list.map((s) => `<tr class="click" data-open="${s.id}" tabindex="0"><td><b>${esc(s.name)}</b></td><td>${life(s.lifecycle)}</td><td>${PLANS[s.plan].label}${s.plan === "growth" && s.app ? " + app" : ""}</td><td class="num">${s.locations}</td><td class="num">${s.clients.toLocaleString("en")}</td><td class="mono">${usd(price(s))}</td><td>${pill(s.health)}</td><td class="small muted">${s.last}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">No studios match.</td></tr>`}</tbody></table></div>`;
+  };
+
+  function accessLeft(s) { const a = state.access[s.id]; if (!a) return 0; return Math.max(0, Math.round((a.until - Date.now()) / 60000)); }
+  PAGES.studio = () => {
+    const s = byId(state.studio);
+    const p = PLANS[s.plan];
+    const left = accessLeft(s);
+    const clients = [["Chloe Tan", "chloe.tan@example.com", "10 Class Pack: 6 left", "Sat 9:00am Reformer - Intermediate"], ["Dev Kumar", "dev.k@example.com", "No active pack", "None"], ["Nur Aisyah", "aisyah.n@example.com", "Unlimited Monthly (on hold: card failed)", "None"]];
+    return head(esc(s.name), `${s.type} · ${s.locations} location${s.locations > 1 ? "s" : ""} · on the platform since ${s.since}`, `${life(s.lifecycle)} ${pill(s.health)}`) +
+      `<div class="grid2">
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+          <section class="panel" aria-labelledby="hPlan"><div class="row between"><h2 id="hPlan">Plan</h2><span class="mono">${usd(price(s))} a month</span></div>
+            <p>${p.label}${s.plan === "growth" && s.app ? " with its own app" : ""}. ${p.seats}, ${p.max ? `up to ${p.max} location${p.max > 1 ? "s" : ""}` : `${p.incl} locations included, then ${usd(p.extra)} each`}.</p>
+            ${can("manage") ? `<div class="row"><label for="planSel" class="small muted">Change plan</label><select id="planSel" style="max-width:220px">${Object.entries(PLANS).map(([k, x]) => `<option value="${k}" ${k === s.plan ? "selected" : ""}>${x.label}</option>`).join("")}</select><button type="button" class="btn" id="planGo">Change</button></div><div id="planAsk"></div>` : `<p class="small muted">Only HQ owners and onboarding can change plans.</p>`}
+            ${can("manage") ? `<div class="row"><label for="lifeSel" class="small muted">Status</label><select id="lifeSel" style="max-width:180px">${["onboarding", "live", "paused", "cancelled"].map((v) => `<option value="${v}" ${v === s.lifecycle ? "selected" : ""}>${v[0].toUpperCase() + v.slice(1)}</option>`).join("")}</select></div>` : ""}
+          </section>
+          <section class="panel" aria-labelledby="hHealth"><h2 id="hHealth">Health</h2>${s.signals.length ? `<ul class="sig">${s.signals.map(([l, t]) => `<li class="${l}">${esc(t)}</li>`).join("")}</ul>` : `<p class="muted">Nothing needs us. Last staff activity ${s.last}.</p>`}
+            <button type="button" class="btn" id="askAbout" style="align-self:flex-start">Ask the assistant about ${esc(s.name)}</button></section>
+          <section class="panel" aria-labelledby="hAccess"><div class="row between"><h2 id="hAccess">Support access</h2>${left ? `<span class="timer">Open · ${left} min left</span>` : ""}</div>
+            <p class="small muted">Client details are hidden until you open support access. It's time-limited, the studio sees your reason, can end it, and every look is in their activity log.</p>
+            ${left ? `<div class="tblwrap"><table id="clientTable"><thead><tr><th>Client</th><th>Email</th><th>Packs</th><th>Next booking</th></tr></thead><tbody>${clients.map((c) => `<tr>${c.map((x) => `<td>${esc(x)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><button type="button" class="btn" id="accessEnd" style="align-self:flex-start">End support access</button>`
+              : `<div class="form"><label class="f wide" for="accReason">Reason <span class="h">The studio sees this</span><input id="accReason" placeholder="e.g. Owner asked why Chloe can't book Saturday"></label><label class="f" for="accMin">For<select id="accMin"><option value="30">30 minutes</option><option value="60" selected>1 hour</option><option value="120">2 hours</option></select></label></div><div class="row"><button type="button" class="btn primary" id="accessGo">Start support access</button><span class="small muted" id="accessErr" role="alert"></span></div>`}
+          </section>
+          <section class="panel"><h2>Recent activity</h2><div class="tblwrap"><table><thead><tr><th>What</th><th>By</th><th>When</th></tr></thead><tbody>${ACTIVITY.map(([a, b, w]) => `<tr><td class="mono">${a}</td><td>${b}</td><td class="small muted">${w}</td></tr>`).join("")}</tbody></table></div></section>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+          <section class="panel"><h2>Setup</h2><ul class="checks">${SETUP.map((t, i) => `<li class="${i < s.setup ? "" : "todo"}"><b>${i < s.setup ? "✓" : "○"}</b>${t}</li>`).join("")}</ul></section>
+          <section class="panel"><h2>Team</h2>${s.team.map(([n, r]) => `<div class="row between"><span>${esc(n)}</span><span class="small muted">${r}</span></div>`).join("")}</section>
+          ${s.move ? `<section class="panel"><h2>Moving data</h2><p>${s.move === "verified" ? "Done and verified." : `From ${MOVE.source}: ${STEPS[stepIndex()]}.`}</p>${s.id === "core-flow" ? `<a class="btn" href="#move" style="align-self:flex-start">Open the move</a>` : ""}</section>` : ""}
+          <section class="panel" aria-labelledby="hNotes"><h2 id="hNotes">Our notes</h2><p class="small muted">Only our team sees these.</p>
+            <div id="notes" style="display:flex;flex-direction:column;gap:10px">${s.notes.map(([k, b, a, d]) => `<div style="border-top:1px solid var(--line);padding-top:8px"><span class="pill plain">${k}</span> <span class="small muted">${a} · ${d}</span><p style="margin-top:4px">${esc(b)}</p></div>`).join("") || `<p class="muted">No notes yet.</p>`}</div>
+            <label class="f" for="noteBody">Add a note<textarea id="noteBody" placeholder="Calls, issues, decisions"></textarea></label>
+            <div class="row"><select id="noteKind" style="max-width:120px" aria-label="Kind"><option value="note">Note</option><option value="call">Call</option><option value="issue">Issue</option></select><button type="button" class="btn" id="noteAdd">Add note</button></div>
+          </section>
+        </div>
+      </div>`;
+  };
+
+  PAGES["new-studio"] = () => {
+    if (!can("manage")) return head("Add a studio", "") + `<div class="callout warn"><b>Your HQ role can't add studios.</b><p>Ask an HQ owner or someone in onboarding.</p></div>`;
+    return head("Add a studio", "Creates the studio with its first location and plan (features and the usual rules for its kind switched on), and emails the owner an invite to set their password.") +
+      `<form class="panel" id="newForm" novalidate><div class="form">
+        <label class="f" for="nsName">Studio name<input id="nsName" required placeholder="e.g. Pilates Loft"></label>
+        <label class="f" for="nsLoc">First location <span class="h">Defaults to the studio name</span><input id="nsLoc" placeholder="e.g. Tiong Bahru"></label>
+        <label class="f" for="nsPlan">Plan<select id="nsPlan"><option value="essentials">Essentials · USD 99</option><option value="growth" selected>Growth · USD 299</option><option value="signature">Signature · USD 599</option></select></label>
+        <label class="f" for="nsApp">Branded app<select id="nsApp"><option value="no">No</option><option value="yes">Yes (+USD 100 on Growth)</option></select></label>
+        <label class="f" for="nsTz">Time zone<select id="nsTz"><option>Asia/Singapore</option><option>Asia/Kuala_Lumpur</option><option>Asia/Hong_Kong</option><option>Australia/Sydney</option></select></label>
+        <label class="f" for="nsCur">Currency<select id="nsCur"><option>SGD</option><option>MYR</option><option>HKD</option><option>AUD</option><option>USD</option></select></label>
+        <label class="f" for="nsFirst">Owner's first name<input id="nsFirst" required></label>
+        <label class="f" for="nsLast">Owner's last name<input id="nsLast" required></label>
+        <label class="f wide" for="nsEmail">Owner's email<input id="nsEmail" type="email" required></label>
+      </div><p class="small" id="nsPrice"></p><div class="row"><button class="btn primary" type="submit">Add studio and send invite</button><span class="small" id="nsErr" role="alert" style="color:var(--bad)"></span></div></form>
+      <section class="panel"><h2>Then</h2><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>The owner fills in the moving form (old system, switch date, how we get the data).</li><li>We get the exports out, check and import them within a day, and compare a sample with the old system.</li><li>We finish setup with them on a call and switch the studio to Live.</li></ol></section>`;
+  };
+
+  PAGES.moves = () => {
+    const rows = [
+      ["core-flow", "Core & Flow", "Momence", "Data received: check the files", "1 Dec 2026", "Staff login"],
+      ["barre-house", "Barre House", "Mindbody", "Form sent: get the data out", "15 Dec 2026", "Temporary password (deleted in 6 days)"],
+      ["sweat-lab", "Sweat Lab", "Glofox", "Done", "1 Apr 2026", "Files uploaded"],
+    ];
+    rows[0][3] = { files: "Data received: check the files", checked: "Checked: import", imported: MOVE.sampled ? "Sample compared: verify" : "Imported: compare a sample", verified: "Done", undone: "Undone: check again" }[MOVE.status];
+    return head("Moving data", "Every studio moving from another system, oldest first. Most moves take a day from getting the data.") +
+      `<div class="tblwrap"><table id="moveTable"><thead><tr><th>Studio</th><th>From</th><th>Next</th><th>Switch date</th><th>How we get the data</th></tr></thead><tbody>${rows.map(([id, n, f, nx, d, a]) => `<tr ${id === "core-flow" ? 'class="click" data-move tabindex="0"' : ""}><td><b>${n}</b></td><td>${f}</td><td>${nx}</td><td>${d}</td><td class="small">${a}</td></tr>`).join("")}</tbody></table></div>
+      <section class="panel"><h2>How a move works</h2><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>The studio fills in one form: their old system, when to switch, rough numbers, and how we get the data (invite us as staff, a temporary password, or upload the exports).</li><li>We upload the exports: CSV, Excel (every sheet) or the web-page "XLS" some systems produce. Each file's kind and columns are recognised; we can change them.</li><li>The check rehearses the whole import and changes nothing. Every row is accounted for, and the totals are compared with what the studio told us.</li><li>We import, compare a random sample with the old system side by side, then verify. An import can be undone until anything happens.</li></ol></section>`;
+  };
+
+  PAGES.move = () => {
+    const r = report();
+    const st = stepIndex();
+    const acc = r.acc, tot = acc.rows;
+    const seg = (n, c, l) => `<i style="width:${(n / tot) * 100}%;background:${c}" title="${l}: ${n}"></i>`;
+    const doneish = ["imported", "verified"].includes(MOVE.status);
+    const canMove = can("moves");
+    const checked = MOVE.status !== "files" && MOVE.status !== "undone";
+    return head("Core & Flow: moving from Momence", `Switch date ${MOVE.switchDate} · ${MOVE.access} · the studio told us about ${MOVE.told.clients} clients, ${MOVE.told.memberships} memberships and ${MOVE.told.packs} class packs.`, `<a class="btn" href="#moves">All moves</a>`) +
+      `<ol class="steps" aria-label="Progress">${STEPS.map((t, i) => `<li class="${i < st ? "done" : i === st ? "now" : ""}">${t}</li>`).join("")}</ol>
+      ${!canMove ? `<div class="callout warn"><b>Your HQ role can look but not run moves.</b><p>Ask an HQ owner or someone in onboarding.</p></div>` : ""}
+      <section class="panel" aria-labelledby="hFiles"><div class="row between"><h2 id="hFiles">Files</h2><span class="small muted">How dates are written: <select id="dateOrder" style="width:auto" ${!canMove || doneish ? "disabled" : ""}><option value="">Work it out per column</option><option value="dmy" ${MOVE.dateOrder === "dmy" ? "selected" : ""}>Day first (31/12/2026)</option><option value="mdy" ${MOVE.dateOrder === "mdy" ? "selected" : ""}>Month first (12/31/2026)</option></select></span></div>
+        <div class="tblwrap"><table><thead><tr><th>File</th><th>Read as</th><th class="num">Rows</th><th>Columns we use</th><th>Not used</th></tr></thead><tbody>${MOVE.files.map((f, i) => `<tr><td><b>${esc(f.name)}</b><br><span class="small muted">${f.fmt}</span></td><td><select data-kind="${i}" aria-label="What ${esc(f.name)} holds" ${!canMove || doneish ? "disabled" : ""}>${["Clients", "Class packs (classes left)", "Memberships (recurring)", "Upcoming bookings", "Visit history", "Not needed"].map((k) => `<option ${k === f.kind ? "selected" : ""}>${k}</option>`).join("")}</select></td><td class="num">${f.rows}</td><td class="small">${f.mapped.map(([a, b]) => `${a} ← <span class="mono">${esc(b)}</span>`).join("<br>") || "—"}</td><td class="small muted">${f.unmapped.map(esc).join(", ") || "—"}</td></tr>`).join("")}</tbody></table></div>
+        ${canMove && !doneish ? `<div class="row"><button type="button" class="btn primary" id="runCheck">Run the check</button><span class="small muted">Rehearses the whole import and changes nothing.</span></div>` : ""}
+      </section>
+      ${checked || MOVE.checkedOnce ? `<section class="panel" aria-labelledby="hReport" id="report"><div class="row between"><h2 id="hReport">${doneish ? "What was imported" : "The check"}</h2>${r.ready ? `<span class="pill good">Ready</span>` : `<span class="pill problem">1 blocking problem</span>`}</div>
+        <div style="display:flex;flex-direction:column;gap:6px"><b>Every row accounted for: ${tot.toLocaleString("en")} rows</b><div class="bar" role="img" aria-label="${acc.created} created, ${acc.linked} linked, ${acc.merged} merged, ${acc.skipped} not moved">${seg(acc.created, "var(--good)", "Created")}${seg(acc.linked, "var(--accent)", "Linked")}${seg(acc.merged, "var(--muted)", "Merged")}${seg(acc.skipped, "var(--warn)", "Not moved")}</div>
+          <div class="legend"><span><i style="background:var(--good)"></i>${acc.created.toLocaleString("en")} created</span><span><i style="background:var(--accent)"></i>${acc.linked} linked to existing accounts</span><span><i style="background:var(--muted)"></i>${acc.merged} duplicates merged</span><span><i style="background:var(--warn)"></i>${acc.skipped} not moved, each with a reason</span></div></div>
+        <div class="grid"><div><h3 style="margin-bottom:6px">Totals</h3><dl class="cmp" style="display:block"><div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:13.5px">${r.totals.map(([a, b]) => `<span class="muted">${a}</span><span>${b}</span>`).join("")}</div></dl></div>
+          <div><h3 style="margin-bottom:6px">Against what the studio told us</h3><div class="tblwrap"><table><thead><tr><th></th><th class="num">Told</th><th class="num">Found</th><th></th></tr></thead><tbody>${r.rec.map(([l, t, f, ok]) => `<tr><td>${l}</td><td class="num">${t}</td><td class="num">${f}</td><td>${ok ? `<span class="pill good">Matches</span>` : `<span class="pill watch">Ask the studio</span>`}</td></tr>`).join("")}</tbody></table></div></div></div>
+        <div><h3 style="margin-bottom:4px">Problems, grouped</h3>${r.issues.map(([lv, f, m, n]) => `<div class="issue"><span class="sev ${lv}">${lv}</span><span>${esc(m)}${f ? ` <span class="muted small">· ${esc(f)}</span>` : ""}</span><span class="mono muted">${n > 1 ? `×${n}` : ""}</span></div>`).join("")}</div>
+        <div id="importArea">${importArea(r)}</div>
+      </section>` : ""}
+      ${doneish ? sampleArea() : ""}`;
+  };
+  function importArea(r) {
+    if (!can("moves")) return "";
+    if (MOVE.status === "verified") return `<div class="callout good"><b>Verified.</b><p>The old files' rows are deleted 30 days from now. The temporary password was deleted at import.</p></div>`;
+    if (MOVE.status === "imported") return `<div class="row"><button type="button" class="btn danger" id="undo">Undo the import</button><span class="small muted">Removes everything it added, as long as nothing has happened since.</span></div>`;
+    if (!r.ready) return `<div class="callout bad"><b>Can't import yet.</b><p>Fix the blocking problem above (set how dates are written), then run the check again.</p></div>`;
+    if (state.askImport) return `<div class="callout warn" id="importAsk"><b>Import with these warnings?</b><p>15 warnings (rows that won't move or were moved with a change). Active class packs: the studio told us about 190, we found 183; ask them before importing.</p><div class="row"><button type="button" class="btn primary" id="importYes">Import anyway</button><button type="button" class="btn" id="importNo">Not yet</button></div></div>`;
+    return `<div class="row"><button type="button" class="btn primary" id="import">Import</button><span class="small muted">Imports exactly what the check showed.</span></div>`;
+  }
+  function sampleArea() {
+    return `<section class="panel" aria-labelledby="hSample"><div class="row between"><h2 id="hSample">Compare a sample with ${MOVE.source}</h2><button type="button" class="btn" id="reshuffle">Another sample</button></div>
+      <p class="small muted">Random clients: their rows in the old files next to what they have here now. Open each one in ${MOVE.source} and check it matches.</p>
+      ${SAMPLE.map((x, i) => `<div class="cmp" style="border-top:1px solid var(--line);padding-top:10px"><div><h3 style="margin-bottom:6px">In the old file</h3><dl>${Object.entries(x.old).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></div><div><h3 style="margin-bottom:6px">Here now</h3><dl>${Object.entries(x.now).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></div><label class="row small" style="grid-column:1/-1"><input type="checkbox" data-ok="${i}" style="width:auto" ${MOVE.ok?.[i] ? "checked" : ""} ${MOVE.status === "verified" ? "disabled" : ""}> Matches ${MOVE.source}</label></div>`).join("")}
+      ${MOVE.status === "imported" && can("moves") ? `<div class="row"><button type="button" class="btn primary" id="verify" ${Object.values(MOVE.ok || {}).filter(Boolean).length ? "" : "disabled"}>Mark the move verified</button><span class="small muted">${Object.values(MOVE.ok || {}).filter(Boolean).length} of ${SAMPLE.length} checked</span></div>` : ""}
+    </section>`;
+  }
+
+  // --- Assistant -------------------------------------------------------------------------
+  const ANSWERS = [
+    { test: /sweat|fail|message|whatsapp/i, looked: ["search_studios", "studio_overview", "delivery_problems"], html: `<p>Sweat Lab has 7 failed messages in the last 7 days, all on WhatsApp, all the <span class="mono">booking.reminder</span> template. The last error is from Meta: <i>"Template paused due to low quality rating"</i>.</p><p>Most likely cause, in order:</p><ol><li>Meta paused the reminder template after clients marked it as spam (a quality rating drop). This matches the error exactly.</li><li>Less likely: their WhatsApp number's messaging limit. That gives a different error, so it's not this.</li></ol><p>What to do: in Sweat Lab's Communication settings, the template shows as Paused. Meta un-pauses automatically after 3 to 6 hours with no new reports; emails still go out meanwhile, so no reminders are lost.</p><div class="draft"><b>Reply you could send:</b> Hi Daniel, WhatsApp paused your class reminder message for a few hours because some clients reported it. Reminders are still going out by email, and WhatsApp should resume on its own today. We'd suggest shortening the message a little; happy to help.</div>` },
+    { test: /chloe|book|saturday|can't/i, looked: ["studio_overview", "find_clients", "find_classes", "check_booking"], html: `<p>I looked at Core & Flow with your support access. Chloe Tan can't be booked into Saturday 9:00am Reformer - Intermediate because <b>her 10 Class Pack only covers Beginner classes</b>; the booking check says "Her package doesn't cover Reformer - Intermediate".</p><p>Options for the studio (their call):</p><ol><li>Sell her a pack that covers Intermediate.</li><li>Change which classes the 10 Class Pack covers (Packages, open it, Classes it covers). Packs already sold can keep their terms or get the new ones.</li><li>Book her in as pay at the studio.</li></ol><div class="draft"><b>Reply you could send:</b> Chloe's 10 Class Pack is set up for Beginner classes only, so the app won't let her book Intermediate with it. You can change which classes the pack covers in Packages, or book her in to pay at the desk.</div>` },
+    { test: /move|migrat|import|momence|mindbody/i, looked: ["migration_status"], html: `<p>Core & Flow's move from Momence is at <b>Data received</b>. The last check found one blocking problem: dates in "Created At" could be day-first or month-first, and the form says "not sure".</p><p>Momence exports dates as month-first in the US and day-first elsewhere, but don't guess: open two client records in Momence with a day above 12 and compare. Then set the date order and run the check again.</p><p>After that, 15 warnings remain. The one to raise with the studio: they told us 190 active packs and the files have 183 (7 had zero classes left, which Momence still counts as active).</p>` },
+    { test: /plan|price|signature|growth|essentials/i, looked: ["search_studios"], html: `<p>Plans, from the pricing docs:</p><ul><li><b>Essentials</b> USD 99 a month, one location, one admin.</li><li><b>Growth</b> USD 299, up to 3 locations, an admin per location, marketing and the inbox; the branded app is +USD 100.</li><li><b>Signature</b> USD 599 for up to 5 locations, then USD 150 each; the app, AI workflows and reports by location are included, with unlimited admins.</li></ul><p>Done-for-you setup and the data move are the same on every plan.</p>` },
+  ];
+  PAGES.assistant = () => head("Assistant", "Ask about any studio, the product or a technical issue. It reads every doc and looks into studios read-only; client details need support access.") +
+    `<section class="panel"><div class="row between"><span class="small muted">The real assistant runs on our most capable model at high effort. These are sample answers.</span>${state.chat.length ? `<button type="button" class="btn" id="newChat">New chat</button>` : ""}</div>
+      <div class="chat" id="chat" aria-live="polite">${state.chat.length ? state.chat.map((m) => m.me ? `<div class="msg me">${esc(m.text)}</div>` : `<div class="msg ai">${m.html}<div class="looked">Looked at ${m.looked.map((t) => `<code>${t}</code>`).join("")}</div></div>`).join("") : `<p class="muted">Try one of these, or ask your own.</p>`}</div>
+      <div class="suggest">${["Why are Sweat Lab's messages failing?", "Why can't Chloe book Saturday's 9am at Core & Flow?", "Where's Core & Flow's data move up to?", "What's in each plan?"].map((q) => `<button type="button" class="btn" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+      <form class="row" id="askForm" style="flex-wrap:nowrap"><input id="askText" aria-label="Question" placeholder="Ask about a studio, a feature or an error" autocomplete="off"><button class="btn primary" type="submit">Ask</button></form>
+    </section>`;
+  function ask(q) {
+    state.chat.push({ me: true, text: q });
+    const a = ANSWERS.find((x) => x.test.test(q));
+    const needsAccess = a && a.looked.includes("find_clients") && !accessLeft(byId("core-flow"));
+    state.chat.push(needsAccess
+      ? { html: `<p>That needs Chloe's bookings and packs, which means support access to Core & Flow. Start it from <a href="#studio-core-flow">the studio's page</a> (the studio sees your reason), then ask again.</p>`, looked: ["studio_overview", "find_clients"] }
+      : a ? a : { html: `<p>I couldn't find that in the docs or the data I can look at. Tell me which studio it's about, or what the person saw on screen, and I'll look again.</p>`, looked: ["search_studios"] });
+    render();
+    const c = $("#chat"); if (c) c.scrollTop = c.scrollHeight;
+  }
+
+  // --- Render and bind --------------------------------------------------------------------
+  let toastT;
+  function toast(t) { const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (el.hidden = true), 3500); }
+  function route() {
+    const h = location.hash.slice(1) || "overview";
+    if (h.startsWith("studio-") && byId(h.slice(7))) { state.studio = h.slice(7); return "studio"; }
+    return PAGES[h] ? h : "overview";
+  }
+  function render() {
+    const page = route();
+    $("#main").innerHTML = PAGES[page]();
+    document.querySelectorAll("[data-nav]").forEach((a) => a.toggleAttribute("aria-current", a.dataset.nav === page || (page === "studio" && a.dataset.nav === "studios") || (page === "move" && a.dataset.nav === "moves")));
+    document.querySelectorAll("[aria-current]").forEach((a) => a.setAttribute("aria-current", "page"));
+    $("#nStudios").textContent = STUDIOS.length;
+    $("#nMoves").textContent = MOVE.status === "verified" ? 1 : 2;
+    bind(page);
+  }
+  function bind(page) {
+    if (page === "studios") {
+      $("#q").oninput = (e) => { state.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $("#q"); q.focus(); q.setSelectionRange(pos, pos); };
+      $("#filter").onchange = (e) => { state.filter = e.target.value; render(); };
+      document.querySelectorAll("[data-open]").forEach((tr) => { tr.onclick = () => (location.hash = `studio-${tr.dataset.open}`); tr.onkeydown = (e) => { if (e.key === "Enter") tr.click(); }; });
+    }
+    if (page === "studio") {
+      const s = byId(state.studio);
+      if ($("#planGo")) $("#planGo").onclick = () => {
+        const to = $("#planSel").value; if (to === s.plan) return;
+        const down = Object.keys(PLANS).indexOf(to) < Object.keys(PLANS).indexOf(s.plan);
+        if (to !== "signature" && s.locations > PLANS[to].max) { $("#planAsk").innerHTML = `<div class="callout bad"><b>${s.name} has ${s.locations} locations.</b><p>${PLANS[to].label} allows ${PLANS[to].max}. Remove locations first, or keep a bigger plan.</p></div>`; return; }
+        if (down) { $("#planAsk").innerHTML = `<div class="callout warn"><b>Change this studio's plan?</b><p>Moving to ${PLANS[to].label} switches off features outside it (their settings are kept, and clients stop seeing them). New price: ${usd(price({ ...s, plan: to }))} a month.</p><div class="row"><button type="button" class="btn primary" id="planYes">Change plan</button><button type="button" class="btn" id="planNo">Cancel</button></div></div>`; $("#planYes").onclick = () => { s.plan = to; render(); toast(`${s.name} is now on ${PLANS[to].label}.`); }; $("#planNo").onclick = () => render(); return; }
+        s.plan = to; render(); toast(`${s.name} is now on ${PLANS[to].label}: ${usd(price(s))} a month.`);
+      };
+      if ($("#lifeSel")) $("#lifeSel").onchange = (e) => { s.lifecycle = e.target.value; render(); toast(`${s.name} is now ${s.lifecycle}.`); };
+      if ($("#accessGo")) $("#accessGo").onclick = () => { const r = $("#accReason").value.trim(); if (r.length < 5) { $("#accessErr").textContent = "Say why you need access (the studio sees this)."; return; } state.access[s.id] = { until: Date.now() + Number($("#accMin").value) * 60000, reason: r }; render(); toast(`Support access open for ${s.name}. The studio can see your reason.`); };
+      if ($("#accessEnd")) $("#accessEnd").onclick = () => { delete state.access[s.id]; render(); toast("Support access ended."); };
+      $("#noteAdd").onclick = () => { const b = $("#noteBody").value.trim(); if (!b) return; s.notes.unshift([$("#noteKind").value, b, "Hana", "today"]); render(); toast("Note added."); };
+      $("#askAbout").onclick = () => { location.hash = "assistant"; };
+    }
+    if (page === "new-studio" && $("#newForm")) {
+      const upd = () => { const plan = $("#nsPlan").value, app = $("#nsApp").value === "yes"; $("#nsPrice").textContent = `${PLANS[plan].label}${plan === "growth" && app ? " with its own app" : ""}: ${usd(price({ plan, app, locations: 1 }))} a month to start.`; };
+      $("#nsPlan").onchange = $("#nsApp").onchange = upd; upd();
+      $("#newForm").onsubmit = (e) => {
+        e.preventDefault();
+        const v = (id) => $(id).value.trim();
+        const missing = [!v("#nsName") && "the studio's name", !v("#nsFirst") && "the owner's first name", !v("#nsLast") && "the owner's last name", !/^\S+@\S+\.\S+$/.test(v("#nsEmail")) && "the owner's email address"].filter(Boolean);
+        if (missing.length) { $("#nsErr").textContent = `Add ${missing.join(", ")}.`; return; }
+        const id = v("#nsName").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "new-studio";
+        STUDIOS.push({ id, name: v("#nsName"), plan: $("#nsPlan").value, app: $("#nsApp").value === "yes", lifecycle: "onboarding", locations: 1, clients: 0, health: "good", signals: [], setup: 1, since: "today", last: "just now", type: { essentials: "Independent studio", growth: "Boutique studio", signature: "Several locations" }[$("#nsPlan").value], team: [[`${v("#nsFirst")} ${v("#nsLast")}`, "owner (invited)"]], notes: [], move: null });
+        location.hash = `studio-${id}`;
+        toast(`${v("#nsName")} added. Invite sent to ${v("#nsEmail")}.`);
+      };
+    }
+    if (page === "moves") document.querySelectorAll("[data-move]").forEach((tr) => { tr.onclick = () => (location.hash = "move"); tr.onkeydown = (e) => { if (e.key === "Enter") tr.click(); }; });
+    if (page === "move") {
+      const reset = () => { if (MOVE.status === "checked" || MOVE.status === "undone") MOVE.status = "files"; state.askImport = false; };
+      if ($("#dateOrder") && !$("#dateOrder").disabled) $("#dateOrder").onchange = (e) => { MOVE.dateOrder = e.target.value || null; reset(); render(); toast("Saved. Run the check again."); };
+      document.querySelectorAll("[data-kind]").forEach((sel) => { if (!sel.disabled) sel.onchange = () => { MOVE.files[sel.dataset.kind].kind = sel.value; reset(); render(); toast("Saved. Run the check again."); }; });
+      if ($("#runCheck")) $("#runCheck").onclick = () => { MOVE.checkedOnce = true; MOVE.status = report().ready ? "checked" : "files"; state.askImport = false; render(); $("#report")?.scrollIntoView({ block: "start" }); toast(report().ready ? "Check done: ready to import." : "Check done: 1 blocking problem."); };
+      if ($("#import")) $("#import").onclick = () => { state.askImport = true; render(); $("#importAsk")?.scrollIntoView({ block: "center" }); };
+      if ($("#importNo")) $("#importNo").onclick = () => { state.askImport = false; render(); };
+      if ($("#importYes")) $("#importYes").onclick = () => { MOVE.status = "imported"; state.askImport = false; byId("core-flow").clients = 417; render(); toast("Imported: 417 clients, 183 packs, 158 memberships, 376 bookings."); };
+      if ($("#undo")) $("#undo").onclick = () => { MOVE.status = "undone"; MOVE.checkedOnce = false; MOVE.ok = {}; MOVE.sampled = false; byId("core-flow").clients = 0; render(); toast("Import undone: everything it added was removed."); };
+      document.querySelectorAll("[data-ok]").forEach((c) => (c.onchange = () => { MOVE.ok = { ...(MOVE.ok || {}), [c.dataset.ok]: c.checked }; MOVE.sampled = Object.values(MOVE.ok).some(Boolean); render(); }));
+      if ($("#reshuffle")) $("#reshuffle").onclick = () => { SAMPLE.push(SAMPLE.shift()); MOVE.ok = {}; render(); };
+      if ($("#verify")) $("#verify").onclick = () => { MOVE.status = "verified"; byId("core-flow").move = "verified"; render(); toast("Verified. The old rows are deleted in 30 days."); };
+    }
+    if (page === "assistant") {
+      document.querySelectorAll("[data-q]").forEach((b) => (b.onclick = () => ask(b.dataset.q)));
+      $("#askForm").onsubmit = (e) => { e.preventDefault(); const t = $("#askText").value.trim(); if (t) ask(t); };
+      if ($("#newChat")) $("#newChat").onclick = () => { state.chat = []; render(); };
+    }
+  }
+  $("#asRole").onchange = (e) => { state.role = e.target.value; render(); toast(`Viewing as ${e.target.selectedOptions[0].text}.`); };
+  window.addEventListener("hashchange", render);
+  render();
+  window.__hq = { state, MOVE, STUDIOS };
+})();
+</script>

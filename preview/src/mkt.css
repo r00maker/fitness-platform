@@ -1032,3 +1032,24 @@ body:has(.savebar) .askbtn { bottom: calc(72px + env(safe-area-inset-bottom, 0px
 .rulesearch input { flex: 1 1 260px; max-width: 420px; height: 38px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: 14px; }
 .chg { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 1px 7px; vertical-align: 1px; }
 .linkbtn { display: block; margin-top: 3px; border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 12.5px; text-decoration: underline; cursor: pointer; align-self: flex-start; height: auto; text-align: left; }
+/* Moving your data */
+.mvform { display: flex; flex-direction: column; gap: 12px }
+.mvgrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) }
+.mvaccs { display: grid; gap: 8px }
+.mvacc { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer }
+.mvacc.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset }
+.mvacc input { margin-top: 3px }
+.mvtips { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; font-size: 13px }
+.mvtips ul { margin: 6px 0 0; padding-left: 18px }
+.mverr { color: var(--danger); font-size: 13px }
+.mvsteps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; list-style: none; margin: 0 0 12px; padding: 0 }
+.mvsteps li { border-top: 3px solid var(--line); padding-top: 6px; font-size: 12.5px; color: var(--muted) }
+.mvsteps li.done { border-color: var(--ok); color: inherit }
+.mvsteps li.now { border-color: var(--accent); color: inherit; font-weight: 600 }
+@media (max-width: 640px) { .mvsteps { grid-template-columns: minmax(0, 1fr) } }
+.mvform label.fld { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; font-weight: 600; min-width: 0 }
+.mvform label.fld .hint { font-weight: 400 }
+.mvform label.fld input, .mvform label.fld select, .mvform label.fld textarea { width: 100%; font-weight: 400 }
+.mvform label.row { align-items: flex-start; font-size: 13.5px; flex-wrap: nowrap }
+.mvform label.row > span { min-width: 0 }
+.mvform label.row input { margin-top: 3px; flex: none }
