@@ -111,6 +111,63 @@ Why it's shaped this way:
 
 How it works in the product: our staff set the plan (`PLAN_INFO` in `packages/shared/src/features.ts`, see "Plans" in `PRODUCT_NOTES.md`); each plan sets which features can be switched on and the rules a new studio starts with.
 
+## Is each plan worth its price? (devil's advocate, November 2026)
+
+Independent evidence on what owners want is thin: most "surveys" are published by software vendors. Treat the points below as direction, and replace them with our own pilot interviews (script below).
+
+### What owners and clients actually ask for
+
+- **Easy to learn, not more features.** Mindbody reviewers complain of "too many menus and reports"; several reviews note small studios pay for far more than they use. Boutiques mostly use booking, payments, scheduling, messages and basic reports.
+- **Support that answers.** Capterra rates customer service 3.7/5 (Momence) and 3.8/5 (Mindbody); "slow response times, inconsistent answers".
+- **No hidden prices, no lock-in, no cut of sales, keep my data.** Prices behind demos, 3-year contracts and percentage fees are the common complaints, along with fear of losing data when leaving.
+- **Time.** Owners are stretched (one vendor-cited survey: about 52 hours a week, 4 on admin).
+- **Full classes and fewer lost clients.** ClassPass says the average studio fills only 37% of capacity itself. Follow-up turns trials into members (vendor data: 58% with 5+ touches vs 19% with 1–2), and many people stop coming without cancelling (53% of gym members in one consumer survey).
+- **Instructor pay without spreadsheets.** Per-class pay with attendance bonuses is described as one of the most error-prone manual jobs.
+- **Clients:** book any time, easy cancelling and quick refunds, clear prices; in Singapore, WhatsApp and PayNow.
+- **AI:** owners mostly use ChatGPT or Claude themselves. The concrete jobs they mention are fast replies to enquiries, win-back messages and review replies. No evidence that owners pay extra for "AI workflows" as a category.
+- **Branded apps:** the evidence is almost all from vendors selling them; demand is unproven.
+
+### Verdict by plan
+
+- **Essentials (USD 99): compelling.** It answers the top complaints: easy, payroll included, no cut of sales, free move, same support. It only works once online payments and client web booking exist. Open question: WhatsApp booking reminders (included, or at cost).
+- **Growth (USD 299): worth it if sold as results, not tools.** As a "marketing suite" it adds the complexity owners complain about. Its real value is turning trials into members and winning back lapsed clients, done for them. If a member is worth around USD 150–250 a month, one extra kept member a month pays for the step up.
+- **Signature (USD 599): the weakest case today.** AI workflows and the branded app have the least evidence of demand; leads and ad tracking suit only studios running ads. What brands would pay for (location managers, comparing locations, rules set once for the brand, shared clients and payroll across locations) is mostly not built yet. The price is fair for real brands (about USD 120–150 a location) but not compelling for a single premium studio.
+
+### What to change
+
+1. Lead with the promises that answer the top complaints: easy to learn, real support, no cut of sales, we move you for free, no lock-in.
+2. Rebuild Growth around results: three journeys switched on at setup (intro-offer follow-up, win-back after 3–4 weeks away, first-class welcome), a results line on Home ("brought back 6 clients this month"), and an at-risk client list.
+3. Build the brand-wide tools before selling Signature, and describe its AI as named jobs: instant WhatsApp replies to enquiries day and night, drafted review replies, a monthly "what to do next" report.
+4. Don't headline the branded app until pilots show clients use it.
+5. Decide WhatsApp booking reminders for Essentials.
+
+### Finding out what users really want (pilot research)
+
+- **Interviews:** 8–10 owners across independent, boutique and multi-location studios, 30 minutes each, about their week rather than features.
+- **Ranking:** each owner picks their top 3 of 12 outcomes.
+- **Price questions** for each plan: at what price is it too cheap to trust, a bargain, getting expensive, too expensive.
+- **Pricing-page test:** show the three plans to pilot studios and note which they choose and why.
+- **Usage:** after 3 months, check which features pilot studios use weekly, and move features between plans by real use.
+
+**Interview script (30 minutes):**
+
+1. Tell me about your studio: locations, team, classes a week, how clients pay.
+2. Walk me through last Monday, from opening to closing. Where did the time go?
+3. What took the most time last week that you wish you didn't have to do?
+4. When did you last lose a client? How did you find out, and what did you do?
+5. How do new people find you, and what happens after their first class?
+6. How do you work out what to pay instructors? How long does it take, and what goes wrong?
+7. What does your current software do well? What do you work around?
+8. What would make you switch, and what stops you?
+9. If you could have one thing done for you every week, what would it be?
+10. Show the three plans: which one is you, and what would make it a clear yes?
+
+Write down their words, not our feature names, and note anything they've already paid for (a tool, an assistant, an agency): that's evidence of willingness to pay.
+
+### Sources for this section
+
+[Capterra: Mindbody](https://www.capterra.com/p/40229/MINDBODY/reviews/), [Capterra: Momence](https://www.capterra.com/p/229516/Ribbon/reviews/), [Capterra: Mindbody vs Momence](https://www.capterra.com/compare/40229-229516/MINDBODY-vs-Ribbon), [Paige Maria Creative](https://www.paigemariacreative.com/software-digital-tools/mindbody-reviews-what-studio-owners-are-actually-saying), [Vibefam: Pilates software on Reddit](https://vibefam.com/pilates-studio-software-reddit-2026/), [ClassPass 2026 Industry Impact Report](https://classpass.com/partners/2026-industry-impact-report), [Zenoti: AI for gyms](https://www.zenoti.com/thecheckin/ai-for-gyms-and-fitness-centers), [Studio-deck: intro offers](https://studio-deck.com/guides/convert-intro-offers-to-members), [Buildify: app cost](https://usebuildify.com/post/fitness-studio-app-cost-2026), [AI tools for gyms (25 examples)](https://theaismallbusiness.com/compare/ai-operations-tools-for-gyms-and-studios/), [The Business of Pilates: instructor pay](https://thebusinessofpilates.substack.com/p/your-instructor-pay-structure-is), [Hashmeta: WhatsApp in Singapore](https://hashmeta.com/blog/whatsapp-statistics-singapore-complete-guide-to-messaging-trends-business-opportunities).
+
 ## Launch plan
 
 ### Phase 0: ready for production (blocking)
