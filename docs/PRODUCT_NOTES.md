@@ -41,7 +41,7 @@ The full reasoning, competitor comparison and pricing are in `docs/MARKET_AND_LA
 **Feature-set improvements (making it simpler):**
 
 1. ~~Feature switches and a leaner menu~~: built (see below).
-2. **Setup by studio type:** a first-run setup that fills sensible defaults for independent, boutique and multi-location studios, plus search within Studio rules.
+2. ~~Setup by studio type~~: built (see below).
 3. **Client booking on phones:** a date strip and class list first; banners and filters out of the way.
 4. **Instructors on phones:** "Up next: check in" first, and a Check-in mode.
 5. **One AI entry point:** Ask, plus "Write with AI" next to text boxes; reminder agents become journeys.
@@ -248,8 +248,20 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
 ## Feature switches and the grouped menu
 
 - **Why:** the admin menu had 24 items, and a new owner saw Leads, Agents, Shop, Loyalty and Payroll on day one. Studios now switch on what they use (Setup, Features), and related pages share one menu item with tabs. With everything on, the admin menu is 14 items; a lean studio sees fewer. It's also what makes pricing tiers possible later: a smaller tier is the same product with fewer things switched on.
-- **The ten features:** marketing emails and journeys, gift cards, loyalty, refer a friend, leads, reviews, shop, payroll, the communication inbox and agents. Gift cards, loyalty, referrals and reviews already had their own on/off setting, which stays the one source of truth; the rest are stored in `organizations.features_off`. Existing studios keep everything on. Lean defaults for new studios come with setup by studio type (next on the roadmap).
+- **The ten features:** marketing emails and journeys, gift cards, loyalty, refer a friend, leads, reviews, shop, payroll, the communication inbox and agents. Gift cards, loyalty, referrals and reviews already had their own on/off setting, which stays the one source of truth; the rest are stored in `organizations.features_off`. Existing studios keep everything on until they choose a kind of studio (see Setup by studio type).
 - **Switching off** hides a feature and stops it running; nothing is deleted. The API refuses requests to its pages with `feature_off` (route patterns are mapped in `apps/api/src/modules/settings/features.ts`). Finishing what's under way stays possible: orders and rewards waiting to be handed over, and gift cards already sold. Live journeys pause, scheduled campaigns go back to drafts, lead follow-ups are cancelled, and agents and the email inbox stop. When something is running, it asks first (`feature_off` confirm) and says what will happen.
 - **Switching back on** never restarts journeys or campaigns (nothing is sent late by surprise) and returns `next`: what's left to set up. Gift cards switched on before they have an amount and a design stay hidden from clients until both exist.
 - **The menu** is defined once in `NAV_ITEMS` (`packages/shared/src/fields.ts`), served by `GET /meta/fields`. Items with `tabs` group pages (Communication, Clients, Money, Feedback, Staff and pay, Setup); `feature` hides an item or tab; an item with one tab left shows as a plain item. Tab ids are the old page ids, so existing links keep working. Gift card settings live in Money, Shop, so that tab shows while either the shop or gift cards is on.
 - **Apps** read the switches from `GET /settings` (`features`, for every role) and hide what's off, including Home's to-dos (unread messages with the inbox off, low reviews with reviews off).
+
+## Setup by studio type
+
+- **Why:** a new owner faced 32 settings and every feature at once. Now the first question is "What kind of studio do you run?", and the answer switches on what that kind of studio usually needs and fills sensible rules. It's a starting point; everything can be changed afterwards.
+- **The three kinds** (presets in `STUDIO_TYPE_PRESETS`, `packages/shared/src/features.ts`):
+  - **Independent studio** (one room, a small team or just you): gift cards and reviews only. Bookings close when class starts, clients can pay at the studio, a 6-hour late-cancellation window, no spot picking, automatic waitlists, no celebration pop-ups.
+  - **Boutique studio** (one or two locations, a team, classes that fill up): adds marketing, refer a friend, shop, payroll and the WhatsApp inbox. Bookings close 1 hour before, packages are needed, a 12-hour window, spots, and clients choose how waitlists work.
+  - **Several locations**: everything on, with the boutique rules.
+- **Asking first:** a brand-new studio (no classes, nothing running) just gets the settings. A studio that already has classes, or is choosing again, sees exactly what will change: features switching on and off, each rule from and to, and what stops (for example "1 live journey will be paused"). Features switch through the same code as Setup, Features, so nothing is deleted.
+- **Where it shows:** on Home, owners and admins see a welcome card until they've chosen, with a getting-started list (location, classes, packages, team, first classes). Setup, Features has "Your kind of studio" at the top to change it later.
+- **Studio rules** now has a search box (it filters settings and whole sections, and says when nothing matches), plus a "Changed" mark on settings that differ from the usual for the studio's kind, with "Use the usual: …" to put one back in a tap.
+- **API:** `GET /setup` returns the kinds (what each switches on and fills in, and what choosing it would change), the usual values, `changedFromUsual` and the checklist. `POST /setup { studioType }` applies it (`setup_changes` confirmation when needed). Stored in `organizations.studio_type` and `setup_done_at`.

@@ -2,7 +2,7 @@
 p = "studio-calendar-preview.html"
 s = open(p).read()
 css = open("src/mkt.css").read()
-js = open("src/social.js").read() + open("src/mkt.js").read() + open("src/mkt3.js").read() + open("src/mkt4.js").read() + open("src/mkt5.js").read() + open("src/mkt6.js").read() + open("src/mkt7.js").read() + open("src/mkt8.js").read() + open("src/mkt9.js").read() + open("src/mkt2.js").read() + open("src/mkt10.js").read() + open("src/mkt11.js").read() + open("src/mkt12.js").read() + open("src/mkt13.js").read() + open("src/mkt14.js").read() + open("src/mkt15.js").read() + open("src/mkt16.js").read() + open("src/mkt17.js").read() + open("src/mkt18.js").read() + open("src/mkt19.js").read() + open("src/mkt20.js").read()
+js = open("src/social.js").read() + open("src/mkt.js").read() + open("src/mkt3.js").read() + open("src/mkt4.js").read() + open("src/mkt5.js").read() + open("src/mkt6.js").read() + open("src/mkt7.js").read() + open("src/mkt8.js").read() + open("src/mkt9.js").read() + open("src/mkt2.js").read() + open("src/mkt10.js").read() + open("src/mkt11.js").read() + open("src/mkt12.js").read() + open("src/mkt13.js").read() + open("src/mkt14.js").read() + open("src/mkt15.js").read() + open("src/mkt16.js").read() + open("src/mkt17.js").read() + open("src/mkt18.js").read() + open("src/mkt19.js").read() + open("src/mkt20.js").read() + open("src/mkt21.js").read()
 CS, CE = "/* MKT-CSS-START */", "/* MKT-CSS-END */"
 JS, JE = "  // MKT-JS-START", "  // MKT-JS-END"
 if CS in s:
@@ -70,5 +70,6 @@ exec(open("patch14.py").read())
 exec(open("patch15.py").read())
 exec(open("patch16.py").read())
 exec(open("patch17.py").read())
+exec(open("patch18.py").read())
 open(p, "w").write(s)
 print("ok")

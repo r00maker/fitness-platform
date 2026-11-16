@@ -39,6 +39,16 @@ Clients see **Classes** (Book a class, My bookings), **Packages & rewards** (My 
 
 The **Ask** button (bottom right) opens the assistant. The **bell** at the top shows messages from your studio's agents.
 
+## Getting started: your kind of studio
+
+The first time you open Home, you're asked what kind of studio you run:
+
+- **Independent studio:** one room and a small team, or just you. You get booking, packages, reviews and gift cards, and simple rules (walk-ins welcome, clients can pay at the studio).
+- **Boutique studio:** one or two locations, a team of instructors, and classes that fill up. This adds marketing, refer a friend, the shop, payroll and the WhatsApp inbox, with rules suited to busy classes (book ahead with a package, pick a spot).
+- **Several locations:** everything is switched on.
+
+Choose one and press **Use these settings**. If your studio is already running, you're shown exactly what will change first. It's only a starting point: change anything later under **Setup**, and change the kind of studio under **Setup, Features**. Home also shows a short getting-started list until you've added your location, classes, packages and team.
+
 ## Features: switching things on and off
 
 **Setup, Features** lists the parts of the app your studio might not need: marketing emails and journeys, gift cards, loyalty, refer a friend, leads, reviews, the shop, payroll, the communication inbox and agents. Switch on what you use; the menus, Home and the client app only show what's on.
@@ -47,6 +57,8 @@ The **Ask** button (bottom right) opens the assistant. The **bell** at the top s
 - **What stops:** live journeys pause and scheduled campaigns go back to drafts, follow-up emails to leads aren't sent, agents stop, and clients stop being asked for reviews or earning points.
 - **What carries on:** shop orders and rewards already waiting can still be handed over, and gift cards already sold can still be used.
 - **Switching back on** doesn't restart journeys or campaigns by itself, so nothing is sent late by surprise. You're told what's left to set up, for example adding a gift card design.
+
+**Studio rules** has a search box at the top: type a word like "cancel", "waitlist" or "pay" to see just those settings. Settings that differ from the usual for your kind of studio are marked **Changed**, with a link to put the usual value back.
 
 ## Home
 

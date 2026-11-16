@@ -98,6 +98,7 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Reviews | `GET /me/review-prompt`, `POST /reviews`, `POST /reviews/skip`, `PUT /me/review-snooze`, `GET /reviews` | clients review; admins see all, instructors their own |
 | Feedback | `POST /feedback`, `GET /me/feedback`, `GET /feedback`, `POST /feedback/:id/replies` | clients send; owner, admin, Front of House answer |
 | Celebrations | `GET /me/moments`, `POST /moments/:id/seen`, `PUT /me/celebrations` | owners, admins, instructors |
+| Setup by studio type | `GET /setup` (kinds, what each changes, the usual values, a getting-started list), `POST /setup` (asks first when it changes a running studio) | owner, admin |
 | Feature switches | `GET /features`, `PUT /features/:key` (switching off asks first when something is running); the switches are also in `GET /settings` | owner, admin (everyone can read them) |
 | Home (staff front page) | `GET /dashboard?days=7\|30&locationId=` | staff; what's shown depends on role |
 | Cancelled classes on the calendar | `GET /calendar?includeCancelled=true` | staff (clients never see them) |
