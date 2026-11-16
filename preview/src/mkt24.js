@@ -164,7 +164,9 @@
       if (!showWelcome()) { if (root) root.remove(); document.body.classList.remove("wc-on"); return; }
       if (!root) { document.body.insertAdjacentHTML("beforeend", '<div id="wcRoot" class="wc" role="main" aria-label="Welcome"></div>'); root = $("#wcRoot"); }
       const y = root.scrollTop;
-      root.innerHTML = stageHTML() + (STUDIO.lifecycle === "onboarding" ? formHTML() + barHTML() : "");
+      // Preview only: a way back to the studio view (in the real app the owner stays here until the studio opens).
+      const exit = `<div class="wc-preview"><span>Preview: this is the owner's first sign-in. Your answers are kept.</span><button type="button" id="wcExit">Back to the studio view</button></div>`;
+      root.innerHTML = exit + stageHTML() + (STUDIO.lifecycle === "onboarding" ? formHTML() + barHTML() : "");
       root.scrollTop = y;
       document.body.classList.add("wc-on");
       if (!W.played) setTimeout(() => (W.played = true), 2400);
@@ -209,6 +211,7 @@
       $("#wcPass")?.addEventListener("input", (e) => { if (e.target.value) { W.passwordSaved = true; refreshChrome(); } });
       $("#wcFile")?.addEventListener("change", (e) => { for (const x of e.target.files) if (!W.files.some((y) => y.name === x.name)) W.files.push({ name: x.name, kind: /member|contract|subscri/i.test(x.name) ? "memberships" : /pack|pass|series|credit/i.test(x.name) ? "class packs" : /book/i.test(x.name) ? "bookings" : "clients" }); renderWelcome(); toast("Files added. We'll check them when you send the form."); });
       $("#wcFinish")?.addEventListener("click", () => { if (W.step < 4) { W.step++; renderWelcome(); toast(["", "Data in: we have your exports.", "Checked: every row accounted for.", "Moved: clients, packs, memberships and bookings are in.", ""][W.step] || ""); } else { W.step = 5; STUDIO.lifecycle = "live"; W.opened = true; renderWelcome(); toast("Double-checked. Your studio is open."); } });
+      $("#wcExit")?.addEventListener("click", () => { if (STUDIO.lifecycle === "onboarding") STUDIO.lifecycle = "live"; W.opened = false; $("#wcRoot")?.remove(); document.body.classList.remove("wc-on"); syncStudioDemo(); if (location.hash === "#welcome") location.hash = "home"; render(); toast("Back to the studio view. To see the welcome page again, set Studio to Setting up in the header."); });
       $("#wcOpen")?.addEventListener("click", () => { W.opened = false; $("#wcRoot")?.remove(); document.body.classList.remove("wc-on"); syncStudioDemo(); go("home"); });
       bindBar();
     }

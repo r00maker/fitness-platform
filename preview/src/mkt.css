@@ -1253,3 +1253,6 @@ body.wc-on { overflow: hidden }
 .tccompose label.fl { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600 }
 .tccompose label.fl .count { font-weight: 400; color: var(--muted); font-size: 12px; align-self: flex-end; margin-top: -18px }
 .tccompose label.fl input, .tccompose label.fl textarea { width: 100%; font-weight: 400 }
+.wc-preview { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: #06221d; color: #a7cbc1; font-size: 13px; padding-block: 8px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px dashed rgba(236, 246, 242, .18) }
+.wc-preview button { font: 600 13px "Inter", system-ui, sans-serif; background: transparent; color: #ecf6f2; border: 1px dashed rgba(236, 246, 242, .4); border-radius: 999px; padding: 6px 14px; cursor: pointer; min-height: 34px }
+.wc-preview button:hover { border-style: solid }

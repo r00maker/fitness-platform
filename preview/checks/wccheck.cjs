@@ -83,6 +83,11 @@ const file = "file://" + path.join(__dirname, "wc-test.html");
     ok(`${label}: the dashboard`, (await p.locator("#wcRoot").count()) === 0 && /Good (morning|afternoon|evening), Olivia/.test(await p.locator("#pgOther h2").first().textContent()));
     await p.evaluate(() => (location.hash = "studio-details")); await p.waitForTimeout(150);
     ok(`${label}: business details are in Setup`, (await p.inputValue("#bzUen")) === "201912345K" && (await p.inputValue("#bzLegal")) === "Demo Studio Pte. Ltd.");
+    // Preview only: a way back from the welcome page at any point.
+    await p.selectOption("#studioDemo", "onboarding"); await p.waitForTimeout(200);
+    ok(`${label}: welcome page again`, await p.locator("#wcRoot").isVisible() && /Back to the studio view/.test(await txt("#wcExit")));
+    await press("#wcExit");
+    ok(`${label}: back to the studio view (${await toast()})`, (await p.locator("#wcRoot").count()) === 0 && (await p.inputValue("#studioDemo")) === "live" && /set Studio to Setting up/.test(await toast()));
     // The preview's Studio control, from another role.
     await p.evaluate(() => document.querySelector('#roles [data-role="foh"]').click()); await p.waitForTimeout(150);
     await p.selectOption("#studioDemo", "onboarding"); await p.waitForTimeout(200);
