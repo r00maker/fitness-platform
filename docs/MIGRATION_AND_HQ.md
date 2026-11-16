@@ -1,6 +1,6 @@
 # Moving data and HQ
 
-How we move a studio's data from its old system, and HQ, our own team's dashboard for onboarding studios, looking after them and fixing problems. Code: `apps/api/src/modules/migration/` and `apps/api/src/modules/platform/`. Previews: `preview/hq-preview.html` (HQ) and Setup → Moving your data in the studio preview.
+How we move a studio's data from its old system, and HQ, our own team's dashboard for onboarding studios, looking after them and fixing problems. Code: `apps/api/src/modules/migration/` and `apps/api/src/modules/platform/`. Preview: `preview/hq-preview.html` (HQ, including the moving form as the studio sees it).
 
 ## The promise
 
@@ -21,13 +21,14 @@ Researched from each system's own help pages (November 2026):
 
 So the tool reads **CSV and TSV** (UTF-8 with or without a byte-order mark, UTF-16, Windows-1252; comma, semicolon, tab or pipe), **Excel .xlsx** (every sheet; real dates), and **"XLS" files that are web pages**. Old binary .xls files are refused with a clear fix (save as .xlsx or .csv) rather than guessed at. Card details never come in a file: memberships move, and clients add a card before their next billing date (or cards move Stripe to Stripe where the old system allows it).
 
-## The studio's side
+## The moving form (before the studio's app is set up)
 
-Setup → **Moving your data** (`GET/PUT /migration`, owners and admins):
+The form comes first, before the studio has an app to sign in to. When we add a studio in HQ we tick **Email the owner the moving form now**; the owner gets a private link (`/moving-form/<token>`, no account needed, 21 days, a new link replaces the old one; `GET/PUT /public/moving-form/:token`, uploads at `POST /public/moving-form/:token/files`). Our team can also fill it in with them on the kick-off call (`PUT /platform/studios/:orgId/migrations/:jobId/intake`), copy the link to send on WhatsApp, or email it again (`POST .../form-link`). The studio app has no moving page.
 
 - Old system, switch date, rough counts (active clients, memberships, class packs; used to reconcile), how the old system writes 03/04/2026, the packages they sell, whether to include long-inactive clients, who we talk to, and their OK to move clients' details.
-- How we get the data: **invite our team as a staff user** (easiest, and they remove us afterwards), **share a temporary password** (encrypted with `SECRETS_KEY`, viewable only by HQ owner and onboarding roles with the view logged, deleted at import or after 7 days), or **upload the exports** (`POST /migration/files`). Uploading is allowed with any choice.
-- Sending checks the form is complete and says what's missing in plain words. Afterwards they see the progress and, once imported, a plain summary (clients, packs and classes left, memberships, bookings, credit, rows not moved).
+- How we get the data: **invite our team as a staff user** (easiest, and they remove us afterwards), **share a temporary password** (encrypted with `SECRETS_KEY`, viewable only by HQ owner and onboarding roles with the view logged, deleted at import or after 7 days), or **upload the exports**. Uploading is allowed with any choice.
+- Sending checks the form is complete and says what's missing in plain words. HQ shows when the link was sent, opened and sent back. After the import, the same link shows the studio a plain summary (clients, packs and classes left, memberships, bookings, credit, rows not moved).
+- The owner's **invite to the app** is separate: by default it waits until the studio is set up and the data is in, then our team sends it from the studio's page (**Invite the owner to the app**, `POST /platform/studios/:orgId/invite-owner`), so the owner arrives to a working studio.
 
 ## Our side (HQ)
 

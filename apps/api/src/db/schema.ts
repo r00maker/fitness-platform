@@ -2091,6 +2091,15 @@ export const migrationJobs = pgTable(
     accessDeleteAfter: ts("access_delete_after"),
     /** How dates are written in the files: day first, month first, or worked out per column. */
     dateOrder: text("date_order").$type<"dmy" | "mdy" | "ymd">(),
+    /**
+     * The moving form is sent before the studio's app is set up: a private link (only its hash is
+     * stored) that works without an account, for 21 days or until the data is checked.
+     */
+    formTokenHash: text("form_token_hash"),
+    formExpiresAt: ts("form_expires_at"),
+    formSentAt: ts("form_sent_at"),
+    formOpenedAt: ts("form_opened_at"),
+    formSubmittedAt: ts("form_submitted_at"),
     lastCheck: jsonb("last_check").$type<Record<string, unknown>>(),
     checkedAt: ts("checked_at"),
     importedAt: ts("imported_at"),
@@ -2100,7 +2109,7 @@ export const migrationJobs = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("migration_jobs_org_idx").on(t.orgId, t.createdAt)],
+  (t) => [index("migration_jobs_org_idx").on(t.orgId, t.createdAt), uniqueIndex("migration_jobs_form_token_uq").on(t.formTokenHash)],
 );
 
 /** A file from the old system, parsed into rows. Raw rows are deleted 30 days after the move is verified. */

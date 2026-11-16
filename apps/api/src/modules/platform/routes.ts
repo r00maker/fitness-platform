@@ -11,9 +11,9 @@
  */
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { and, asc, desc, eq, gt, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { PLAN_INFO, planPrice, schemas } from "@studio/shared";
-import { auditLog, clientPackages, locations, memberships, organizations, platformNotes, platformStaff, supportAccess, users } from "../../db/schema.js";
+import { auditLog, clientPackages, locations, memberships, migrationJobs, organizations, platformNotes, platformStaff, staffInvites, supportAccess, users } from "../../db/schema.js";
 import { audit } from "../../lib/audit.js";
 import { conflict, forbidden, notFound, unauthorized } from "../../lib/errors.js";
 import { Flags } from "../../lib/flags.js";
@@ -24,7 +24,7 @@ import { getOrg } from "../sessions/context.js";
 import { adminCount, locationCount, planView, setPlan, usd } from "../settings/plans.js";
 import { sendStaffInvite } from "../staff/routes.js";
 import { studioHealth } from "./health.js";
-import { platformMigrationRoutes } from "../migration/routes.js";
+import { platformMigrationRoutes, sendMovingForm } from "../migration/routes.js";
 import { platformAssistantRoutes } from "./assistant.js";
 
 export type PlatformRole = (typeof schemas.PLATFORM_ROLES)[number];
@@ -138,9 +138,14 @@ export async function platformRoutes(app: FastifyInstance) {
       let [u] = await tx.select().from(users).where(sql`lower(${users.email}) = ${email}`);
       u ??= (await tx.insert(users).values({ email, firstName: input.owner.firstName, lastName: input.owner.lastName }).returning())[0];
       await tx.insert(memberships).values({ orgId: org!.id, userId: u!.id, role: "owner" });
-      const inviteExpiresAt = await sendStaffInvite(tx, appUrl, org!.id, u!.id, "owner", null);
-      await audit(tx, { orgId: org!.id, actorId: req.platform.userId, action: "studio.created", entityType: "organization", entityId: org!.id, details: { by: "hq", plan: input.plan, ownerEmail: email } });
-      return { id: org!.id, name: org!.name, plan: input.plan, lifecycle: "onboarding", owner: { id: u!.id, email, inviteExpiresAt } };
+      const inviteExpiresAt = input.inviteOwner ? await sendStaffInvite(tx, appUrl, org!.id, u!.id, "owner", null) : null;
+      await audit(tx, { orgId: org!.id, actorId: req.platform.userId, action: "studio.created", entityType: "organization", entityId: org!.id, details: { by: "hq", plan: input.plan, ownerEmail: email, ownerInvited: input.inviteOwner, movingForm: input.sendMovingForm } });
+      let movingForm = null;
+      if (input.sendMovingForm) {
+        const [job] = await tx.insert(migrationJobs).values({ orgId: org!.id, createdBy: req.platform.userId }).returning();
+        movingForm = { jobId: job!.id, ...(await sendMovingForm(tx, appUrl, job!, req.platform.userId)) };
+      }
+      return { id: org!.id, name: org!.name, plan: input.plan, lifecycle: "onboarding", owner: { id: u!.id, email, invited: input.inviteOwner, inviteExpiresAt }, movingForm };
     });
     reply.code(201);
     return out;
@@ -159,17 +164,35 @@ export async function platformRoutes(app: FastifyInstance) {
     const notes = await db.select({ id: platformNotes.id, kind: platformNotes.kind, body: platformNotes.body, at: platformNotes.createdAt, author: sql<string | null>`(select first_name || ' ' || last_name from users where id = ${platformNotes.authorId})` }).from(platformNotes).where(eq(platformNotes.orgId, orgId)).orderBy(desc(platformNotes.createdAt)).limit(50);
     const access = await db.select({ id: supportAccess.id, reason: supportAccess.reason, endsAt: supportAccess.endsAt, endedAt: supportAccess.endedAt, at: supportAccess.createdAt, staff: sql<string>`(select first_name || ' ' || last_name from users where id = ${supportAccess.staffUserId})`, staffUserId: supportAccess.staffUserId }).from(supportAccess).where(eq(supportAccess.orgId, orgId)).orderBy(desc(supportAccess.createdAt)).limit(20);
     const mine = await activeSupportAccess(db, orgId, req.platform.userId);
+    const invites = await db.select({ userId: staffInvites.userId, sentAt: staffInvites.createdAt, expiresAt: staffInvites.expiresAt, acceptedAt: staffInvites.acceptedAt }).from(staffInvites).where(eq(staffInvites.orgId, orgId)).orderBy(desc(staffInvites.createdAt));
+    const [move] = await db.select({ id: migrationJobs.id, status: migrationJobs.status, sourcePlatform: migrationJobs.sourcePlatform, formSentAt: migrationJobs.formSentAt, formSubmittedAt: migrationJobs.formSubmittedAt }).from(migrationJobs).where(and(eq(migrationJobs.orgId, orgId), ne(migrationJobs.status, "undone"))).orderBy(desc(migrationJobs.createdAt)).limit(1);
     return {
       studio: { id: org.id, name: org.name, lifecycle: org.lifecycle, timezone: org.timezone, currency: org.currency, createdAt: org.createdAt, studioType: org.studioType },
       plan: await planView(db, org),
       health,
       counts: { clients, activePackages, locations: await locationCount(db, orgId), admins: await adminCount(db, orgId) },
-      team,
+      team: team.map((t) => { const inv = invites.find((i) => i.userId === t.id); return { ...t, signIn: !inv ? "not invited" : inv.acceptedAt ? "signed in" : inv.expiresAt > new Date() ? "invited" : "invite expired" }; }),
+      move: move ?? null,
       recentActivity: recent,
       notes,
       supportAccess: access.map((a) => ({ ...a, active: !a.endedAt && a.endsAt > new Date() })),
       myAccess: mine ? { id: mine.id, endsAt: mine.endsAt } : null,
     };
+  });
+
+  /** Invite the owner (and any other staff not yet signed in) to the app, once the studio is set up. Re-sending replaces the old link. */
+  app.post("/platform/studios/:orgId/invite-owner", hq, async (req) => {
+    requirePlatform(req, "manageStudios");
+    const { orgId } = parse(studioParam, req.params);
+    return inTx(app, async (tx) => {
+      const [o] = await tx.select({ userId: memberships.userId, email: users.email }).from(memberships).innerJoin(users, eq(users.id, memberships.userId)).where(and(eq(memberships.orgId, orgId), eq(memberships.role, "owner"))).limit(1);
+      if (!o) throw notFound("owner");
+      const [accepted] = await tx.select({ id: staffInvites.id }).from(staffInvites).where(and(eq(staffInvites.orgId, orgId), eq(staffInvites.userId, o.userId), isNotNull(staffInvites.acceptedAt))).limit(1);
+      if (accepted) throw conflict("already_joined", "The owner has already set their password and can sign in.");
+      const expiresAt = await sendStaffInvite(tx, appUrl, orgId, o.userId, "owner", null);
+      await audit(tx, { orgId, actorId: req.platform.userId, action: "studio.owner_invited", entityType: "user", entityId: o.userId, details: { by: "hq" } });
+      return { email: o.email, expiresAt };
+    });
   });
 
   app.patch("/platform/studios/:orgId", hq, async (req) => {

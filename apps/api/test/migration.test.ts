@@ -6,7 +6,7 @@ import { purgeMigrationFiles } from "../src/modules/migration/engine.js";
 import { detectKind, findHeaderRow, mapHeaders } from "../src/modules/migration/fields.js";
 import { inferDateOrder, readDate, readMoney, readPhone, readYes } from "../src/modules/migration/normalize.js";
 import { readFile } from "../src/modules/migration/parse.js";
-import { app, dayOffset, db, hqStaff, pool, reset, studio } from "./helpers.js";
+import { app, dayOffset, db, hqStaff, outbox, pool, reset, studio } from "./helpers.js";
 
 beforeEach(reset);
 afterAll(async () => {
@@ -73,30 +73,68 @@ describe("reading files from old systems", () => {
 });
 
 describe("moving a studio", () => {
-  it("the studio's form: what's needed to send it, and the password is never shown back", async () => {
-    const s = await studio();
-    expect((await s.owner.call("GET", "/migration")).body.job).toBeNull();
-    expect((await s.ana.call("GET", "/migration")).status).toBe(403);
-    const missing = await s.owner.call("PUT", "/migration", { oldPlatform: "Mindbody", access: "password", submit: true });
-    expect(missing.status).toBe(400);
-    expect(missing.body.error.message).toMatch(/when you'd like to switch, the login to use, the temporary password, your OK/);
-    const sent = await s.owner.call("PUT", "/migration", { oldPlatform: "Mindbody", switchDate: "2026-12-01", access: "password", accessLogin: "owner@studio.sg", accessPassword: "temp-Pass-123", activeClients: 250, dateFormat: "dmy", consent: true, submit: true });
-    expect(sent.status, JSON.stringify(sent.body)).toBe(200);
-    expect(sent.body.job).toMatchObject({ status: "submitted", step: 2, passwordSaved: true });
-    expect(JSON.stringify(sent.body)).not.toContain("temp-Pass-123");
-    expect(sent.body.exportTips[0]).toMatch(/Mailing Lists/);
-    const [job] = await db.select().from(migrationJobs).where(eq(migrationJobs.orgId, s.orgId));
-    expect(job!.accessSecretEnc).toMatch(/^v1:/);
-    expect(job!.dateOrder).toBe("dmy");
-
-    // Our onboarding team can see it (logged); support can't touch moves.
-    const support = await hqStaff("support");
-    expect((await support.call("POST", `/platform/studios/${s.orgId}/migrations/${job!.id}/access`, {})).status).toBe(403);
+  it("the moving form comes before the app: a private link for the owner, or filled in by our team", async () => {
     const hq = await hqStaff("onboarding");
-    expect((await hq.call("GET", "/platform/migrations")).body.migrations[0]).toMatchObject({ status: "submitted", next: "Get the data out of the old system", access: "password", switchDate: "2026-12-01" });
-    const access = await hq.call("POST", `/platform/studios/${s.orgId}/migrations/${job!.id}/access`, {});
+    const made = await hq.call("POST", "/platform/studios", { name: "Core & Flow", plan: "growth", sendMovingForm: true, inviteOwner: false, owner: { email: "mei@example.com", firstName: "Mei", lastName: "Tan" } });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    expect(made.body.owner).toMatchObject({ invited: false, inviteExpiresAt: null });
+    expect(made.body.movingForm).toMatchObject({ emailedOwner: true, url: expect.stringMatching(/\/moving-form\/[a-f0-9]{48}$/) });
+    const orgId = made.body.id, jobId = made.body.movingForm.jobId;
+    // Only the moving form went out: the app invite waits until the studio is set up.
+    expect((await outbox("staff.invite"))).toHaveLength(0);
+    const [mail] = await outbox("migration.form");
+    expect(mail!.data).toMatchObject({ firstName: "Mei", studioName: "Core & Flow", link: made.body.movingForm.url, days: 21 });
+    const token = made.body.movingForm.url.split("/").pop();
+    const form = (path = "") => `/v1/public/moving-form/${token}${path}`;
+
+    // No sign-in needed; a wrong link finds nothing; the studio app has no moving page.
+    const opened = await app.inject({ method: "GET", url: form() });
+    expect(opened.statusCode).toBe(200);
+    expect(opened.json()).toMatchObject({ studio: "Core & Flow", job: { status: "intake", sent: false, canEdit: true } });
+    expect((await app.inject({ method: "GET", url: `/v1/public/moving-form/${"0".repeat(48)}` })).statusCode).toBe(404);
+    const s = await studio();
+    expect((await s.owner.call("GET", "/migration")).status).toBe(404);
+
+    const missing = await app.inject({ method: "PUT", url: form(), payload: { oldPlatform: "Mindbody", access: "password", submit: true } });
+    expect(missing.statusCode).toBe(400);
+    expect(missing.json().error.message).toMatch(/when you'd like to switch, the login to use, the temporary password, your OK/);
+    const sent = await app.inject({ method: "PUT", url: form(), payload: { oldPlatform: "Mindbody", switchDate: "2026-12-01", access: "password", accessLogin: "owner@studio.sg", accessPassword: "temp-Pass-123", activeClients: 250, dateFormat: "dmy", consent: true, submit: true } });
+    expect(sent.statusCode, sent.body).toBe(200);
+    expect(sent.json().job).toMatchObject({ status: "submitted", step: 2, passwordSaved: true, sent: true });
+    expect(sent.body).not.toContain("temp-Pass-123");
+    expect(sent.json().exportTips[0]).toMatch(/Mailing Lists/);
+    const up = await app.inject({ method: "POST", url: form("/files"), payload: { filename: "clients.csv", data: Buffer.from("Name,Email\nAna Lim,ana@example.com\n").toString("base64") } });
+    expect(up.statusCode).toBe(201);
+    expect(up.json().files[0]).toMatchObject({ kind: "clients", rows: 1 });
+    const [job] = await db.select().from(migrationJobs).where(eq(migrationJobs.id, jobId));
+    expect(job).toMatchObject({ status: "files", dateOrder: "dmy" });
+    expect(job!.accessSecretEnc).toMatch(/^v1:/);
+    expect(job!.formOpenedAt).not.toBeNull();
+
+    // Our team sees it in the queue and the move; support can't touch moves.
+    const support = await hqStaff("support");
+    expect((await support.call("POST", `/platform/studios/${orgId}/migrations/${jobId}/access`, {})).status).toBe(403);
+    expect((await hq.call("GET", "/platform/migrations")).body.migrations[0]).toMatchObject({ status: "files", next: "Check the files", access: "password", switchDate: "2026-12-01" });
+    expect((await hq.call("GET", `/platform/studios/${orgId}/migrations/${jobId}`)).body.form).toMatchObject({ sentAt: expect.any(String), openedAt: expect.any(String), submittedAt: expect.any(String) });
+    const access = await hq.call("POST", `/platform/studios/${orgId}/migrations/${jobId}/access`, {});
     expect(access.body).toMatchObject({ login: "owner@studio.sg", password: "temp-Pass-123" });
-    expect((await db.select().from(auditLog).where(and(eq(auditLog.orgId, s.orgId), eq(auditLog.action, "migration.password_viewed")))).length).toBe(1);
+    expect((await db.select().from(auditLog).where(and(eq(auditLog.orgId, orgId), eq(auditLog.action, "migration.password_viewed")))).length).toBe(1);
+
+    // A new link replaces the old one.
+    const again = (await hq.call("POST", `/platform/studios/${orgId}/migrations/${jobId}/form-link`, {})).body;
+    expect(again.url).not.toBe(made.body.movingForm.url);
+    expect((await app.inject({ method: "GET", url: form() })).statusCode).toBe(404);
+
+    // Our team can fill it in on a call too.
+    const byUs = await hq.call("PUT", `/platform/studios/${orgId}/migrations/${jobId}/intake`, { activeClients: 260, notes: "Owner says ~20 clients have no email." });
+    expect(byUs.body.intake).toMatchObject({ activeClients: 260, oldPlatform: "Mindbody" });
+    expect(byUs.body.intake).not.toHaveProperty("accessPassword");
+
+    // Once set up, invite the owner to the app.
+    const inv = await hq.call("POST", `/platform/studios/${orgId}/invite-owner`, {});
+    expect(inv.body.email).toBe("mei@example.com");
+    expect(await outbox("staff.invite")).toHaveLength(1);
+    expect((await hq.call("GET", `/platform/studios/${orgId}`)).body.team[0]).toMatchObject({ firstName: "Mei", signIn: "invited" });
   });
 
   it("checks, imports accurately, accounts for every row, and can be undone", async () => {
@@ -104,10 +142,10 @@ describe("moving a studio", () => {
     const [chloe] = await db.select().from(users).where(eq(users.id, s.c1.id));
     const tomorrow = dayOffset(1);
     const [session] = await db.insert(classSessions).values({ orgId: s.orgId, classTypeId: s.classTypeId, locationId: s.locationId, instructorId: s.ana.id, capacity: 10, startsAt: new Date(`${tomorrow}T07:00:00+08:00`), endsAt: new Date(`${tomorrow}T07:50:00+08:00`) }).returning();
-    await s.owner.call("PUT", "/migration", { oldPlatform: "Mindbody", activeClients: 40, dateFormat: "unsure" });
     const hq = await hqStaff("onboarding");
     const { id: jobId } = (await hq.call("POST", `/platform/studios/${s.orgId}/migrations`, {})).body;
     const base = `/platform/studios/${s.orgId}/migrations/${jobId}`;
+    await hq.call("PUT", `${base}/intake`, { oldPlatform: "Mindbody", activeClients: 40, dateFormat: "unsure" });
 
     const clientsCsv = [
       "Client List,,,,,,,,,",
@@ -204,8 +242,10 @@ describe("moving a studio", () => {
     expect(meiRow.old).toMatchObject({ "First Name": "Mei Ling", "Account Balance": "SGD 25.00" });
     expect(meiRow.now).toMatchObject({ creditCents: 2500, upcomingBookings: 1, agreedToMarketing: true });
     expect(meiRow.now.packs).toEqual(expect.arrayContaining([{ name: "10 Class Pack", recurring: false, classesLeft: 7, until: "2027-12-31" }]));
-    // The studio sees a plain summary.
-    expect((await s.owner.call("GET", "/migration")).body.job).toMatchObject({ status: "imported", summary: { clients: 3, packs: 1, classesLeft: 7, memberships: 1, bookings: 2, creditCents: 2500, notMoved: 6 } });
+    // The moving form's page shows the studio a plain summary.
+    const link = (await hq.call("POST", `${base}/form-link`, {})).body.url as string;
+    expect(link).toBeTruthy();
+    expect((await app.inject({ method: "GET", url: `/v1/public/moving-form/${link.split("/").pop()}` })).json().job).toMatchObject({ status: "imported", summary: { clients: 3, packs: 1, classesLeft: 7, memberships: 1, bookings: 2, creditCents: 2500, notMoved: 6 } });
 
     // 4) Undo: refused once things have happened, then removes exactly what was added.
     await db.update(bookings).set({ attendance: "present" }).where(eq(bookings.clientId, mei.id));

@@ -2,7 +2,7 @@
 
 `studio-calendar-preview.html` is a single-file, clickable preview of the app with sample data (admin, Front of House, instructor and client views; light and dark). It mirrors the rules in `apps/api` so features can be tried before the web and mobile apps are built. Open it in a browser; nothing is sent anywhere. (Opening a PDF attachment loads the pdf.js reader from cdnjs.)
 
-`hq-preview.html` is a separate clickable preview of HQ, our own team's dashboard (overview, studios, a studio's page with plan, support access and notes, adding a studio, the data-move workspace and the assistant with sample answers). It's one hand-written file with no build step; it's published as its own artifact (the publish adds the page skeleton, so the file starts at `<title>`).
+`hq-preview.html` is a separate clickable preview of HQ, our own team's dashboard (overview, studios, a studio's page with plan, support access, team invites and notes, adding a studio, the moving form as the studio sees it, the data-move workspace and the assistant with sample answers). The move workspace runs the same rules as the API's migration engine in the browser: upload a real CSV (or use the sample exports) to see it read, mapped and checked row by row. It's one hand-written file with no build step; it's published as its own artifact (the publish adds the page skeleton, so the file starts at `<title>`).
 
 ## How it's built
 
@@ -15,7 +15,6 @@ The HTML file is both the base and the output. `inject.py` puts the feature code
   - `mkt11.js` Sales (invoices, receipts, refunds, invoice design) and membership payment holds.
   - `mkt12.js` Shop, Pickups, writing agents, report exports, menu entries.
   - `mkt13.js` Closures and holidays (with `patch11.py`, which shades closed days on the calendar and teaches the class form about them).
-  - `mkt23.js` Moving your data (Setup): the studio's form, how we get the data, file uploads with each file's kind recognised, and progress after sending.
   - `mkt22.js` Reports by location: the Locations tab on Reports (Signature), locked with "In Signature" on other plans.
   - `mkt21.js` Plans: the plan card on Setup, Features, features locked with the plan that includes them, banners and AI workflows by plan, the getting-started list on Home, and Studio rules search with "Changed from the usual" marks (with `patch18.py`, which tags each Studio rules row with its setting). The **Plan** control in the header is for the preview only; in the real app only our staff change plans.
   - `mkt20.js` Feature switches (Setup, Features) and the grouped menu: related pages share one menu item with tabs, and switched-off features disappear from menus, tabs, Home and the client app (with `patch17.py`, which adds the tabs to pages and hides switched-off pages).
@@ -43,8 +42,7 @@ node s10check.cjs
 ```
 
 - `s10check.cjs` sales, holds, shop, calendar, rooms, goals, class types, categories, writers, email, exports.
-- `hqcheck.cjs` the HQ preview: overview, search and filter, plan changes (asks before moving down), support access and notes, the assistant, the data move (blocked on ambiguous dates, accept warnings, sample, verify, undo), roles, and adding a studio.
-- `mvcheck.cjs` Moving your data: what's needed before sending, export tips, the password option, uploaded files' kinds, answers kept when the page redraws, and progress after sending.
+- `hqcheck.cjs` the HQ preview: overview, search and filter, plan changes (asks before moving down), support access and notes, the assistant, the moving form, reading an uploaded CSV, the data move (blocked on ambiguous dates, columns, accept warnings, sample, verify, undo), starting a move, inviting the owner, roles, and adding a studio.
 - `lrcheck.cjs` reports by location: both locations side by side against the period before, the period switch, and the locked tab on Growth.
 - `plcheck.cjs` plans: the plan card and price, moving down (asks first, says what switches off and what's over the limits), moving up, locked features, banners and AI workflows by plan, Studio rules search and "Changed" marks, and the getting-started list.
 - `ftcheck.cjs` feature switches and the grouped menu: old page addresses, tabs, the menu remembering the last tab, asking before switching off, what hides and what carries on, and switching back on.

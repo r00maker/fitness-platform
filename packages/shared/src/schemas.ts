@@ -338,6 +338,10 @@ export const createStudio = z.object({
   plan: z.enum(PLANS),
   brandedApp: z.boolean().optional(),
   locationName: z.string().trim().min(1).max(120).optional(),
+  /** Email the owner the moving form now (before their app is set up). */
+  sendMovingForm: z.boolean().default(false),
+  /** Email the owner their invite to the app now; leave off to send it once the studio is set up. */
+  inviteOwner: z.boolean().default(true),
   owner: z.object({
     email: z.email("Enter the owner's email address.").max(200),
     firstName: z.string().trim().min(1, "Add the owner's first name.").max(60),

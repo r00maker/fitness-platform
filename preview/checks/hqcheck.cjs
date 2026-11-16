@@ -83,24 +83,53 @@ const file = "file://" + path.join(__dirname, "hq-test.html");
     ok(`${label}: assistant no h-scroll`, await noHScroll());
     await shot("assistant");
 
-    // Data move
+    // Data move: the queue, the form, files, check, import, sample, verify, undo
     await go("moves");
-    await click("[data-move]");
-    ok(`${label}: move workspace`, /moving from Momence/.test(await txt("h1")) && (await p.locator("[data-kind]").count()) === 5);
+    ok(`${label}: every move opens`, (await p.locator("[data-move]").count()) === 3);
+    await click('[data-move="barre-house"]');
+    ok(`${label}: a move waiting for its form`, /Opened 13 Nov, not sent yet/.test(await txt("#hForm + span, .panel .pill")) || /not sent yet/.test(await p.locator("#hForm").locator("..").textContent()));
+    await click('a[href="#form-barre-house"]');
+    ok(`${label}: the form as the studio sees it`, /Moving Barre House to us/.test(await txt("h1")) && /Mailing Lists/.test(await p.locator(".formpage").textContent()));
+    await click("#fSend");
+    ok(`${label}: form says what's missing`, /when you'd like to switch|how we get your data/.test(await txt("#fErr")));
+    await click('input[name="mvAccess"][value="files"]');
+    await p.check("#fConsent");
+    await click("#fSend");
+    ok(`${label}: form sent (${await toast()})`, /Sent to our team/.test(await toast()) && /Sent to our team/.test(await p.locator(".formpage").textContent()));
+    await go("move-barre-house");
+    ok(`${label}: answers show on the move`, /Uploading the exports themselves/.test(await p.locator(".kv").first().textContent()));
+    await p.setInputFiles("#upFile", [
+      { name: "clients.csv", mimeType: "text/csv", buffer: Buffer.from("Client List\nClient ID,First Name,Last Name,Email,Mobile Phone,Client Since,Email Opt-in\n1,Ana,Lim,ana@example.com,9123 4567,25/03/2025,Yes\n2,Bo,Tan,,6.59123E+09,02/04/2025,No\n3,Cy,Ho,cy@example.com,8123 4567,14/01/2026,\n") },
+      { name: "old.xlsx", mimeType: "application/octet-stream", buffer: Buffer.from("x") },
+    ]);
+    await p.waitForTimeout(300);
+    ok(`${label}: a real CSV is read (${await txt(".fcard")})`, /clients\.csv/.test(await txt(".fcard")) && /3 rows · headers on row 2/.test(await txt(".fcard")) && /Email ← Email/.test(await txt(".fcard")));
+    ok(`${label}: Excel explained in the preview`, /reads CSV only/.test(await toast()));
+    await click("#runCheck");
+    ok(`${label}: day-first worked out from 25/03, so it's ready`, /Ready/.test(await txt("#report .pill")) && /3 rows/.test(await txt("#report")));
+    ok(`${label}: problems from the real rows`, /Phone damaged by Excel/.test(await txt("#report")) && /No email/.test(await txt("#report")));
+
+    await go("move-core-flow");
+    ok(`${label}: Core & Flow has its five exports`, (await p.locator(".fcard").count()) === 5);
+    await click('[data-toggle="0"]');
+    ok(`${label}: columns can be changed`, (await p.locator('[data-map^="0:"]').count()) >= 8);
     await click("#runCheck");
     ok(`${label}: check blocks on ambiguous dates`, /Can't import yet/.test(await txt("#importArea")) && /could be day-first or month-first/.test(await txt("#report")));
     await p.selectOption("#dateOrder", "dmy");
     await p.waitForTimeout(100);
+    ok(`${label}: changing it clears the old check`, (await p.locator("#report").count()) === 0);
     await click("#runCheck");
-    ok(`${label}: ready after setting the date order`, /Ready/.test(await txt("#report .pill")) && /Every row accounted for: 1,194 rows/.test(await txt("#report")));
+    ok(`${label}: ready, every row accounted for (${await txt("#report b")})`, /Ready/.test(await txt("#report .pill")) && /Every row accounted for: 156 rows/.test(await txt("#report")));
+    await p.locator("details.issue summary").first().click();
+    ok(`${label}: a problem lists its rows`, /customers\.csv row \d+/.test(await p.locator("details.issue[open]").first().textContent()));
     await click("#import");
-    ok(`${label}: asks to accept warnings`, /Import with these warnings\?/.test(await txt("#importAsk")));
+    ok(`${label}: asks to accept warnings`, /Import with these warnings\?/.test(await txt("#importAsk")) && /Clients: the studio told us 62, we found 59/.test(await txt("#importAsk")));
     await click("#importYes");
-    ok(`${label}: imported (${await toast()})`, /Imported: 417 clients/.test(await toast()));
+    ok(`${label}: imported (${await toast()})`, /Imported: 59 clients, 24 packs, 20 memberships, 34 bookings/.test(await toast()));
     ok(`${label}: verify needs a checked sample`, await p.locator("#verify").isDisabled());
+    ok(`${label}: sample shows the old row and ours`, /Customer ID/.test(await txt(".cmp")) && /Here now/.test(await txt(".cmp")));
     await p.locator('[data-ok="0"]').check();
     await p.waitForTimeout(100);
-    ok(`${label}: sample marks progress`, /Sample compared/.test(await txt(".steps li.now")));
     ok(`${label}: move no h-scroll`, await noHScroll());
     await shot("move");
     await click("#undo");
@@ -111,7 +140,16 @@ const file = "file://" + path.join(__dirname, "hq-test.html");
     await p.locator('[data-ok="1"]').check();
     await p.waitForTimeout(100);
     await click("#verify");
-    ok(`${label}: verified`, /Verified/.test(await txt("#importArea")) && /Verified/.test(await txt(".steps li.now")));
+    ok(`${label}: verified`, /Verified/.test(await txt("#importArea")) && /Verified/.test(await txt(".steps li.done:last-child")));
+
+    // A studio without a move can start one; the owner's app invite comes later.
+    await go("studio-reform-co");
+    await click("#startMove");
+    ok(`${label}: start a move from the studio`, /Reform Co\.: moving data/.test(await txt("h1")) && /Move started/.test(await toast()));
+    await go("studio-core-flow");
+    ok(`${label}: owner not invited yet`, /Not invited yet/.test(await txt("#hTeam + div")));
+    await click("#inviteOwner");
+    ok(`${label}: invite the owner`, /Invite sent to Mei Tan/.test(await toast()) && /Invited/.test(await p.locator("#hTeam").locator("..").textContent()));
 
     // Roles
     await p.selectOption("#asRole", "support");
@@ -129,7 +167,8 @@ const file = "file://" + path.join(__dirname, "hq-test.html");
     ok(`${label}: price shown`, /Essentials: USD 99 a month/.test(await txt("#nsPrice")));
     await shot("new", false);
     await click('#newForm button[type="submit"]');
-    ok(`${label}: studio added (${await toast()})`, /Pilates Loft added. Invite sent to lin@example.com/.test(await toast()) && /Pilates Loft/.test(await txt("h1")));
+    ok(`${label}: studio added (${await toast()})`, /Pilates Loft added\. Moving form sent to lin@example\.com\. The app invite waits until setup is done\./.test(await toast()) && /Pilates Loft/.test(await txt("h1")));
+    ok(`${label}: its move is waiting for the form`, /Moving form sent/.test(await p.locator("#hMove").locator("..").textContent()));
 
     ok(`${label}: no page errors (${errors.join(" | ")})`, errors.length === 0);
     await p.close();
