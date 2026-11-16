@@ -100,8 +100,18 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Celebrations | `GET /me/moments`, `POST /moments/:id/seen`, `PUT /me/celebrations` | owners, admins, instructors |
 | Plan | `GET /plan` (price and its parts, limits, what's included and which plan has the rest) | owner, admin |
 | Setup | `GET /setup` (the studio's kind, the usual rules, what's changed, a getting-started list) | owner, admin |
-| Change a studio's plan (our staff) | `POST /platform/studios/:orgId/plan` with `x-platform-key`, or `pnpm --filter @studio/api plan:set` | our staff only |
+| The welcome page (first sign-in, until the studio opens): the form, send, send updates, uploads | `GET/PUT /welcome`, `POST /welcome/send`, `POST /welcome/update`, `POST /welcome/files` | owner, admin |
+| Reports by location (Signature) | `GET /reports/locations?days=` | owner, admin (Signature plan) |
+| HQ: overview, studios, plans, notes | `GET /platform/me`, `GET /platform/overview`, `GET/POST /platform/studios`, `GET/PATCH /platform/studios/:orgId`, `POST /platform/studios/:orgId/plan`, `POST /platform/studios/:orgId/notes`, `GET /platform/staff` | our team (HQ roles: owner, onboarding, support) |
+| HQ: support access | `POST /platform/studios/:orgId/support-access`, `POST /platform/support-access/:id/end`, `GET /platform/studios/:orgId/clients` (only while open); the studio sees and ends it at `GET /support-access`, `POST /support-access/:id/end` | our team; studio owners and admins |
+| HQ: moving data | `GET /platform/migrations`, `POST /platform/studios/:orgId/migrations`, `GET/PATCH .../migrations/:jobId`, `POST .../files`, `PATCH/DELETE .../files/:fileId`, `POST .../check\|import\|verify\|undo`, `GET .../sample`, `POST .../access`, `PUT .../intake`; `POST /platform/studios/:orgId/invite-owner` | HQ owner, onboarding |
+| HQ assistant | `POST /platform/assistant/ask`, `GET /platform/assistant/chats[/:id]` | our team |
 | Feature switches | `GET /features`, `PUT /features/:key` (switching off asks first when something is running); the switches are also in `GET /settings` | owner, admin (everyone can read them) |
+| Tell clients (one message: notice, banner, push, email) | `POST /tell-clients` (asks first with the reach), `GET /tell-clients` | news: owner, admin, Front of House · offers, banners, emails: owner, admin |
+| Automations (client journeys and team reminders in one list) | `GET /automations` | owner, admin |
+| Write with AI (next to text boxes) | `POST /ai/write` (`kind`: message, reply, review_reply, class_description, package_description, journey_step, rewrite) | whoever can use that box; AI workflows |
+| Phone date strip (clients) | `GET /calendar/strip?date=&days=` (same filters as the calendar) | everyone |
+| Check-in mode | `GET /sessions/:id/check-in?q=` | the class's instructor, Front of House, admin |
 | Home (staff front page) | `GET /dashboard?days=7\|30&locationId=` | staff; what's shown depends on role |
 | Cancelled classes on the calendar | `GET /calendar?includeCancelled=true` | staff (clients never see them) |
 | Who cancelled a class (Cancellations tab) | `cancellations` in `GET /sessions/:id` | admin, Front of House, the class's instructor |

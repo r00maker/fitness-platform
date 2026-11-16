@@ -675,3 +675,32 @@ export const whatsappTemplateInput = z.object({
   category: z.enum(["marketing", "utility"]).default("marketing"),
 });
 export const whatsappVariableCount = (body: string) => new Set([...body.matchAll(/\{\{(\d+)\}\}/g)].map((m) => m[1])).size;
+
+// ---------------------------------------------------------------------------
+// Tell clients: one flow for studio news and offers. Say it once, choose who and where:
+// a notice in the app, a banner, a push notification and/or an email.
+// ---------------------------------------------------------------------------
+/** News reaches everyone it's about; offers only reach people who agreed to marketing. */
+export const TELL_KINDS = { news: "Studio news (a change, a closure, something people need to know)", offer: "An offer or promotion" } as const;
+export const tellClients = z.object({
+  kind: z.enum(["news", "offer"]).default("news"),
+  title: z.string().trim().min(1, "Add a short title, e.g. “Lift out of order”.").max(80),
+  message: z.string().trim().min(1, "Add the message.").max(500),
+  audience: z.object({
+    type: z.enum(["everyone", "location", "booked_at_location", "segment"]).default("everyone"),
+    locationId: id.nullish(),
+    bookedWithinDays: z.number().int().min(1).max(30).default(7),
+    segmentId: id.nullish(),
+  }).default({ type: "everyone", bookedWithinDays: 7 }),
+  places: z.object({
+    notice: z.boolean().default(false),
+    banner: z.object({ imageFileId: id, placement: z.enum(BANNER_PLACEMENTS).default("home"), linkType: z.enum(BANNER_LINKS).default("none"), linkTarget: z.string().trim().max(2000).nullish() }).nullish(),
+    push: z.boolean().default(false),
+    email: z.boolean().default(false),
+  }),
+  importance: z.enum(["info", "important"]).default("info"),
+  startsAt: z.coerce.date().nullish(),
+  duration: z.enum(Object.keys(ANNOUNCEMENT_DURATIONS) as [keyof typeof ANNOUNCEMENT_DURATIONS, ...(keyof typeof ANNOUNCEMENT_DURATIONS)[]]).default("24h"),
+  acknowledge: z.array(z.string()).default([]),
+});
+export type TellClientsInput = z.infer<typeof tellClients>;

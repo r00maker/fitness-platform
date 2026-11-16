@@ -87,3 +87,38 @@ export function writerFor(cfg: Pick<Config, "ANTHROPIC_API_KEY" | "ASSISTANT_MOD
     return { json, stop_reason: res.stop_reason, usage: res.usage };
   };
 }
+
+// --- HQ assistant (our own team) --------------------------------------------------------------
+let hqOverride: ModelCall | null = null;
+/** Tests: answer with a script instead of calling the real API. */
+export const setHqModel = (fn: ModelCall | null) => (hqOverride = fn);
+
+/**
+ * For our team, accuracy matters more than speed or cost: the most capable model at high effort,
+ * with thinking (always on for it) kept in the conversation. Streamed, so long, careful answers
+ * don't hit request time-outs. If the model declines, the API retries once on its default fallback.
+ */
+export function hqModelFor(cfg: Pick<Config, "ANTHROPIC_API_KEY" | "HQ_ASSISTANT_MODEL" | "HQ_ASSISTANT_EFFORT">): ModelCall | null {
+  if (hqOverride) return hqOverride;
+  if (!cfg.ANTHROPIC_API_KEY) return null;
+  client ??= new Anthropic({ apiKey: cfg.ANTHROPIC_API_KEY, maxRetries: 2, timeout: 60_000 });
+  const c = client;
+  return async (req) =>
+    c.beta.messages
+      .stream(
+        {
+          model: cfg.HQ_ASSISTANT_MODEL,
+          max_tokens: 32_000,
+          output_config: { effort: cfg.HQ_ASSISTANT_EFFORT },
+          cache_control: { type: "ephemeral" },
+          betas: ["server-side-fallback-2026-07-01"],
+          fallbacks: "default",
+          system: req.system,
+          messages: req.messages,
+          // Tool inputs stream as they're written; they're checked against their schema before running.
+          tools: req.tools.map((t) => ({ ...t, eager_input_streaming: true })),
+        },
+        { timeout: 10 * 60_000 },
+      )
+      .finalMessage();
+}

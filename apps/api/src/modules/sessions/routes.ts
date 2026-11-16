@@ -10,7 +10,7 @@ import { withFlags } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { canSeeRequest } from "../substitutes/service.js";
-import { classpassView, getCalendar } from "./calendar.js";
+import { classpassView, getCalendar, getDayStrip } from "./calendar.js";
 import { classpassBooked, confirmedCount, describeSession, getOrg, getSession, locationZone } from "./context.js";
 import { waiverStatuses } from "../clients/waivers.js";
 import { activeHealthNotes } from "../clients/health.js";
@@ -25,6 +25,11 @@ const idParam = z.object({ id: schemas.id });
 
 export async function sessionRoutes(app: FastifyInstance) {
   app.get("/calendar", async (req) => getCalendar(app.db, req.auth, parse(schemas.calendarQuery, req.query)));
+  /** The phone date strip: per day, how many classes match the filters and whether you're booked. */
+  app.get("/calendar/strip", async (req) => {
+    const { days, ...q } = parse(schemas.calendarStripQuery, req.query);
+    return getDayStrip(app.db, req.auth, q, days);
+  });
 
   /** Who may open this class: everyone except instructors looking at other people's classes they weren't asked to cover. */
   async function visibleSession(auth: { role: string; userId: string; orgId: string }, id: string) {
@@ -166,6 +171,60 @@ export async function sessionRoutes(app: FastifyInstance) {
       })()),
       // Staff who can see the class list also see who cancelled (the Cancellations tab).
       ...(fullRoster ? { cancellations: await cancellationsFor(app.db, s) } : {}),
+    };
+  });
+
+  /**
+   * Check-in mode (instructors on phones, and the front desk): everyone booked, with the few
+   * things worth knowing at the door, sorted by first name and searchable. Marking uses
+   * PUT /bookings/:id/attendance as usual.
+   */
+  app.get("/sessions/:id/check-in", async (req) => {
+    const { id } = parse(idParam, req.params);
+    const { q } = parse(schemas.checkInQuery, req.query);
+    const { role, orgId } = req.auth;
+    if (role === "client") throw notFound("class");
+    const { s, ownClass } = await visibleSession(req.auth, id);
+    if (!(can(role, "takeAttendanceAnyClass") || ownClass)) throw forbidden("Only the class's instructor, Front of House and admins can check people in.");
+    const org = await getOrg(app.db, orgId);
+    const info = await describeSession(app.db, s);
+    const labels = await spotLabels(app.db, s);
+    const rows = await app.db
+      .select({ bookingId: bookings.id, clientId: bookings.clientId, firstName: users.firstName, lastName: users.lastName, photoUrl: users.photoUrl, spot: bookings.spot, attendance: bookings.attendance, bookedVia: bookings.source })
+      .from(bookings)
+      .innerJoin(users, eq(users.id, bookings.clientId))
+      .where(and(eq(bookings.sessionId, s.id), eq(bookings.status, "confirmed")))
+      .orderBy(asc(users.firstName), asc(users.lastName));
+    const ids = rows.map((r) => r.clientId);
+    const [attended, tags, waivers, health] = await Promise.all([attendedCounts(app.db, orgId, ids), tagsFor(app.db, orgId, ids), waiverStatuses(app.db, org, ids), activeHealthNotes(app.db, orgId, ids)]);
+    const locks = attendanceLocksAt(s.startsAt, await locationZone(app.db, orgId, s.locationId));
+    const now = Date.now(), opensAt = s.startsAt.getTime() - 3_600_000;
+    const needle = q?.toLowerCase();
+    const people = rows
+      .filter((r) => !needle || `${r.firstName} ${r.lastName}`.toLowerCase().includes(needle))
+      .map((r) => {
+        const n = attended.get(r.clientId) ?? 0;
+        const pinned = (tags.get(r.clientId) ?? []).filter((t: { pinned: boolean }) => t.pinned);
+        return {
+          bookingId: r.bookingId, clientId: r.clientId, name: `${r.firstName} ${r.lastName}`, photoUrl: r.photoUrl, attendance: r.attendance,
+          ...(labels && r.spot ? { spotLabel: labels[r.spot - 1] } : {}),
+          classpass: r.bookedVia === "classpass",
+          flags: [
+            ...(waivers.get(r.clientId)?.status === "missing" ? [{ kind: "waiver_missing", text: "No waiver" }] : []),
+            ...(health.get(r.clientId) ?? []).map((h: { label: string }) => ({ kind: "health", text: h.label })),
+            ...(n === 0 ? [{ kind: "first_class", text: "First class" }] : []),
+            ...pinned.slice(0, MAX_UP_FRONT_TAGS).map((t: { name: string; color: string }) => ({ kind: "tag", text: t.name, color: t.color })),
+          ],
+        };
+      });
+    const count = (a: string) => rows.filter((r) => r.attendance === a).length;
+    return {
+      session: { id: s.id, className: info.className, where: info.locationName, localTime: info.localTime, startsAt: s.startsAt.toISOString(), endsAt: s.endsAt.toISOString(), capacity: s.capacity },
+      open: now >= opensAt && now < locks.getTime(),
+      opensAt: new Date(opensAt).toISOString(),
+      locksAt: locks.toISOString(),
+      counts: { booked: rows.length, checkedIn: count("present"), noShow: count("no_show"), notYet: count("unmarked") },
+      people,
     };
   });
 

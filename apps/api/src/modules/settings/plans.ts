@@ -1,6 +1,6 @@
 /**
  * Plans: Essentials, Growth and Signature (PLAN_INFO in @studio/shared). Our staff set a studio's
- * plan after the "help me choose" questionnaire or a first call; studios see what's included and
+ * plan from HQ (modules/platform) after the "help me choose" questionnaire or a first call; studios see what's included and
  * ask us to change it. Every plan gets the same setup, data move and support.
  *
  * Changing the plan:
@@ -13,17 +13,14 @@
  * Limits enforced elsewhere: switching on a feature (features.ts), loyalty and referral settings,
  * adding a location, adding admins, and AI recaps.
  */
-import type { FastifyInstance, FastifyRequest } from "fastify";
-import { timingSafeEqual } from "node:crypto";
+import type { FastifyInstance } from "fastify";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-import { FEATURES, FEATURE_LABELS, PLANS, PLAN_INFO, planAdminSeats, planHasAiWorkflows, planHasApp, planIncludes, planPrice, planWith, schemas, type FeatureKey, type Plan } from "@studio/shared";
+import { FEATURES, FEATURE_LABELS, PLANS, PLAN_INFO, planAdminSeats, planHasAiWorkflows, planHasApp, planIncludes, planPrice, planWith, type FeatureKey, type Plan } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
 import { classSessions, locations, memberships, organizations } from "../../db/schema.js";
 import { audit } from "../../lib/audit.js";
-import { conflict, notFound } from "../../lib/errors.js";
+import { conflict } from "../../lib/errors.js";
 import type { Flags } from "../../lib/flags.js";
-import { withFlags } from "../../lib/route.js";
-import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { getOrg } from "../sessions/context.js";
 import { featureOffEffects, featureState, switchFeature } from "./features.js";
@@ -140,14 +137,6 @@ export async function setPlan(tx: DbOrTx, flags: Flags, orgId: string, input: { 
   return { plan: await planView(tx, after), checklist: await checklist(tx, after) };
 }
 
-/** Our staff's key, compared in constant time. The route is off when no key is set. */
-function platformKeyOk(req: FastifyRequest, key: string | undefined) {
-  const given = req.headers["x-platform-key"];
-  if (!key || typeof given !== "string") return false;
-  const a = Buffer.from(given), b = Buffer.from(key);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
 export async function planRoutes(app: FastifyInstance) {
   const { db } = app;
 
@@ -156,13 +145,4 @@ export async function planRoutes(app: FastifyInstance) {
     return planView(db, await getOrg(db, req.auth.orgId));
   });
 
-  /** Our staff only: change a studio's plan. Studios can't reach this (separate key, not a sign-in). */
-  app.post("/platform/studios/:orgId/plan", { config: { public: true, rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (req) => {
-    if (!platformKeyOk(req, app.config.PLATFORM_ADMIN_KEY)) throw notFound("page");
-    const { orgId } = parse(schemas.orgIdParam, req.params);
-    const input = parse(schemas.setPlan, req.body ?? {});
-    const [exists] = await db.select({ id: organizations.id }).from(organizations).where(eq(organizations.id, orgId));
-    if (!exists) throw notFound("studio");
-    return withFlags(app, input.acknowledge, (tx, flags) => setPlan(tx, flags, orgId, input, null));
-  });
 }

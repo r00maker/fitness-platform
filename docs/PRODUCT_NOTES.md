@@ -42,10 +42,10 @@ The full reasoning, competitor comparison and pricing are in `docs/MARKET_AND_LA
 
 1. ~~Feature switches and a leaner menu~~: built (see below).
 2. ~~Setup by studio type~~: built (see below).
-3. **Client booking on phones:** a date strip and class list first; banners and filters out of the way.
-4. **Instructors on phones:** "Up next: check in" first, and a Check-in mode.
-5. **One AI entry point:** Ask, plus "Write with AI" next to text boxes; reminder agents become journeys.
-6. **One "Tell clients" flow** for announcements, banners and campaigns.
+3. ~~Client booking on phones~~: built (see below).
+4. ~~Instructors on phones~~: built (see below).
+5. ~~One AI entry point~~: built (see below).
+6. ~~One "Tell clients" flow~~: built (see below).
 
 **Before launch (blocking):** online payments (Stripe Connect: cards, PayNow, GrabPay, cards on file), client booking on the web plus a website widget, and data import (CSV, and exports from Mindbody, Momence and Glofox).
 
@@ -245,6 +245,17 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
 - **Rule:** a class's name is never cut short on the calendar. It wraps onto more lines instead, in the week, day and month views and the phone list. When a name needs more lines than the class's time slot has, the block first uses free time below it, then drops the instructor line (the name matters more), and only then grows over the next class, drawn on top with a shadow. Short classes put the time in front of the name to save a line. On phones, the "booked" count on the right is kept narrow so the name gets the room.
 - **For the web and mobile apps:** the same rule applies. Never use one-line truncation (ellipsis) for class names in schedule views; the API already returns the full name.
 
+## One place for each job: Tell clients, Automations, Write with AI
+
+- **Tell clients** (`POST /tell-clients`, list at `GET /tell-clients`) replaces separate starts for announcements, banners and campaigns. One title and message; news or an offer; who (everyone, a location, people booked at a location soon, a segment); where (a notice, a banner, a push, an email); now or scheduled. One confirm (`send_to_many`) with the reach of each place. News reaches everyone it's about (service messages); offers only reach people who agreed to marketing (push and email separately), can't be notices, and need Marketing on the plan. Banners show to everyone or a segment. It creates the same records as before (announcement, banner, email and campaign), so those pages still manage them. Front of House can send news.
+- **Automations** (`GET /automations`) lists client journeys and team reminders (what were "reminder agents") the same way: name, when, what it does, on or off, and which editor opens it. Each part shows only if the plan includes it (journeys: Marketing; team reminders: AI workflows).
+- **Write with AI** (`POST /ai/write`): one writer behind a button next to text boxes: messages to clients, inbox and review replies, class and package descriptions, journey messages, rewrites. Each kind has its own length and who can use it; client text is passed as information only. 1 AI credit; part of AI workflows. **Ask** stays the one chat. The menu no longer has Agents or Announcements: they're under Automations and Tell clients.
+
+## Phones: client booking, Up next and check-in mode
+
+- **Clients booking on a phone** see a 14-day date strip first (`GET /calendar/strip?date=&days=`: per day, how many classes match the filters, how many can still be booked, whether you're booked, and closures), then that day's classes (`GET /calendar?view=day`, which now says `youreBooked` for clients). Notices and banners shrink to one line each; every filter is behind one **Filter** button with a count. Computers keep the full calendar.
+- **Instructors:** My day starts with **Up next** (the dashboard's `today.next` now has `startsIn` and `checkIn`: open from an hour before, how many are in, and the button's words). **Check-in mode** (`GET /sessions/:id/check-in?q=`) lists everyone booked by first name with no waiver, health notes, first class and pinned tags, with counts; marking uses `PUT /bookings/:id/attendance` as before, so the usual rules (window, lock at midnight, no-show fees) apply. Who can open it: the class's instructor, Front of House and admins.
+
 ## Feature switches and the grouped menu
 
 - **Why:** the admin menu had 24 items, and a new owner saw Leads, Agents, Shop, Loyalty and Payroll on day one. Studios now switch on what they use (Setup, Features), and related pages share one menu item with tabs. With everything on, the admin menu is 14 items; a lean studio sees fewer. It's also what makes pricing tiers possible later: a smaller tier is the same product with fewer things switched on.
@@ -273,9 +284,19 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
   - **Growth**, USD 299: up to 3 locations, 1 admin per location. Adds marketing (emails, journeys, campaigns, banners, loyalty, refer a friend), the shop and the WhatsApp inbox. Own app +USD 100 a month.
   - **Signature**, USD 599: up to 5 locations, +USD 150 each after that, no admin limit. Adds leads and AI workflows; own app included.
   - Every plan: Ask (AI chat), unlimited instructor and front desk accounts, booking messages, and the same setup, data move and support.
-- **Our staff set the plan**, never the studio: `POST /v1/platform/studios/:orgId/plan` with header `x-platform-key` (`PLATFORM_ADMIN_KEY`; the route doesn't exist without it, and a studio sign-in can't reach it), or `pnpm --filter @studio/api plan:set <studio id> <plan> [--app] [--yes]`. Existing studios are on Signature, so nothing changed for them.
+- **Our staff set the plan**, never the studio: in HQ (`POST /v1/platform/studios/:orgId/plan`, HQ owner and onboarding roles; a studio sign-in gets "not found"), or `pnpm --filter @studio/api plan:set <studio id> <plan> [--app] [--yes]`. Existing studios are on Signature, so nothing changed for them.
 - **Changing plan:** features the new plan doesn't include switch off the same way as from Setup, Features (nothing deleted; journeys pause, and so on); features it adds switch on; features in both keep the studio's choice. It asks first (`plan_changes`) when something switches off, limits are exceeded, or rules would change for a running studio. Locations and admins over a new plan's limits keep working; no more can be added.
 - **Limits, checked by the API:** switching on a feature outside the plan (`not_in_plan`, which says which plans include it), loyalty and referral settings, banners (marketing tools: Growth and Signature, whatever the switch says), adding a location (`plan_location_limit`; on Signature an extra location asks first because it adds USD 150), adding an admin (`plan_admin_limit`; owners count), and AI recaps (Signature).
 - **AI workflows** are the "AI workflows" feature (agents, the announcement and campaign writers under `/agents/write`, and AI staff recaps). Ask stays on every plan.
 - **Studios see** their plan at `GET /plan`: price with its parts (extra locations, the app), locations and admins used against the limits (with notes when over), the app, AI workflows, each feature with the plan that includes it, the three plans, and "talk to us" to change. Setup, Features shows this as the plan card, with locked features marked "In Growth" or "In Signature".
-- **Not built yet:** billing (prices are shown, not charged), location managers (admins for one location), and Signature's brand-wide tools (comparing locations side by side, rules set once for the brand).
+- **Reports by location** (Signature): Reports → Locations shows every location side by side against the period before: classes held, how full, visits, new clients (first ever class was there), no-show rate, late cancellations, classes cancelled and fees charged (`GET /reports/locations`). Sales from packs and memberships aren't split, because they work at every location. Other plans see the tab marked "In Signature".
+- **Not built yet:** billing (prices are shown, not charged), location managers (admins for one location), and rules set once for a whole brand.
+
+## Moving data and HQ
+
+The full design is in `MIGRATION_AND_HQ.md`. In short:
+
+- **The welcome page:** the owner's first sign-in opens a welcome page with one form (business details including UEN and GST, locations and rooms, classes, packages, team, and moving their data) instead of the dashboard. **Send to our team** fills the studio in from it; **Send updates** sends later changes. The dashboard opens when the move is verified.
+- **Moving from another system:** from the welcome form (or we fill it in with them on a call), the owner chooses how we get the data; our team uploads the exports (CSV, Excel, web-page "XLS"), checks them with a full rehearsal that changes nothing, imports, compares a random sample with the old system and verifies. Every row is accounted for (created, linked, merged or not moved with a reason), nothing is guessed (ambiguous dates, unmatched people and unclear consent are reported), and an import can be undone until anything happens.
+- **HQ** is our own team's dashboard (`/v1/platform`, roles owner, onboarding, support): overview with studios that need attention, studios with plan, status, health, setup, team, activity and notes, adding a studio (the owner is invited and sees the welcome page on first sign-in), support access (time-limited, with a reason the studio sees), the data-move workspace, and the HQ assistant.
+- **HQ assistant:** our most capable model at high effort, with every doc and read-only tools; client look-ups only during support access, logged in the studio's audit log.

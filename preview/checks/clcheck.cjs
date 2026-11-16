@@ -89,6 +89,7 @@ const file = "file://" + path.join(__dirname, "cl-test.html");
     await shot("month", false);
     await role("client");
     await calendarWeek("2026-11-16");
+    if (await p.locator('[data-pbday="2026-11-16"]').count()) { await p.evaluate(() => document.querySelector('[data-pbday="2026-11-16"]').click()); await p.waitForTimeout(150); } // phones: the date strip
     ok(`${label}: clients see the closed day`, (await p.locator(".closedtag").filter({ hasText: "Deepavali" }).count()) === 1);
     await shot("client-calendar", false);
     await role("admin");

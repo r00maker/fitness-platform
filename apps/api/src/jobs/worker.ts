@@ -18,6 +18,7 @@ import { sendScheduledCampaigns } from "../modules/marketing/campaigns.js";
 import { runDueAgents } from "../modules/agents/engine.js";
 import { retryHeldRenewals } from "../modules/packages/payments.js";
 import { syncAllEmail } from "../modules/comms/email.js";
+import { purgeMigrationFiles } from "../modules/migration/engine.js";
 
 const config = loadConfig();
 const { db, pool } = createDb(config.DATABASE_URL);
@@ -51,6 +52,7 @@ every(60 * 60_000, "journey triggers", () => scanJourneyTriggers(db));
 every(60_000, "campaigns", () => sendScheduledCampaigns(db, urls));
 every(60 * 60_000, "gift cards", () => keepOverdueGiftCards(db));
 every(6 * 60 * 60_000, "loyalty expiry", () => expireLoyalty(db));
+every(6 * 60 * 60_000, "old-system files and passwords", () => purgeMigrationFiles(db));
 every(15 * 60_000, "lead follow-ups", () => leadFollowUps(db, urls));
 every(5 * 60_000, "meta conversions", () => sendMetaConversions(db, config));
 every(60_000, "auto-cancel", () => autoCancelDue(db));

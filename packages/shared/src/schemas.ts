@@ -60,6 +60,14 @@ const timezone = z.string().refine(
 
 // ---- Studio settings -------------------------------------------------------
 export const updateOrgSettings = z.object({
+  // Business details (first filled in from the welcome form).
+  legalName: z.string().trim().max(160).nullable().optional(),
+  uen: z.string().trim().toUpperCase().max(20).nullable().optional(),
+  gstNumber: z.string().trim().toUpperCase().max(20).nullable().optional(),
+  address: z.string().trim().max(300).nullable().optional(),
+  phone: z.string().trim().max(40).nullable().optional(),
+  website: z.string().trim().max(200).nullable().optional(),
+  instagram: z.string().trim().max(100).nullable().optional(),
   substituteApproval: z.enum(SUB_APPROVAL_MODES).optional(),
   waitlistModes: z.enum(WAITLIST_MODE_SETTINGS).optional(),
   reviewsEnabled: z.boolean().optional(),
@@ -328,6 +336,99 @@ export const setPlan = z.object({ plan: z.enum(PLANS), brandedApp: z.boolean().o
 export const createLocationAck = z.object({ acknowledge });
 export const orgIdParam = z.object({ orgId: z.string().uuid() });
 
+// --- HQ (our own team's dashboard) -------------------------------------------------------
+export const PLATFORM_ROLES = ["owner", "onboarding", "support"] as const;
+export const STUDIO_LIFECYCLES = ["onboarding", "live", "paused", "cancelled"] as const;
+export const createStudio = z.object({
+  name: z.string().trim().min(2, "Give the studio a name.").max(120),
+  timezone: z.string().trim().min(3).max(60).default("Asia/Singapore"),
+  currency: z.string().trim().length(3).toUpperCase().default("SGD"),
+  plan: z.enum(PLANS),
+  brandedApp: z.boolean().optional(),
+  locationName: z.string().trim().min(1).max(120).optional(),
+  /** Email the owner their invite now (they see the welcome form on first sign-in). Off: invite them later from HQ. */
+  inviteOwner: z.boolean().default(true),
+  owner: z.object({
+    email: z.email("Enter the owner's email address.").max(200),
+    firstName: z.string().trim().min(1, "Add the owner's first name.").max(60),
+    lastName: z.string().trim().min(1, "Add the owner's last name.").max(60),
+  }),
+});
+export const updateStudio = z.object({ lifecycle: z.enum(STUDIO_LIFECYCLES) });
+export const platformNote = z.object({ kind: z.enum(["note", "call", "issue"]).default("note"), body: z.string().trim().min(1, "Write something first.").max(4000) });
+export const supportAccessInput = z.object({ reason: z.string().trim().min(5, "Say why you need access (the studio sees this).").max(500), minutes: z.number().int().min(15).max(240).default(60) });
+export const platformStudiosQuery = z.object({ q: z.string().trim().max(100).optional(), lifecycle: z.enum(STUDIO_LIFECYCLES).optional(), plan: z.enum(PLANS).optional() });
+
+// --- Moving from another system -----------------------------------------------------------------
+export const MIGRATION_KINDS = ["clients", "packages", "memberships", "bookings", "visits", "ignore"] as const;
+export const MIGRATION_ACCESS = ["staff_login", "password", "files"] as const;
+const count0 = z.number().int().min(0).max(1_000_000).nullable().optional();
+/** The form the studio fills in (all optional until they submit; see `submit`). */
+/** Singapore UEN: businesses (8 digits + letter), local companies (9 digits + letter), others (T/S/R…). */
+export const UEN_PATTERN = /^(\d{8}[A-Z]|\d{9}[A-Z]|[TSR]\d{2}[A-Z]{2}\d{4}[A-Z])$/;
+const txt = (n: number) => z.string().trim().max(n).optional();
+export const welcomeLocation = z.object({ name: z.string().trim().min(1, "Give the location a name.").max(120), address: txt(300), rooms: z.array(z.string().trim().min(1).max(80)).max(30).default([]) });
+export const welcomeClassType = z.object({ name: z.string().trim().min(1, "Give the class a name.").max(120), minutes: z.number().int().min(5).max(480).optional(), capacity: z.number().int().min(1).max(500).optional() });
+export const welcomePackage = z.object({
+  name: z.string().trim().min(1, "Give the package a name.").max(120),
+  /** A class pack, or a membership that renews. */
+  type: z.enum(["pack", "membership"]).default("pack"),
+  /** Classes in the pack (or each period of a membership); null or missing = unlimited. */
+  classes: z.number().int().min(1).max(1000).nullable().optional(),
+  price: z.number().min(0).max(100000).optional(),
+  /** Packs: how long they last. Memberships: how often they renew. */
+  validityValue: z.number().int().min(1).max(36).optional(),
+  validityUnit: z.enum(["days", "weeks", "months"]).optional(),
+});
+export const welcomeTeamMember = z.object({ firstName: z.string().trim().min(1, "Add a first name.").max(60), lastName: z.string().trim().max(60).default(""), email: z.email("Enter a valid email address.").max(200), role: z.enum(["admin", "front_desk", "instructor"]).default("instructor") });
+/** The welcome form: getting to know the studio, and moving its data. Everything is optional until it's sent. */
+export const migrationIntake = z.object({
+  // About the business
+  tradingName: txt(120),
+  legalName: txt(160),
+  uen: z.string().trim().toUpperCase().max(20).optional(),
+  gstRegistered: z.boolean().optional(),
+  gstNumber: z.string().trim().toUpperCase().max(20).optional(),
+  address: txt(300),
+  phone: txt(40),
+  website: txt(200),
+  instagram: txt(100),
+  // Setting the studio up
+  locations: z.array(welcomeLocation).max(30).optional(),
+  classTypeList: z.array(welcomeClassType).max(80).optional(),
+  packages: z.array(welcomePackage).max(80).optional(),
+  team: z.array(welcomeTeamMember).max(100).optional(),
+  // Moving the data
+  /** A new studio with nothing to move. */
+  nothingToMove: z.boolean().optional(),
+  oldPlatform: z.string().trim().max(60).optional(),
+  switchDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.").optional(),
+  activeClients: count0,
+  activeMemberships: count0,
+  activePackages: count0,
+  /** How the old system writes dates like 03/04/2026. */
+  dateFormat: z.enum(["dmy", "mdy", "ymd", "unsure"]).optional(),
+  includeInactive: z.boolean().optional(),
+  packagesSold: z.string().trim().max(2000).optional(),
+  classTypes: z.string().trim().max(2000).optional(),
+  access: z.enum(MIGRATION_ACCESS).optional(),
+  /** Only with access "password": a temporary password, encrypted and deleted after the move (7 days at most). */
+  accessLogin: z.string().trim().max(200).optional(),
+  accessPassword: z.string().max(200).optional(),
+  accessNotes: z.string().trim().max(1000).optional(),
+  contactName: z.string().trim().max(120).optional(),
+  contactPhone: z.string().trim().max(40).optional(),
+  notes: z.string().trim().max(4000).optional(),
+  consent: z.boolean().optional(),
+});
+export const migrationUpload = z.object({ filename: z.string().trim().min(1).max(200), data: z.string().min(1, "The file is empty.").max(28_000_000, "Files can be up to 20 MB. Split bigger exports by date or export as CSV.") });
+export const migrationFileUpdate = z.object({ kind: z.enum(MIGRATION_KINDS).optional(), mapping: z.record(z.string(), z.number().int().min(0).max(500).nullable()).optional(), headerRow: z.number().int().min(0).max(50).optional() });
+export const migrationJobUpdate = z.object({ sourcePlatform: z.string().trim().max(60).optional(), dateOrder: z.enum(["dmy", "mdy", "ymd"]).nullable().optional() });
+export const migrationIdParam = z.object({ orgId: z.string().uuid(), jobId: z.string().uuid() });
+export const migrationFileParam = z.object({ orgId: z.string().uuid(), jobId: z.string().uuid(), fileId: z.string().uuid() });
+export const migrationImport = z.object({ acknowledge });
+export const migrationVerify = z.object({ checked: z.number().int().min(1, "Check at least one client against the old system first."), note: z.string().trim().max(2000).optional() });
+
 export const createSeries = z
   .object({
     templateId: id.optional(),
@@ -436,6 +537,11 @@ export const calendarQuery = z.object({
   /** Clients: only classes with their favourite instructor (one-tap filter). */
   favouriteInstructor: z.stringbool().default(false),
 });
+
+/** The phone date strip: `days` days from `date`, with the same filters as the calendar. */
+export const calendarStripQuery = calendarQuery.omit({ view: true, includeCancelled: true }).extend({ view: z.literal("day").default("day"), includeCancelled: z.literal(false).default(false), days: z.coerce.number().int().min(1).max(31).default(14) });
+/** Check-in mode: narrow the list by name. */
+export const checkInQuery = z.object({ q: z.string().trim().max(60).optional() });
 
 // ---- Waivers ----------------------------------------------------------------
 /** A client signing the studio's waiver: tick "I agree" and type their full name. */

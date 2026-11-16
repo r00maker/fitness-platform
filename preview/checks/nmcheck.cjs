@@ -35,9 +35,9 @@ const file = "file://" + path.join(__dirname, "nm-test.html");
     const shot = (n) => p.screenshot({ path: path.join(outDir, `${label}-${n}.png`), fullPage: phone });
     // Every name element in the view: its full text, and whether any of it is cut off or outside its block.
     const names = () => p.evaluate(() => {
-      const sel = "#canvas .ev .en, #canvas .ag-row .n, #canvas .mchip > span";
+      const sel = "#canvas .ev .en, #canvas .ag-row .n, #canvas .mchip > span, #canvas .pbrow .pbm b";
       return [...document.querySelectorAll(sel)].filter((n) => n.offsetParent).map((n) => {
-        const box = n.closest("button, .mchip, .ag-row");
+        const box = n.closest("button, .mchip, .ag-row, .pbrow");
         const r = n.getBoundingClientRect(), b = box.getBoundingClientRect();
         const inside = r.top >= b.top - 1 && r.bottom <= b.bottom + 1 && r.left >= b.left - 1 && r.right <= b.right + 1;
         const cut = n.clientWidth > 0 && n.scrollWidth > n.clientWidth + 1;
@@ -87,7 +87,7 @@ const file = "file://" + path.join(__dirname, "nm-test.html");
     await checkView(phone ? "instructor's week list" : "instructor's week", ["Reformer - Intermediate"]);
     await role("client");
     await view("week");
-    await checkView(phone ? "client's week list" : "client's week", ["Reformer - Intermediate"]);
+    await checkView(phone ? "client's day list (phones show one day at a time)" : "client's week", ["Reformer - Intermediate"]);
     await role("admin");
 
     // Resizing re-fits the blocks (desk only).

@@ -24,6 +24,10 @@ declare module "fastify" {
   interface FastifyRequest {
     auth: AuthContext;
   }
+  interface FastifyInstance {
+    /** Check a sign-in token's signature and claims (used by HQ routes, which have no studio). */
+    verifyToken: (token: string) => Promise<JWTPayload>;
+  }
 }
 
 /**
@@ -46,6 +50,7 @@ async function authPlugin(app: FastifyInstance, opts: { config: Config; db: Db }
     throw unauthorized();
   }
 
+  app.decorate("verifyToken", verify);
   app.decorateRequest("auth", null as unknown as AuthContext);
   app.addHook("onRequest", async (req: FastifyRequest) => {
     if (req.routeOptions.config?.public) return;

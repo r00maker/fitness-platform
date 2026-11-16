@@ -29,25 +29,27 @@ const userParam = z.object({ userId: schemas.id });
 const tokenParam = z.object({ token: z.string().regex(/^[a-f0-9]{48}$/) });
 const roleLabel = (r: string) => OPTION_LABELS.role[r as keyof typeof OPTION_LABELS.role] ?? r;
 
+/** Create a fresh invite link and email it. Earlier links for this person stop working. (Also used by HQ to invite a new studio's owner.) */
+export async function sendStaffInvite(tx: DbOrTx, appUrl: string, orgId: string, userId: string, role: string, invitedBy: string | null) {
+  const [u] = await tx.select().from(users).where(eq(users.id, userId));
+  const [org] = await tx.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, orgId));
+  const [by] = invitedBy ? await tx.select({ first: users.firstName, last: users.lastName }).from(users).where(eq(users.id, invitedBy)) : [];
+  await tx.delete(staffInvites).where(and(eq(staffInvites.orgId, orgId), eq(staffInvites.userId, userId), sql`${staffInvites.acceptedAt} is null`));
+  const token = randomToken(24);
+  const expiresAt = new Date(Date.now() + INVITE_DAYS * 86_400_000);
+  await tx.insert(staffInvites).values({ orgId, userId, email: u!.email, role: role as never, tokenHash: sha256(token), expiresAt, invitedBy });
+  await notify(tx, {
+    orgId, userIds: [userId], template: "staff.invite", channels: ["email"],
+    data: { firstName: u!.firstName, email: u!.email, studioName: org!.name, invitedBy: by ? `${by.first} ${by.last}` : invitedBy ? "The studio" : "Our team", roleLabel: roleLabel(role).toLowerCase(), link: `${appUrl}/staff-invite/${token}` },
+  });
+  return expiresAt;
+}
+
 export async function staffRoutes(app: FastifyInstance) {
   const { db, config } = app;
   const appUrl = config.PUBLIC_APP_URL.replace(/\/$/, "");
 
-  /** Create a fresh invite link and email it. Earlier links for this person stop working. */
-  async function sendInvite(tx: DbOrTx, orgId: string, userId: string, role: string, invitedBy: string) {
-    const [u] = await tx.select().from(users).where(eq(users.id, userId));
-    const [org] = await tx.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, orgId));
-    const [by] = await tx.select({ first: users.firstName, last: users.lastName }).from(users).where(eq(users.id, invitedBy));
-    await tx.delete(staffInvites).where(and(eq(staffInvites.orgId, orgId), eq(staffInvites.userId, userId), sql`${staffInvites.acceptedAt} is null`));
-    const token = randomToken(24);
-    const expiresAt = new Date(Date.now() + INVITE_DAYS * 86_400_000);
-    await tx.insert(staffInvites).values({ orgId, userId, email: u!.email, role: role as never, tokenHash: sha256(token), expiresAt, invitedBy });
-    await notify(tx, {
-      orgId, userIds: [userId], template: "staff.invite", channels: ["email"],
-      data: { firstName: u!.firstName, email: u!.email, studioName: org!.name, invitedBy: by ? `${by.first} ${by.last}` : "The studio", roleLabel: roleLabel(role).toLowerCase(), link: `${appUrl}/staff-invite/${token}` },
-    });
-    return expiresAt;
-  }
+  const sendInvite = (tx: DbOrTx, orgId: string, userId: string, role: string, invitedBy: string) => sendStaffInvite(tx, appUrl, orgId, userId, role, invitedBy);
 
   app.register(async (admin) => {
     admin.addHook("preHandler", async (req) => requirePermission(req, "manageStaff"));

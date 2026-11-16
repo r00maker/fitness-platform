@@ -46,7 +46,7 @@ describe("a class's Cancellations tab", () => {
     expect(c.summary.text).toBe("2 cancellations, 1 moved to another class.");
     const [chloe, dev, eve] = c.list;
     expect(chloe).toMatchObject({ clientId: s.c1.id, via: "self", viaText: "Cancelled by the client", late: false, classReturned: true, fee: null, by: null });
-    expect(chloe.hoursBefore).toBeGreaterThan(60);
+    expect(chloe.hoursBefore).toBeGreaterThan(48) // 3 days ahead at 7am: at least 55 hours whenever the test runs;
     expect(dev).toMatchObject({ via: "staff", viaText: "Cancelled by the studio", reason: "Called in sick", by: { id: s.owner.id } });
     expect(eve).toMatchObject({ via: "moved", viaText: "Moved to another class", classReturned: true });
 

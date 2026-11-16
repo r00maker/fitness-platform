@@ -86,14 +86,17 @@ service postgresql start   # if tests fail with ECONNREFUSED
 # Fresh container? Tests need a "studio" user and "studio_test" database:
 # su postgres -c "psql -c \"create user studio with password 'studio' superuser;\"" && su postgres -c "createdb -O studio studio_test"
 pnpm typecheck
-pnpm test                  # 296 API tests at the time of writing
+pnpm test                  # 320 API tests at the time of writing
 ```
 
 - New migration: edit `apps/api/src/db/schema.ts`, then `cd apps/api && npx drizzle-kit generate --name <name>`. To regenerate one that isn't merged yet, delete its SQL file and snapshot and remove its entry from `drizzle/meta/_journal.json` first.
-- Plans: what each plan includes is `PLAN_INFO` in `packages/shared/src/features.ts`. A new switchable feature needs a place in each plan's `features`. Our staff change plans with `PLATFORM_ADMIN_KEY` (see `apps/api/src/modules/settings/plans.ts`).
+- Plans: what each plan includes is `PLAN_INFO` in `packages/shared/src/features.ts`. A new switchable feature needs a place in each plan's `features`. Our staff change plans in HQ (`apps/api/src/modules/platform/routes.ts`) or with `plan:set`.
 - Feature switches: a page for a switchable feature needs its route pattern in `ROUTES` in `apps/api/src/modules/settings/features.ts`, and its menu entry needs `feature` in `NAV_ITEMS`. Background jobs skip switched-off studios with `featureOnSql`.
 - Route helpers: `withFlags(app, acknowledge, fn)` (returns 409 `needs_confirmation` until acknowledged), `inTx`, `parse`, `requirePermission(req, perm)`. Public routes set `config: { public: true }`; rate limits go in `config.rateLimit`.
 - Notifications use templates in `apps/api/src/modules/notifications/templates.ts` (a template must exist before `notify` can use it).
 - Secrets: `encryptSecret` / `decryptSecret` in `apps/api/src/lib/secrets.ts` (key from `SECRETS_KEY`).
 - Claude API: one platform key (`ANTHROPIC_API_KEY`), usage tracked per studio as AI credits (answer 1, announcement draft 1, campaign draft 3, AI recap 1). See `apps/api/src/modules/assistant/`.
+- HQ (our team's dashboard): `apps/api/src/modules/platform/`. Our staff are `platform_staff` rows (`pnpm --filter @studio/api platform:staff <email> <owner|onboarding|support>`); HQ routes use `config: { public: true }` plus the HQ sign-in hook in `platformRoutes`, and `requirePlatform(req, what)` for roles. Studio client details only through `activeSupportAccess`.
+- Moving data: `apps/api/src/modules/migration/` (`parse.ts` reads files, `fields.ts` recognises kinds and columns, `normalize.ts` cleans values strictly, `engine.ts` checks, imports, undoes and samples). Design and accuracy rules: `docs/MIGRATION_AND_HQ.md`. New column names an old system uses go in `FIELDS` in `fields.ts`.
+- HQ assistant: `apps/api/src/modules/platform/assistant.ts` (model call in `hqModelFor`, `assistant/model.ts`; tests stub it with `setHqModel`).
 - Preview: edit `preview/src/*` or the patches, run `python3 inject.py` in `preview/`, run the checks in `preview/checks/`, then republish the artifact to the same URL.
