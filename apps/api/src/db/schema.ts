@@ -240,6 +240,8 @@ export const organizations = pgTable("organizations", {
   plan: text("plan").$type<"essentials" | "growth" | "signature">().notNull().default("signature"),
   /** Growth only: the branded app add-on. Signature always includes the app. */
   brandedApp: boolean("branded_app").notNull().default(false),
+  /** Where the studio is with us (HQ): onboarding, live, paused or cancelled. Studios from before HQ are live. */
+  lifecycle: text("lifecycle").$type<"onboarding" | "live" | "paused" | "cancelled">().notNull().default("live"),
   referralQualify: text("referral_qualify").notNull().default("classes_attended"),
   referralQualifyValue: integer("referral_qualify_value").notNull().default(3),
   referralQualifyWithinDays: integer("referral_qualify_within_days").notNull().default(60),
@@ -2024,3 +2026,49 @@ export interface MomentStory {
   selfCare?: string[];
   byAi?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// HQ: our own team's accounts, notes and support access (see modules/platform)
+// ---------------------------------------------------------------------------
+/** Our staff. Roles: owner (everything, including staff), onboarding (studios, plans, migrations), support (view, notes, support access). */
+export const platformStaff = pgTable(
+  "platform_staff",
+  {
+    id: pk(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").$type<"owner" | "onboarding" | "support">().notNull(),
+    active: boolean("active").notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("platform_staff_user_uq").on(t.userId)],
+);
+
+/** Our internal notes on a studio (calls, issues, decisions). Studios never see these. */
+export const platformNotes = pgTable(
+  "platform_notes",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id").references(() => users.id, { onDelete: "set null" }),
+    kind: text("kind").$type<"note" | "call" | "issue">().notNull().default("note"),
+    body: text("body").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("platform_notes_org_idx").on(t.orgId, t.createdAt)],
+);
+
+/** Time-limited, logged access by our staff to a studio's client data, with a reason. The studio sees every one. */
+export const supportAccess = pgTable(
+  "support_access",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    staffUserId: uuid("staff_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    reason: text("reason").notNull(),
+    endsAt: ts("ends_at").notNull(),
+    endedAt: ts("ended_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("support_access_org_idx").on(t.orgId, t.createdAt)],
+);
+

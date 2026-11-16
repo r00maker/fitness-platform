@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { agents, journeys, organizations } from "../src/db/schema.js";
-import { app, config, db, person, pool, reset, studio } from "./helpers.js";
+import { app, db, hqStaff, person, pool, reset, studio } from "./helpers.js";
 
 beforeEach(reset);
 afterAll(async () => {
@@ -9,22 +9,20 @@ afterAll(async () => {
   await pool.end();
 });
 
-const KEY = "platform-key-for-tests-0123456789abcdef";
-config.PLATFORM_ADMIN_KEY = KEY;
-const platform = async (orgId: string, body: Record<string, unknown>, key: string | null = KEY) => {
-  const res = await app.inject({ method: "POST", url: `/v1/platform/studios/${orgId}/plan`, headers: key ? { "x-platform-key": key } : {}, payload: body });
-  return { status: res.statusCode, body: res.json() };
-};
+// Our staff change plans from HQ (signed in as themselves).
+let hq: Awaited<ReturnType<typeof hqStaff>>;
+const platform = async (orgId: string, body: Record<string, unknown>) => hq.call("POST", `/platform/studios/${orgId}/plan`, body);
 const orgOf = async (id: string) => (await db.select().from(organizations).where(eq(organizations.id, id)))[0]!;
 const tz = "Asia/Singapore";
 
 describe("plans", () => {
   it("our staff set the plan with their own key; the studio starts with that plan's features and rules", async () => {
     const s = await studio();
-    expect((await platform(s.orgId, { plan: "essentials" }, null)).status).toBe(404);
-    expect((await platform(s.orgId, { plan: "essentials" }, "x".repeat(KEY.length))).status).toBe(404);
-    const asOwner = await app.inject({ method: "POST", url: `/v1/platform/studios/${s.orgId}/plan`, headers: { authorization: `Bearer ${s.owner.token}` }, payload: { plan: "signature" } });
-    expect(asOwner.statusCode).toBe(404); // a studio sign-in is not our staff's key
+    hq = await hqStaff("onboarding");
+    // A studio sign-in can't reach HQ (it looks like the page doesn't exist); support staff can't change plans.
+    expect((await s.owner.call("POST", `/platform/studios/${s.orgId}/plan`, { plan: "signature" })).status).toBe(404);
+    const support = await hqStaff("support", "Sam");
+    expect((await support.call("POST", `/platform/studios/${s.orgId}/plan`, { plan: "signature" })).status).toBe(403);
     expect((await platform(s.orgId, { plan: "gold" })).status).toBe(400);
 
     const ask = await platform(s.orgId, { plan: "essentials" });
@@ -58,6 +56,7 @@ describe("plans", () => {
 
   it("each plan's limits: features, locations and admin accounts", async () => {
     const s = await studio();
+    hq = await hqStaff("onboarding");
     await platform(s.orgId, { plan: "essentials", acknowledge: ["plan_changes"] });
 
     const feat = await s.owner.call("PUT", "/features/marketing", { on: true });
@@ -91,6 +90,7 @@ describe("plans", () => {
 
   it("upgrading switches on what's new and keeps the studio's choices; Signature's extra locations; downgrading stops what isn't included", async () => {
     const s = await studio();
+    hq = await hqStaff("onboarding");
     const g = await platform(s.orgId, { plan: "growth", brandedApp: true, acknowledge: ["plan_changes"] });
     expect(g.body.plan).toMatchObject({ label: "Growth", price: { total: "USD 399" }, app: { status: "add_on", on: true, addOn: "USD 100" } });
     expect(g.body.plan.price.parts).toEqual([{ label: "Growth (3 locations included)", amount: "USD 299" }, { label: "Your own app", amount: "USD 100" }]);

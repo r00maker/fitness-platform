@@ -27,8 +27,6 @@ const envSchema = z
     PUBLIC_API_URL: z.string().url().default("http://localhost:3000"),
     /** 64 hex characters. Encrypts stored access tokens (Meta). Generate with: openssl rand -hex 32 */
     SECRETS_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/).optional(),
-    /** Our staff's key for changing a studio's plan (header x-platform-key). Leave empty to switch the route off. */
-    PLATFORM_ADMIN_KEY: z.string().min(32).optional(),
     /** Meta (Facebook/Instagram) app: verifies lead webhooks. Set both to receive Lead Ads. */
     META_APP_SECRET: z.string().min(8).optional(),
     META_VERIFY_TOKEN: z.string().min(8).optional(),

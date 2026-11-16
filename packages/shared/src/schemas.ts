@@ -328,6 +328,27 @@ export const setPlan = z.object({ plan: z.enum(PLANS), brandedApp: z.boolean().o
 export const createLocationAck = z.object({ acknowledge });
 export const orgIdParam = z.object({ orgId: z.string().uuid() });
 
+// --- HQ (our own team's dashboard) -------------------------------------------------------
+export const PLATFORM_ROLES = ["owner", "onboarding", "support"] as const;
+export const STUDIO_LIFECYCLES = ["onboarding", "live", "paused", "cancelled"] as const;
+export const createStudio = z.object({
+  name: z.string().trim().min(2, "Give the studio a name.").max(120),
+  timezone: z.string().trim().min(3).max(60).default("Asia/Singapore"),
+  currency: z.string().trim().length(3).toUpperCase().default("SGD"),
+  plan: z.enum(PLANS),
+  brandedApp: z.boolean().optional(),
+  locationName: z.string().trim().min(1).max(120).optional(),
+  owner: z.object({
+    email: z.email("Enter the owner's email address.").max(200),
+    firstName: z.string().trim().min(1, "Add the owner's first name.").max(60),
+    lastName: z.string().trim().min(1, "Add the owner's last name.").max(60),
+  }),
+});
+export const updateStudio = z.object({ lifecycle: z.enum(STUDIO_LIFECYCLES) });
+export const platformNote = z.object({ kind: z.enum(["note", "call", "issue"]).default("note"), body: z.string().trim().min(1, "Write something first.").max(4000) });
+export const supportAccessInput = z.object({ reason: z.string().trim().min(5, "Say why you need access (the studio sees this).").max(500), minutes: z.number().int().min(15).max(240).default(60) });
+export const platformStudiosQuery = z.object({ q: z.string().trim().max(100).optional(), lifecycle: z.enum(STUDIO_LIFECYCLES).optional(), plan: z.enum(PLANS).optional() });
+
 export const createSeries = z
   .object({
     templateId: id.optional(),

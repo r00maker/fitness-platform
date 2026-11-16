@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { buildApp } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
 import { createDb } from "../src/db/client.js";
-import { classTypes, locations, memberships, notifications, organizations, rooms, users } from "../src/db/schema.js";
+import { classTypes, locations, memberships, notifications, organizations, platformStaff, rooms, users } from "../src/db/schema.js";
 
 export const config = loadConfig();
 export const { db, pool } = createDb(config.DATABASE_URL);
@@ -77,3 +77,12 @@ export async function outbox(template?: string) {
   const rows = await db.select().from(notifications);
   return rows.filter((r) => !template || r.template === template);
 }
+
+/** One of our own team (HQ), signed in. Not a member of any studio. */
+export async function hqStaff(role: "owner" | "onboarding" | "support" = "owner", firstName = "Hana") {
+  const [u] = await db.insert(users).values({ firstName, lastName: `HQ${++n}`, email: `hq${n}@example.com` }).returning();
+  await db.insert(platformStaff).values({ userId: u!.id, role });
+  const token = await new SignJWT({}).setProtectedHeader({ alg: "HS256" }).setSubject(u!.id).setExpirationTime("1h").sign(new TextEncoder().encode(config.AUTH_DEV_SECRET!));
+  return { id: u!.id, token, call: caller(token) };
+}
+

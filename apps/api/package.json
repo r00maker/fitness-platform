@@ -14,7 +14,8 @@
     "db:migrate": "tsx --env-file=.env src/scripts/migrate.ts",
     "db:seed": "tsx --env-file=.env src/scripts/seed.ts",
     "dev:token": "tsx --env-file=.env src/scripts/dev-token.ts",
-    "plan:set": "tsx --env-file=.env src/scripts/set-plan.ts"
+    "plan:set": "tsx --env-file=.env src/scripts/set-plan.ts",
+    "platform:staff": "tsx --env-file=.env src/scripts/platform-staff.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
