@@ -497,6 +497,11 @@ export const calendarQuery = z.object({
   favouriteInstructor: z.stringbool().default(false),
 });
 
+/** The phone date strip: `days` days from `date`, with the same filters as the calendar. */
+export const calendarStripQuery = calendarQuery.omit({ view: true, includeCancelled: true }).extend({ view: z.literal("day").default("day"), includeCancelled: z.literal(false).default(false), days: z.coerce.number().int().min(1).max(31).default(14) });
+/** Check-in mode: narrow the list by name. */
+export const checkInQuery = z.object({ q: z.string().trim().max(60).optional() });
+
 // ---- Waivers ----------------------------------------------------------------
 /** A client signing the studio's waiver: tick "I agree" and type their full name. */
 export const signWaiver = z.object({

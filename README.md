@@ -107,6 +107,8 @@ Fees are recorded as "to be collected" until the payments module is built.
 | HQ: moving data | `GET /platform/migrations`, `POST /platform/studios/:orgId/migrations`, `GET/PATCH .../migrations/:jobId`, `POST .../files`, `PATCH/DELETE .../files/:fileId`, `POST .../check\|import\|verify\|undo`, `GET .../sample`, `POST .../access`, `POST .../form-link`, `PUT .../intake`; `POST /platform/studios/:orgId/invite-owner` | HQ owner, onboarding |
 | HQ assistant | `POST /platform/assistant/ask`, `GET /platform/assistant/chats[/:id]` | our team |
 | Feature switches | `GET /features`, `PUT /features/:key` (switching off asks first when something is running); the switches are also in `GET /settings` | owner, admin (everyone can read them) |
+| Phone date strip (clients) | `GET /calendar/strip?date=&days=` (same filters as the calendar) | everyone |
+| Check-in mode | `GET /sessions/:id/check-in?q=` | the class's instructor, Front of House, admin |
 | Home (staff front page) | `GET /dashboard?days=7\|30&locationId=` | staff; what's shown depends on role |
 | Cancelled classes on the calendar | `GET /calendar?includeCancelled=true` | staff (clients never see them) |
 | Who cancelled a class (Cancellations tab) | `cancellations` in `GET /sessions/:id` | admin, Front of House, the class's instructor |

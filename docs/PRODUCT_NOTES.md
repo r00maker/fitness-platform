@@ -42,8 +42,8 @@ The full reasoning, competitor comparison and pricing are in `docs/MARKET_AND_LA
 
 1. ~~Feature switches and a leaner menu~~: built (see below).
 2. ~~Setup by studio type~~: built (see below).
-3. **Client booking on phones:** a date strip and class list first; banners and filters out of the way.
-4. **Instructors on phones:** "Up next: check in" first, and a Check-in mode.
+3. ~~Client booking on phones~~: built (see below).
+4. ~~Instructors on phones~~: built (see below).
 5. **One AI entry point:** Ask, plus "Write with AI" next to text boxes; reminder agents become journeys.
 6. **One "Tell clients" flow** for announcements, banners and campaigns.
 
@@ -244,6 +244,11 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
 - **Why:** studios run versions of a class and name them their own way ("Reformer - Beginner", "Reformer - Intermediate", "Sweat - Foundations", "Sweat - Essentials"). Cut short, they all read "Reformer - …", and instructors checking clients in on their phones had to open each class to find the right one.
 - **Rule:** a class's name is never cut short on the calendar. It wraps onto more lines instead, in the week, day and month views and the phone list. When a name needs more lines than the class's time slot has, the block first uses free time below it, then drops the instructor line (the name matters more), and only then grows over the next class, drawn on top with a shadow. Short classes put the time in front of the name to save a line. On phones, the "booked" count on the right is kept narrow so the name gets the room.
 - **For the web and mobile apps:** the same rule applies. Never use one-line truncation (ellipsis) for class names in schedule views; the API already returns the full name.
+
+## Phones: client booking, Up next and check-in mode
+
+- **Clients booking on a phone** see a 14-day date strip first (`GET /calendar/strip?date=&days=`: per day, how many classes match the filters, how many can still be booked, whether you're booked, and closures), then that day's classes (`GET /calendar?view=day`, which now says `youreBooked` for clients). Notices and banners shrink to one line each; every filter is behind one **Filter** button with a count. Computers keep the full calendar.
+- **Instructors:** My day starts with **Up next** (the dashboard's `today.next` now has `startsIn` and `checkIn`: open from an hour before, how many are in, and the button's words). **Check-in mode** (`GET /sessions/:id/check-in?q=`) lists everyone booked by first name with no waiver, health notes, first class and pinned tags, with counts; marking uses `PUT /bookings/:id/attendance` as before, so the usual rules (window, lock at midnight, no-show fees) apply. Who can open it: the class's instructor, Front of House and admins.
 
 ## Feature switches and the grouped menu
 

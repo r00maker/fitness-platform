@@ -117,7 +117,20 @@ export async function getDashboard(db: DbOrTx, auth: AuthContext, q: { days: 7 |
   });
   const totalBooked = classes.reduce((a, c) => a + c.booked, 0);
   const totalCapacity = classes.reduce((a, c) => a + c.capacity, 0);
-  const next = classes.find((c) => c.state === "on_now") ?? classes.find((c) => c.state === "upcoming") ?? null;
+  const nextClass = classes.find((c) => c.state === "on_now") ?? classes.find((c) => c.state === "upcoming") ?? null;
+  // Up next, with check-in: opens an hour before (the same window as attendance).
+  const next = nextClass
+    ? (() => {
+        const t = todays.find((x) => x.id === nextClass.id)!;
+        const opensAt = new Date(t.startsAt.getTime() - HOUR);
+        const mins = Math.round((t.startsAt.getTime() - now.getTime()) / 60_000);
+        return {
+          ...nextClass,
+          startsIn: nextClass.state === "on_now" ? "On now" : mins < 60 ? `In ${mins} min` : `At ${nextClass.localTime}`,
+          checkIn: seesRosters ? { open: now >= opensAt, opensAt: opensAt.toISOString(), checkedIn: t.present, notYet: t.unmarked, label: now >= opensAt ? (t.present ? `Check in (${t.present} of ${t.booked} in)` : "Check in") : `Check-in opens at ${utcToLocal(opensAt, zone).time}` } : null,
+        };
+      })()
+    : null;
 
   // --- Needs attention -----------------------------------------------------------------
   const attention: AttentionItem[] = [];

@@ -72,6 +72,12 @@ Home is the first page staff see. Instructors see it as **My day**, about their 
 - **Coming up:** closures in the next 30 days, and quiet classes in the next 3 days that might be worth a nudge to clients.
 - **Location:** choose one location at the top to see just that location. New clients and money in are always for the whole studio, and say so.
 
+**Instructors: Up next and Check in.** My day opens with your next class: when it starts, how many are booked, waivers missing, first-timers and health notes. From an hour before class the button says **Check in**. It opens check-in mode: everyone booked, in big rows sorted by first name, with **No waiver**, health notes and **First class** shown on each. Type a few letters to find someone, then tap **Check in**; the search clears for the next name. Tap again to undo. If someone hasn't signed the waiver, you're asked first and can mark a paper copy done. Once class has started, each row also has **No-show**, and there's **Mark everyone not here as no-show**. Attendance locks at midnight after class, as usual.
+
+## Booking a class (clients on phones)
+
+On a phone, **Book a class** shows a strip of the next 14 days at the top: tap a day to see its classes, each with the full class name, time, instructor, room and spots left (or **Booked** if you're in it). A dot means there are classes that day; **Closed** marks closures. The studio's notices and offers shrink to one line each (tap to read them in full), and every filter (location, instructor, time of day, search, class types and your favourite instructor) sits behind one **Filter** button, which shows how many are on. On a computer, clients see the full calendar as before.
+
 ## The schedule
 
 - **Templates** (Setup, Templates) are saved class details. To delete one, choose **Delete** on its row (or in the template). You're asked first. Classes and repeating schedules made from it stay exactly as they are; the template just can't be used for new classes.

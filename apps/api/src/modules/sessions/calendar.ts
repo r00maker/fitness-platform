@@ -3,6 +3,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { FLAG_TITLES, TIME_OF_DAY_HOURS, can, type CalendarView, type FlagCode, type TimeOfDay } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
 import { classSessions, classTypes, locations, rooms, users } from "../../db/schema.js";
+import { DateTime } from "luxon";
 import { calendarRange, utcToLocal, zoneFor, type TZ } from "../../lib/time.js";
 import type { AuthContext } from "../../plugins/auth.js";
 import { getOrg } from "./context.js";
@@ -30,7 +31,7 @@ const coverFor = alias(users, "cover_for");
  * One query returns everything a calendar cell needs (name, colour, instructor,
  * spots left, waitlist size), so day/week/month views load in a single round trip.
  */
-export async function getCalendar(db: DbOrTx, auth: AuthContext, query: CalendarQuery) {
+export async function getCalendar(db: DbOrTx, auth: AuthContext, query: CalendarQuery, days?: number) {
   let q = query;
   const org = await getOrg(db, auth.orgId);
   const zones = new Map<string, TZ>();
@@ -43,7 +44,8 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
     const [loc] = await db.select({ tz: locations.timezone }).from(locations).where(and(eq(locations.id, q.locationId), eq(locations.orgId, auth.orgId)));
     if (loc) tzName = loc.tz;
   }
-  const { from, to } = calendarRange(q.view, q.date, zone(tzName));
+  // A run of days from `date` (the phone date strip), or the usual day/week/month around it.
+  const { from, to } = days ? { from: DateTime.fromISO(q.date, { zone: zone(tzName) }).startOf("day").toUTC().toJSDate(), to: DateTime.fromISO(q.date, { zone: zone(tzName) }).startOf("day").plus({ days }).toUTC().toJSDate() } : calendarRange(q.view, q.date, zone(tzName));
   const isClient = auth.role === "client";
   // Instructors see only their own classes; Front of House and admins see everything.
   if (auth.role === "instructor") q = { ...q, instructorId: auth.userId };
@@ -93,6 +95,7 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
       coverForLast: coverFor.lastName,
       booked,
       waiting,
+      mine: ownBooking,
       cancelledAt: classSessions.cancelledAt,
       cancelReason: classSessions.cancelReason,
       autoCancelled: classSessions.autoCancelled,
@@ -179,7 +182,7 @@ export async function getCalendar(db: DbOrTx, auth: AuthContext, query: Calendar
         instructor: r.instructorId ? { id: r.instructorId, name: `${r.instructorFirst} ${r.instructorLast}`, photoUrl: r.instructorPhoto } : null,
         /** Set when the instructor is covering: shown as "Ben Tan (cover for Ana Lim)". */
         cover: r.coverForId ? { forInstructor: { id: r.coverForId, name: `${r.coverForFirst} ${r.coverForLast}` } } : null,
-        ...(isClient ? { favouriteInstructor: !!favourite && favourite.instructorId === r.instructorId } : {}),
+        ...(isClient ? { favouriteInstructor: !!favourite && favourite.instructorId === r.instructorId, youreBooked: r.mine } : {}),
         capacity: r.capacity,
         booked: r.booked,
         spotsLeft: Math.max(0, r.capacity - r.booked),
@@ -209,4 +212,29 @@ export function classpassView(r: { classpassEnabled: boolean; classpassSpots: nu
   if (!r.classpassEnabled) return { enabled: false as const };
   const spots = r.classpassSpots ?? 0;
   return { enabled: true as const, spots, taken: r.classpassTaken, available: Math.max(0, Math.min(spots - r.classpassTaken, r.capacity - r.booked)) };
+}
+
+/**
+ * The phone date strip: the next `days` days from `date`, each with how many classes match the
+ * filters, how many can still be booked, and whether the person is booked into any. Same
+ * filters and visibility as the calendar.
+ */
+export async function getDayStrip(db: DbOrTx, auth: AuthContext, query: CalendarQuery, days: number) {
+  const cal = await getCalendar(db, auth, query, days);
+  const out = [];
+  for (let i = 0; i < days; i++) {
+    const date = DateTime.fromISO(query.date).plus({ days: i }).toISODate()!;
+    const list = cal.sessions.filter((x) => x.localDate === date);
+    const closure = cal.closures.find((c) => c.startDate <= date && c.endDate >= date);
+    out.push({
+      date,
+      weekday: DateTime.fromISO(date).toFormat("ccc"),
+      day: DateTime.fromISO(date).day,
+      classes: list.length,
+      bookable: list.filter((x) => !x.isFull && x.bookingWindow === "open").length,
+      youreBooked: list.some((x) => (x as { youreBooked?: boolean }).youreBooked),
+      closed: closure ? closure.name : null,
+    });
+  }
+  return { timezone: cal.timezone, days: out };
 }

@@ -15,6 +15,7 @@ The HTML file is both the base and the output. `inject.py` puts the feature code
   - `mkt11.js` Sales (invoices, receipts, refunds, invoice design) and membership payment holds.
   - `mkt12.js` Shop, Pickups, writing agents, report exports, menu entries.
   - `mkt13.js` Closures and holidays (with `patch11.py`, which shades closed days on the calendar and teaches the class form about them).
+  - `mkt23.js` Phones: clients' date strip, day list, one-line notices and one Filter button on Book a class; instructors' Up next with Check in on My day, and check-in mode.
   - `mkt22.js` Reports by location: the Locations tab on Reports (Signature), locked with "In Signature" on other plans.
   - `mkt21.js` Plans: the plan card on Setup, Features, features locked with the plan that includes them, banners and AI workflows by plan, the getting-started list on Home, and Studio rules search with "Changed from the usual" marks (with `patch18.py`, which tags each Studio rules row with its setting). The **Plan** control in the header is for the preview only; in the real app only our staff change plans.
   - `mkt20.js` Feature switches (Setup, Features) and the grouped menu: related pages share one menu item with tabs, and switched-off features disappear from menus, tabs, Home and the client app (with `patch17.py`, which adds the tabs to pages and hides switched-off pages).
@@ -43,6 +44,7 @@ node s10check.cjs
 
 - `s10check.cjs` sales, holds, shop, calendar, rooms, goals, class types, categories, writers, email, exports.
 - `hqcheck.cjs` the HQ preview: overview, search and filter, plan changes (asks before moving down), support access and notes, the assistant, the moving form, reading an uploaded CSV, the data move (blocked on ambiguous dates, columns, accept warnings, sample, verify, undo), starting a move, inviting the owner, roles, and adding a studio.
+- `pncheck.cjs` phones: the client date strip and day list, notices on one line, the Filter button, opening a class; Up next and check-in mode (search, waiver prompt, undo, big rows). Desktop keeps the calendar.
 - `lrcheck.cjs` reports by location: both locations side by side against the period before, the period switch, and the locked tab on Growth.
 - `plcheck.cjs` plans: the plan card and price, moving down (asks first, says what switches off and what's over the limits), moving up, locked features, banners and AI workflows by plan, Studio rules search and "Changed" marks, and the getting-started list.
 - `ftcheck.cjs` feature switches and the grouped menu: old page addresses, tabs, the menu remembering the last tab, asking before switching off, what hides and what carries on, and switching back on.
