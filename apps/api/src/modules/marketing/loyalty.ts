@@ -28,6 +28,7 @@ import { notify } from "../notifications/outbox.js";
 import { getOrg } from "../sessions/context.js";
 import { endOfDayAfter, giveReward } from "./credit.js";
 import { giftCode } from "./giftcards.js";
+import { assertPlanAllows } from "../settings/plans.js";
 
 type Org = Awaited<ReturnType<typeof getOrg>>;
 type Lot = typeof loyaltyLots.$inferSelect;
@@ -262,6 +263,7 @@ export async function loyaltyRoutes(app: FastifyInstance) {
     const input = parse(loyaltySettings, req.body);
     const sent = Object.keys(req.body ?? {});
     const changes = Object.fromEntries(Object.entries(input).filter(([k]) => sent.includes(k)));
+    if (changes.loyaltyEnabled) assertPlanAllows(await getOrg(db, req.auth.orgId), "loyalty");
     if (changes.loyaltyName && !sent.includes("loyaltyNamePlural")) changes.loyaltyNamePlural = /s$/i.test(String(changes.loyaltyName)) ? changes.loyaltyName : `${changes.loyaltyName}s`;
     const [u] = await db.update(organizations).set(changes).where(eq(organizations.id, req.auth.orgId)).returning();
     await audit(db, { orgId: req.auth.orgId, actorId: req.auth.userId, action: "loyalty.settings", entityType: "organization", entityId: req.auth.orgId, details: changes });

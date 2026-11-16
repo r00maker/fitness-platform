@@ -47,6 +47,7 @@ Mobile apps are built and published with **Expo EAS** (React Native) to the App 
 | Photos, waivers, documents (later) | Private object storage (S3 / Cloudflare R2) | Not publicly readable; the API hands out short-lived signed links. |
 | Secrets (DB password, API keys) | The host's secret manager / environment variables | Never in code or git. The app refuses to start if production config is unsafe (e.g. a dev secret is set). |
 | Studio access tokens (Meta, ads) | Encrypted in the database with `SECRETS_KEY` | Generate with `openssl rand -hex 32` and keep it in the secret manager. Losing it means studios reconnect their ad accounts; changing it needs a re-encrypt. |
+| Our staff's plan key | The host's secret manager, as `PLATFORM_ADMIN_KEY` | Lets our staff change a studio's plan (`POST /v1/platform/studios/:id/plan`). Leave it empty to switch that route off; rotate it if anyone who had it leaves. |
 | Claude API key (agents) | The host's secret manager, as `ANTHROPIC_API_KEY` | One key for the whole platform, server side only. Never in the web or mobile app. Separate keys for staging and production. See section 5. |
 | Who changed what | `audit_log` table | For support, disputes and data-protection requests. |
 | Logs | Host log service (+ Sentry for errors) | Tokens, emails and phone numbers are redacted before logging. |

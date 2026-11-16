@@ -13,7 +13,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import { and, eq, gt, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
-import { FEATURES, FEATURE_LABELS, STORED_FEATURES, schemas, type FeatureKey } from "@studio/shared";
+import { FEATURES, FEATURE_LABELS, PLAN_INFO, STORED_FEATURES, planIncludes, planWith, schemas, type FeatureKey } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
 import { agents, conversations, emailCampaigns, giftCardDesigns, giftCards, journeys, leads, loyaltyRedemptions, orders, organizations, payRates } from "../../db/schema.js";
 import { audit } from "../../lib/audit.js";
@@ -22,6 +22,7 @@ import { withFlags } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { getOrg } from "../sessions/context.js";
+import { assertPlanAllows } from "./plans.js";
 
 type Org = Awaited<ReturnType<typeof getOrg>>;
 type Setting = Exclude<(typeof FEATURES)[number]["setting"], null>;
@@ -61,10 +62,18 @@ export function featureForRoute(url: string | undefined): FeatureKey | null {
   return ROUTES.find((r) => r.match.test(url))?.feature ?? null;
 }
 
+/** Banners belong to the marketing tools: they come with plans that include marketing, whatever the switch says. */
+const PLAN_ONLY_ROUTES: { feature: FeatureKey; match: RegExp }[] = [{ feature: "marketing", match: /^\/v1\/banners(\/|$)/ }];
+
 /** Refuses requests to switched-off features. Registered right after sign-in. */
 export const featureGate = fp(async (app: FastifyInstance) => {
   app.addHook("preHandler", async (req: FastifyRequest) => {
     if (!req.auth?.orgId) return;
+    const planOnly = PLAN_ONLY_ROUTES.find((r) => r.match.test(req.routeOptions.url ?? ""));
+    if (planOnly) {
+      const [org] = await app.db.select({ plan: organizations.plan }).from(organizations).where(eq(organizations.id, req.auth.orgId));
+      if (org) assertPlanAllows(org, planOnly.feature);
+    }
     const key = featureForRoute(req.routeOptions.url);
     if (!key) return;
     const [org] = await app.db.select({ featuresOff: organizations.featuresOff }).from(organizations).where(eq(organizations.id, req.auth.orgId));
@@ -140,12 +149,34 @@ async function stopRunning(tx: DbOrTx, orgId: string, key: FeatureKey) {
   }
 }
 
+/**
+ * Switch one feature on or off, stopping what runs on its own when it goes off. The caller has
+ * already asked the user (see whatHappens). Used by Setup, Features and by setup by studio type.
+ */
+export async function switchFeature(tx: DbOrTx, orgId: string, key: FeatureKey, on: boolean, actorId: string | null) {
+  const org = await getOrg(tx, orgId);
+  if (featureOn(org, key) === on) return false;
+  if (!on) await stopRunning(tx, orgId, key);
+  const setting = settingOf(key);
+  if (setting) await tx.update(organizations).set({ [setting]: on }).where(eq(organizations.id, orgId));
+  else {
+    const off = new Set(org.featuresOff);
+    if (on) off.delete(key);
+    else off.add(key);
+    await tx.update(organizations).set({ featuresOff: [...off].filter((k) => (STORED_FEATURES as readonly string[]).includes(k)) }).where(eq(organizations.id, orgId));
+  }
+  await audit(tx, { orgId, actorId, action: on ? "feature.on" : "feature.off", entityType: "organization", entityId: orgId, details: { feature: key } });
+  return true;
+}
+
+export { whatHappens as featureOffEffects };
+
 export async function featureRoutes(app: FastifyInstance) {
   const { db } = app;
 
   const list = (org: Org) => {
     const state = featureState(org);
-    return FEATURES.map((f) => ({ key: f.key, group: f.group, label: f.label, help: f.help, on: state[f.key] }));
+    return FEATURES.map((f) => ({ key: f.key, group: f.group, label: f.label, help: f.help, on: state[f.key], inPlan: planIncludes(org.plan, f.key), includedIn: planIncludes(org.plan, f.key) ? null : PLAN_INFO[planWith(f.key)].label }));
   };
 
   app.get("/features", async (req) => {
@@ -160,20 +191,12 @@ export async function featureRoutes(app: FastifyInstance) {
     return withFlags(app, acknowledge, async (tx, flags) => {
       const org = await getOrg(tx, req.auth.orgId);
       if (featureOn(org, key) === on) return { features: list(org), changed: false };
+      if (on) assertPlanAllows(org, key);
       if (!on) {
         const lines = await whatHappens(tx, org.id, key);
         if (lines.length) flags.confirm({ code: "feature_off", details: { feature: key, lines }, message: `Switch off ${FEATURE_LABELS[key]}? It's hidden from the menus, and nothing is deleted. ${lines.join(" ")}` });
-        await stopRunning(tx, org.id, key);
       }
-      const setting = settingOf(key);
-      if (setting) await tx.update(organizations).set({ [setting]: on }).where(eq(organizations.id, org.id));
-      else {
-        const off = new Set(org.featuresOff);
-        if (on) off.delete(key);
-        else off.add(key);
-        await tx.update(organizations).set({ featuresOff: [...off].filter((k) => (STORED_FEATURES as readonly string[]).includes(k)) }).where(eq(organizations.id, org.id));
-      }
-      await audit(tx, { orgId: org.id, actorId: req.auth.userId, action: on ? "feature.on" : "feature.off", entityType: "organization", entityId: org.id, details: { feature: key } });
+      await switchFeature(tx, org.id, key, on, req.auth.userId);
       return { features: list(await getOrg(tx, org.id)), changed: true, ...(on ? { next: await nextStep(tx, org, key) } : {}) };
     });
   });

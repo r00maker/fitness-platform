@@ -21,6 +21,7 @@ import type { AuthContext } from "../../plugins/auth.js";
 import { writerFor } from "../assistant/model.js";
 import { AI_CREDITS, assertCanAsk, recordReply } from "../assistant/usage.js";
 import { getOrg } from "../sessions/context.js";
+import { planHasAiWorkflows } from "@studio/shared";
 
 /** Fortnights start on Mondays, counted from this one, in the studio's time zone. */
 const EPOCH = "2026-01-05";
@@ -216,7 +217,7 @@ export async function ensureMoments(db: DbOrTx, cfg: Pick<Config, "ANTHROPIC_API
   const zone = org.timezone;
   const p = fortnight(now, zone), prev = fortnight(now, zone, 2);
   const [from, to] = [toUtc(p.start, zone), toUtc(p.end, zone)];
-  const ai = org.aiRecaps;
+  const ai = org.aiRecaps && planHasAiWorkflows(org.plan); // AI recaps come with Signature (AI workflows)
 
   // Teaching recap: anyone who taught in the last full fortnight.
   const teachKey = `recap:teaching:${p.start}`;

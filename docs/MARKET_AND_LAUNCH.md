@@ -29,7 +29,7 @@ These answer the most common complaints about the incumbents: a confusing back e
 | # | Problem | Principle | Fix |
 |---|---|---|---|
 | 1 (built) | The admin menu has 24 items in 6 groups. A new owner sees Leads, Agents, Shop, Loyalty and Payroll on day one. | Too many choices (Hick's law); show features as they're needed | Feature switches per studio with a lean default, and merged menu items. Aim for about 12. |
-| 2 | Studio rules has 32 settings in 8 sections on one ~3,200px page. | Too much to take in; good defaults (Tesler's law) | A first-run setup ("What kind of studio are you?") that fills sensible defaults, search within settings, and "Changed from default" marks. |
+| 2 (built) | Studio rules has 32 settings in 8 sections on one ~3,200px page. | Too much to take in; good defaults (Tesler's law) | A first-run setup ("What kind of studio are you?") that fills sensible defaults, search within settings, and "Changed from default" marks. |
 | 3 | Clients on a phone see an announcement, a banner carousel and 5 filter controls before the first class. | Put the main task first; follow what clients already know (Jakob's law) | A horizontal date strip with a class list. Banners shrink to one line, and filters sit behind one "Filter" button. |
 | 4 | Instructors on a phone land on "24 people booked". Their next class and check-in are below the fold. | Match how long people spend in the app | "Up next: check in" first, and a Check-in mode with large name rows and search. |
 | 5 | Four AI surfaces (Ask, Agents, writers, AI recaps). Agents overlap with marketing journeys. | Consistency | One Ask, plus "Write with AI" next to text boxes. Reminder agents become journeys. |
@@ -82,23 +82,34 @@ Studios usually spend about 2–5% of revenue on software. That puts $299 at stu
 - **For boutique and multi-location studios, yes.** $399 with the app costs less than Momence Custom with its app ($449), before Momence's processing. It also undercuts Mindbody's upper tiers, with no contract. The $100 difference for the app is cheap against the market ($250 at Momence). Lead with total cost: "all-in, no cut of your sales, no lock-in", plus a calculator against Momence and Mindbody.
 - **For independent studios, no.** PunchPass, Rezerv and Vibefam start at $42–$109. In Singapore, $399 is about 1.6–3× the local options, and Vibefam advertises a 50% grant on top.
 
-### Suggested structure
+### The plans (agreed November 2026)
 
-| Tier | For | Price |
-|---|---|---|
-| Starter | Independent studios: 1 location, up to ~3 staff, payments and booking included | $99–129 |
-| Studio | Boutique studios: everything, with AI credits included | $299 |
-| Studio + App | The same, plus the branded app | $399 |
-| Each extra location | Chains | +$149–199 |
-| Enterprise | Large brands | Custom |
+| | **Essentials** | **Growth** | **Signature** |
+|---|---|---|---|
+| Who it's for | One independent studio | Studios with a team, up to 3 locations | Brands with several locations |
+| Price | USD 99 a month, 1 location | USD 299 a month, up to 3 locations | USD 599 a month, up to 5 locations, +USD 150 for each extra |
+| Your own app | | +USD 100 a month (flat, not per location) | Included |
+| Admin accounts | 1 | 1 per location | No limit |
+| Features | Everything to run classes, take bookings and get paid, plus reviews, gift cards and payroll | + marketing (emails, journeys, campaigns, banners, refer a friend, loyalty), the WhatsApp inbox, the shop | + leads and ad tracking, AI workflows (agents, AI writing, AI recaps) |
+| Setup, data move, support | Same on every plan | Same on every plan | Same on every plan |
 
-- **Billing:** every price is per location, with two months free for paying annually and a no-lock-in monthly option.
-- **WhatsApp message costs** are passed through at cost.
-- **Moving across is free.**
-- **Get on the pre-approved list for Singapore's EDGE grant.** A 50% grant cuts $299 to about $150, which beats the local options. EDGE only replaced PSG on 30 September 2026, so confirm eligibility and claim dates with IMDA and Enterprise Singapore.
-- **Don't charge full price before payments and real apps exist.** Use the founding offer below.
+On the pricing page:
 
-The feature switches (UX improvement 1) are what make tiers possible: a Starter studio is the same product with fewer things switched on.
+> **Essentials: USD 99/month.** For one independent studio. Everything to run classes, take bookings, pay instructors and get paid.
+> **Growth: USD 299/month.** For studios with a team, up to 3 locations. Adds marketing, WhatsApp and the shop. Want your own app? +USD 100/month.
+> **Signature: USD 599/month.** For brands with up to 5 locations (+USD 150 for each extra). Your own app included, plus AI that does the work for you.
+> **Every plan:** we set you up and move your data for you, the same support, and no cut of your sales.
+
+Why it's shaped this way:
+
+- **One job per plan:** run your studio, fill your classes, run your brand. Ask (AI chat) and instructor and front desk accounts are on every plan.
+- **Simple numbers.** Growth is "up to 3 locations" with no per-location extras; 4 or more locations means Signature. Earlier drafts priced Growth per location, but that made Growth cheaper than Signature for large chains.
+- **The steps push in the right direction:** a studio adding a 4th location moves to Signature (USD 599 with the app included); 10 locations cost USD 1,349 a month against roughly USD 5,000 or more on Mindbody.
+- **Service is the same everywhere.** The done-for-you setup has a standard scope: one move of standard data (clients, packages with classes left, memberships, upcoming bookings), plus setting up classes, rules and the plan's features. Unusual moves (several old systems, custom data) are quoted separately.
+- **We recommend the plan** from a short "help me choose" questionnaire (locations, team size, packages or memberships, marketing or WhatsApp from the app, own app) or a first call, so studios rarely have to work it out themselves. Test the pricing page with five studio owners during the pilot: if they can say which plan is theirs, it's clear enough.
+- **Still apply:** two months free for paying annually with a no-lock-in monthly option, WhatsApp message costs passed through at cost, a founding price for pilot studios, and the EDGE grant listing in Singapore (it could halve any plan).
+
+How it works in the product: our staff set the plan (`PLAN_INFO` in `packages/shared/src/features.ts`, see "Plans" in `PRODUCT_NOTES.md`); each plan sets which features can be switched on and the rules a new studio starts with.
 
 ## Launch plan
 

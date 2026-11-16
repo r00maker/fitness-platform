@@ -41,7 +41,7 @@ The full reasoning, competitor comparison and pricing are in `docs/MARKET_AND_LA
 **Feature-set improvements (making it simpler):**
 
 1. ~~Feature switches and a leaner menu~~: built (see below).
-2. **Setup by studio type:** a first-run setup that fills sensible defaults for independent, boutique and multi-location studios, plus search within Studio rules.
+2. ~~Setup by studio type~~: built (see below).
 3. **Client booking on phones:** a date strip and class list first; banners and filters out of the way.
 4. **Instructors on phones:** "Up next: check in" first, and a Check-in mode.
 5. **One AI entry point:** Ask, plus "Write with AI" next to text boxes; reminder agents become journeys.
@@ -248,8 +248,34 @@ From an ad to a paying client, and back to the ad platform so the ads find more 
 ## Feature switches and the grouped menu
 
 - **Why:** the admin menu had 24 items, and a new owner saw Leads, Agents, Shop, Loyalty and Payroll on day one. Studios now switch on what they use (Setup, Features), and related pages share one menu item with tabs. With everything on, the admin menu is 14 items; a lean studio sees fewer. It's also what makes pricing tiers possible later: a smaller tier is the same product with fewer things switched on.
-- **The ten features:** marketing emails and journeys, gift cards, loyalty, refer a friend, leads, reviews, shop, payroll, the communication inbox and agents. Gift cards, loyalty, referrals and reviews already had their own on/off setting, which stays the one source of truth; the rest are stored in `organizations.features_off`. Existing studios keep everything on. Lean defaults for new studios come with setup by studio type (next on the roadmap).
+- **The ten features:** marketing emails and journeys, gift cards, loyalty, refer a friend, leads, reviews, shop, payroll, the communication inbox and agents. Gift cards, loyalty, referrals and reviews already had their own on/off setting, which stays the one source of truth; the rest are stored in `organizations.features_off`. Existing studios keep everything on until they choose a kind of studio (see Setup by studio type).
 - **Switching off** hides a feature and stops it running; nothing is deleted. The API refuses requests to its pages with `feature_off` (route patterns are mapped in `apps/api/src/modules/settings/features.ts`). Finishing what's under way stays possible: orders and rewards waiting to be handed over, and gift cards already sold. Live journeys pause, scheduled campaigns go back to drafts, lead follow-ups are cancelled, and agents and the email inbox stop. When something is running, it asks first (`feature_off` confirm) and says what will happen.
 - **Switching back on** never restarts journeys or campaigns (nothing is sent late by surprise) and returns `next`: what's left to set up. Gift cards switched on before they have an amount and a design stay hidden from clients until both exist.
 - **The menu** is defined once in `NAV_ITEMS` (`packages/shared/src/fields.ts`), served by `GET /meta/fields`. Items with `tabs` group pages (Communication, Clients, Money, Feedback, Staff and pay, Setup); `feature` hides an item or tab; an item with one tab left shows as a plain item. Tab ids are the old page ids, so existing links keep working. Gift card settings live in Money, Shop, so that tab shows while either the shop or gift cards is on.
 - **Apps** read the switches from `GET /settings` (`features`, for every role) and hide what's off, including Home's to-dos (unread messages with the inbox off, low reviews with reviews off).
+
+## Setup by studio type
+
+- **Why:** a new owner faced 32 settings and every feature at once. Each studio now starts with the rules that suit its kind, and with plans (below) our staff set that up, so owners don't have to.
+- **The three kinds** (presets in `STUDIO_TYPE_PRESETS`, `packages/shared/src/features.ts`), one per plan:
+  - **Independent studio** (Essentials): bookings close when class starts, clients can pay at the studio, a 6-hour late-cancellation window, no spot picking, automatic waitlists, no celebration pop-ups.
+  - **Boutique studio** (Growth): bookings close 1 hour before, packages are needed, a 12-hour window, spots, and clients choose how waitlists work.
+  - **Several locations** (Signature): the boutique rules.
+- **When rules are filled in:** the first time a studio gets a plan. Later plan changes never overwrite rules; Studio rules shows what differs from the usual instead.
+- **Studio rules** has a search box (it filters settings and whole sections, and says when nothing matches), plus a "Changed" mark on settings that differ from the usual for the studio's kind, with "Use the usual: …" to put one back in a tap.
+- **Home** shows owners and admins a getting-started list (plan set up, location, classes, packages, team, first classes) until it's done; it can be hidden.
+- **API:** `GET /setup` returns the studio's kind, the usual values, `changedFromUsual` and the checklist. Stored in `organizations.studio_type` and `setup_done_at`. (Studios no longer choose their kind themselves; the plan does it.)
+
+## Plans: Essentials, Growth and Signature
+
+- **The plans** (`PLAN_INFO`, `packages/shared/src/features.ts`; pricing reasoning in `MARKET_AND_LAUNCH.md`):
+  - **Essentials**, USD 99: 1 location, 1 admin. Gift cards, reviews and payroll, on top of everything for running classes.
+  - **Growth**, USD 299: up to 3 locations, 1 admin per location. Adds marketing (emails, journeys, campaigns, banners, loyalty, refer a friend), the shop and the WhatsApp inbox. Own app +USD 100 a month.
+  - **Signature**, USD 599: up to 5 locations, +USD 150 each after that, no admin limit. Adds leads and AI workflows; own app included.
+  - Every plan: Ask (AI chat), unlimited instructor and front desk accounts, booking messages, and the same setup, data move and support.
+- **Our staff set the plan**, never the studio: `POST /v1/platform/studios/:orgId/plan` with header `x-platform-key` (`PLATFORM_ADMIN_KEY`; the route doesn't exist without it, and a studio sign-in can't reach it), or `pnpm --filter @studio/api plan:set <studio id> <plan> [--app] [--yes]`. Existing studios are on Signature, so nothing changed for them.
+- **Changing plan:** features the new plan doesn't include switch off the same way as from Setup, Features (nothing deleted; journeys pause, and so on); features it adds switch on; features in both keep the studio's choice. It asks first (`plan_changes`) when something switches off, limits are exceeded, or rules would change for a running studio. Locations and admins over a new plan's limits keep working; no more can be added.
+- **Limits, checked by the API:** switching on a feature outside the plan (`not_in_plan`, which says which plans include it), loyalty and referral settings, banners (marketing tools: Growth and Signature, whatever the switch says), adding a location (`plan_location_limit`; on Signature an extra location asks first because it adds USD 150), adding an admin (`plan_admin_limit`; owners count), and AI recaps (Signature).
+- **AI workflows** are the "AI workflows" feature (agents, the announcement and campaign writers under `/agents/write`, and AI staff recaps). Ask stays on every plan.
+- **Studios see** their plan at `GET /plan`: price with its parts (extra locations, the app), locations and admins used against the limits (with notes when over), the app, AI workflows, each feature with the plan that includes it, the three plans, and "talk to us" to change. Setup, Features shows this as the plan card, with locked features marked "In Growth" or "In Signature".
+- **Not built yet:** billing (prices are shown, not charged), location managers (admins for one location), and Signature's brand-wide tools (comparing locations side by side, rules set once for the brand).

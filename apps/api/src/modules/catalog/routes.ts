@@ -14,6 +14,8 @@ import { parse, parsePatch } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { assertMemberWithRole } from "../sessions/context.js";
 import { audit } from "../../lib/audit.js";
+import { checkLocationLimit } from "../settings/plans.js";
+import { getOrg } from "../sessions/context.js";
 
 const idParam = z.object({ id: schemas.id });
 
@@ -74,8 +76,14 @@ export async function catalogRoutes(app: FastifyInstance) {
 
     admin.post("/locations", async (req, reply) => {
       const input = parse(schemas.createLocation, req.body);
+      const { acknowledge } = parse(schemas.createLocationAck, req.body ?? {});
+      // Each plan includes a number of locations (see plans.ts); Signature asks before an extra one adds to the price.
+      const created = await withFlags(app, acknowledge, async (tx, flags) => {
+        await checkLocationLimit(tx, await getOrg(tx, req.auth.orgId), flags);
+        return (await tx.insert(locations).values({ ...input, orgId: req.auth.orgId }).returning())[0]!;
+      });
       reply.code(201);
-      return (await db.insert(locations).values({ ...input, orgId: req.auth.orgId }).returning())[0];
+      return created;
     });
 
     admin.post("/rooms", async (req, reply) => {
