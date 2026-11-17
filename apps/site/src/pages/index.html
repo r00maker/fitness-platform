@@ -16,44 +16,9 @@
 .promises li { display: flex; align-items: center; gap: 8px }
 .promises svg { flex: none; color: var(--steel) }
 
-.tt { padding: 14px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; position: relative }
-.tt-day { display: flex; flex-direction: column; gap: 8px; min-width: 0 }
-.tt-day h4 { margin: 0 0 2px; font: 600 12.5px/1.2 var(--text); color: var(--app-mute); display: flex; justify-content: space-between }
-.tt-day h4 b { color: var(--app-fg); font-weight: 600 }
-.cls { position: relative; text-align: left; border: 0; cursor: pointer; font: inherit; color: var(--app-fg); background: color-mix(in srgb, var(--c) 14%, var(--app-2)); border-radius: 9px; padding: 8px 9px 9px 11px; display: flex; flex-direction: column; gap: 2px; min-height: 76px; transition: background .2s }
-.cls::before { content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 3px; background: var(--c) }
-.cls:hover { background: color-mix(in srgb, var(--c) 22%, var(--app-2)) }
-.cls .t { font-size: 11.5px; color: var(--app-mute); font-variant-numeric: tabular-nums }
-.cls .n { font-size: 12.5px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere }
-.cls .s { font-size: 11.5px; margin-top: auto; color: var(--app-mute); font-variant-numeric: tabular-nums }
-.cls .s.few { color: var(--warn) } .cls .s.full { color: var(--bad) }
-.cls.pulse { animation: pulse .7s ease-out }
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 70%, transparent) } 100% { box-shadow: 0 0 0 10px transparent } }
-.tt-feed { display: flex; align-items: center; gap: 8px; min-width: 0 }
-.tt-feed span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.live { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; animation: live 2s infinite }
-@keyframes live { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent) } 70%, 100% { box-shadow: 0 0 0 7px transparent } }
-.tt-toggle { background: none; border: 1px solid var(--app-line); color: var(--app-mute); border-radius: 999px; padding: 5px 11px; font: 500 12px/1 var(--text); cursor: pointer; flex: none }
-@media (max-width: 640px) { .tt { grid-template-columns: repeat(3, minmax(0, 1fr)) } .tt-day:nth-child(n+4) { display: none } .tt-day h4 span { display: none } }
 /* Load moment: the headline settles, then the week fills up. */
-.js .tt .cls { opacity: 0; transform: translateY(-14px) scale(.98) }
-.js .tt.filled .cls { opacity: 1; transform: none; transition: opacity .45s ease, transform .55s cubic-bezier(.2, .8, .2, 1.15); transition-delay: var(--d, 0ms) }
-.pop { position: absolute; z-index: 5; width: min(260px, calc(100% - 28px)); background: var(--app-2); border: 1px solid var(--app-line); border-radius: 12px; padding: 14px; box-shadow: 0 20px 50px -10px rgba(0,0,0,.6); display: flex; flex-direction: column; gap: 8px }
-.pop h5 { margin: 0; font: 600 15px/1.3 var(--text) }
-.pop p { color: var(--app-mute); font-size: 13px }
-.pop .row { display: flex; gap: 8px; margin-top: 4px }
 
 /* Needs attention */
-.att { padding: 8px 0 }
-.att-group { padding: 8px 16px 4px; font: 600 12px/1 var(--text); color: var(--app-mute); display: flex; align-items: center; gap: 8px }
-.sev { width: 8px; height: 8px; border-radius: 50% } .sev.urgent { background: var(--bad) } .sev.soon { background: var(--warn) } .sev.fyi { background: var(--app-mute) }
-.att-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--app-line); transition: opacity .35s, max-height .45s ease, padding .45s ease; max-height: 140px; overflow: hidden }
-.att-item b { font-weight: 600 } .att-item p { color: var(--app-mute); font-size: 13px; grid-column: 1 }
-.att-item .abtn { grid-row: 1 / span 2; grid-column: 2 }
-.att-item.done { opacity: 0; max-height: 0; padding-block: 0; border-top-color: transparent }
-.att-empty { padding: 26px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--app-mute) }
-.att-empty b { color: var(--app-fg); display: flex; align-items: center; gap: 8px }
-.att-empty svg { color: var(--ok) }
 
 
 /* A day at the studio: on wide screens the list stays put while the product windows stack up as
@@ -68,23 +33,10 @@
 .day-t b { font-family: var(--display); font-size: var(--step-1); font-weight: 600; letter-spacing: -0.015em }
 .day-steps p { color: var(--mute); max-width: 44ch }
 .day-card { border: 1px solid var(--line); border-radius: 18px; background: var(--ink-2); padding: clamp(14px, 2.4vw, 26px); display: grid; place-items: center; min-width: 0 }
-.day-card > .win { width: 100% }
+.day-card > .vid:not(.phone) { width: 100% }
+.day-card > .vid.phone { width: min(240px, 100%) }
 .day-steps .day-card { margin-top: 10px }
-.phone { width: min(300px, 100%); margin-inline: auto; border-radius: 38px; padding: 9px; background: #050a09; border: 1px solid #2a3431; box-shadow: 0 40px 90px -30px rgba(0,0,0,.8) }
-.phone .win { border-radius: 30px; border: 0; box-shadow: none }
-.phone-in { padding: 16px 14px 18px; display: flex; flex-direction: column; gap: 10px }
-.next { background: color-mix(in srgb, var(--c-reformer) 16%, var(--app-2)); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 3px }
-.next small { color: var(--app-mute) } .next b { font-size: 15px }
-.rp { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--app-line); font-size: 13.5px }
-.rp .tick { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--app-line); display: grid; place-items: center; flex: none; transition: background .25s, border-color .25s }
-.rp.here .tick { background: var(--ok); border-color: var(--ok) } .rp .tick svg { opacity: 0; color: #04211b } .rp.here .tick svg { opacity: 1 }
-.rp span { flex: 1; min-width: 0 }
-.chip { font-size: 11px; font-weight: 600; font-style: normal; padding: 3px 7px; border-radius: 999px }
-.chip.note { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn) }
-.chip.new { background: color-mix(in srgb, var(--app-accent) 18%, transparent); color: var(--app-accent) }
-.phone .abtn.go { width: 100%; padding: 12px; font-size: 14px }
-.lock { display: flex; align-items: center; gap: 8px; color: var(--app-mute); font-size: 12.5px }
-.lock b { color: var(--app-fg); font-weight: 600 }
+.day-steps .day-card > .vid.phone { width: min(280px, 100%) }
 @media (min-width: 980px) {
   .js .day.scrolly { height: calc(100vh + (var(--n) - 1) * 80vh); padding-block: 0 }
   .js .day.scrolly .day-in { position: sticky; top: 66px; height: calc(100vh - 66px); display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(40px, 5vw, 72px); align-items: center }
@@ -96,7 +48,6 @@
   .js .day.scrolly .day-card { position: absolute; inset: 0; transform-origin: 50% 0; transition: transform .9s var(--ease-out), opacity .7s var(--ease-out), filter .7s var(--ease-out) }
   .js .day.scrolly .day-card.below { transform: translateY(90px) scale(.98); opacity: 0; pointer-events: none }
   .js .day.scrolly .day-card.past { transform: translateY(calc(var(--back) * -26px)) scale(calc(1 - var(--back) * .05)); opacity: calc(1 - var(--back) * .45); filter: brightness(.55); pointer-events: none }
-  .js .day.scrolly .phone { transform: scale(.9); transform-origin: 50% 50% }
 }
 
 /* Made for here: two windows side by side. */
@@ -107,37 +58,6 @@
 .here p.lede { font-size: 1.02rem }
 
 /* Windows */
-.chat { padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 300px }
-.msg { max-width: 82%; padding: 10px 12px; border-radius: 12px; font-size: 13.5px }
-.msg.them { background: var(--app-2); align-self: flex-start; border-top-left-radius: 4px }
-.msg.us { background: #134e43; align-self: flex-end; border-top-right-radius: 4px }
-.msg small { display: block; color: var(--app-mute); font-size: 11px; margin-top: 4px }
-.chat-side { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px dashed var(--app-line); border-radius: 10px; color: var(--app-mute); font-size: 12.5px }
-.typing { display: inline-flex; gap: 4px } .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--app-mute); animation: typing 1.2s infinite } .typing i:nth-child(2) { animation-delay: .15s } .typing i:nth-child(3) { animation-delay: .3s }
-@keyframes typing { 0%, 60%, 100% { opacity: .3 } 30% { opacity: 1 } }
-.close-days { padding: 16px; display: flex; flex-direction: column; gap: 14px }
-.cd-when { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--bad) 10%, var(--app-2)) }
-.cd-when b { font-size: 15px } .cd-when span { color: var(--app-mute); font-size: 13px }
-.cd-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--app-mute) }
-.cd-list b { color: var(--app-fg); font-weight: 600 }
-.msg-prev { border: 1px dashed var(--app-line); border-radius: 10px; padding: 10px 12px; font-size: 13px }
-.msg-prev small { color: var(--app-mute); font-size: 11.5px; display: block; margin-bottom: 4px }
-.cd-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
-.cd-res { font-size: 13px; display: flex; align-items: center; gap: 6px }
-.cd-res svg { color: var(--ok) }
-.share { padding: 18px; display: flex; flex-direction: column; gap: 14px }
-.share-top { display: flex; justify-content: space-between; align-items: baseline }
-.share-top b { font-size: 16px } .share-top span { color: var(--app-mute); font-size: 13px }
-.meter { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: var(--app-2); gap: 2px }
-.meter i { display: block; height: 100% }
-.people { display: flex; flex-direction: column; gap: 8px }
-.person { display: flex; align-items: center; gap: 10px; font-size: 13.5px } .person .av { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #04211b; font-style: normal }
-.person span { flex: 1 } .person em { font-style: normal; color: var(--app-mute); font-variant-numeric: tabular-nums }
-.payroll { width: 100%; border-collapse: collapse; font-size: 13px }
-.payroll th, .payroll td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--app-line); vertical-align: top }
-.payroll th { color: var(--app-mute); font-weight: 500; font-size: 12px }
-.payroll td.num { text-align: right; white-space: nowrap }
-.scroll-x { overflow-x: auto }
 
 /* Three jobs */
 .jobs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line) }
@@ -185,7 +105,6 @@ form.join .full { grid-column: 1 / -1 }
 .form-note { color: var(--mute); font-size: .88rem }
 .thanks { grid-column: 1 / -1; display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 12px; background: color-mix(in srgb, var(--steel) 10%, transparent) }
 .thanks svg { color: var(--steel); flex: none; margin-top: 2px }
-@media (prefers-reduced-motion: reduce) { .js .tt .cls { opacity: 1 !important; transform: none !important } }
 </style>
 <!-- BODY -->
 <main id="main">
@@ -204,14 +123,7 @@ form.join .full { grid-column: 1 / -1 }
           <li data-tick>Your data moved for free</li>
         </ul>
       </div>
-      <figure class="win" style="margin:0" aria-label="The class timetable, as your clients and team see it">
-        <div class="win-bar"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><b>This week</b><small>Tanjong Pagar</small></div>
-        <div class="tt" id="tt"></div>
-        <div class="win-foot">
-          <div class="tt-feed"><i class="live" aria-hidden="true"></i><span id="feed">Tap a class to book a spot</span></div>
-          <button type="button" class="tt-toggle" id="ttToggle" aria-pressed="false">Pause</button>
-        </div>
-      </figure>
+      <figure class="vid"><video muted playsinline loop preload="none" poster="media/schedule.jpg" aria-label="Adding a Barre class to Saturday on the week's schedule"><source data-src="media/schedule.mp4" type="video/mp4"><source data-src="media/schedule.webm" type="video/webm"></video></figure>
     </div>
   </section>
 
@@ -220,60 +132,20 @@ form.join .full { grid-column: 1 / -1 }
       <div>
         <div class="day-head">
           <h2 id="dayT">A day at the studio, handled.</h2>
-          <p class="lede">Scroll through an ordinary day. Every window here is the real product.</p>
+          <p class="lede">Scroll through an ordinary day. Every clip is the real product, recorded as it is.</p>
         </div>
         <ol class="day-steps" id="daySteps">
-          <li data-step="0"><button type="button" class="day-t"><time>7:00am</time><b>Open Home to a to-do list</b></button><p>What needs you today, most urgent first, with one button for each. Clear it and get back to the studio floor.</p></li>
-          <li data-step="1"><button type="button" class="day-t"><time>12:20pm</time><b>Instructors check in from their phone</b></button><p>Who's coming, who's new, whose lower back needs care. One tap marks the whole class present.</p></li>
-          <li data-step="2"><button type="button" class="day-t"><time>6:02pm</time><b>A WhatsApp question, booked in one reply</b></button><p>Clients message the studio's own number. The team answers from one inbox, with the client's pack beside the chat.</p></li>
-          <li data-step="3"><button type="button" class="day-t"><time>11:59pm</time><b>Attendance locks, and pay follows</b></button><p>No-show fees and instructor pay are worked out from the day's attendance, ready when the pay period ends.</p></li>
+          <li data-step="0"><button type="button" class="day-t"><time>7:00am</time><b>Open Home to a to-do list</b></button><p>What needs you today, most urgent first, with one button for each. Here, cover for an evening class is approved in two clicks.</p></li>
+          <li data-step="1"><button type="button" class="day-t"><time>12:20pm</time><b>Instructors check in from their phone</b></button><p>Big names to tap at the door, with injuries and first-timers marked. Their pay follows from who came.</p></li>
+          <li data-step="2"><button type="button" class="day-t"><time>6:02pm</time><b>A WhatsApp question, answered from one inbox</b></button><p>Clients message the studio's own number. The whole team replies from one shared inbox, so nothing waits on one person's phone.</p></li>
+          <li data-step="3"><button type="button" class="day-t"><time>11:59pm</time><b>Pay, worked out from attendance</b></button><p>Each instructor's pay comes from the classes they taught and who came. Mark the month paid and the figures lock.</p></li>
         </ol>
       </div>
       <div class="day-stage" id="dayStage">
-        <div class="day-card" data-card="0">
-          <div class="win" aria-label="Needs attention, on Home">
-            <div class="win-bar"><b>Needs attention</b><small id="attCount">4 things</small></div>
-            <div class="att" id="att">
-              <div class="att-group"><i class="sev urgent"></i>Urgent</div>
-              <div class="att-item"><div><b>1 class has no instructor</b></div><p>Mat Pilates, Thursday 12:30pm. Ben and Priya are free then.</p><button type="button" class="abtn go" data-done="Cover request sent to Ben and Priya">Ask for cover</button></div>
-              <div class="att-item"><div><b>2 membership renewals didn't go through</b></div><p>Their cards were declined this morning. They can still book while they update their card.</p><button type="button" class="abtn go" data-done="A link to update their card went to both clients">Send card link</button></div>
-              <div class="att-group"><i class="sev soon"></i>Soon</div>
-              <div class="att-item"><div><b>Attendance not taken for 3 classes</b></div><p>Finished in the last 24 hours. Pay and no-show fees depend on it.</p><button type="button" class="abtn go" data-done="Attendance saved for 3 classes">Take attendance</button></div>
-              <div class="att-group"><i class="sev fyi"></i>When you can</div>
-              <div class="att-item"><div><b>1 low review to follow up</b></div><p>2 stars or fewer. A quick, kind reply often wins a client back.</p><button type="button" class="abtn go" data-done="Reply drafted for you to check">Reply</button></div>
-              <div class="att-empty" id="attEmpty" hidden><b data-tick>All caught up</b><button type="button" class="abtn" id="attReset">Show the list again</button></div>
-            </div>
-            <div class="win-foot" role="status" aria-live="polite"><span id="attLog">Try it: each button does the job and clears the line.</span></div>
-          </div>
-        </div>
-        <div class="day-card" data-card="1">
-          <div class="phone">
-            <div class="win" aria-label="My day, on an instructor's phone">
-              <div class="phone-in">
-                <div class="next"><small>Up next, in 10 minutes</small><b>Mat Pilates - Foundations</b><small>12:30pm to 1:20pm, Studio 2</small></div>
-                <div id="roster"></div>
-                <button type="button" class="abtn go" id="markAll">Mark everyone present</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="day-card" data-card="2">
-          <div class="win" aria-label="A WhatsApp conversation in the shared inbox">
-            <div class="win-bar"><b>Mei Tan</b><small>WhatsApp</small></div>
-            <div class="chat">
-              <div class="msg them">Hi! Is there still space in tonight's 6:30 reformer? <small>6:02pm</small></div>
-              <div class="chat-side">Mei has 4 classes left on her 10-class pack, valid until 9 Jan.</div>
-              <div class="msg us" id="waReply"><span class="typing" aria-label="Typing"><i></i><i></i><i></i></span></div>
-            </div>
-          </div>
-        </div>
-        <div class="day-card" data-card="3">
-          <div class="win" aria-label="Instructor pay for the period">
-            <div class="win-bar"><b>Pay, 1 to 15 November</b><small>Ready</small></div>
-            <div class="scroll-x"><table class="payroll" id="payTable"><thead><tr><th scope="col">Instructor</th><th scope="col">How they're paid</th><th scope="col" style="text-align:right">This period</th></tr></thead><tbody></tbody></table></div>
-            <div class="win-foot"><span class="lock"><b>Attendance locked at midnight.</b> 2 no-show fees charged, SGD 30 in all.</span></div>
-          </div>
-        </div>
+        <div class="day-card" data-card="0"><figure class="vid"><video muted playsinline loop preload="none" poster="media/todo.jpg" aria-label="Home's to-do list, then approving cover for an evening class"><source data-src="media/todo.mp4" type="video/mp4"><source data-src="media/todo.webm" type="video/webm"></video></figure></div>
+        <div class="day-card" data-card="1"><figure class="vid phone"><video muted playsinline loop preload="none" poster="media/checkin.jpg" aria-label="An instructor checking clients in to Barre on their phone"><source data-src="media/checkin.mp4" type="video/mp4"><source data-src="media/checkin.webm" type="video/webm"></video></figure></div>
+        <div class="day-card" data-card="2"><figure class="vid"><video muted playsinline loop preload="none" poster="media/whatsapp.jpg" aria-label="Answering a WhatsApp question from the shared inbox"><source data-src="media/whatsapp.mp4" type="video/mp4"><source data-src="media/whatsapp.webm" type="video/webm"></video></figure></div>
+        <div class="day-card" data-card="3"><figure class="vid"><video muted playsinline loop preload="none" poster="media/pay.jpg" aria-label="The pay report, one instructor's classes, and marking the month paid"><source data-src="media/pay.mp4" type="video/mp4"><source data-src="media/pay.webm" type="video/webm"></video></figure></div>
       </div>
     </div>
   </section>
@@ -282,11 +154,11 @@ form.join .full { grid-column: 1 / -1 }
     <div class="wrap">
       <div class="head">
         <h2 id="localT">Made for how studios here actually run.</h2>
-        <p class="lede">You close for Chinese New Year, Hari Raya and Deepavali. Couples and families share one pack. It's all built in, not bolted on.</p>
+        <p class="lede">You close for Chinese New Year, Hari Raya, Deepavali and the odd team retreat. Couples and families share one pack. It's all built in, not bolted on.</p>
       </div>
       <div class="here">
-        <div><h3>Public holidays, handled for you</h3><p class="lede">Add a holiday once. Classes on those days are cancelled, everyone booked gets one message, their classes go back on their packs, and repeating classes skip the days from then on.</p><div id="holidayWin"></div></div>
-        <div><h3>One package for a couple or a family</h3><p class="lede">Share a pack as one pool, or split the classes between people. When someone stops sharing, their unused classes go back to the person who paid.</p><div id="shareWin"></div></div>
+        <div><h3>Closed days, handled for you</h3><p class="lede">Add a holiday or a retreat once. You see exactly which classes it cancels; everyone booked gets one message, their classes go back on their packs, and repeating classes skip the days.</p><figure class="vid"><video muted playsinline loop preload="none" poster="media/closure.jpg" aria-label="Adding a two-day team retreat and the classes it cancels"><source data-src="media/closure.mp4" type="video/mp4"><source data-src="media/closure.webm" type="video/webm"></video></figure></div>
+        <div><h3>One package for a couple or a family</h3><p class="lede">Clients share a pack from their own app. Use it as one pool or split the classes; when someone stops sharing, their unused classes go back to the person who paid.</p><figure class="vid"><video muted playsinline loop preload="none" poster="media/share.jpg" aria-label="A client sharing their family pack from the app"><source data-src="media/share.mp4" type="video/mp4"><source data-src="media/share.webm" type="video/webm"></video></figure></div>
       </div>
     </div>
   </section>
@@ -369,131 +241,10 @@ form.join .full { grid-column: 1 / -1 }
 <script>
 (() => {
   "use strict";
-  const { reduce, $, $$, el, tick, replay, type } = window.S;
+  const { reduce, $, $$, el, tick } = window.S;
   $$("[data-tick]").forEach((n) => n.insertAdjacentHTML("afterbegin", tick(n.tagName === "B" ? 18 : 16)));
 
-  // --- Hero: the headline sweeps in, then the week fills up ----------------------------------
-  const TYPES = {
-    reformer: ["Reformer - Intermediate", "var(--c-reformer)"], yoga: ["Vinyasa Yoga", "var(--c-yoga)"], barre: ["Barre", "var(--c-barre)"],
-    sweat: ["Sweat - Essentials", "var(--c-sweat)"], mat: ["Mat Pilates - Foundations", "var(--c-mat)"],
-  };
-  const WEEK = [
-    ["Mon", 17, [["7:00am", "reformer", "Ana L.", 8, 8], ["12:30pm", "mat", "Ben T.", 12, 5], ["6:30pm", "yoga", "Priya N.", 14, 9], ["7:45pm", "barre", "Ana L.", 12, 10]]],
-    ["Tue", 18, [["7:00am", "sweat", "Marcus W.", 10, 6], ["9:30am", "barre", "Priya N.", 12, 4], ["6:30pm", "reformer", "Ana L.", 8, 7]]],
-    ["Wed", 19, [["7:00am", "yoga", "Priya N.", 14, 11], ["12:30pm", "reformer", "Ben T.", 8, 3], ["6:30pm", "mat", "Ben T.", 12, 9], ["7:45pm", "sweat", "Marcus W.", 10, 8]]],
-    ["Thu", 20, [["7:00am", "reformer", "Ana L.", 8, 6], ["9:30am", "yoga", "Priya N.", 14, 5], ["6:30pm", "barre", "Ana L.", 12, 11]]],
-    ["Fri", 21, [["7:00am", "mat", "Ben T.", 12, 4], ["12:30pm", "sweat", "Marcus W.", 10, 7], ["6:30pm", "reformer", "Ana L.", 8, 8]]],
-  ];
-  const tt = $("#tt");
-  const classes = [];
-  let order = 0;
-  WEEK.forEach(([dow, date, list]) => {
-    const col = el("div", { class: "tt-day" }, [el("h4", { html: `<b>${dow}</b><span>${date} Nov</span>` })]);
-    list.forEach(([time, type, who, cap, booked]) => {
-      const c = { dow, date, time, type, who, cap, booked, waiting: 0 };
-      c.el = el("button", { type: "button", class: "cls", style: `--c:${TYPES[type][1]};--d:${120 + order++ * 45}ms` });
-      c.el.addEventListener("click", () => openPop(c));
-      col.append(c.el);
-      classes.push(c);
-      paint(c);
-    });
-    tt.append(col);
-  });
-  function spotsText(c) { const left = c.cap - c.booked; return left <= 0 ? (c.waiting ? `Full, ${c.waiting} waiting` : "Full") : `${left} ${left === 1 ? "spot" : "spots"} left`; }
-  function paint(c) {
-    const left = c.cap - c.booked;
-    c.el.innerHTML = "";
-    c.el.append(el("span", { class: "t", text: c.time }), el("span", { class: "n", text: TYPES[c.type][0] }), el("span", { class: `s ${left <= 0 ? "full" : left <= 2 ? "few" : ""}`, text: spotsText(c) }));
-    c.el.setAttribute("aria-label", `${TYPES[c.type][0]}, ${c.dow} ${c.time} with ${c.who}. ${spotsText(c)}. Open to book.`);
-  }
-
-  // Bookings come in while you watch (sample names; nothing real).
-  const NAMES = ["Chloe", "Dev", "Mei", "Hana", "Arjun", "Siti", "Wei Ling", "Farah", "Ravi", "Jun", "Aisha", "Marcus"];
-  const feed = $("#feed");
-  let timer = null, paused = false, ticks = 0;
-  function step() {
-    const open = classes.filter((c) => c.booked < c.cap);
-    if (!open.length || ticks++ > 40) return stop();
-    const c = open[Math.floor(Math.random() * open.length)];
-    c.booked++;
-    paint(c);
-    replay(c.el, "pulse");
-    feed.textContent = `${NAMES[Math.floor(Math.random() * NAMES.length)]} booked ${TYPES[c.type][0]}, ${c.dow} ${c.time}`;
-  }
-  function start() { if (!timer && !paused && !reduce) timer = setInterval(step, 2600); }
-  function stop() { clearInterval(timer); timer = null; }
-  const toggle = $("#ttToggle");
-  toggle.addEventListener("click", () => { paused = !paused; toggle.setAttribute("aria-pressed", String(paused)); toggle.textContent = paused ? "Play" : "Pause"; paused ? stop() : start(); });
-  if (reduce) toggle.hidden = true;
-  document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
-
-  let pop = null;
-  function closePop() { pop?.remove(); pop = null; }
-  function openPop(c) {
-    closePop();
-    const left = c.cap - c.booked;
-    const t = TYPES[c.type][0];
-    pop = el("div", { class: "pop", role: "dialog", "aria-label": `${t} details` }, [
-      el("h5", { text: t }),
-      el("p", { text: `${c.dow} ${c.date} Nov, ${c.time} with ${c.who}. Studio 1, Tanjong Pagar.` }),
-      el("p", { class: "pop-state", text: spotsText(c) }),
-    ]);
-    const go = el("button", { type: "button", class: "abtn go", text: left > 0 ? "Book a spot" : "Join the waitlist" });
-    const no = el("button", { type: "button", class: "abtn", text: "Close" });
-    go.addEventListener("click", () => {
-      if (c.booked < c.cap) { c.booked++; $(".pop-state", pop).textContent = `You're booked. ${spotsText(c)}.`; feed.textContent = `You booked ${t}, ${c.dow} ${c.time}`; }
-      else { c.waiting++; $(".pop-state", pop).textContent = `You're number ${c.waiting} on the waitlist. If a spot opens, you're booked in and told straight away.`; feed.textContent = `You joined the waitlist for ${t}`; }
-      go.disabled = true; paint(c); replay(c.el, "pulse");
-    });
-    no.addEventListener("click", () => { closePop(); c.el.focus(); });
-    pop.append(el("div", { class: "row" }, [go, no]));
-    tt.append(pop);
-    const r = c.el.getBoundingClientRect(), box = tt.getBoundingClientRect();
-    const x = Math.min(Math.max(8, r.left - box.left), box.width - pop.offsetWidth - 8);
-    const y = Math.min(r.bottom - box.top + 6, box.height - pop.offsetHeight - 8);
-    pop.style.left = `${x}px`; pop.style.top = `${Math.max(8, y)}px`;
-    go.focus();
-  }
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePop(); });
-  document.addEventListener("click", (e) => { if (pop && !pop.contains(e.target) && !e.target.closest(".cls")) closePop(); });
-
-  // One orchestrated load: headline, then the week drops into place, then bookings start.
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    tt.classList.add("filled");
-    setTimeout(start, reduce ? 0 : 1800);
-  }));
-
   // --- A day at the studio --------------------------------------------------------------------
-  const ROSTER = [["Chloe Ng", null], ["Arjun Rao", ["note", "Lower back"]], ["Hana Sato", null], ["Siti Rahman", ["new", "First class"]], ["Dev Kumar", null]];
-  const roster = $("#roster");
-  ROSTER.forEach(([n, chip]) => {
-    const row = el("div", { class: "rp", html: `<i class="tick">${tick(14, 3)}</i>` });
-    row.append(el("span", { text: n }));
-    if (chip) row.append(el("em", { class: `chip ${chip[0]}`, text: chip[1] }));
-    roster.append(row);
-  });
-  const markAll = $("#markAll");
-  markAll.addEventListener("click", () => {
-    const rows = $$(".rp", roster);
-    const on = !rows[0].classList.contains("here");
-    rows.forEach((r, i) => setTimeout(() => r.classList.toggle("here", on), reduce ? 0 : i * 90));
-    markAll.textContent = on ? "Everyone's marked present. Undo" : "Mark everyone present";
-  });
-  const PAY = [["Ana Lim", "SGD 60 a class, +SGD 5 a client over 6", "SGD 1,385.00"], ["Ben Tan", "By class size: SGD 45 to 75", "SGD 840.00"], ["Priya Nair", "SGD 38 an hour", "SGD 912.00"], ["Marcus Wong", "SGD 3,200 a month", "SGD 1,600.00"]];
-  PAY.forEach(([n, how, amt]) => $("#payTable tbody").append(el("tr", {}, [el("td", { text: n }), el("td", { text: how }), el("td", { class: "num", text: amt })])));
-
-  // The WhatsApp reply types itself the first time its window is shown.
-  let typed = false;
-  const typeReply = () => {
-    if (typed) return; typed = true;
-    const reply = $("#waReply");
-    setTimeout(async () => {
-      const t = el("span"); reply.innerHTML = ""; reply.append(t);
-      await type(t, "Yes, 2 spots left. I've booked you in with your 10-class pack. See you at 6:30!", 22);
-      reply.append(el("small", { text: "6:03pm" }));
-    }, reduce ? 0 : 900);
-  };
-
   const day = $("#day"), steps = $$("#daySteps li"), cards = $$("#dayStage .day-card");
   const wide = matchMedia("(min-width: 980px)");
   let active = -1;
@@ -507,7 +258,7 @@ form.join .full { grid-column: 1 / -1 }
       c.style.setProperty("--back", String(i - k));
       c.style.zIndex = String(k);
     });
-    if (i >= 2) typeReply();
+    window.S.syncVideos?.($("video", cards[i]));
   }
   function onScroll() {
     const r = day.getBoundingClientRect();
@@ -515,8 +266,7 @@ form.join .full { grid-column: 1 / -1 }
     const p = Math.min(1, Math.max(0, -r.top / Math.max(1, run)));
     setActive(Math.min(cards.length - 1, Math.floor(p * cards.length * 0.999)));
   }
-  // Wide screens with motion: the list stays and the windows stack. Otherwise each window sits
-  // under its own step.
+  // Wide screens with motion: the list stays and the clips stack. Otherwise each clip sits under its step.
   function layout() {
     const scrolly = wide.matches && !reduce;
     day.classList.toggle("scrolly", scrolly);
@@ -525,10 +275,7 @@ form.join .full { grid-column: 1 / -1 }
       cards.forEach((c, k) => steps[k].append(c));
       steps.forEach((li) => li.classList.add("on"));
       cards.forEach((c) => { c.classList.remove("below", "past"); c.style.zIndex = ""; });
-      if ("IntersectionObserver" in window) {
-        const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { typeReply(); io.disconnect(); } }, { threshold: 0.5 });
-        io.observe(cards[2]);
-      } else typeReply();
+      window.S.syncVideos?.();
     }
   }
   wide.addEventListener?.("change", layout);
@@ -539,59 +286,6 @@ form.join .full { grid-column: 1 / -1 }
     const run = day.offsetHeight - innerHeight;
     scrollTo({ top: day.offsetTop + ((k + 0.5) / cards.length) * run, behavior: reduce ? "auto" : "smooth" });
   }));
-
-  // --- Needs attention ----------------------------------------------------------------------
-  const att = $("#att"), log = $("#attLog");
-  function refreshAtt() {
-    const left = $$(".att-item:not(.done)", att);
-    $("#attCount").textContent = left.length ? `${left.length} ${left.length === 1 ? "thing" : "things"}` : "Nothing to do";
-    $$(".att-group", att).forEach((g) => { let n = g.nextElementSibling, any = false; while (n && n.classList.contains("att-item")) { if (!n.classList.contains("done")) any = true; n = n.nextElementSibling; } g.hidden = !any; });
-    $("#attEmpty").hidden = left.length > 0;
-  }
-  $$(".att-item .abtn", att).forEach((b) => b.addEventListener("click", () => {
-    b.closest(".att-item").classList.add("done");
-    log.textContent = b.dataset.done + ".";
-    setTimeout(refreshAtt, reduce ? 0 : 420);
-  }));
-  $("#attReset").addEventListener("click", () => { $$(".att-item", att).forEach((i) => i.classList.toggle("done", false)); refreshAtt(); log.textContent = "Back again. Try clearing it."; });
-
-  // --- Made for here ------------------------------------------------------------------------
-  const win = (title, sub) => el("div", { class: "win" }, [el("div", { class: "win-bar", html: `<b>${title}</b><small>${sub}</small>` })]);
-  {
-    const w = win("Close the studio", "Closures");
-    const box = el("div", { class: "close-days" });
-    box.append(
-      el("div", { class: "cd-when", html: "<b>Chinese New Year</b><span>Saturday 6 and Sunday 7 February</span>" }),
-      el("ul", { class: "cd-list" }, [
-        el("li", { html: "<b>9 classes</b> on those days will be cancelled" }),
-        el("li", { html: "<b>64 people</b> booked get one message each" }),
-        el("li", { html: "<b>Their classes</b> go back on their packs" }),
-        el("li", { html: "<b>Repeating classes</b> skip these days from now on" }),
-      ]),
-      el("div", { class: "msg-prev" }, [el("small", { text: "What Mei will get" }), el("p", { text: "Hi Mei, we're closed for Chinese New Year on 6 and 7 Feb, so Saturday's 9am Barre is cancelled and your class is back on your pack. Happy new year, and see you after the break!" })]),
-    );
-    const res = el("p", { class: "cd-res", role: "status" });
-    const go = el("button", { type: "button", class: "abtn go", id: "closeDays", text: "Close the studio" });
-    go.addEventListener("click", () => { go.disabled = true; res.innerHTML = tick(16, 3); res.append(" Closed. 9 classes cancelled and 64 people told."); });
-    box.append(el("div", { class: "cd-foot" }, [go, res]));
-    w.append(box);
-    $("#holidayWin").append(w);
-  }
-  {
-    const w = win("Couple's 20-class pack", "Shared");
-    const people = [["Jun", 7, "var(--c-yoga)"], ["Mei", 5, "var(--c-barre)"]];
-    const sh = el("div", { class: "share" });
-    const meter = el("div", { class: "meter", "aria-hidden": "true" });
-    people.forEach(([, n, c]) => meter.append(el("i", { style: `width:${(n / 20) * 100}%;background:${c}` })));
-    meter.append(el("i", { style: `width:${(8 / 20) * 100}%;background:var(--app-line)` }));
-    sh.append(el("div", { class: "share-top", html: "<b>12 classes left</b><span>Valid until 28 Feb</span>" }), meter);
-    const list = el("div", { class: "people" });
-    people.forEach(([n, k, c]) => list.append(el("div", { class: "person", html: `<i class="av" style="background:${c}">${n[0]}</i><span>${n}</span><em>${k} left</em>` })));
-    list.append(el("div", { class: "person", html: '<i class="av" style="background:var(--app-line);color:var(--app-mute)">+</i><span style="color:var(--app-mute)">Room for 1 more person</span><em></em>' }));
-    sh.append(list);
-    w.append(sh);
-    $("#shareWin").append(w);
-  }
 
   // --- Founding studios form ----------------------------------------------------------------
   // Where requests go: set data-endpoint on the form (an API route) when the site is hosted.

@@ -12,29 +12,7 @@
 @media (max-width: 700px) { .jobhead { grid-template-columns: minmax(0, 1fr) } .jobhead .plan { text-align: left } }
 .stack { display: flex; flex-direction: column; gap: clamp(56px, 8vw, 104px) }
 
-/* Plain-English warnings */
-.dialog { width: min(440px, 100%); padding: 20px; display: flex; flex-direction: column; gap: 12px }
-.dialog h5 { margin: 0; font: 600 17px/1.3 var(--text); display: flex; gap: 10px; align-items: center }
-.dialog h5 svg { color: var(--warn); flex: none }
-.dialog p { color: var(--app-mute) }
-.dialog .row { display: flex; justify-content: flex-end; gap: 8px }
-.dialog-result { display: flex; align-items: center; gap: 8px; min-height: 22px; font-size: 13.5px }
-.dialog-result svg { color: var(--ok) }
 
-/* Instructor phone */
-.phone { width: min(320px, 100%); margin-inline: auto; border-radius: 40px; padding: 10px; background: #050a09; border: 1px solid #2a3431; box-shadow: 0 40px 90px -30px rgba(0,0,0,.8) }
-.phone .win { border-radius: 30px; border: 0; box-shadow: none }
-.phone-in { padding: 18px 16px 22px; display: flex; flex-direction: column; gap: 12px }
-.next { background: color-mix(in srgb, var(--c-reformer) 16%, var(--app-2)); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 4px }
-.next small { color: var(--app-mute) } .next b { font-size: 16px }
-.rp { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--app-line); font-size: 13.5px }
-.rp .tick { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--app-line); display: grid; place-items: center; flex: none; transition: background .25s, border-color .25s }
-.rp.here .tick { background: var(--ok); border-color: var(--ok) } .rp .tick svg { opacity: 0; color: #04211b } .rp.here .tick svg { opacity: 1 }
-.rp span { flex: 1; min-width: 0 }
-.chip { font-size: 11px; font-weight: 600; font-style: normal; padding: 3px 7px; border-radius: 999px }
-.chip.note { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn) }
-.chip.new { background: color-mix(in srgb, var(--app-accent) 18%, transparent); color: var(--app-accent) }
-.phone .abtn.go { width: 100%; padding: 12px; font-size: 14px }
 
 /* Lists of what's included */
 .also { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 36px }
@@ -46,54 +24,8 @@
 .also-t { font-size: var(--step-1); font-weight: 600; margin-bottom: 4px }
 .next-note { margin-top: 20px; color: var(--mute); font-size: .95rem; padding-left: 14px; border-left: 2px solid var(--line-2) }
 
-/* Journeys */
-.jr { padding: 16px; display: flex; flex-direction: column; gap: 14px }
-.jr .seg { background: var(--app); border-color: var(--app-line) }
-.jr .seg button { color: var(--app-mute); font-size: 12.5px; padding: 8px 10px }
-.jr .seg button[aria-selected="true"] { background: var(--app-2); color: var(--app-fg); box-shadow: inset 0 0 0 1px var(--app-line) }
-.jr-result { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--app-accent) 12%, var(--app-2)); font-weight: 600 }
-.jr-result svg { color: var(--app-accent); flex: none }
-.jr-who { color: var(--app-mute); font-size: 13px }
-.jr-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
-.jr-steps li { position: relative; padding: 0 0 16px 26px }
-.jr-steps li::before { content: ""; position: absolute; left: 5px; top: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--app-accent) }
-.jr-steps li:not(:last-child)::after { content: ""; position: absolute; left: 9px; top: 18px; bottom: 0; width: 1px; background: var(--app-line) }
-.jr-steps small { display: block; color: var(--app-mute); font-size: 12px; margin-bottom: 2px }
-.jr-steps p { font-size: 13.5px }
-.jr-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px }
-.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; color: var(--app-mute) }
-.switch input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--app-line); position: relative; cursor: pointer; margin: 0; transition: background .2s }
-.switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--app-fg); transition: transform .2s }
-.switch input:checked { background: var(--app-accent) } .switch input:checked::after { transform: translateX(16px) }
-.switch input:focus-visible { outline: 2px solid var(--steel); outline-offset: 2px }
 
-/* Report by location */
-.rep { padding: 16px; display: flex; flex-direction: column; gap: 16px }
-.rep .seg { background: var(--app); border-color: var(--app-line); align-self: flex-start }
-.rep .seg button { color: var(--app-mute); font-size: 12.5px; padding: 8px 11px }
-.rep .seg button[aria-checked="true"] { background: var(--app-2); color: var(--app-fg); box-shadow: inset 0 0 0 1px var(--app-line) }
-.bars { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none }
-.bars li { display: grid; grid-template-columns: 104px minmax(0, 1fr) 92px; gap: 12px; align-items: center; font-size: 13px }
-.bars .track { height: 10px; border-radius: 999px; background: var(--app-2); overflow: hidden }
-.bars .fill { display: block; height: 100%; border-radius: 999px; background: var(--app-accent); width: var(--w, 0%); transition: width .6s cubic-bezier(.2, .8, .2, 1) }
-.bars li.low .fill { background: var(--warn) }
-.bars b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums }
-@media (max-width: 480px) { .bars li { grid-template-columns: 84px minmax(0, 1fr) 80px; gap: 8px } }
-.rep-note { color: var(--app-mute); font-size: 12.5px }
 
-/* Ask */
-.ask { padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 290px }
-.qs { display: flex; flex-wrap: wrap; gap: 6px }
-.qs button { font: 500 12.5px/1.2 var(--text); color: var(--app-fg); background: var(--app-2); border: 1px solid var(--app-line); border-radius: 999px; padding: 8px 12px; cursor: pointer; text-align: left }
-.qs button[aria-pressed="true"] { border-color: var(--app-accent) }
-.ans { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 12px; background: var(--app-2); font-size: 13.5px }
-.ans small { color: var(--app-mute); font-size: 12px }
-.ask-q { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border: 1px solid var(--app-line); border-radius: 12px; font-size: 13.5px; min-height: 44px }
-.ask-q svg { color: var(--app-accent); flex: none }
-.ask-q span { flex: 1 }
-.stream > * { animation: rise .55s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 140ms) }
-@keyframes rise { from { opacity: 0; transform: translateY(6px) } }
-.ans ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px }
 .every { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 32px; margin-top: 8px }
 @media (max-width: 560px) { .every { grid-template-columns: minmax(0, 1fr) } }
 </style>
@@ -120,30 +52,17 @@
           <div class="copy">
             <h3 class="also-t">Plain English when something looks off</h3>
             <p class="lede">Likely mistakes are flagged and explained before they happen. Nothing is silently blocked, and every consequence is spelled out, from late-cancel fees to when attendance locks.</p>
-            <div class="seg" role="tablist" aria-label="Examples">
-              <button type="button" role="tab" aria-selected="true" data-chk="late">Booking late</button>
-              <button type="button" role="tab" aria-selected="false" data-chk="double">Double-booked</button>
-              <button type="button" role="tab" aria-selected="false" data-chk="holiday">On a holiday</button>
-            </div>
           </div>
-          <div class="stage"><div class="win dialog" id="chk" role="group" aria-label="A warning, as your team sees it"></div></div>
+          <figure class="vid"><video muted playsinline loop preload="none" poster="media/warning.jpg" aria-label="A class that would double-book an instructor, the warning, and the fix"><source data-src="media/warning.mp4" type="video/mp4"><source data-src="media/warning.webm" type="video/webm"></video></figure>
         </div>
 
         <div class="pair flip">
           <div class="copy">
             <h3 class="also-t">Instructors get the class on their own phone</h3>
-            <p class="lede">Who's coming, who's new, whose lower back needs care. One tap marks the whole class present, and their pay follows from it.</p>
+            <p class="lede">Check-in opens an hour before class: big names to tap at the door, with injuries and first-timers marked. Their pay follows from who came.</p>
             <p class="small">Cover requests, their own pay and their schedule live there too, so the group chat goes quiet.</p>
           </div>
-          <div class="phone">
-            <div class="win" aria-label="My day, on an instructor's phone">
-              <div class="phone-in">
-                <div class="next"><small>Up next, in 25 minutes</small><b>Reformer - Intermediate</b><small>6:30pm to 7:20pm, Studio 1</small></div>
-                <div id="roster"></div>
-                <button type="button" class="abtn go" id="markAll">Mark everyone present</button>
-              </div>
-            </div>
-          </div>
+          <figure class="vid phone"><video muted playsinline loop preload="none" poster="media/checkin.jpg" aria-label="An instructor checking clients in to Barre on their phone"><source data-src="media/checkin.mp4" type="video/mp4"><source data-src="media/checkin.webm" type="video/webm"></video></figure>
         </div>
 
         <div>
@@ -174,17 +93,7 @@
             <p class="lede">Three are switched on when you start: a nudge before an intro offer runs out, a welcome after a first class, and a note for clients who've gone quiet. Home tells you who came back.</p>
             <p class="small">Edit the wording, change the timing or switch any of them off. They stop on their own once a client books.</p>
           </div>
-          <div class="win" aria-label="Journeys">
-            <div class="win-bar"><b>Journeys</b><small id="jrState">On</small></div>
-            <div class="jr">
-              <div class="seg" role="tablist" aria-label="Journey">
-                <button type="button" role="tab" aria-selected="true" data-jr="winback">Win-back</button>
-                <button type="button" role="tab" aria-selected="false" data-jr="intro">Intro offer</button>
-                <button type="button" role="tab" aria-selected="false" data-jr="welcome">First class</button>
-              </div>
-              <div id="jrBody" role="tabpanel"></div>
-            </div>
-          </div>
+          <figure class="vid"><video muted playsinline loop preload="none" poster="media/journey.jpg" aria-label="The intro-offer journey, step by step"><source data-src="media/journey.mp4" type="video/mp4"><source data-src="media/journey.webm" type="video/webm"></video></figure>
         </div>
         <div>
           <p class="also-t">Also in Fill your classes</p>
@@ -210,18 +119,7 @@
             <h3 class="also-t">Every location, side by side</h3>
             <p class="lede">See which locations are filling and which need help, in the reports you already use. Compare visits, how full classes were and sales, month by month.</p>
           </div>
-          <div class="win" aria-label="Report by location">
-            <div class="win-bar"><b>By location, October</b><small>4 locations</small></div>
-            <div class="rep">
-              <div class="seg" role="radiogroup" aria-label="Compare">
-                <button type="button" role="radio" aria-checked="true" data-m="visits">Visits</button>
-                <button type="button" role="radio" aria-checked="false" data-m="fill">How full</button>
-                <button type="button" role="radio" aria-checked="false" data-m="sales">Sales</button>
-              </div>
-              <ul class="bars" id="bars"></ul>
-              <p class="rep-note" id="repNote" role="status"></p>
-            </div>
-          </div>
+          <figure class="vid"><video muted playsinline loop preload="none" poster="media/locations.jpg" aria-label="Reports: locations side by side, over different periods"><source data-src="media/locations.mp4" type="video/mp4"><source data-src="media/locations.webm" type="video/webm"></video></figure>
         </div>
         <div>
           <p class="also-t">Also in Run a brand</p>
@@ -241,7 +139,7 @@
     <div class="wrap pair">
       <div class="copy">
         <h2 id="everyT">On every plan</h2>
-        <p class="lede">Ask questions about your studio in plain words and get the answer from your own numbers. And the same service, whichever plan you're on.</p>
+        <p class="lede">Ask how to do something, or why something isn't working, in plain words. And the same service, whichever plan you're on.</p>
         <ul class="ticks every">
           <li data-tick>Setup done for you</li>
           <li data-tick>Your data moved for free</li>
@@ -251,14 +149,7 @@
           <li data-tick>Month to month, no contract</li>
         </ul>
       </div>
-      <div class="win" aria-label="Ask">
-        <div class="win-bar"><b>Ask</b><small>Answers from your studio's data</small></div>
-        <div class="ask">
-          <div class="qs" id="qs"></div>
-          <div class="ask-q" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span id="askQ"></span></div>
-          <div class="ans" id="ans" role="status" aria-live="polite"></div>
-        </div>
-      </div>
+      <figure class="vid"><video muted playsinline loop preload="none" poster="media/ask.jpg" aria-label="Asking how to change lots of classes at once, and the answer"><source data-src="media/ask.mp4" type="video/mp4"><source data-src="media/ask.webm" type="video/webm"></video></figure>
     </div>
   </section>
 </main>
@@ -267,133 +158,7 @@
 <script>
 (() => {
   "use strict";
-  const { reduce, $, $$, el, tick, replay, seg, type } = window.S;
+  const { $$, tick } = window.S;
   $$("[data-tick]").forEach((n) => n.insertAdjacentHTML("afterbegin", tick()));
-  const warnIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5M12 18v.5" stroke-linecap="round"/></svg>';
-
-  // --- Plain-English warnings -----------------------------------------------------------------
-  const CHECKS = {
-    late: { title: "No free cancellation", body: "This class starts in less than 12 hours. If you book and then cancel, you won't get your class credit back.", yes: "Book it", done: "Booked. Chloe's confirmation is on its way by email." },
-    double: { title: "Instructor double-booked", body: "Ana is already teaching Barre at 6:30pm in Studio 2. Save this class with her anyway?", yes: "Save anyway", done: "Saved. Ana's clash shows on the calendar until it's sorted." },
-    holiday: { title: "This is a closed day", body: "The studio is closed on 25 December for Christmas Day. Add the class anyway, or move it to the 26th?", yes: "Add it anyway", done: "Added. Clients see it on the timetable as usual." },
-  };
-  const chk = $("#chk");
-  function showChk(k) {
-    const c = CHECKS[k];
-    chk.innerHTML = "";
-    const res = el("div", { class: "dialog-result", role: "status" });
-    const back = el("button", { type: "button", class: "abtn", text: "Back" });
-    const yes = el("button", { type: "button", class: "abtn go", text: c.yes });
-    back.addEventListener("click", () => { res.textContent = "Nothing changed."; yes.disabled = false; });
-    yes.addEventListener("click", () => { res.innerHTML = tick(16, 3); res.append(" " + c.done); yes.disabled = true; });
-    const h = el("h5", { html: warnIcon }); h.append(el("span", { text: c.title }));
-    chk.append(h, el("p", { text: c.body }), el("div", { class: "row" }, [back, yes]), res);
-    replay(chk, "swap-in");
-  }
-  seg($$("[data-chk]"), (b) => showChk(b.dataset.chk));
-  showChk("late");
-
-  // --- Instructor phone -----------------------------------------------------------------------
-  const ROSTER = [["Chloe Ng", null], ["Arjun Rao", ["note", "Lower back"]], ["Hana Sato", null], ["Siti Rahman", ["new", "First class"]], ["Dev Kumar", null], ["Wei Ling Goh", null]];
-  const roster = $("#roster");
-  ROSTER.forEach(([n, chip]) => {
-    const row = el("div", { class: "rp", html: `<i class="tick">${tick(14, 3)}</i>` });
-    row.append(el("span", { text: n }));
-    if (chip) row.append(el("em", { class: `chip ${chip[0]}`, text: chip[1] }));
-    roster.append(row);
-  });
-  const markAll = $("#markAll");
-  markAll.addEventListener("click", () => {
-    const rows = $$(".rp", roster);
-    const on = !rows[0].classList.contains("here");
-    rows.forEach((r, i) => setTimeout(() => r.classList.toggle("here", on), reduce ? 0 : i * 90));
-    markAll.textContent = on ? "Everyone's marked present. Undo" : "Mark everyone present";
-  });
-
-  // --- Journeys -------------------------------------------------------------------------------
-  const JOURNEYS = {
-    winback: { result: "Brought back 6 clients this month", who: "Clients who haven't booked for 3 weeks", steps: [["After 3 weeks away", "We've missed you: their next classes, and what's left on their pack."], ["A week later, if they still haven't booked", "A free class to come back to, valid for 14 days."]] },
-    intro: { result: "11 of 26 intro clients bought a pack this month", who: "Anyone who bought the 3-class intro offer", steps: [["After their first class", "How was it? Here's what to book next."], ["3 days before the offer runs out", "You have 1 class left, and 15% off a 10-class pack this week."], ["The day it runs out, if they haven't bought", "A last, short note with the pack link."]] },
-    welcome: { result: "34 first-timers welcomed this month", who: "Everyone after their first class", steps: [["Straight after class", "Thanks for coming, plus how booking and cancelling work."], ["3 days later", "Your second class: three times that suit when they came."]] },
-  };
-  const on = { winback: true, intro: true, welcome: true };
-  const jrBody = $("#jrBody");
-  let jr = "winback";
-  function showJr() {
-    const j = JOURNEYS[jr];
-    jrBody.innerHTML = "";
-    const res = el("div", { class: "jr-result", html: tick(18) });
-    res.append(el("span", { text: on[jr] ? j.result : "Switched off. No one gets these messages." }));
-    const steps = el("ol", { class: "jr-steps", "aria-label": "Messages, in order" });
-    j.steps.forEach(([when, what]) => steps.append(el("li", {}, [el("small", { text: when }), el("p", { text: what })])));
-    const sw = el("label", { class: "switch" });
-    const box = el("input", { type: "checkbox", id: "jrOn" });
-    box.checked = on[jr];
-    box.addEventListener("change", () => { on[jr] = box.checked; $("#jrState").textContent = box.checked ? "On" : "Off"; res.lastChild.textContent = box.checked ? j.result : "Switched off. No one gets these messages."; });
-    sw.append(box, document.createTextNode("Switched on"));
-    jrBody.append(el("div", { style: "display:flex;flex-direction:column;gap:14px" }, [res, el("p", { class: "jr-who", text: `Who: ${j.who}. Sent by email.` }), steps, el("div", { class: "jr-foot" }, [sw])]));
-    $("#jrState").textContent = on[jr] ? "On" : "Off";
-    replay(jrBody, "swap-in");
-  }
-  seg($$("[data-jr]"), (b) => { jr = b.dataset.jr; showJr(); });
-  showJr();
-
-  // --- Report by location ---------------------------------------------------------------------
-  const LOCS = [["Tanjong Pagar", 1284, 86, 48200], ["Tiong Bahru", 962, 71, 33900], ["Novena", 1105, 79, 41300], ["Katong", 640, 58, 21800]];
-  const METRIC = {
-    visits: { i: 1, max: 1400, fmt: (v) => v.toLocaleString("en"), note: "Katong had half the visits of Tanjong Pagar: its 7am classes are the quietest in the brand." },
-    fill: { i: 2, max: 100, fmt: (v) => `${v}%`, note: "Katong's classes were 58% full on average. Below 65% is marked so it's easy to spot." },
-    sales: { i: 3, max: 50000, fmt: (v) => `SGD ${(v / 1000).toFixed(1)}k`, note: "Sales from packs, memberships and the shop, before refunds." },
-  };
-  const bars = $("#bars");
-  LOCS.forEach(([n]) => bars.append(el("li", {}, [el("span", { text: n }), el("span", { class: "track" }, [el("i", { class: "fill" })]), el("b", { text: "" })])));
-  function showM(m) {
-    const d = METRIC[m];
-    $$("li", bars).forEach((li, k) => {
-      const v = LOCS[k][d.i];
-      li.querySelector(".fill").style.setProperty("--w", `${(v / d.max) * 100}%`);
-      li.querySelector("b").textContent = d.fmt(v);
-      li.classList.toggle("low", LOCS[k][2] < 65);
-    });
-    $("#repNote").textContent = d.note;
-  }
-  seg($$("[data-m]"), (b) => showM(b.dataset.m));
-  // The bars grow once, when the report first comes into view.
-  const startBars = () => showM("visits");
-  if (reduce || !("IntersectionObserver" in window)) startBars();
-  else {
-    $$("li", bars).forEach((li, k) => { li.querySelector("b").textContent = METRIC.visits.fmt(LOCS[k][1]); });
-    $("#repNote").textContent = METRIC.visits.note;
-    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { startBars(); io.disconnect(); } }, { threshold: 0.4 });
-    io.observe(bars);
-  }
-
-  // --- Ask ------------------------------------------------------------------------------------
-  const ASKS = [
-    ["Who hasn't been in for a month?", "9 clients with classes left haven't booked for 30 days or more.", ["Farah Ismail: 6 classes left, last came 2 October", "Ravi Menon: unlimited membership, last came 28 September", "and 7 more, on the clients page"], "From bookings and packages. Want a win-back email drafted for them?"],
-    ["Which classes were fullest last month?", "Weekday 7am Reformer was fullest at 97%, then Wednesday 6:30pm Mat Pilates at 92%.", ["Saturday 9am Barre had a waitlist every week", "Friday 12:30pm Sweat was 41% full"], "From attendance in October, all locations."],
-    ["What do I owe instructors this period?", "SGD 4,737 for 1 to 15 November, across 4 instructors.", ["Ana Lim: SGD 1,385", "Marcus Wong: SGD 1,600 (salaried)"], "From the pay report. It locks once you mark it paid."],
-  ];
-  const qs = $("#qs"), ans = $("#ans");
-  let asking = 0;
-  ASKS.forEach((a, i) => {
-    const b = el("button", { type: "button", "aria-pressed": "false", text: a[0] });
-    const show = () => {
-      ans.innerHTML = "";
-      ans.classList.add("stream");
-      const parts = [el("b", { text: a[1] }), el("ul", {}, a[2].map((t) => el("li", { text: t }))), el("small", { text: a[3] })];
-      parts.forEach((x, k) => x.style.setProperty("--i", String(k)));
-      ans.append(...parts);
-    };
-    b.addEventListener("click", async () => {
-      $$("button", qs).forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-      const ticket = ++asking;
-      ans.innerHTML = "";
-      await type($("#askQ"), a[0], 18);
-      if (ticket === asking) show();
-    });
-    qs.append(b);
-    if (i === 0) { b.setAttribute("aria-pressed", "true"); $("#askQ").textContent = a[0]; show(); }
-  });
 })();
 </script>

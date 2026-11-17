@@ -59,6 +59,34 @@
       } else heads.forEach(go);
     }
 
+    // Product videos: load as they come near, play while on screen (and, in the day story, only
+    // the window in front). With reduced motion they wait for the play button.
+    const vids = $$(".vid video");
+    const onScreen = new Map();
+    const load = (v) => { if (v.dataset.ready) return; v.dataset.ready = "1"; v.querySelectorAll("source[data-src]").forEach((x) => (x.src = x.dataset.src)); v.load(); };
+    const inFront = (v) => !v.closest(".day-card.below, .day-card.past");
+    const sync = (v) => {
+      if (reduce && !v.dataset.chosen) return;
+      if (onScreen.get(v) && inFront(v)) { load(v); v.play().catch(() => {}); } else v.pause();
+    };
+    vids.forEach((v) => {
+      v.muted = true; v.playsInline = true; v.loop = true;
+      if (reduce) {
+        const b = el("button", { type: "button", class: "vid-play", html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Play' });
+        b.setAttribute("aria-label", `Play the video: ${v.getAttribute("aria-label") || "the product in use"}`);
+        b.addEventListener("click", () => { v.dataset.chosen = "1"; v.controls = true; b.hidden = true; load(v); v.play().catch(() => {}); });
+        v.parentElement.append(b);
+      }
+    });
+    if ("IntersectionObserver" in window) {
+      const near = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting && !reduce) { load(e.target); near.unobserve(e.target); } }), { rootMargin: "400px 0px" });
+      const on = new IntersectionObserver((es) => es.forEach((e) => { onScreen.set(e.target, e.isIntersecting); sync(e.target); }), { threshold: 0.35 });
+      vids.forEach((v) => { near.observe(v); on.observe(v); });
+    }
+    // The day story calls this when the window in front changes; that window starts from the top.
+    window.S.syncVideos = (restart) => { if (restart) restart.currentTime = 0; vids.forEach(sync); };
+    document.addEventListener("visibilitychange", () => vids.forEach((v) => (document.hidden ? v.pause() : sync(v))));
+
     // The dock shows once the page's opening has scrolled away, and hides where the page asks for
     // the walkthrough itself (the form, the closing band) and at the very bottom.
     const dock = $("#dock");

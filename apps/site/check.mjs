@@ -1,10 +1,11 @@
 // Screenshots and checks of the built site, every page at desktop and phone sizes: no page errors,
-// no sideways scroll, links between pages work, and the interactive parts respond.
+// no sideways scroll, links between pages work, the product videos load and play while on screen
+// (and wait for a tap with reduced motion), and the interactive parts respond.
 // Usage: node check.mjs (after node build.mjs)
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 const { chromium, devices } = createRequire(import.meta.url)("playwright");
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(here, "shots"); mkdirSync(out, { recursive: true });
@@ -18,46 +19,53 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   const text = (s) => p.locator(s).first().innerText();
   const open = async (page) => { await p.goto(url(page)); await p.waitForTimeout(400); };
   const phone = label === "phone";
+  // A video counts as playing once its time moves on.
+  const playing = (sel) => p.locator(sel).first().evaluate((v) => new Promise((done) => { const t = v.currentTime; setTimeout(() => done(!v.paused && v.currentTime > t), 900); }));
+  const videosOk = async (where) => {
+    const vs = await p.evaluate(() => [...document.querySelectorAll(".vid video")].map((v) => ({ poster: v.getAttribute("poster"), srcs: [...v.querySelectorAll("source")].map((x) => x.dataset.src) })));
+    const files = vs.flatMap((v) => [v.poster, ...v.srcs]);
+    const missing = files.filter((f) => !existsSync(path.join(here, "dist", f)));
+    ok(`${label} ${where}: ${vs.length} videos, each with a poster, mp4 and webm on disk`, vs.length > 0 && vs.every((v) => v.poster && v.srcs.length === 2) && !missing.length, missing.join(", "));
+  };
   const nav = async (name) => {
     if (phone) await p.locator(".menu-btn").click();
     await p.locator(`#nav a[data-page="${name}"]`).click();
-    await p.waitForLoadState("load"); await p.waitForTimeout(400);
+    await p.waitForLoadState("load"); await p.waitForTimeout(1100);
   };
 
   // Home
-  await open("index"); await p.waitForTimeout(2200);
+  await open("index"); await p.waitForTimeout(1500);
   ok(`${label} home: no sideways scroll`, await noHScroll());
-  ok(`${label} home: timetable filled`, (await p.locator("#tt .cls").count()) === 17);
-  ok(`${label} home: no waiver on the to-do list`, !/waiver/i.test(await text("#att")));
+  await videosOk("home");
+  await p.locator(".hero video").scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
+  ok(`${label} home: the hero video plays`, await playing(".hero video"));
+  await p.evaluate(() => scrollTo(0, 0));
   await p.screenshot({ path: path.join(out, `${label}-home-hero.png`) });
-  await p.locator("#tt .cls").nth(1).click();
-  await p.locator(".pop .abtn.go").click();
-  ok(`${label} home: book from the timetable`, /booked|waitlist/.test(await text(".pop")));
-  await p.keyboard.press("Escape");
   ok(`${label} home: headline sweeps in`, phone || (await p.locator("#heroT.sweep.go").count()) === 1);
-  // A day at the studio: on desktop the windows stack as you scroll; on phones each sits under its step.
+  // A day at the studio: on desktop the clips stack as you scroll and only the one in front plays;
+  // on phones each sits under its step.
   const dayAt = (f) => p.evaluate((f) => { const d = document.getElementById("day"); scrollTo({ top: d.offsetTop + f * (d.offsetHeight - innerHeight), behavior: "instant" }); }, f);
-  await dayAt(0); await p.waitForTimeout(900);
+  await dayAt(0); await p.waitForTimeout(1200);
   ok(`${label} home: day story layout`, phone ? (await p.locator("#daySteps .day-card").count()) === 4 : (await p.locator("#day.scrolly").count()) === 1 && /7:00am/.test(await text("#daySteps li.on")));
   ok(`${label} home: dock shows once the hero has gone`, await p.locator("#dock.show").count() === 1);
-  for (let i = 0; i < 4; i++) await p.locator(".att-item:not(.done) .abtn").first().click().then(() => p.waitForTimeout(500));
-  ok(`${label} home: to-do list clears`, await p.locator("#attEmpty").isVisible());
-  if (phone) await p.locator("#markAll").scrollIntoViewIfNeeded(); else { await dayAt(0.3); await p.waitForTimeout(1000); }
-  ok(`${label} home: instructor step`, phone || /12:20pm/.test(await text("#daySteps li.on")));
-  await p.locator("#markAll").click(); await p.waitForTimeout(700);
-  ok(`${label} home: mark everyone present`, (await p.locator("#day .rp.here").count()) === 5);
-  if (phone) await p.locator("#waReply").scrollIntoViewIfNeeded(); else await dayAt(0.6);
-  await p.waitForTimeout(5200);
-  ok(`${label} home: WhatsApp reply types itself`, /booked you in with your 10-class pack/.test(await text("#waReply")));
-  if (!phone) { await dayAt(0.97); await p.waitForTimeout(1000); }
-  ok(`${label} home: pay step`, phone || (/11:59pm/.test(await text("#daySteps li.on")) && (await p.locator('.day-card[data-card="3"]:not(.below):not(.past)').count()) === 1));
-  await p.locator("#closeDays").click();
-  ok(`${label} home: public holidays`, /9 classes cancelled and 64 people told/.test(await text("#holidayWin")));
+  if (!phone) {
+    ok(`${label} home: the clip in front plays`, await playing('.day-card[data-card="0"] video'));
+    await dayAt(0.6); await p.waitForTimeout(1200);
+    ok(`${label} home: WhatsApp step in front, and only it plays`, /6:02pm/.test(await text("#daySteps li.on")) && await playing('.day-card[data-card="2"] video') && await p.locator('.day-card[data-card="0"] video').evaluate((v) => v.paused));
+    await dayAt(0.97); await p.waitForTimeout(1200);
+    ok(`${label} home: pay step`, /11:59pm/.test(await text("#daySteps li.on")) && (await p.locator('.day-card[data-card="3"]:not(.below):not(.past)').count()) === 1);
+  } else {
+    await p.locator('.day-card[data-card="1"] video').scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
+    ok(`${label} home: the phone clip plays under its step`, await playing('.day-card[data-card="1"] video'));
+  }
+  await p.locator(".here .vid video").first().scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
+  ok(`${label} home: closed days clip plays`, await playing(".here .vid video"));
   ok(`${label} home: prices in SGD`, /SGD 129[\s\S]*SGD 399[\s\S]*SGD 699/.test(await text(".prices")));
   await p.locator("#walkthrough").scrollIntoViewIfNeeded(); await p.waitForTimeout(700);
   ok(`${label} home: dock steps aside at the form`, (await p.locator("#dock.show").count()) === 0);
   await p.locator('#join button[type="submit"]').click();
   ok(`${label} home: form says what's missing`, /Add your name/.test(await text("#joinNote")));
+  await p.evaluate(() => scrollTo(0, 0));
   await p.screenshot({ path: path.join(out, `${label}-home-full.png`), fullPage: true });
 
   // Product
@@ -65,19 +73,10 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   ok(`${label} nav: to Product`, p.url().endsWith("product.html"));
   ok(`${label} product: marked as the current page`, (await p.locator('#nav a[aria-current="page"]').getAttribute("data-page")) === "product");
   ok(`${label} product: no sideways scroll`, await noHScroll());
-  await p.locator('[data-chk="double"]').click();
-  ok(`${label} product: warnings switch`, /double-booked/i.test(await text("#chk")));
-  await p.locator("#markAll").click(); await p.waitForTimeout(700);
-  ok(`${label} product: mark everyone present`, (await p.locator(".rp.here").count()) === 6);
-  await p.locator('[data-jr="intro"]').click();
-  ok(`${label} product: journey shows its steps`, (await p.locator(".jr-steps li").count()) === 3);
-  await p.locator("#jrOn").click({ force: true });
-  ok(`${label} product: journey switches off`, /Switched off/.test(await text(".jr-result")));
-  await p.locator("#bars").scrollIntoViewIfNeeded(); await p.waitForTimeout(500);
-  await p.locator('[data-m="fill"]').click(); await p.waitForTimeout(700);
-  ok(`${label} product: report by location`, /58%/.test(await text("#bars")) && (await p.locator("#bars li.low").count()) === 1);
-  await p.locator("#qs button").nth(2).click(); await p.waitForTimeout(2600);
-  ok(`${label} product: Ask types the question, then answers`, /What do I owe instructors/.test(await text("#askQ")) && /SGD 4,737/.test(await text("#ans")));
+  await videosOk("product");
+  ok(`${label} product: five clips`, (await p.locator(".vid video").count()) === 5);
+  await p.locator("#fill .vid video").scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
+  ok(`${label} product: the journey clip plays`, await playing("#fill .vid video"));
   await p.screenshot({ path: path.join(out, `${label}-product-full.png`), fullPage: true });
 
   // Pricing
@@ -101,8 +100,9 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   ok(`${label} nav: to Switching`, p.url().endsWith("switching.html"));
   ok(`${label} switching: no sideways scroll`, await noHScroll());
   ok(`${label} switching: systems we move from`, (await p.locator(".mq-row li").count()) === 24 && /Mariana Tek/.test(await text(".marquee")));
-  for (let i = 0; i < 3; i++) await p.locator(".qa-item:not(.done) .abtn").first().click();
-  ok(`${label} switching: questions answered, move ready`, /ready to run/.test(await text("#qaLog")));
+  await videosOk("switching");
+  await p.locator(".vid video").first().scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
+  ok(`${label} switching: the move clip plays`, await playing(".vid video"));
   await p.locator('[data-from="momence"]').click();
   const mo = await text("#fromPanel");
   ok(`${label} switching: Momence comparison in SGD, with where we're stronger`, /Moving from Momence/.test(mo) && /SGD 585\+/.test(mo) && /Where we're stronger than Momence/.test(mo) && /Where Momence is stronger/.test(mo));
@@ -118,6 +118,16 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   ok(`${label} nav: walkthrough link goes home`, /index\.html#walkthrough$/.test(p.url()));
 
   ok(`${label}: no page errors`, !errors.length, errors.join(" | "));
+  await p.close();
+}
+{
+  const p = await b.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  await p.goto(url("index")); await p.waitForTimeout(1200);
+  ok("reduced motion: nothing plays by itself", await p.evaluate(() => [...document.querySelectorAll(".vid video")].every((v) => v.paused)));
+  ok("reduced motion: each video offers Play", (await p.locator(".vid .vid-play").count()) === (await p.locator(".vid video").count()));
+  ok("reduced motion: the day story is a plain list", (await p.locator("#day.scrolly").count()) === 0 && (await p.locator("#daySteps .day-card").count()) === 4);
+  await p.locator(".hero .vid-play").click(); await p.waitForTimeout(1000);
+  ok("reduced motion: Play starts it, with controls", await p.locator(".hero video").evaluate((v) => !v.paused && v.controls));
   await p.close();
 }
 await b.close();

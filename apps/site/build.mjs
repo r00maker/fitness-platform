@@ -5,7 +5,7 @@
 //   dist/artifact/index.html   the home page without the document wrapper (the artifact host adds it),
 //   dist/artifact/<page>.html  the other pages as full documents, published beside it
 // No framework, no bundler.
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
 const css = read("./src/site.css");
 const js = read("./src/site.js");
@@ -58,4 +58,14 @@ for (const name of PAGES) {
   writeFileSync(new URL(`./dist/${name}.html`, import.meta.url), html);
   writeFileSync(new URL(`./dist/artifact/${name}.html`, import.meta.url), name === "index" ? `${p.head}\n${p.body}\n` : html);
   console.log(`dist/${name}.html (${(html.length / 1024).toFixed(1)} KB)`);
+}
+
+// The product videos and their posters (recorded by media/shots.mjs), next to the pages.
+const media = new URL("./media/out/", import.meta.url);
+if (existsSync(media)) {
+  const dirs = ["./dist/media/", "./dist/artifact/media/"];
+  for (const dir of dirs) mkdirSync(new URL(dir, import.meta.url), { recursive: true });
+  const files = readdirSync(media).filter((f) => /\.(mp4|webm|jpg)$/.test(f));
+  for (const f of files) for (const dir of dirs) copyFileSync(new URL(f, media), new URL(dir + f, import.meta.url));
+  console.log(`media: ${files.length} files`);
 }

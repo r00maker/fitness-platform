@@ -15,18 +15,6 @@
 .what .plain { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; color: var(--mute) }
 .what .plain li { padding-left: 16px; border-left: 2px solid var(--line-2) }
 
-/* Questions before the move */
-.qa { padding: 6px 0 }
-.qa-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 14px 16px; border-top: 1px solid var(--app-line); transition: opacity .3s }
-.qa-item:first-child { border-top: 0 }
-.qa-item b { font-weight: 600 }
-.qa-item p { color: var(--app-mute); font-size: 13px }
-.qa-item code { font: 500 12.5px/1 var(--text); background: var(--app-2); border: 1px solid var(--app-line); padding: 2px 6px; border-radius: 6px; color: var(--app-fg); font-variant-numeric: tabular-nums }
-.qa-item .row { display: flex; gap: 8px; flex-wrap: wrap }
-.qa-item.done { opacity: .55 }
-.qa-item .said { font-size: 13px; color: var(--app-fg); display: flex; gap: 8px; align-items: center }
-.qa-item .said svg { color: var(--ok) }
-.ready { color: var(--ok); font-weight: 600 }
 
 /* Which system */
 .pick { display: flex; flex-direction: column; gap: 28px }
@@ -112,15 +100,11 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
   <section class="band" aria-labelledby="askT">
     <div class="wrap pair">
       <div class="copy">
-        <h2 id="askT">Nothing is guessed. Anything unclear comes back to you.</h2>
-        <p class="lede">Before the move, the check lists what it couldn't be sure about, in plain words, with the row it came from. You answer; we move.</p>
+        <h2 id="askT">Nothing is guessed. Every row is accounted for.</h2>
+        <p class="lede">Before anything moves, our team runs the check. It lists what it couldn't be sure about, in plain words, with the row it came from, and anything unclear comes back to you before we import.</p>
         <p class="small">Every row ends up created, linked to an existing account, merged as a duplicate, or not moved with a reason. The four always add up, or the move doesn't go ahead.</p>
       </div>
-      <div class="win" aria-label="Questions before your move">
-        <div class="win-bar"><b>Before we move you</b><small id="qaCount">3 questions</small></div>
-        <div class="qa" id="qa"></div>
-        <div class="win-foot" role="status" aria-live="polite"><span id="qaLog">1,284 rows checked. Answer these and we're ready.</span></div>
-      </div>
+      <figure class="vid"><video muted playsinline loop preload="none" poster="media/move.jpg" aria-label="Our team's check before a move: every row accounted for, then the import"><source data-src="media/move.mp4" type="video/mp4"><source data-src="media/move.webm" type="video/webm"></video></figure>
     </div>
   </section>
 
@@ -187,34 +171,6 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
   "use strict";
   const { $, $$, el, tick, replay, seg } = window.S;
   $$("[data-tick]").forEach((n) => n.insertAdjacentHTML("afterbegin", tick()));
-
-  // --- Questions before the move ------------------------------------------------------------
-  const QS = [
-    { title: "3 clients share one email address", body: "Lim Wei, Lim Hui and Lim Jia Hao, clients.csv rows 212 to 214. Are they one family?", answers: [["Keep them separate", "Kept as 3 clients. The family can share packs later."], ["Merge into one", "Merged into Lim Wei's account."]] },
-    { title: "A phone number looks damaged", body: "Ravi Menon's number reads <code>6.59123E+09</code>, a sign Excel changed it. His old system shows +65 9123 4567.", answers: [["Use +65 9123 4567", "Saved as +65 9123 4567."], ["Leave it blank", "Left blank. He can add it when he signs in."]] },
-    { title: "A pack shows as active with 0 classes left", body: "Farah Ismail's 10-class pack, valid until 9 January, has no classes left.", answers: [["Move it as used up", "Moved as used up, kept in her history."], ["Don't move it", "Not moved, with the reason recorded."]] },
-  ];
-  const qa = $("#qa");
-  let left = QS.length;
-  QS.forEach((q) => {
-    const item = el("div", { class: "qa-item" }, [el("b", { text: q.title }), el("p", { html: q.body })]);
-    const row = el("div", { class: "row" });
-    q.answers.forEach(([label, said], i) => {
-      const b = el("button", { type: "button", class: `abtn ${i === 0 ? "go" : ""}`, text: label });
-      b.addEventListener("click", () => {
-        row.replaceWith(el("div", { class: "said", html: tick(16, 3) }, [document.createTextNode(said)]));
-        item.classList.add("done");
-        left--;
-        $("#qaCount").textContent = left ? `${left} question${left > 1 ? "s" : ""}` : "Ready";
-        const log = $("#qaLog");
-        log.textContent = left ? `${said} ${left} to go.` : "All answered. Every row is accounted for, so your move is ready to run.";
-        log.classList.toggle("ready", !left);
-      });
-      row.append(b);
-    });
-    item.append(row);
-    qa.append(item);
-  });
 
   // --- Systems we move studios from (each row twice, so the loop is seamless) --------------------
   const SYSTEMS = [
