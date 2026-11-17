@@ -39,9 +39,9 @@ These answer the most common complaints about the incumbents: a confusing back e
 
 | When | Gap | Who has it / why |
 |---|---|---|
-| **Before launch** | Online payments: cards, PayNow, GrabPay, cards kept on file for memberships | Everyone |
+| **Before launch** | ~~Online payments: cards, PayNow, GrabPay, cards kept on file for memberships~~ (built, `docs/PAYMENTS.md`) | Everyone |
 | | Client booking on the web, plus a booking widget for the studio's own website | Everyone |
-| | Importing data: clients, remaining credits, memberships, future bookings | Moving data is the main thing stopping studios from switching |
+| | ~~Importing data: clients, remaining credits, memberships, future bookings~~ (built, `docs/MIGRATION_AND_HQ.md`) | Moving data is the main thing stopping studios from switching |
 | **Soon after** | Self check-in (QR code or tablet) | Momence, Mindbody |
 | | Xero / QuickBooks link | Popular with Singapore SMEs |
 | | Card reader at the front desk | |

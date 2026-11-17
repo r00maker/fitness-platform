@@ -16,13 +16,17 @@ import { leadFollowUps, sendMetaConversions } from "../modules/marketing/ads.js"
 import { autoCancelDue } from "../modules/sessions/service.js";
 import { sendScheduledCampaigns } from "../modules/marketing/campaigns.js";
 import { runDueAgents } from "../modules/agents/engine.js";
-import { retryHeldRenewals } from "../modules/packages/payments.js";
+import { retryHeldRenewals, setRenewalCharger } from "../modules/packages/payments.js";
+import { configurePayments, stripe, stripeRenewalCharger } from "../modules/payments/service.js";
 import { syncAllEmail } from "../modules/comms/email.js";
 import { purgeMigrationFiles } from "../modules/migration/engine.js";
 
 const config = loadConfig();
 const { db, pool } = createDb(config.DATABASE_URL);
 const providers = providersFromConfig(config);
+// Memberships renew on the client's saved card when Stripe is set up.
+configurePayments(config);
+if (stripe()) setRenewalCharger(stripeRenewalCharger(db));
 let running = true;
 
 function every(ms: number, name: string, fn: () => Promise<unknown>) {

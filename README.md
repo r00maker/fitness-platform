@@ -108,6 +108,9 @@ Fees are recorded as "to be collected" until the payments module is built.
 | HQ assistant | `POST /platform/assistant/ask`, `GET /platform/assistant/chats[/:id]` | our team |
 | Feature switches | `GET /features`, `PUT /features/:key` (switching off asks first when something is running); the switches are also in `GET /settings` | owner, admin (everyone can read them) |
 | Tell clients (one message: notice, banner, push, email) | `POST /tell-clients` (asks first with the reach), `GET /tell-clients` | news: owner, admin, Front of House · offers, banners, emails: owner, admin |
+| Online payments: the studio's Stripe (connect, status, how clients pay, passing the fee on) | `GET /payments`, `POST /payments/connect` (owner), `POST /payments/refresh`, `PUT /payments/settings` | owner, admin |
+| Paying online: checkout `payWith`, paying a waiting order, the card kept for memberships | `POST /checkout` / `/gift-cards/checkout` / `/shop/checkout` with `payWith`, `POST /orders/:id/pay`, `GET /orders/:id/pay-options`, `GET/POST/DELETE /me/payment-card` | clients |
+| Stripe's webhook (connected accounts; signed) | `POST /public/payments/stripe/webhook` | Stripe |
 | Automations (client journeys and team reminders in one list) | `GET /automations` | owner, admin |
 | Write with AI (next to text boxes) | `POST /ai/write` (`kind`: message, reply, review_reply, class_description, package_description, journey_step, rewrite) | whoever can use that box; AI workflows |
 | Phone date strip (clients) | `GET /calendar/strip?date=&days=` (same filters as the calendar) | everyone |

@@ -28,6 +28,8 @@ export const HOLD_DAYS = 7;
 
 export interface RenewalCharger {
   name: string;
+  /** Can this client's renewal be charged here (studio connected, card saved)? If not, it's paid at the desk. */
+  ready?(orgId: string, clientId: string): Promise<boolean>;
   /** Charge the client's saved card. Never throws for a decline: returns ok: false with a reason. */
   charge(input: { orgId: string; clientId: string; invoiceId: string; amountCents: number; currency: string; description: string }): Promise<{ ok: true; ref: string } | { ok: false; reason: string }>;
 }
@@ -51,9 +53,9 @@ async function openRenewal(db: DbOrTx, packageId: string) {
 }
 
 /** Paid (by card or at the desk): settle the renewal and lift any hold. */
-export async function renewalPaid(tx: DbOrTx, packageId: string, method: "online" | "card" | "cash" | "qr" | "bank_transfer" | "credit" | "other", ref?: string) {
+export async function renewalPaid(tx: DbOrTx, packageId: string, method: "online" | "card" | "cash" | "qr" | "bank_transfer" | "credit" | "other", ref?: string, provider?: string) {
   const inv = await openRenewal(tx, packageId);
-  if (inv?.orderId) await tx.update(orders).set({ status: "paid", paidAt: new Date(), ...(ref ? { providerRef: ref } : {}) }).where(and(eq(orders.id, inv.orderId), eq(orders.status, "pending")));
+  if (inv?.orderId) await tx.update(orders).set({ status: "paid", paidAt: new Date(), ...(ref ? { providerRef: ref } : {}), ...(provider ? { provider, paidWith: "card" } : {}) }).where(and(eq(orders.id, inv.orderId), eq(orders.status, "pending")));
   if (inv) await markPaid(tx, inv, method);
   const [p] = await tx.update(clientPackages).set({ paymentHeldAt: null, paymentRetries: 0, nextPaymentRetryAt: null }).where(and(eq(clientPackages.id, packageId), isNotNull(clientPackages.paymentHeldAt))).returning();
   if (p) await notify(tx, { orgId: p.orgId, userIds: [p.ownerId], template: "membership.payment_recovered", data: { packageName: p.name } });
@@ -64,12 +66,13 @@ export async function chargeRenewal(db: Db, packageId: string, now = new Date())
   if (!charger) return "no_provider" as const;
   const inv = await openRenewal(db, packageId);
   if (!inv) return "nothing_due" as const;
+  if (charger.ready && !(await charger.ready(inv.orgId, inv.clientId))) return "no_provider" as const;
   const res = await charger.charge({ orgId: inv.orgId, clientId: inv.clientId, invoiceId: inv.id, amountCents: inv.totalCents, currency: inv.currency, description: inv.lines[0]?.description ?? "Membership" });
   return db.transaction(async (tx) => {
     const [p] = await tx.select().from(clientPackages).where(eq(clientPackages.id, packageId)).for("update");
     if (!p || p.cancelledAt) return "cancelled" as const;
     if (res.ok) {
-      await renewalPaid(tx, packageId, "online", res.ref);
+      await renewalPaid(tx, packageId, "online", res.ref, charger!.name);
       return "paid" as const;
     }
     const org = await getOrg(tx, p.orgId);

@@ -1256,3 +1256,32 @@ body.wc-on { overflow: hidden }
 .wc-preview { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: #06221d; color: #a7cbc1; font-size: 13px; padding-block: 8px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px dashed rgba(236, 246, 242, .18) }
 .wc-preview button { font: 600 13px "Inter", system-ui, sans-serif; background: transparent; color: #ecf6f2; border: 1px dashed rgba(236, 246, 242, .4); border-radius: 999px; padding: 6px 14px; cursor: pointer; min-height: 34px }
 .wc-preview button:hover { border-style: solid }
+
+/* --- Online payments (mkt26) --- */
+.paysteps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; counter-reset: none; }
+.paysteps li { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); padding: 8px 10px; border-radius: 10px; background: var(--sunk); min-width: 0; }
+.paysteps li span { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; border: 1.5px solid var(--line); background: var(--surface); }
+.paysteps li.now { color: var(--fg); background: var(--accent-soft); }
+.paysteps li.now span { border-color: var(--accent); color: var(--accent); }
+.paysteps li.done { color: var(--fg); }
+.paysteps li.done span { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+@media (max-width: 560px) { .paysteps { grid-template-columns: 1fr; } }
+.payrow { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+.payrow > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.payrow > div span { font-size: 13px; color: var(--muted); }
+.payrow.off b { color: var(--muted); }
+.payfees { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 12px; margin-top: 8px; border-radius: 10px; background: var(--sunk); }
+.payfees .fl { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.payfees input { width: 64px; }
+.payfees .inline2 { flex-wrap: nowrap; gap: 6px; align-items: center; font-weight: 500; }
+.payfees .hint { grid-column: 1 / -1; }
+.payex { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.payex b { font-size: 13px; }
+.paybox .payopt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; }
+.paybox .payopt.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.paybox .payopt > span { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; font-size: 13.5px; }
+.paybox .payopt > span span { font-size: 12.5px; color: var(--muted); }
+.paybox .payopt em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.paycard { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.stripestand .ssnote { font-size: 12px; color: var(--muted); padding: 6px 10px; border-radius: 8px; background: var(--sunk); align-self: flex-start; }
+.stripestand [data-ssk] { width: 100%; }

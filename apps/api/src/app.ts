@@ -43,6 +43,9 @@ import { welcomeRoutes } from "./modules/welcome/routes.js";
 import { tellClientsRoutes } from "./modules/marketing/tell.js";
 import { automationsRoutes } from "./modules/agents/automations.js";
 import { settingsRoutes } from "./modules/settings/routes.js";
+import { paymentRoutes } from "./modules/payments/routes.js";
+import { configurePayments, stripe, stripeRenewalCharger } from "./modules/payments/service.js";
+import { setRenewalCharger } from "./modules/packages/payments.js";
 import { substituteRoutes } from "./modules/substitutes/routes.js";
 import { waitlistRoutes } from "./modules/waitlist/routes.js";
 
@@ -62,6 +65,9 @@ export async function buildApp(opts: { config: Config; db: Db }) {
   });
   app.decorate("db", opts.db);
   app.decorate("config", opts.config);
+  // Online payments: with a Stripe key, memberships renew on the client's saved card.
+  configurePayments(opts.config);
+  if (stripe()) setRenewalCharger(stripeRenewalCharger(opts.db));
 
   // Plain HTML forms (the unsubscribe pages) and one-click unsubscribe from mail apps post form
   // data. Nothing reads a form body, so it's accepted and ignored.
@@ -129,6 +135,7 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(payrollRoutes);
       await v1.register(fileRoutes);
       await v1.register(checkoutRoutes);
+      await v1.register(paymentRoutes);
       await v1.register(marketingRoutes);
       await v1.register(marketingAppRoutes);
       await v1.register(loyaltyRoutes);

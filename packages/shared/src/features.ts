@@ -117,6 +117,8 @@ export interface PlanInfo {
   features: readonly FeatureKey[];
   /** The rules a new studio on this plan starts with. */
   studioType: StudioType;
+  /** Our share of each online payment, in basis points (100 = 1%). 0 = plan price only. */
+  paymentFeeBps: number;
 }
 
 export const PLAN_INFO: Record<Plan, PlanInfo> = {
@@ -124,19 +126,19 @@ export const PLAN_INFO: Record<Plan, PlanInfo> = {
     label: "Essentials",
     tagline: "For one independent studio. Everything to run classes, take bookings, pay instructors and get paid.",
     priceCents: 9900, locationsIncluded: 1, maxLocations: 1, extraLocationCents: null, app: "not_available", appAddOnCents: null, adminSeats: 1,
-    features: ["giftCards", "reviews", "payroll"], studioType: "independent",
+    features: ["giftCards", "reviews", "payroll"], studioType: "independent", paymentFeeBps: 0,
   },
   growth: {
     label: "Growth",
     tagline: "For studios with a team, up to 3 locations. Adds marketing, WhatsApp and the shop.",
     priceCents: 29900, locationsIncluded: 3, maxLocations: 3, extraLocationCents: null, app: "add_on", appAddOnCents: 10000, adminSeats: "per_location",
-    features: ["giftCards", "reviews", "payroll", "marketing", "loyalty", "referrals", "shop", "inbox"], studioType: "boutique",
+    features: ["giftCards", "reviews", "payroll", "marketing", "loyalty", "referrals", "shop", "inbox"], studioType: "boutique", paymentFeeBps: 0,
   },
   signature: {
     label: "Signature",
     tagline: "For brands with up to 5 locations. Your own app included, plus AI that does the work for you.",
     priceCents: 59900, locationsIncluded: 5, maxLocations: null, extraLocationCents: 15000, app: "included", appAddOnCents: null, adminSeats: "unlimited",
-    features: FEATURES.map((f) => f.key), studioType: "multi",
+    features: FEATURES.map((f) => f.key), studioType: "multi", paymentFeeBps: 0,
   },
 };
 

@@ -142,13 +142,24 @@ Every sale gets an invoice (packages, membership renewals, gift cards, shop orde
 
 Clients can see and print their own receipts under **My packages**, **Receipts and invoices**.
 
+## Online payments
+
+Clients can pay online by card, Apple Pay, Google Pay, PayNow and GrabPay once you connect Stripe under **Setup**, **Payments**. Money goes straight to your own Stripe account: you're the seller, Stripe's fees are paid from each payment, and you can see every payment, payout, refund and dispute in your Stripe dashboard too.
+
+- **Connecting** (owners only, as the account is in your business's name): **Connect Stripe** opens Stripe's sign-up, which asks for your business details (registered name, UEN, address), your own details and the bank account for payouts. Stripe then checks them, usually within minutes. We'll tell you when you can take payments.
+- **How clients pay:** switch online payments on or off, and choose whether clients can still pay at the studio. Which methods clients see is set in your Stripe dashboard (Settings, Payment methods).
+- **Passing the fee on:** optionally add Stripe's fee for cards and GrabPay, shown to clients as its own line before they pay. It's never added for PayNow (the banks' PayNow rules don't allow it). Card networks and your Stripe agreement have their own rules on card surcharges, so check them first.
+- **Memberships** are paid by card, and the card is kept by Stripe for the renewals (you never see the full number). Clients can replace or remove it under **My packages**.
+- **Refunds** are made from the sale, as now. Ones back to how they paid go through Stripe straight away (PayNow refunds can take a few days, and we'll tell you if one fails). Refunds you make in your Stripe dashboard show up on the sale too.
+- **Disputes:** if a client asks their bank to reverse a payment, we'll tell you; answer it in your Stripe dashboard before the deadline, with what shows they booked or came (bookings, attendance, the receipt).
+
 ## Membership payments that fail
 
-When a membership's renewal payment doesn't go through, the membership is **on hold**: the client can't book with it until it's paid. The card is tried again 3 and 7 days later, and the client is asked to update their card (they can pay straight away in the app). Owners and admins can also take the payment at the desk. If it still hasn't been paid after 7 days, the membership ends: upcoming bookings made with it are cancelled, any early termination fee applies (if it's within the minimum term), and to carry on the client buys a new membership, starting a new minimum term.
+Memberships renew on the client's saved card when you take payments online. When a membership's renewal payment doesn't go through, the membership is **on hold**: the client can't book with it until it's paid. The card is tried again 3 and 7 days later, and the client is asked to update their card (they can pay straight away in the app). Owners and admins can also take the payment at the desk. If it still hasn't been paid after 7 days, the membership ends: upcoming bookings made with it are cancelled, any early termination fee applies (if it's within the minimum term), and to carry on the client buys a new membership, starting a new minimum term.
 
 ## Shop
 
-Owners and admins add studio merch under **Shop**: name, price, photo, sizes or colours and how many you have. Gift card settings are here too. Clients see **Shop** in their menu once something's on sale (or gift cards are on); it disappears when the shop is empty. They order in the app and collect at the front desk, paying then (or with studio credit). Front of House hands orders over under **Pickups**, taking payment first if it isn't paid.
+Owners and admins add studio merch under **Shop**: name, price, photo, sizes or colours and how many you have. Gift card settings are here too. Clients see **Shop** in their menu once something's on sale (or gift cards are on); it disappears when the shop is empty. They order in the app and collect at the front desk, paying online when they order (if you take payments online) or when they collect (or with studio credit). Front of House hands orders over under **Pickups**, taking payment first if it isn't paid.
 
 ## Waitlists
 

@@ -127,5 +127,6 @@ export const updateProduct = productInput.partial().refine((u) => Object.keys(u)
 export const shopCheckout = z.object({
   items: z.array(z.object({ productId: id, option: z.string().trim().max(40).optional(), quantity: z.number().int().min(1).max(20) })).min(1, "Your basket is empty.").max(20),
   useCredit: z.boolean().default(true),
+  payWith: z.enum(["online", "card", "paynow", "grabpay", "desk"]).optional(),
 });
 export const SHOP_ORDER_STATUSES = { awaiting_payment: "Waiting for payment", ready: "Ready to collect", collected: "Collected", cancelled: "Cancelled" } as const;
