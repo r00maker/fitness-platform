@@ -11525,11 +11525,11 @@ body.bp-on { overflow: hidden }
   }
 
   const PLAN_INFO = {
-    essentials: { label: "Essentials", tagline: "For one independent studio. Everything to run classes, take bookings, pay instructors and get paid.", price: 99, included: 1, max: 1, extra: null, app: "not_available", appAddOn: null, admins: 1, studioType: "independent",
+    essentials: { label: "Essentials", tagline: "For one independent studio. Everything to run classes, take bookings, pay instructors and get paid.", price: 129, included: 1, max: 1, extra: null, app: "not_available", appAddOn: null, admins: 1, studioType: "independent",
       features: ["giftCards", "reviews", "payroll"] },
-    growth: { label: "Growth", tagline: "For studios with a team, up to 3 locations. Adds marketing, WhatsApp and the shop.", price: 299, included: 3, max: 3, extra: null, app: "add_on", appAddOn: 100, admins: "per_location", studioType: "boutique",
+    growth: { label: "Growth", tagline: "For studios with a team, up to 3 locations. Adds marketing, WhatsApp and the shop.", price: 399, included: 3, max: 3, extra: null, app: "add_on", appAddOn: 129, admins: "per_location", studioType: "boutique",
       features: ["giftCards", "reviews", "payroll", "marketing", "loyalty", "referrals", "shop", "inbox"] },
-    signature: { label: "Signature", tagline: "For brands with up to 5 locations. Your own app included, plus AI that does the work for you.", price: 599, included: 5, max: null, extra: 150, app: "included", appAddOn: null, admins: "unlimited", studioType: "multi",
+    signature: { label: "Signature", tagline: "For brands with up to 5 locations. Your own app included, plus AI that does the work for you.", price: 799, included: 5, max: null, extra: 199, app: "included", appAddOn: null, admins: "unlimited", studioType: "multi",
       features: FEATURE_LIST.map((f) => f.key) },
   };
   const PLAN_KEYS = ["essentials", "growth", "signature"];
@@ -11544,7 +11544,7 @@ body.bp-on { overflow: hidden }
   const planWith = (k) => PLAN_KEYS.find((p) => inPlan(k, p));
   const plansWith = (k) => andWords(PLAN_KEYS.filter((p) => inPlan(k, p)).map((p) => PLAN_INFO[p].label));
   const andWords = (xs) => (xs.length <= 1 ? xs[0] || "" : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
-  const planUsd = (n) => `USD ${n}`;
+  const planUsd = (n) => `SGD ${n}`; // plans are priced in Singapore dollars
   const locCount = () => Object.keys(LOCS).length;
   const adminCount = () => AG_PEOPLE.filter((x) => x.role === "owner" || x.role === "admin").length;
   const planSeats = (plan = STUDIO.plan) => { const a = PLAN_INFO[plan].admins; return a === "unlimited" ? null : a === "per_location" ? Math.max(1, locCount()) : a; };

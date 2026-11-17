@@ -27,7 +27,7 @@ A booking platform for fitness studios in Southeast Asia (in the space of Momenc
 | #17 | Waitlist setting (clients choose, or always automatic / always ask first) and a quick view for extension-request attachments. Also: attendance locks at midnight after each class (no-show fees final then), templates can be deleted, Studio rules save button no longer under Ask. Also reviews (with the Google offer), client feedback, celebration pop-ups for staff, and a fix for the sales chart dropping the current week just after local midnight |
 | #18 | Full class names on the calendar: names like "Reformer - Intermediate" wrap instead of being cut short, in every view, on computers and phones |
 | #19 | Market review and launch plan (`docs/MARKET_AND_LAUNCH.md`). Feature switches (Setup, Features) and the grouped menu: related pages share one menu item with tabs, 14 admin items instead of 24 |
-| Not merged yet | Plans (Essentials USD 99, Growth USD 299, Signature USD 599) set by our staff, with feature, location and admin limits; setup by studio type now comes from the plan; Studio rules search and "Changed from the usual" marks; a getting-started list on Home |
+| Not merged yet | Plans (Essentials SGD 129, Growth SGD 399, Signature SGD 799; first drafted in USD) set by our staff, with feature, location and admin limits; setup by studio type now comes from the plan; Studio rules search and "Changed from the usual" marks; a getting-started list on Home |
 
 The market review, pricing and launch plan are in `docs/MARKET_AND_LAUNCH.md`. Details of how each area works, and the decisions behind them, are in `docs/PRODUCT_NOTES.md`. The staff-facing guide (also what the support assistant reads) is `docs/help/STUDIO_GUIDE.md`.
 

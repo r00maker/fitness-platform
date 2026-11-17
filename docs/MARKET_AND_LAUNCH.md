@@ -77,34 +77,37 @@ None of these need deleting. Most should start **switched off**, so independent 
 
 Studios usually spend about 2–5% of revenue on software. That puts $299 at studios making US$10–15k+ a month: boutique reformer studios, not solo teachers.
 
-### Is USD 299 / 399 right?
+### Is USD 299 / 399 right? (before the switch to SGD)
 
 - **For boutique and multi-location studios, yes.** $399 with the app costs less than Momence Custom with its app ($449), before Momence's processing. It also undercuts Mindbody's upper tiers, with no contract. The $100 difference for the app is cheap against the market ($250 at Momence). Lead with total cost: "all-in, no cut of your sales, no lock-in", plus a calculator against Momence and Mindbody.
 - **For independent studios, no.** PunchPass, Rezerv and Vibefam start at $42–$109. In Singapore, $399 is about 1.6–3× the local options, and Vibefam advertises a 50% grant on top.
 
-### The plans (agreed November 2026)
+### The plans (agreed November 2026, priced in SGD)
+
+Plans are priced in Singapore dollars: we're based in Singapore and Stripe settles our payouts in SGD, so charging in SGD avoids conversion losses and makes the prices read naturally to our first studios. Earlier drafts were in USD (99 / 299 / 599); the SGD prices are a little lower in real terms (SGD 129 / 399 / 799 is about USD 100 / 310 / 620) and still well below Mindbody and Momence with their apps. GST isn't charged until we pass S$1M a year in sales. Other currencies (MYR, HKD, AUD) can come later with local prices, not conversions.
+
 
 | | **Essentials** | **Growth** | **Signature** |
 |---|---|---|---|
 | Who it's for | One independent studio | Studios with a team, up to 3 locations | Brands with several locations |
-| Price | USD 99 a month, 1 location | USD 299 a month, up to 3 locations | USD 599 a month, up to 5 locations, +USD 150 for each extra |
-| Your own app | | +USD 100 a month (flat, not per location) | Included |
+| Price | SGD 129 a month, 1 location | SGD 399 a month, up to 3 locations | SGD 799 a month, up to 5 locations, +SGD 199 for each extra |
+| Your own app | | +SGD 129 a month (flat, not per location) | Included |
 | Admin accounts | 1 | 1 per location | No limit |
 | Features | Everything to run classes, take bookings and get paid, plus reviews, gift cards and payroll | + marketing (emails, journeys, campaigns, banners, refer a friend, loyalty), the WhatsApp inbox, the shop | + leads and ad tracking, AI workflows (agents, AI writing, AI recaps) |
 | Setup, data move, support | Same on every plan | Same on every plan | Same on every plan |
 
 On the pricing page:
 
-> **Essentials: USD 99/month.** For one independent studio. Everything to run classes, take bookings, pay instructors and get paid.
-> **Growth: USD 299/month.** For studios with a team, up to 3 locations. Adds marketing, WhatsApp and the shop. Want your own app? +USD 100/month.
-> **Signature: USD 599/month.** For brands with up to 5 locations (+USD 150 for each extra). Your own app included, plus AI that does the work for you.
+> **Essentials: SGD 129/month.** For one independent studio. Everything to run classes, take bookings, pay instructors and get paid.
+> **Growth: SGD 399/month.** For studios with a team, up to 3 locations. Adds marketing, WhatsApp and the shop. Want your own app? +SGD 129/month.
+> **Signature: SGD 799/month.** For brands with up to 5 locations (+SGD 199 for each extra). Your own app included, plus AI that does the work for you.
 > **Every plan:** we set you up and move your data for you, the same support, and no cut of your sales.
 
 Why it's shaped this way:
 
 - **One job per plan:** run your studio, fill your classes, run your brand. Ask (AI chat) and instructor and front desk accounts are on every plan.
 - **Simple numbers.** Growth is "up to 3 locations" with no per-location extras; 4 or more locations means Signature. Earlier drafts priced Growth per location, but that made Growth cheaper than Signature for large chains.
-- **The steps push in the right direction:** a studio adding a 4th location moves to Signature (USD 599 with the app included); 10 locations cost USD 1,349 a month against roughly USD 5,000 or more on Mindbody.
+- **The steps push in the right direction:** a studio adding a 4th location moves to Signature (SGD 799 with the app included, against SGD 528 for Growth with the app); 10 locations cost SGD 1,794 a month (about USD 1,390) against roughly USD 5,000 or more on Mindbody.
 - **Service is the same everywhere.** The done-for-you setup has a standard scope: one move of standard data (clients, packages with classes left, memberships, upcoming bookings), plus setting up classes, rules and the plan's features. Unusual moves (several old systems, custom data) are quoted separately.
 - **We recommend the plan** from a short "help me choose" questionnaire (locations, team size, packages or memberships, marketing or WhatsApp from the app, own app) or a first call, so studios rarely have to work it out themselves. Test the pricing page with five studio owners during the pilot: if they can say which plan is theirs, it's clear enough.
 - **Still apply:** two months free for paying annually with a no-lock-in monthly option, WhatsApp message costs passed through at cost, a founding price for pilot studios, and the EDGE grant listing in Singapore (it could halve any plan).
@@ -129,9 +132,9 @@ Independent evidence on what owners want is thin: most "surveys" are published b
 
 ### Verdict by plan
 
-- **Essentials (USD 99): compelling.** It answers the top complaints: easy, payroll included, no cut of sales, free move, same support. It only works once online payments and client web booking exist. Open question: WhatsApp booking reminders (included, or at cost).
-- **Growth (USD 299): worth it if sold as results, not tools.** As a "marketing suite" it adds the complexity owners complain about. Its real value is turning trials into members and winning back lapsed clients, done for them. If a member is worth around USD 150–250 a month, one extra kept member a month pays for the step up.
-- **Signature (USD 599): the weakest case today.** AI workflows and the branded app have the least evidence of demand; leads and ad tracking suit only studios running ads. What brands would pay for (location managers, comparing locations, rules set once for the brand, shared clients and payroll across locations) is mostly not built yet. The price is fair for real brands (about USD 120–150 a location) but not compelling for a single premium studio.
+- **Essentials (SGD 129): compelling.** It answers the top complaints: easy, payroll included, no cut of sales, free move, same support. It only works once online payments and client web booking exist. Open question: WhatsApp booking reminders (included, or at cost).
+- **Growth (SGD 399): worth it if sold as results, not tools.** As a "marketing suite" it adds the complexity owners complain about. Its real value is turning trials into members and winning back lapsed clients, done for them. If a member is worth around SGD 200–330 a month, one extra kept member a month pays for the step up.
+- **Signature (SGD 799): the weakest case today.** AI workflows and the branded app have the least evidence of demand; leads and ad tracking suit only studios running ads. What brands would pay for (location managers, comparing locations, rules set once for the brand, shared clients and payroll across locations) is mostly not built yet. The price is fair for real brands (about SGD 160–200 a location) but not compelling for a single premium studio.
 
 ### What to change
 

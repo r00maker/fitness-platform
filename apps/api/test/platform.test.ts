@@ -47,7 +47,7 @@ describe("HQ", () => {
     // It shows in the list and the detail, with notes and its lifecycle.
     const list = (await hq.call("GET", "/platform/studios?lifecycle=onboarding")).body.studios;
     expect(list).toHaveLength(1);
-    expect(list[0]).toMatchObject({ name: "Core & Flow", planLabel: "Growth", price: "USD 299", locations: 1, clients: 0 });
+    expect(list[0]).toMatchObject({ name: "Core & Flow", planLabel: "Growth", price: "SGD 399", locations: 1, clients: 0 });
     expect((await hq.call("POST", `/platform/studios/${id}/notes`, { kind: "call", body: "Kick-off call: moving from Momence on 1 Dec." })).status).toBe(201);
     const detail = (await hq.call("GET", `/platform/studios/${id}`)).body;
     expect(detail.studio).toMatchObject({ name: "Core & Flow", lifecycle: "onboarding" });
@@ -91,7 +91,7 @@ describe("HQ", () => {
     await db.insert(notifications).values(Array.from({ length: 5 }, () => ({ orgId: s.orgId, channel: "email" as const, template: "x", data: {}, status: "failed" as const })));
     const o = (await hq.call("GET", "/platform/overview")).body;
     expect(o.studios).toMatchObject({ total: 2, byLifecycle: { live: 1, onboarding: 1 }, byPlan: { signature: 1, growth: 1 } });
-    expect(o.mrr).toMatchObject({ cents: 59900, display: "USD 599" });
+    expect(o.mrr).toMatchObject({ cents: 79900, display: "SGD 799" });
     expect(o.mrr.note).toMatch(/Billing isn't connected yet/);
     const flagged = o.needsAttention.find((x: { orgId: string }) => x.orgId === s.orgId);
     expect(flagged.status).toBe("problem");

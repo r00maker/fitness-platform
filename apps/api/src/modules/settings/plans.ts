@@ -15,7 +15,7 @@
  */
 import type { FastifyInstance } from "fastify";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-import { FEATURES, FEATURE_LABELS, PLANS, PLAN_INFO, planAdminSeats, planHasAiWorkflows, planHasApp, planIncludes, planPrice, planWith, type FeatureKey, type Plan } from "@studio/shared";
+import { FEATURES, FEATURE_LABELS, PLANS, PLAN_CURRENCY, PLAN_INFO, planAdminSeats, planHasAiWorkflows, planHasApp, planIncludes, planPrice, planWith, type FeatureKey, type Plan } from "@studio/shared";
 import type { DbOrTx } from "../../db/client.js";
 import { classSessions, locations, memberships, organizations } from "../../db/schema.js";
 import { audit } from "../../lib/audit.js";
@@ -32,7 +32,8 @@ const count = sql<number>`count(*)::int`;
 const n = (rows: { n: number }[]) => rows[0]?.n ?? 0;
 const words = (xs: string[]) => (xs.length <= 1 ? xs[0] ?? "" : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
 const plural = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
-export const usd = (cents: number) => `USD ${cents % 100 ? (cents / 100).toFixed(2) : cents / 100}`;
+/** A plan price, e.g. "SGD 129" (plans are priced in PLAN_CURRENCY). */
+export const planMoney = (cents: number) => `${PLAN_CURRENCY} ${cents % 100 ? (cents / 100).toFixed(2) : cents / 100}`;
 
 export const locationCount = async (db: DbOrTx, orgId: string) => n(await db.select({ n: count }).from(locations).where(and(eq(locations.orgId, orgId), isNull(locations.archivedAt))));
 export const adminCount = async (db: DbOrTx, orgId: string) => n(await db.select({ n: count }).from(memberships).where(and(eq(memberships.orgId, orgId), eq(memberships.active, true), inArray(memberships.role, ["owner", "admin"]))));
@@ -53,7 +54,7 @@ export async function checkLocationLimit(db: DbOrTx, org: Org, flags: Flags) {
     throw conflict("plan_location_limit", `Your ${info.label} plan includes ${plural(info.maxLocations, "location")}. Talk to us about ${next ? PLAN_INFO[next].label : "a bigger plan"} to add more.`);
   }
   if (info.extraLocationCents && used >= info.locationsIncluded) {
-    flags.confirm({ code: "extra_location_cost", details: { used, included: info.locationsIncluded }, message: `Your ${info.label} plan includes ${plural(info.locationsIncluded, "location")}. Each extra location adds ${usd(info.extraLocationCents)} a month, so this one takes your plan to ${usd(planPrice(org.plan, used + 1, org.brandedApp).totalCents)} a month.` });
+    flags.confirm({ code: "extra_location_cost", details: { used, included: info.locationsIncluded }, message: `Your ${info.label} plan includes ${plural(info.locationsIncluded, "location")}. Each extra location adds ${planMoney(info.extraLocationCents)} a month, so this one takes your plan to ${planMoney(planPrice(org.plan, used + 1, org.brandedApp).totalCents)} a month.` });
   }
 }
 
@@ -73,21 +74,21 @@ export async function planView(db: DbOrTx, org: Org) {
   const used = await locationCount(db, org.id), admins = await adminCount(db, org.id);
   const price = planPrice(org.plan, used, org.brandedApp);
   const state = featureState(org);
-  const parts = [{ label: `${info.label} (${plural(info.locationsIncluded, "location")} included)`, amount: usd(price.baseCents) }];
-  if (price.extraLocations) parts.push({ label: `${plural(price.extraLocations, "extra location")} at ${usd(info.extraLocationCents!)} each`, amount: usd(price.extraCents) });
-  if (price.appCents) parts.push({ label: "Your own app", amount: usd(price.appCents) });
+  const parts = [{ label: `${info.label} (${plural(info.locationsIncluded, "location")} included)`, amount: planMoney(price.baseCents) }];
+  if (price.extraLocations) parts.push({ label: `${plural(price.extraLocations, "extra location")} at ${planMoney(info.extraLocationCents!)} each`, amount: planMoney(price.extraCents) });
+  if (price.appCents) parts.push({ label: "Your own app", amount: planMoney(price.appCents) });
   const seats = planAdminSeats(org.plan, used);
   return {
     plan: org.plan,
     label: info.label,
     tagline: info.tagline,
-    price: { total: usd(price.totalCents), perMonth: `${usd(price.totalCents)} a month`, parts },
-    locations: { used, included: info.locationsIncluded, max: info.maxLocations, extraEach: info.extraLocationCents ? usd(info.extraLocationCents) : null, overLimit: info.maxLocations !== null && used > info.maxLocations },
+    price: { total: planMoney(price.totalCents), perMonth: `${planMoney(price.totalCents)} a month`, parts },
+    locations: { used, included: info.locationsIncluded, max: info.maxLocations, extraEach: info.extraLocationCents ? planMoney(info.extraLocationCents) : null, overLimit: info.maxLocations !== null && used > info.maxLocations },
     admins: { used, seats, overLimit: seats !== null && admins > seats },
-    app: { status: info.app, on: planHasApp(org.plan, org.brandedApp), addOn: info.appAddOnCents ? usd(info.appAddOnCents) : null },
+    app: { status: info.app, on: planHasApp(org.plan, org.brandedApp), addOn: info.appAddOnCents ? planMoney(info.appAddOnCents) : null },
     aiWorkflows: planHasAiWorkflows(org.plan),
     features: FEATURES.map((f) => ({ key: f.key, label: f.label, inPlan: planIncludes(org.plan, f.key), on: state[f.key], includedIn: planIncludes(org.plan, f.key) ? null : PLAN_INFO[planWith(f.key)].label })),
-    plans: PLANS.map((p) => ({ plan: p, label: PLAN_INFO[p].label, tagline: PLAN_INFO[p].tagline, price: usd(PLAN_INFO[p].priceCents), current: p === org.plan })),
+    plans: PLANS.map((p) => ({ plan: p, label: PLAN_INFO[p].label, tagline: PLAN_INFO[p].tagline, price: planMoney(PLAN_INFO[p].priceCents), current: p === org.plan })),
     sameForEveryPlan: "Every plan: we set you up and move your data for you, the same support, and no cut of your sales.",
     change: "To change your plan, talk to us. We'll set it up for you.",
   };

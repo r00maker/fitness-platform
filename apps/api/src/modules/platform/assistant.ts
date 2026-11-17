@@ -19,7 +19,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { and, asc, desc, eq, gt, ilike, sql } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { z } from "zod";
-import { FEATURE_LABELS, PLAN_INFO, planPrice, schemas } from "@studio/shared";
+import { FEATURE_LABELS, PLAN_CURRENCY, PLAN_INFO, planPrice, schemas } from "@studio/shared";
 import { auditLog, migrationJobs, notifications, organizations, platformChatMessages, platformChats, platformNotes } from "../../db/schema.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, conflict, notFound } from "../../lib/errors.js";
@@ -103,7 +103,7 @@ async function ownTool(ctx: Ctx, name: OwnTool, i: Record<string, unknown>): Pro
       rows.push({ id: o.id, name: o.name, plan: PLAN_INFO[o.plan].label, lifecycle: o.lifecycle, locations: locs, health: h.status, signals: h.signals.map((s) => s.text), setup: `${h.setup.done} of ${h.setup.total}`, bookingsLast7Days: h.bookingsLast7Days });
     }
     if (name === "search_studios") return { studios: rows, ...(orgs.length === 100 ? { note: "Showing the first 100; narrow it down." } : {}) };
-    return { studios: rows.length, liveMonthlyAtPlanPrices: `USD ${(mrr / 100).toFixed(0)} (billing isn't connected yet)`, needingAttention: rows.filter((r) => r.health !== "good"), onboarding: rows.filter((r) => r.lifecycle === "onboarding").map((r) => ({ id: r.id, name: r.name, plan: r.plan, setup: r.setup })) };
+    return { studios: rows.length, liveMonthlyAtPlanPrices: `${PLAN_CURRENCY} ${(mrr / 100).toFixed(0)} (billing isn't connected yet)`, needingAttention: rows.filter((r) => r.health !== "good"), onboarding: rows.filter((r) => r.lifecycle === "onboarding").map((r) => ({ id: r.id, name: r.name, plan: r.plan, setup: r.setup })) };
   }
   const org = await getOrg(db, i.studio_id as string).catch(() => null);
   if (!org) throw new ToolError("There's no studio with that id. Use search_studios.");
