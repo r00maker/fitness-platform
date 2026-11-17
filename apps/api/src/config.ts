@@ -72,12 +72,13 @@ const envSchema = z
     MICROSOFT_TENANT: z.string().regex(/^[a-zA-Z0-9.-]+$/).default("common"),
     /**
      * Online payments (Stripe Connect). The platform's secret key (sk_test_... while testing) and
-     * the signing secret of the webhook endpoint for connected accounts
-     * (<PUBLIC_API_URL>/v1/public/payments/stripe/webhook). Without the key, everything is paid at
-     * the studio, as before.
+     * the signing secrets of the two destinations that send to
+     * <PUBLIC_API_URL>/v1/public/payments/stripe/webhook (payment events from connected accounts,
+     * and v2 account events). Without the key, everything is paid at the studio, as before.
      */
     STRIPE_SECRET_KEY: z.string().regex(/^(sk|rk)_(test|live)_/, "Use the secret key from Stripe (sk_test_... or sk_live_...).").optional(),
-    STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
+    /** One or more signing secrets, comma-separated (the payment events endpoint and the account events destination). */
+    STRIPE_WEBHOOK_SECRET: z.string().regex(/^whsec_[^,\s]+(\s*,\s*whsec_[^,\s]+)*$/, "Use the endpoint's signing secret (whsec_...), or several separated by commas.").optional(),
     STRIPE_API_URL: z.string().url().default("https://api.stripe.com"),
     /** How far ahead recurring classes are created on the calendar. */
     SERIES_HORIZON_DAYS: z.coerce.number().int().min(7).max(730).default(120),

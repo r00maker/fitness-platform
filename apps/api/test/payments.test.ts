@@ -94,7 +94,7 @@ describe("payments: connecting Stripe", () => {
     const r = await s.owner.call("POST", "/payments/connect");
     expect(r.status).toBe(200);
     expect(r.body.url).toContain("acct_new");
-    expect(f.calls.find((c) => c[0] === "createAccount")![1]).toMatchObject({ country: "SG", orgId: s.orgId });
+    expect(f.calls.find((c) => c[0] === "createAccount")![1]).toMatchObject({ country: "SG", orgId: s.orgId, currency: "SGD", capabilities: ["card_payments", "paynow_payments", "grabpay_payments"] });
     // Again: the same account, a fresh sign-up link.
     await s.owner.call("POST", "/payments/connect");
     expect(f.calls.filter((c) => c[0] === "createAccount")).toHaveLength(1);
@@ -126,6 +126,19 @@ describe("payments: connecting Stripe", () => {
     const raw = '{"a":1}';
     expect(verifySignature(raw, signPayload(raw, "whsec_x"), "whsec_x")).toBe(true);
     expect(verifySignature('{"a":2}', signPayload(raw, "whsec_x"), "whsec_x")).toBe(false);
+    // Two destinations (payment events and account events), two secrets.
+    expect(verifySignature(raw, signPayload(raw, "whsec_b"), "whsec_a, whsec_b")).toBe(true);
+    expect(verifySignature(raw, signPayload(raw, "whsec_c"), "whsec_a, whsec_b")).toBe(false);
+  });
+
+  it("v2 account notices (thin events) are looked up from Stripe", async () => {
+    fakeStripe();
+    const s = await studio();
+    await db.update(organizations).set({ stripeAccountId: "acct_v2" }).where(eq(organizations.id, s.orgId));
+    const raw = JSON.stringify({ id: "evt_test_thin1", object: "v2.core.event", type: "v2.core.account[configuration.merchant].capability_status_updated", related_object: { id: "acct_v2", type: "v2.core.account", url: "/v2/core/accounts/acct_v2" }, context: null });
+    const res = await app.inject({ method: "POST", url: "/v1/public/payments/stripe/webhook", headers: { "content-type": "application/json", "stripe-signature": signPayload(raw, config.STRIPE_WEBHOOK_SECRET!) }, payload: raw });
+    expect(res.json().handled).toBe("account");
+    expect((await s.owner.call("GET", "/payments")).body.status).toBe("ready"); // the fake account is fully set up
   });
 
   it("a studio that disconnects Stripe goes back to paying at the studio", async () => {

@@ -266,7 +266,9 @@ export interface StripeEvent {
   id: string;
   type: string;
   account?: string | null;
-  data: { object: Record<string, unknown> };
+  data?: { object?: Record<string, unknown> } | null;
+  /** v2 thin events: what changed (the account), to be looked up. */
+  related_object?: { id?: string; type?: string } | null;
 }
 type Followup = () => Promise<unknown>;
 
@@ -354,18 +356,26 @@ async function refundChanged(tx: DbOrTx, org: Org, r: Refund) {
 export async function handleStripeEvent(db: Db, ev: StripeEvent) {
   const api = stripe();
   if (!api) return "not_configured";
-  const acct = ev.account ?? null;
+  // v2 account events only say which account changed: read it from Stripe.
+  const thinAccount = ev.type.startsWith("v2.core.account") && ev.related_object?.type === "v2.core.account" ? ev.related_object.id ?? null : null;
+  const acct = ev.account ?? thinAccount;
+  let fresh: StripeAccount | null = null;
+  if (thinAccount) fresh = await api.getAccount(thinAccount);
   const [org0] = acct ? await db.select({ id: organizations.id }).from(organizations).where(eq(organizations.stripeAccountId, acct)) : [];
   // Fetch the full session from Stripe (the event's copy is a summary).
   let session: CheckoutSession | null = null;
-  if (org0 && acct && (ev.type === "checkout.session.completed" || ev.type === "checkout.session.async_payment_succeeded")) session = await api.getCheckoutSession(acct, String(ev.data.object.id));
+  if (org0 && acct && (ev.type === "checkout.session.completed" || ev.type === "checkout.session.async_payment_succeeded")) session = await api.getCheckoutSession(acct, String(ev.data?.object?.id));
   const later: Followup[] = [];
   const result = await db.transaction(async (tx) => {
-    const [fresh] = await tx.insert(paymentEvents).values({ id: ev.id, type: ev.type, account: acct, orgId: org0?.id ?? null }).onConflictDoNothing().returning();
-    if (!fresh) return "duplicate";
+    const [isNew] = await tx.insert(paymentEvents).values({ id: ev.id, type: ev.type, account: acct, orgId: org0?.id ?? null }).onConflictDoNothing().returning();
+    if (!isNew) return "duplicate";
     if (!org0) return "ignored";
     const org = await getOrg(tx, org0.id);
-    const obj = ev.data.object;
+    if (fresh) {
+      await saveAccountStatus(tx, org, fresh);
+      return "account";
+    }
+    const obj = ev.data?.object ?? {};
     switch (ev.type) {
       case "account.updated":
         await saveAccountStatus(tx, org, obj as unknown as StripeAccount);

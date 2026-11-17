@@ -27,7 +27,14 @@ import { StripeError, verifySignature } from "./stripe.js";
 
 const idParam = z.object({ id: z.uuid() });
 const removeCard = z.object({ acknowledge: z.array(z.string()).max(20).default([]) });
-const stripeEvent = z.object({ id: z.string().min(1), type: z.string().min(1), account: z.string().nullish(), data: z.object({ object: z.record(z.string(), z.unknown()) }) });
+/** A payment event (a snapshot, from a connected account) or a v2 "thin" event naming what changed. */
+const stripeEvent = z.object({
+  id: z.string().min(1),
+  type: z.string().min(1),
+  account: z.string().nullish(),
+  data: z.object({ object: z.record(z.string(), z.unknown()).optional() }).passthrough().nullish(),
+  related_object: z.object({ id: z.string(), type: z.string() }).partial().nullish(),
+});
 
 export async function paymentRoutes(app: FastifyInstance) {
   const { db, config } = app;
@@ -69,7 +76,8 @@ export async function paymentRoutes(app: FastifyInstance) {
     if (!country) throw conflict("currency_unsupported", `Online payments aren't available for ${org.currency} yet.`);
     try {
       if (!org.stripeAccountId) {
-        const a = await api.createAccount({ country, name: org.legalName || org.name, orgId: org.id });
+        const local = country === "SG" ? ["paynow_payments", "grabpay_payments"] : [];
+        const a = await api.createAccount({ country, name: org.legalName || org.name, orgId: org.id, currency: org.currency, capabilities: ["card_payments", ...local] });
         // Only set it if nobody else did at the same moment.
         await db.update(organizations).set({ stripeAccountId: a.id }).where(and(eq(organizations.id, org.id), isNull(organizations.stripeAccountId)));
         org = await getOrg(db, org.id);

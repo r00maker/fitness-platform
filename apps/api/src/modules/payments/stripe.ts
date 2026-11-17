@@ -78,7 +78,7 @@ export interface Refund {
 }
 
 export interface StripeApi {
-  createAccount(p: { country: string; name: string; orgId: string }): Promise<StripeAccount>;
+  createAccount(p: { country: string; name: string; orgId: string; currency?: string; capabilities?: string[] }): Promise<StripeAccount>;
   getAccount(accountId: string): Promise<StripeAccount>;
   accountLink(accountId: string, urls: { refresh: string; return: string }): Promise<{ url: string }>;
   createCustomer(account: string, p: { name: string; email: string | null; userId: string }): Promise<{ id: string }>;
@@ -117,18 +117,36 @@ export function stripeClient(secretKey: string, baseUrl = "https://api.stripe.co
     }
     return json as T;
   }
+  /** Stripe's v2 API (JSON). New Connect platforms create and onboard accounts with it. */
+  async function v2<T>(path: string, body: Record<string, unknown>, idempotencyKey?: string): Promise<T> {
+    const res = await fetch(`${baseUrl}/v2${path}`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${secretKey}`, "stripe-version": STRIPE_API_VERSION, "content-type": "application/json", ...(idempotencyKey ? { "idempotency-key": idempotencyKey } : {}) },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30_000),
+    });
+    const json = (await res.json().catch(() => ({}))) as { error?: { message?: string; type?: string; code?: string } };
+    if (!res.ok) throw new StripeError(json.error?.message ?? `Stripe answered ${res.status}`, res.status, json.error?.type ?? "api_error", json.error?.code);
+    return json as T;
+  }
   return {
-    createAccount: (p) =>
-      call("POST", "/accounts", {
-        country: p.country,
-        // The studio's own full Stripe account: it pays Stripe's fees, Stripe covers losses and
-        // collects what it needs from the studio, and the studio has the full dashboard.
-        controller: { stripe_dashboard: { type: "full" }, fees: { payer: "account" }, losses: { payments: "stripe" }, requirement_collection: "stripe" },
-        business_profile: { name: p.name },
+    async createAccount(p) {
+      // The studio's own full Stripe account that takes payments: it has the full dashboard, Stripe
+      // collects its fees from the account and covers losses, and Stripe asks the studio for what
+      // it needs (requirement collection by Stripe).
+      const a = await v2<{ id: string }>("/core/accounts", {
+        display_name: p.name,
+        identity: { country: p.country },
+        dashboard: "full",
+        defaults: { responsibilities: { fees_collector: "stripe", losses_collector: "stripe" }, ...(p.currency ? { currency: p.currency.toLowerCase() } : {}) },
+        configuration: { merchant: { capabilities: Object.fromEntries((p.capabilities ?? ["card_payments"]).map((c) => [c, { requested: true }])) } },
         metadata: { org_id: p.orgId },
-      }, { idempotencyKey: `account-${p.orgId}` }),
+      }, `account-v2-${p.orgId}`);
+      // The v1 view gives charges/payouts/details in one place.
+      return call<StripeAccount>("GET", `/accounts/${encodeURIComponent(a.id)}`);
+    },
     getAccount: (id) => call("GET", `/accounts/${encodeURIComponent(id)}`),
-    accountLink: (account, urls) => call("POST", "/account_links", { account, type: "account_onboarding", refresh_url: urls.refresh, return_url: urls.return }),
+    accountLink: (account, urls) => v2("/core/account_links", { account, use_case: { type: "account_onboarding", account_onboarding: { refresh_url: urls.refresh, return_url: urls.return } } }),
     createCustomer: (account, p) => call("POST", "/customers", { name: p.name, email: p.email ?? undefined, metadata: { user_id: p.userId } }, { account, idempotencyKey: `customer-${account}-${p.userId}` }),
     async enabledMethods(account) {
       const r = await call<{ data: Record<string, unknown>[] }>("GET", "/payment_method_configurations", {}, { account });
@@ -173,7 +191,9 @@ export function stripeFor(config: { STRIPE_SECRET_KEY?: string; STRIPE_API_URL?:
  * t=<unix seconds>,v1=<HMAC-SHA256 of "t.body" with the endpoint's secret>. Old timestamps are
  * refused so a captured request can't be replayed later.
  */
-export function verifySignature(rawBody: string, header: string, secret: string, now = Date.now(), toleranceSeconds = 300) {
+export function verifySignature(rawBody: string, header: string, secret: string, now = Date.now(), toleranceSeconds = 300): boolean {
+  // Several endpoints (account events and payment events) can share this address: try each secret.
+  if (secret.includes(",")) return secret.split(",").some((one) => verifySignature(rawBody, header, one.trim(), now, toleranceSeconds));
   const parts = header.split(",").map((p) => p.trim().split("=") as [string, string]);
   const t = Number(parts.find(([k]) => k === "t")?.[1]);
   const sigs = parts.filter(([k]) => k === "v1").map(([, v]) => v);
