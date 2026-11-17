@@ -71,11 +71,16 @@
 .chat-side { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px dashed var(--app-line); border-radius: 10px; color: var(--app-mute); font-size: 12.5px }
 .typing { display: inline-flex; gap: 4px } .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--app-mute); animation: typing 1.2s infinite } .typing i:nth-child(2) { animation-delay: .15s } .typing i:nth-child(3) { animation-delay: .3s }
 @keyframes typing { 0%, 60%, 100% { opacity: .3 } 30% { opacity: 1 } }
-.pay { padding: 16px; display: flex; flex-direction: column; gap: 8px }
-.payopt { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--app-line); border-radius: 10px; cursor: pointer }
-.payopt.on { border-color: var(--app-accent); box-shadow: inset 0 0 0 1px var(--app-accent) }
-.payopt input { accent-color: var(--app-accent) } .payopt span { flex: 1 } .payopt small { display: block; color: var(--app-mute); font-size: 12px } .payopt em { font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums }
-.paytotal { display: flex; justify-content: space-between; padding: 6px 2px; font-weight: 600 }
+.close-days { padding: 16px; display: flex; flex-direction: column; gap: 14px }
+.cd-when { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--bad) 10%, var(--app-2)) }
+.cd-when b { font-size: 15px } .cd-when span { color: var(--app-mute); font-size: 13px }
+.cd-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--app-mute) }
+.cd-list b { color: var(--app-fg); font-weight: 600 }
+.msg-prev { border: 1px dashed var(--app-line); border-radius: 10px; padding: 10px 12px; font-size: 13px }
+.msg-prev small { color: var(--app-mute); font-size: 11.5px; display: block; margin-bottom: 4px }
+.cd-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
+.cd-res { font-size: 13px; display: flex; align-items: center; gap: 6px }
+.cd-res svg { color: var(--ok) }
 .share { padding: 18px; display: flex; flex-direction: column; gap: 14px }
 .share-top { display: flex; justify-content: space-between; align-items: baseline }
 .share-top b { font-size: 16px } .share-top span { color: var(--app-mute); font-size: 13px }
@@ -194,11 +199,11 @@ form.join .full { grid-column: 1 / -1 }
     <div class="wrap">
       <div class="head">
         <h2 id="localT">Made for how studios here actually run.</h2>
-        <p class="lede">Your clients message on WhatsApp, pay by PayNow and share packages with their partners. Your instructors are paid five different ways. It's all built in, not bolted on.</p>
+        <p class="lede">Your clients message on WhatsApp and share packages with their partners. You close for Chinese New Year, Hari Raya and Deepavali. Your instructors are paid five different ways. It's all built in, not bolted on.</p>
       </div>
       <div class="tabs" role="tablist" aria-label="Built for Southeast Asia">
         <button type="button" role="tab" aria-selected="true" aria-controls="localPanel" data-local="wa">WhatsApp inbox</button>
-        <button type="button" role="tab" aria-selected="false" aria-controls="localPanel" data-local="pay">PayNow and cards</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="localPanel" data-local="holiday">Public holidays</button>
         <button type="button" role="tab" aria-selected="false" aria-controls="localPanel" data-local="share">Shared packages</button>
         <button type="button" role="tab" aria-selected="false" aria-controls="localPanel" data-local="payroll">Instructor pay</button>
       </div>
@@ -250,7 +255,7 @@ form.join .full { grid-column: 1 / -1 }
       <div class="prices">
         <div class="price"><b>Essentials</b><div class="amt">SGD 129<small> a month</small></div><p>One independent studio.</p></div>
         <div class="price"><b>Growth</b><div class="amt">SGD 399<small> a month</small></div><p>Studios with a team, up to 3 locations.</p></div>
-        <div class="price"><b>Signature</b><div class="amt">SGD 799<small> a month</small></div><p>Brands with up to 5 locations, then SGD 199 for each one after.</p></div>
+        <div class="price"><b>Signature</b><div class="amt">SGD 699<small> a month</small></div><p>Brands with up to 5 locations, then SGD 199 for each one after.</p></div>
       </div>
       <div class="price-foot"><a class="textlink" href="pricing.html">Compare plans and work out your price</a><span>Pay yearly and get two months free.</span></div>
     </div>
@@ -418,23 +423,26 @@ form.join .full { grid-column: 1 / -1 }
         return w;
       },
     },
-    pay: {
-      title: "PayNow, GrabPay and cards, straight to you",
-      body: "Clients pay online when they buy, and the money goes to your own Stripe account. Memberships renew on the card they used. You can pass the card fee on, and PayNow is never charged extra.",
+    holiday: {
+      title: "Public holidays, handled for you",
+      body: "Add Chinese New Year, Hari Raya or Deepavali once. Classes on those days are cancelled, everyone booked gets one message, their classes go back on their packs, and repeating classes skip the days from then on.",
       win: () => {
-        const opts = [["card", "Card, Apple Pay or Google Pay", "+SGD 5.80 card fee", "SGD 155.80"], ["paynow", "PayNow", "No fee", "SGD 150.00"], ["grabpay", "GrabPay", "+SGD 5.12 GrabPay fee", "SGD 155.12"], ["desk", "Pay at the studio", "Order now, pay at the front desk", "SGD 150.00"]];
-        const w = win("5-class pack", "Checkout");
-        const box = el("div", { class: "pay", role: "radiogroup", "aria-label": "Pay with" });
-        const total = el("div", { class: "paytotal", html: "<span>Total</span><span>SGD 150.00</span>" });
-        opts.forEach(([k, l, s, t], i) => {
-          const lab = el("label", { class: `payopt ${i === 1 ? "on" : ""}` });
-          const r = el("input", { type: "radio", name: "pw", value: k });
-          if (i === 1) r.checked = true;
-          r.addEventListener("change", () => { $$(".payopt", box).forEach((x) => x.classList.toggle("on", x === lab)); total.innerHTML = `<span>Total</span><span>${t}</span>`; });
-          lab.append(r, el("span", { html: `${l}<small>${s}</small>` }), el("em", { text: t }));
-          box.append(lab);
-        });
-        box.append(total);
+        const w = win("Close the studio", "Closures");
+        const box = el("div", { class: "close-days" });
+        box.append(
+          el("div", { class: "cd-when", html: "<b>Chinese New Year</b><span>Saturday 6 and Sunday 7 February</span>" }),
+          el("ul", { class: "cd-list" }, [
+            el("li", { html: "<b>9 classes</b> on those days will be cancelled" }),
+            el("li", { html: "<b>64 people</b> booked get one message each" }),
+            el("li", { html: "<b>Their classes</b> go back on their packs" }),
+            el("li", { html: "<b>Repeating classes</b> skip these days from now on" }),
+          ]),
+          el("div", { class: "msg-prev" }, [el("small", { text: "What Mei will get" }), el("p", { text: "Hi Mei, we're closed for Chinese New Year on 6 and 7 Feb, so Saturday's 9am Barre is cancelled and your class is back on your pack. Happy new year, and see you after the break!" })]),
+        );
+        const res = el("p", { class: "cd-res", role: "status" });
+        const go = el("button", { type: "button", class: "abtn go", id: "closeDays", text: "Close the studio" });
+        go.addEventListener("click", () => { go.disabled = true; res.innerHTML = tick(16, 3); res.append(" Closed. 9 classes cancelled and 64 people told."); });
+        box.append(el("div", { class: "cd-foot" }, [go, res]));
         w.append(box);
         return w;
       },

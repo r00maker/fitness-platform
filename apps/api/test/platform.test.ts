@@ -91,7 +91,7 @@ describe("HQ", () => {
     await db.insert(notifications).values(Array.from({ length: 5 }, () => ({ orgId: s.orgId, channel: "email" as const, template: "x", data: {}, status: "failed" as const })));
     const o = (await hq.call("GET", "/platform/overview")).body;
     expect(o.studios).toMatchObject({ total: 2, byLifecycle: { live: 1, onboarding: 1 }, byPlan: { signature: 1, growth: 1 } });
-    expect(o.mrr).toMatchObject({ cents: 79900, display: "SGD 799" });
+    expect(o.mrr).toMatchObject({ cents: 69900, display: "SGD 699" });
     expect(o.mrr.note).toMatch(/Billing isn't connected yet/);
     const flagged = o.needsAttention.find((x: { orgId: string }) => x.orgId === s.orgId);
     expect(flagged.status).toBe("problem");

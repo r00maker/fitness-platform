@@ -30,7 +30,7 @@ const file = "file://" + path.join(__dirname, "hq-test.html");
     const txt = (sel) => p.locator(sel).first().textContent();
 
     // Overview
-    ok(`${label}: overview tiles`, /6/.test(await txt(".tile b")) && /SGD 1,526/.test(await p.locator(".tiles").textContent()));
+    ok(`${label}: overview tiles`, /6/.test(await txt(".tile b")) && /SGD 1,426/.test(await p.locator(".tiles").textContent()));
     ok(`${label}: needs attention lists problems first`, /Sweat Lab|Reform Co\./.test(await txt("#hAtt + div")));
     ok(`${label}: overview no h-scroll`, await noHScroll());
     await shot("overview");
@@ -54,7 +54,7 @@ const file = "file://" + path.join(__dirname, "hq-test.html");
     ok(`${label}: too many locations for Essentials`, /has 2 locations/.test(await txt("#planAsk")));
     await p.selectOption("#planSel", "signature");
     await click("#planGo");
-    ok(`${label}: moving up just changes (${await toast()})`, /now on Signature: SGD 799 a month/.test(await toast()));
+    ok(`${label}: moving up just changes (${await toast()})`, /now on Signature: SGD 699 a month/.test(await toast()));
     await p.selectOption("#planSel", "growth");
     await click("#planGo");
     ok(`${label}: moving down asks`, /Change this studio's plan\?/.test(await txt("#planAsk")));

@@ -1,5 +1,5 @@
 <title>Plans and pricing</title>
-<meta name="description" content="Essentials SGD 129, Growth SGD 399 and Signature SGD 799 a month. No cut of your sales, no contract, setup and your data move included.">
+<meta name="description" content="Essentials SGD 129, Growth SGD 399 and Signature SGD 699 a month. No cut of your sales, no contract, setup and your data move included.">
 <style>
 .calc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 18px; background: var(--ink-2); overflow: hidden }
 @media (max-width: 860px) { .calc { grid-template-columns: minmax(0, 1fr) } }
@@ -52,13 +52,6 @@ table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size:
 .cmp .no { color: var(--line-2) }
 .cmp tbody tr:last-child > * { border-bottom: 0 }
 .cmp-note { color: var(--mute); font-size: .9rem; margin-top: 14px }
-
-/* Fees */
-.fees { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 32px }
-.fees > div { padding-top: 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px }
-.fees b { font-weight: 600; font-size: 1.05rem }
-.fees p { color: var(--mute) }
-@media (max-width: 800px) { .fees { grid-template-columns: minmax(0, 1fr); gap: 24px } }
 
 /* FAQ */
 .faq { display: flex; flex-direction: column; max-width: 820px }
@@ -119,25 +112,11 @@ table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size:
       </div>
       <div class="cmp-wrap">
         <table class="cmp" id="cmp">
-          <thead><tr><th scope="col"><span class="sr" style="position:absolute;left:-9999px">Feature</span></th><th scope="col">Essentials<small>SGD 129</small></th><th scope="col">Growth<small>SGD 399</small></th><th scope="col">Signature<small>SGD 799</small></th></tr></thead>
+          <thead><tr><th scope="col"><span class="sr" style="position:absolute;left:-9999px">Feature</span></th><th scope="col">Essentials<small>SGD 129</small></th><th scope="col">Growth<small>SGD 399</small></th><th scope="col">Signature<small>SGD 699</small></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
       <p class="cmp-note">Prices are a month, in Singapore dollars. Pay yearly and get two months free.</p>
-    </div>
-  </section>
-
-  <section class="band" aria-labelledby="feesT">
-    <div class="wrap">
-      <div class="head">
-        <h2 id="feesT">What clients pay, and where the money goes</h2>
-        <p class="lede">Payments go to your studio's own Stripe account. We never sit in the middle.</p>
-      </div>
-      <div class="fees">
-        <div><b>We take nothing</b><p>No percentage of your sales, on any plan. Your plan price is the whole of what you pay us.</p></div>
-        <div><b>Stripe's standard fees</b><p>Stripe charges its usual processing fee on each payment, the same as if you used it directly. You see every fee in your own Stripe dashboard.</p></div>
-        <div><b>Pass card fees on, if you like</b><p>You can add the card or GrabPay fee to what the client pays, shown before they pay. PayNow is never charged extra.</p></div>
-      </div>
     </div>
   </section>
 
@@ -148,8 +127,9 @@ table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size:
         <details><summary>Is there a contract?</summary><p>No. Plans are month to month and you can stop at the end of any month. Paying yearly is optional: it gets you two months free, and runs to the end of the year you paid for.</p></details>
         <details><summary>What does moving my data cost?</summary><p>Nothing for a standard move: your clients, packages with the classes they have left, memberships and upcoming bookings, from one old system. If your move is unusual (several old systems, or custom data), we tell you the price before we start.</p></details>
         <details><summary>Why are prices in Singapore dollars?</summary><p>We're based in Singapore, and payments here are settled in Singapore dollars. Studios elsewhere in Southeast Asia are billed in SGD for now. Your own clients still pay you in your studio's currency.</p></details>
+        <details><summary>Do you take a cut of payments?</summary><p>No. Clients pay into your studio's own Stripe account, and Stripe charges its standard fee, the same as using it directly. You can pass card and GrabPay fees on to clients if you like.</p></details>
         <details><summary>Can I change plans later?</summary><p>Yes, at any time. Moving up switches the new features on straight away. Before you move down, we show you exactly what would switch off, so nothing disappears by surprise.</p></details>
-        <details><summary>I have one location but want my own app.</summary><p>The app comes with Growth (SGD 129 a month more) and is included in Signature. For one location, Growth with the app is the cheapest way to get it, at SGD 528 a month.</p></details>
+        <details><summary>I have one location but want my own app.</summary><p>The app comes with Growth (SGD 99 a month more) and is included in Signature. For one location, Growth with the app is the cheapest way to get it, at SGD 498 a month.</p></details>
         <details><summary>Do WhatsApp messages cost extra?</summary><p>Replying to clients who message you is free. Some messages your studio starts, like reminders, are charged by Meta per message. We pass that on at cost, with nothing added.</p></details>
         <details><summary>What's a founding studio?</summary><p>We're starting with a small group of studios in Singapore. They use the full platform free while we run the pilot together, then keep a founding price for as long as they stay. <a class="textlink" href="index.html#walkthrough">Ask about a place</a></p></details>
       </div>
@@ -163,11 +143,11 @@ table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size:
   "use strict";
   const { $, $$, el, tick, seg } = window.S;
   // Prices in SGD a month (the same figures as PLAN_INFO in packages/shared/src/features.ts).
-  const P = { essentials: 129, growth: 399, signature: 799, app: 129, extra: 199, included: { essentials: 1, growth: 3, signature: 5 } };
+  const P = { essentials: 129, growth: 399, signature: 699, app: 99, extra: 199, included: { essentials: 1, growth: 3, signature: 5 } };
   const money = (n) => `SGD ${n.toLocaleString("en")}`;
   const PLANS = [
     { key: "essentials", name: "Essentials", who: "One independent studio.", items: ["Classes, bookings, packages and memberships", "Online payments and your booking page", "Instructor pay, reviews and gift cards", "1 admin, unlimited instructors and front desk"] },
-    { key: "growth", name: "Growth", who: "Studios with a team, up to 3 locations.", items: ["Everything in Essentials", "Trial follow-ups and win-backs, switched on for you", "WhatsApp inbox, emails and refer a friend", "Your own app for SGD 129 a month more"] },
+    { key: "growth", name: "Growth", who: "Studios with a team, up to 3 locations.", items: ["Everything in Essentials", "Trial follow-ups and win-backs, switched on for you", "WhatsApp inbox, emails and refer a friend", "Your own app for SGD 99 a month more"] },
     { key: "signature", name: "Signature", who: "Brands with several locations.", items: ["Everything in Growth", "Every location compared side by side", "Leads from your ads, and AI that drafts the work", "Your own app included, admins without limit"], extra: "Up to 5 locations, then SGD 199 for each one after" },
   ];
   let locs = 1, app = false, bill = "month";
@@ -225,7 +205,7 @@ table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size:
     ["Locations", "", "1", "Up to 3", "Up to 5, then SGD 199 each"],
     ["Admin accounts", "Owners count as admins", "1", "1 for each location", "No limit"],
     ["Instructors and front desk", "", "Unlimited", "Unlimited", "Unlimited"],
-    ["Your own app", "Your brand's name and colours", N, "+SGD 129 a month", "Included"],
+    ["Your own app", "Your brand's name and colours", N, "+SGD 99 a month", "Included"],
     ["Run the studio"],
     ["Timetable, classes and appointments", "With rooms, repeats and ClassPass", Y, Y, Y],
     ["Packages, memberships and shared packs", "", Y, Y, Y],

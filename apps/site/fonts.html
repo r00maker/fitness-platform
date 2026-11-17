@@ -1,0 +1,84 @@
+<title>Headline font options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=Inter+Tight:wght@500;600;700&family=Geist:wght@500;600;700&family=Manrope:wght@500;600;700&family=Schibsted+Grotesk:wght@500;600;700&family=Instrument+Serif&display=swap">
+<style>
+/* Layout: the site's own graphite ground; one option per band, each set with the site's real headlines. */
+:root {
+  color-scheme: dark;
+  --ink: #0e1115; --ink-2: #13171c; --line: #262c34; --fg: #e8ebef; --mute: #8f98a5; --steel: #a6c0dc;
+  --text: "Instrument Sans", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box }
+body { margin: 0; background: var(--ink); color: var(--fg); font: 400 16px/1.6 var(--text); -webkit-font-smoothing: antialiased }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)) }
+header { padding-block: 48px 24px }
+header h1 { margin: 0; font: 600 1.6rem/1.2 var(--text); letter-spacing: -0.01em }
+header p { color: var(--mute); margin: 10px 0 0; max-width: 62ch }
+.opt { padding-block: 44px 52px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px 48px }
+@media (max-width: 820px) { .opt { grid-template-columns: minmax(0, 1fr) } }
+.meta { display: flex; flex-direction: column; gap: 6px }
+.meta b { font-size: 1.05rem; font-weight: 600 }
+.meta span { color: var(--mute); font-size: .92rem }
+.meta .now { color: var(--steel); font-weight: 600; font-size: .85rem }
+.spec { display: flex; flex-direction: column; gap: 18px; min-width: 0 }
+.spec .h1 { margin: 0; font-size: clamp(2.4rem, 5.6vw, 4.4rem); line-height: 1; text-wrap: balance; max-width: 14ch }
+.spec .h2 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.3rem); line-height: 1.08; text-wrap: balance }
+.spec .row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 40px }
+.spec .price { font-size: 2.2rem; line-height: 1; font-variant-numeric: tabular-nums }
+.spec .price small { font: 500 .95rem/1 var(--text); color: var(--mute); letter-spacing: 0 }
+.spec .h3 { font-size: 1.35rem; line-height: 1.25 }
+.spec p { margin: 0; color: var(--mute); max-width: 58ch }
+/* Each option: family, weight and tracking tuned for it. */
+.f-current { font-family: "Instrument Sans", sans-serif; font-weight: 560; letter-spacing: -0.034em; font-variation-settings: "wdth" 86 }
+.f-intert { font-family: "Inter Tight", sans-serif; font-weight: 600; letter-spacing: -0.03em }
+.f-geist { font-family: "Geist", sans-serif; font-weight: 600; letter-spacing: -0.035em }
+.f-manrope { font-family: "Manrope", sans-serif; font-weight: 600; letter-spacing: -0.03em }
+.f-schibsted { font-family: "Schibsted Grotesk", sans-serif; font-weight: 600; letter-spacing: -0.03em }
+.f-serif { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; letter-spacing: -0.01em }
+.f-serif.h1 { font-size: clamp(2.8rem, 6.4vw, 5rem); line-height: .96 }
+.f-serif.h2 { font-size: clamp(2rem, 3.5vw, 2.7rem) }
+.f-serif.h3 { font-size: 1.55rem }
+.spec .h3 { letter-spacing: -0.01em }
+</style>
+
+<header class="wrap">
+  <h1>Headline font options</h1>
+  <p>Each option shows the site's real headlines, a price and a feature title. Body text stays the same in all of them. Pick one by its letter.</p>
+</header>
+
+<main id="opts"></main>
+
+<script>
+(() => {
+  const OPTIONS = [
+    ["A", "Inter Tight", "f-intert", "Neutral and precise. The calmest option: reads like well-made software, never shouts."],
+    ["B", "Geist", "f-geist", "Crisp and technical, with squarer curves. Feels modern and engineered."],
+    ["C", "Manrope", "f-manrope", "Softer, rounder geometry. Warmer and more approachable, still clean."],
+    ["D", "Schibsted Grotesk", "f-schibsted", "An editorial grotesque with a little more character in the letters. Confident, magazine-like."],
+    ["E", "Instrument Serif", "f-serif", "A fine, narrow serif for headlines only. The boutique, hospitality feel of a premium studio."],
+    ["Now", "Instrument Sans, narrowed", "f-current", "What the site uses today, for comparison."],
+  ];
+  const main = document.getElementById("opts");
+  for (const [letter, name, cls, note] of OPTIONS) {
+    const sec = document.createElement("section");
+    sec.className = "opt wrap";
+    sec.setAttribute("aria-label", `Option ${letter}: ${name}`);
+    const meta = document.createElement("div"); meta.className = "meta";
+    const b = document.createElement("b"); b.textContent = letter === "Now" ? name : `${letter}. ${name}`;
+    const n = document.createElement("span"); n.textContent = note;
+    meta.append(b, n);
+    if (letter === "Now") { const now = document.createElement("span"); now.className = "now"; now.textContent = "Current"; meta.prepend(now); }
+    const spec = document.createElement("div"); spec.className = "spec";
+    const mk = (tag, c, text) => { const e = document.createElement(tag); e.className = `${c} ${cls}`; e.textContent = text; return e; };
+    const row = document.createElement("div"); row.className = "row";
+    const price = mk("div", "price", "SGD 699"); const sm = document.createElement("small"); sm.textContent = " a month"; price.append(sm);
+    row.append(price, mk("div", "h3", "Fill your classes"));
+    const p = document.createElement("p"); p.textContent = "Bookings, packages, payments, instructor pay and WhatsApp for pilates, yoga and barre studios, from one room to a dozen locations.";
+    spec.append(mk("div", "h1", "Studio software your front desk learns in an afternoon."), mk("div", "h2", "Switching is our job, not yours."), row, p);
+    sec.append(meta, spec);
+    main.append(sec);
+  }
+})();
+</script>

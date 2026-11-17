@@ -43,7 +43,7 @@ describe("plans", () => {
     expect(byKey.payroll).toMatchObject({ inPlan: true, on: true, includedIn: null });
     expect(byKey.marketing).toMatchObject({ inPlan: false, on: false, includedIn: "Growth" });
     expect(byKey.agents.includedIn).toBe("Signature");
-    expect(plan.plans.map((p: { label: string; price: string; current: boolean }) => `${p.label} ${p.price}${p.current ? " (current)" : ""}`)).toEqual(["Essentials SGD 129 (current)", "Growth SGD 399", "Signature SGD 799"]);
+    expect(plan.plans.map((p: { label: string; price: string; current: boolean }) => `${p.label} ${p.price}${p.current ? " (current)" : ""}`)).toEqual(["Essentials SGD 129 (current)", "Growth SGD 399", "Signature SGD 699"]);
     expect(plan.sameForEveryPlan).toMatch(/we set you up and move your data for you, the same support/);
     const setup = (await s.owner.call("GET", "/setup")).body;
     expect(setup).toMatchObject({ done: true, studioType: "independent", studioTypeLabel: "Independent studio", changedFromUsual: [] });
@@ -92,8 +92,8 @@ describe("plans", () => {
     const s = await studio();
     hq = await hqStaff("onboarding");
     const g = await platform(s.orgId, { plan: "growth", brandedApp: true, acknowledge: ["plan_changes"] });
-    expect(g.body.plan).toMatchObject({ label: "Growth", price: { total: "SGD 528" }, app: { status: "add_on", on: true, addOn: "SGD 129" } });
-    expect(g.body.plan.price.parts).toEqual([{ label: "Growth (3 locations included)", amount: "SGD 399" }, { label: "Your own app", amount: "SGD 129" }]);
+    expect(g.body.plan).toMatchObject({ label: "Growth", price: { total: "SGD 498" }, app: { status: "add_on", on: true, addOn: "SGD 99" } });
+    expect(g.body.plan.price.parts).toEqual([{ label: "Growth (3 locations included)", amount: "SGD 399" }, { label: "Your own app", amount: "SGD 99" }]);
     await s.owner.call("PUT", "/features/shop", { on: false, acknowledge: ["feature_off"] });
 
     // Up to Signature: leads and agents come on; the shop stays off because the studio chose that.
@@ -107,10 +107,10 @@ describe("plans", () => {
     // 5 locations included; the 6th asks first because it adds SGD 199.
     for (const name of ["B", "C", "D", "E"]) expect((await s.owner.call("POST", "/locations", { name, timezone: tz })).status).toBe(201);
     const sixth = await s.owner.call("POST", "/locations", { name: "F", timezone: tz });
-    expect(sixth.body.error.message).toBe("Your Signature plan includes 5 locations. Each extra location adds SGD 199 a month, so this one takes your plan to SGD 998 a month.");
+    expect(sixth.body.error.message).toBe("Your Signature plan includes 5 locations. Each extra location adds SGD 199 a month, so this one takes your plan to SGD 898 a month.");
     expect((await s.owner.call("POST", "/locations", { name: "F", timezone: tz, acknowledge: ["extra_location_cost"] })).status).toBe(201);
     const view = (await s.owner.call("GET", "/plan")).body;
-    expect(view.price).toMatchObject({ total: "SGD 998" });
+    expect(view.price).toMatchObject({ total: "SGD 898" });
     expect(view.price.parts[1]).toEqual({ label: "1 extra location at SGD 199 each", amount: "SGD 199" });
 
     // Down to Growth: what stops is spelled out, locations over the limit keep working.

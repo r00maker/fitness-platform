@@ -26,6 +26,8 @@
   --c-reformer: #8d87ff; --c-yoga: #34d399; --c-barre: #f472b6; --c-sweat: #fb923c; --c-mat: #22d3ee;
 
   --text: "Instrument Sans", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  /* Headlines. To be chosen: see the font options page (README). */
+  --display: "Instrument Sans", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
   --step-0: 1rem; --step-1: 1.2rem; --step-2: 1.5rem; --step-3: clamp(1.9rem, 3.4vw, 2.6rem); --step-4: clamp(2.6rem, 6vw, 4.9rem);
   --radius-win: 14px;
 }
@@ -37,7 +39,7 @@ body { margin: 0; background: var(--ink); color: var(--fg); font: 400 var(--step
 a { color: inherit }
 :focus-visible { outline: 2px solid var(--steel); outline-offset: 3px; border-radius: 6px }
 .wrap { max-width: 1180px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)) }
-h1, h2, h3 { font-weight: 560; margin: 0; text-wrap: balance; font-variation-settings: "wdth" 86 }
+h1, h2, h3 { font-family: var(--display); font-weight: 560; margin: 0; text-wrap: balance; font-variation-settings: "wdth" 86 }
 h1 { font-size: var(--step-4); line-height: 0.98; letter-spacing: -0.034em }
 h2 { font-size: var(--step-3); line-height: 1.06; letter-spacing: -0.032em }
 h3 { font-size: var(--step-1); line-height: 1.25; letter-spacing: -0.012em; font-variation-settings: "wdth" 92 }

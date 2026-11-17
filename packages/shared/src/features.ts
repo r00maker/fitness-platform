@@ -133,13 +133,13 @@ export const PLAN_INFO: Record<Plan, PlanInfo> = {
   growth: {
     label: "Growth",
     tagline: "For studios with a team, up to 3 locations. Adds marketing, WhatsApp and the shop.",
-    priceCents: 39900, locationsIncluded: 3, maxLocations: 3, extraLocationCents: null, app: "add_on", appAddOnCents: 12900, adminSeats: "per_location",
+    priceCents: 39900, locationsIncluded: 3, maxLocations: 3, extraLocationCents: null, app: "add_on", appAddOnCents: 9900, adminSeats: "per_location",
     features: ["giftCards", "reviews", "payroll", "marketing", "loyalty", "referrals", "shop", "inbox"], studioType: "boutique", paymentFeeBps: 0,
   },
   signature: {
     label: "Signature",
     tagline: "For brands with up to 5 locations. Your own app included, plus AI that does the work for you.",
-    priceCents: 79900, locationsIncluded: 5, maxLocations: null, extraLocationCents: 19900, app: "included", appAddOnCents: null, adminSeats: "unlimited",
+    priceCents: 69900, locationsIncluded: 5, maxLocations: null, extraLocationCents: 19900, app: "included", appAddOnCents: null, adminSeats: "unlimited",
     features: FEATURES.map((f) => f.key), studioType: "multi", paymentFeeBps: 0,
   },
 };

@@ -36,9 +36,10 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   await p.keyboard.press("Escape");
   for (let i = 0; i < 4; i++) await p.locator(".att-item:not(.done) .abtn").first().click().then(() => p.waitForTimeout(500));
   ok(`${label} home: to-do list clears`, await p.locator("#attEmpty").isVisible());
-  await p.locator('[data-local="pay"]').click();
-  ok(`${label} home: checkout tab`, /PayNow/.test(await text("#localPanel")));
-  ok(`${label} home: prices in SGD`, /SGD 129[\s\S]*SGD 399[\s\S]*SGD 799/.test(await text(".prices")));
+  await p.locator('[data-local="holiday"]').click();
+  await p.locator("#closeDays").click();
+  ok(`${label} home: public holidays tab`, /9 classes cancelled and 64 people told/.test(await text("#localPanel")));
+  ok(`${label} home: prices in SGD`, /SGD 129[\s\S]*SGD 399[\s\S]*SGD 699/.test(await text(".prices")));
   await p.locator('#join button[type="submit"]').click();
   ok(`${label} home: form says what's missing`, /Add your name/.test(await text("#joinNote")));
   await p.screenshot({ path: path.join(out, `${label}-home-full.png`), fullPage: true });
@@ -69,11 +70,11 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   ok(`${label} pricing: no sideways scroll`, await noHScroll());
   ok(`${label} pricing: starts at Essentials`, /Essentials/.test(await text("#outPlan")) && /SGD 129/.test(await text("#outAmt")));
   await p.locator("#wantApp").check({ force: true });
-  ok(`${label} pricing: one location with an app is Growth`, /Growth/.test(await text("#outPlan")) && /SGD 528/.test(await text("#outAmt")));
+  ok(`${label} pricing: one location with an app is Growth`, /Growth/.test(await text("#outPlan")) && /SGD 498/.test(await text("#outAmt")));
   for (let i = 0; i < 5; i++) await p.locator("#locPlus").click();
-  ok(`${label} pricing: 6 locations is Signature plus one`, /Signature/.test(await text("#outPlan")) && /SGD 998/.test(await text("#outAmt")) && /Signature/.test(await text(".plan.fit")));
+  ok(`${label} pricing: 6 locations is Signature plus one`, /Signature/.test(await text("#outPlan")) && /SGD 898/.test(await text("#outAmt")) && /Signature/.test(await text(".plan.fit")));
   await p.locator('[data-bill="year"]').click();
-  ok(`${label} pricing: yearly`, /SGD 9,980/.test(await text("#outAmt")) && /SGD 7,990/.test(await text("#plans")));
+  ok(`${label} pricing: yearly`, /SGD 8,980/.test(await text("#outAmt")) && /SGD 6,990/.test(await text("#plans")));
   ok(`${label} pricing: comparison table`, (await p.locator("#cmp tbody tr").count()) > 25);
   await p.locator(".faq summary").first().click();
   ok(`${label} pricing: FAQ opens`, await p.locator(".faq details").first().evaluate((d) => d.open));
@@ -86,9 +87,12 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   for (let i = 0; i < 3; i++) await p.locator(".qa-item:not(.done) .abtn").first().click();
   ok(`${label} switching: questions answered, move ready`, /ready to run/.test(await text("#qaLog")));
   await p.locator('[data-from="momence"]').click();
-  ok(`${label} switching: Momence comparison`, /Moving from Momence/.test(await text("#fromPanel")) && /USD 250/.test(await text("#fromPanel")));
+  const mo = await text("#fromPanel");
+  ok(`${label} switching: Momence comparison in SGD, with where we're stronger`, /Moving from Momence/.test(mo) && /SGD 585\+/.test(mo) && /Where we're stronger than Momence/.test(mo) && /Where Momence is stronger/.test(mo));
+  ok(`${label} switching: our column comes first`, (await p.locator("#fromPanel thead th").nth(1).innerText()) === "Us");
   await p.locator('[data-from="sheet"]').click();
   ok(`${label} switching: spreadsheet has no comparison table`, (await p.locator("#fromPanel table").count()) === 0);
+  ok(`${label} switching: questions for any sales call`, (await p.locator("#asks .ask-row").count()) === 7);
   ok(`${label} switching: comparison is dated`, /November 2026/.test(await text(".dated")));
   await p.screenshot({ path: path.join(out, `${label}-switching-full.png`), fullPage: true });
 

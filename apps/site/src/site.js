@@ -22,6 +22,18 @@
   }));
   window.S = { reduce, $, $$, el, tick, replay, seg };
 
+  // A page opened from a link starts at the top (some viewers carry the last page's scroll position
+  // over). Links to a section (#walkthrough) and reloads keep theirs, and it stops as soon as the
+  // visitor scrolls themselves.
+  try { if ("scrollRestoration" in history) history.scrollRestoration = "manual"; } catch {}
+  const how = performance.getEntriesByType?.("navigation")?.[0]?.type;
+  if (!location.hash && how !== "reload" && how !== "back_forward") {
+    let moved = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach((t) => addEventListener(t, () => (moved = true), { once: true, passive: true }));
+    const toTop = () => { if (!moved && scrollY > 0) scrollTo({ top: 0, behavior: "instant" }); };
+    toTop(); addEventListener("load", toTop); [120, 400, 900].forEach((ms) => setTimeout(toTop, ms));
+  }
+
   const btn = $(".menu-btn"), nav = $("#nav");
   if (btn && nav) {
     const set = (open) => { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", String(open)); btn.textContent = open ? "Close" : "Menu"; };

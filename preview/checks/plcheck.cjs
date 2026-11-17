@@ -45,7 +45,7 @@ const file = "file://" + path.join(__dirname, "pl-test.html");
     ok(`${label}: header no h-scroll`, await noHScroll());
     await go("features");
     const card = await text(".plancard");
-    ok(`${label}: plan card: Signature, SGD 799 a month`, /Your plan\s*Signature/.test(card) && /SGD 799\s*a month/.test(card));
+    ok(`${label}: plan card: Signature, SGD 699 a month`, /Your plan\s*Signature/.test(card) && /SGD 699\s*a month/.test(card));
     ok(`${label}: plan card: locations, app and AI`, /2 of 5 included, then SGD 199 each/.test(card) && /Your own app\s*Included/.test(card) && /AI workflows\s*Included/.test(card));
     ok(`${label}: three plans, Signature current`, (await p.locator(".planopt").count()) === 3 && /Signature\s*Current/.test(await text(".planopt.cur")));
     ok(`${label}: same service on every plan`, /Every plan: we set you up and move your data for you, the same support, and no cut of your sales\./.test(card));
@@ -89,10 +89,10 @@ const file = "file://" + path.join(__dirname, "pl-test.html");
 
     // To Growth with the app: nothing switches off, so no question
     await plan("growth+app");
-    ok(`${label}: moving up doesn't ask (${await toast()})`, (await p.locator(".warnmodal").count()) === 0 && /Now on Growth, with its own app: SGD 528 a month\./.test(await toast()));
+    ok(`${label}: moving up doesn't ask (${await toast()})`, (await p.locator(".warnmodal").count()) === 0 && /Now on Growth, with its own app: SGD 498 a month\./.test(await toast()));
     await go("features");
     const parts = await p.evaluate(() => [...document.querySelectorAll(".planparts li")].map((li) => [...li.children].map((c) => c.textContent.trim()).join(" ")));
-    ok(`${label}: Growth price parts (${parts.join(" / ")})`, JSON.stringify(parts) === JSON.stringify(["Growth (3 locations included) SGD 399", "Your own app SGD 129"]));
+    ok(`${label}: Growth price parts (${parts.join(" / ")})`, JSON.stringify(parts) === JSON.stringify(["Growth (3 locations included) SGD 399", "Your own app SGD 99"]));
     ok(`${label}: Growth switches marketing tools on`, (await ev(`featOn("marketing") && featOn("shop") && featOn("inbox") && featOn("loyalty")`)) === true);
     ok(`${label}: AI workflows still locked`, (await p.locator("#ft-agents").isDisabled()) && /In Signature/.test(await text('.featrow:has(#ft-agents)')));
     ok(`${label}: Growth menu has Marketing and Communication`, (await nav()).includes("Marketing") && (await nav()).includes("Communication"));

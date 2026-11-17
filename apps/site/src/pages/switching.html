@@ -30,21 +30,49 @@
 
 /* Which system */
 .pick { display: flex; flex-direction: column; gap: 28px }
-.panel { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 28px 56px; align-items: start }
-@media (max-width: 920px) { .panel { grid-template-columns: minmax(0, 1fr) } }
+.panel { display: flex; flex-direction: column; gap: 28px }
+.panel-top { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 28px 56px; align-items: start }
+@media (max-width: 920px) { .panel-top { grid-template-columns: minmax(0, 1fr) } }
 .panel h3 { font-size: var(--step-2); letter-spacing: -0.02em; margin-bottom: 12px }
 .panel .copy p { color: var(--mute) }
+.example { border: 1px solid var(--line); border-radius: 14px; overflow: hidden }
+.example > p { padding: 14px 18px; color: var(--mute); font-size: .92rem; border-bottom: 1px solid var(--line); background: var(--ink-2) }
+.ex-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 16px 18px; align-items: baseline }
+.ex-row + .ex-row { border-top: 1px solid var(--line) }
+.ex-row b { font-weight: 600 }
+.ex-row .amt { font-size: var(--step-2); font-weight: 560; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap }
+.ex-row small { grid-column: 1 / -1; color: var(--mute); font-size: .88rem }
+.ex-row.us .amt { color: var(--steel) }
+.vs-note { color: var(--mute); font-size: .95rem; max-width: 75ch }
 .vs-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px }
-table.vs { width: 100%; min-width: 480px; border-collapse: collapse; font-size: .95rem }
+table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: .95rem }
 .vs th, .vs td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); vertical-align: top }
 .vs thead th { background: var(--ink-2); font-weight: 600 }
-.vs tbody th { color: var(--mute); font-weight: 500; width: 26% }
-.vs td { width: 37% }
+.vs tbody th { color: var(--mute); font-weight: 500; width: 24% }
+.vs td { width: 38% }
+.vs td.us { background: color-mix(in srgb, var(--steel) 5%, transparent) }
+.vs thead th.us { color: var(--steel) }
+.vs td small { display: block; color: var(--mute); font-size: .85rem; margin-top: 2px }
 .vs td.unk { color: var(--mute); font-style: italic }
 .vs tbody tr:last-child > * { border-bottom: 0 }
+.sides { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px }
+@media (max-width: 760px) { .sides { grid-template-columns: minmax(0, 1fr) } }
+.side { padding: 20px; border-radius: 14px; border: 1px solid var(--line); background: var(--ink-2); display: flex; flex-direction: column; gap: 12px }
+.side.ours { border-color: color-mix(in srgb, var(--steel) 45%, var(--line)) }
+.side b { font-weight: 600 }
+.side p, .side li { color: var(--mute) }
+.side .ticks li { color: var(--fg) }
 .stronger { padding: 16px 18px; border-radius: 12px; background: var(--ink-2); border: 1px solid var(--line) }
 .stronger b { display: block; font-weight: 600; margin-bottom: 4px }
 .stronger p { color: var(--mute) }
+
+/* Questions for any sales call */
+.asks { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--line) }
+.ask-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 40px; padding: 18px 0; border-bottom: 1px solid var(--line) }
+.ask-row b { font-weight: 600 }
+.ask-row p { color: var(--mute) }
+.ask-row p strong { color: var(--fg); font-weight: 600 }
+@media (max-width: 700px) { .ask-row { grid-template-columns: minmax(0, 1fr) } }
 .dated { color: var(--mute); font-size: .88rem; max-width: 80ch }
 .also-read { color: var(--mute) }
 .steps-t { font-size: var(--step-1); font-weight: 600; letter-spacing: 0; margin-bottom: 18px; font-variation-settings: "wdth" 100 }
@@ -114,7 +142,7 @@ table.vs { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 
     <div class="wrap pick">
       <div class="head" style="margin-bottom:0">
         <h2 id="fromT">Coming from another system</h2>
-        <p class="lede">Choose what you use today: how we get your data out of it, and a fair comparison with us.</p>
+        <p class="lede">Choose what you use today: how we get your data out of it, and how it compares with us, side by side.</p>
       </div>
       <div class="seg" role="tablist" aria-label="What you use today">
         <button type="button" role="tab" aria-selected="true" aria-controls="fromPanel" data-from="mindbody">Mindbody</button>
@@ -124,7 +152,17 @@ table.vs { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 
       </div>
       <div class="panel" id="fromPanel" role="tabpanel"></div>
       <p class="also-read">Also on TeamUp, PunchPass, Arketa, Vibefam, Rezerv, Walla, Mariana Tek or bsport? Each exports clients and passes to CSV or Excel, and we read both.</p>
-      <p class="dated">Comparisons checked in November 2026 from public pricing pages and third-party write-ups. Most of these providers price their upper tiers by quote, so their figures are estimates, in US dollars: check with them before you decide. Mindbody, Momence and Glofox are trademarks of their owners, and we're not affiliated with any of them.</p>
+      <p class="dated">Comparisons checked in November 2026 from public pricing pages and third-party write-ups. Their prices are published in US dollars; we show them in Singapore dollars at about S$1.30 to US$1. Upper tiers are priced by quote, so these figures are where quotes start: check with each provider before you decide. Mindbody, Momence and Glofox are trademarks of their owners, and we're not affiliated with any of them.</p>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="askT2">
+    <div class="wrap">
+      <div class="head">
+        <h2 id="askT2">Before you sign anywhere, ask these</h2>
+        <p class="lede">The price on a website and the price on a contract can be very different. Get these answered in writing on any sales call, ours included. Here are our answers.</p>
+      </div>
+      <div class="asks" id="asks"></div>
     </div>
   </section>
 </main>
@@ -165,55 +203,92 @@ table.vs { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 
   });
 
   // --- Coming from another system -------------------------------------------------------------
-  const US = { price: "SGD 129, 399 or 799 a month, published", contract: "Month to month", fees: "None. Stripe's standard processing only", app: "+SGD 129 on Growth, included in Signature" };
+  // Competitor figures: docs/MARKET_AND_LAUNCH.md (checked November 2026), USD shown in SGD at about 1.30.
   const UNK = "Not in the sources we checked";
+  const US = {
+    price: ["SGD 129, 399 or 699 a month", "Every price is on this site"],
+    quote: ["Nothing", "Your price is the published price"],
+    contract: ["Month to month", "Yearly is optional, with two months free"],
+    fees: ["None", "Only Stripe's standard processing fee"],
+    app: ["+SGD 99 a month on Growth", "Included in Signature"],
+  };
   const FROM = {
     mindbody: {
       name: "Mindbody",
       move: "We work from Mindbody's own reports: Mailing Lists for clients, Membership Detail, and the sales and series reports. We tell you exactly which ones to run. Some of its \"Excel\" downloads are really web pages; we read those too. A full export through Mindbody's support can cost around USD 500, and the standard reports are usually enough.",
-      them: { price: "About USD 99 to 159 a month to start; higher tiers about USD 259 to 279 and USD 499 or more", contract: "12 to 36 month contracts are common", fees: UNK, app: "A paid add-on" },
+      example: [["With us: Growth with your own app", "SGD 498", "Every month, no contract, nothing quoted."], ["On Mindbody: a higher tier plus the app", "Quoted", "Higher tiers start around SGD 335 a month before the app, which is a paid add-on, usually on a 12 to 36 month contract."]],
+      them: { price: ["From about SGD 130 a month", "Higher tiers about SGD 335 to 360, and SGD 650 or more"], quote: ["Higher tiers and the branded app"], contract: ["12 to 36 months is common"], fees: [UNK], app: ["A paid add-on", "Priced on the call"] },
+      ours: ["Easy to learn: Home is a to-do list, not menus of reports. Reviewers often call Mindbody's back end confusing.", "No contract, and every price is published.", "Your data moved for you, free.", "Made for here: the WhatsApp inbox, shared packs and public holidays handled."],
       stronger: "Mindbody's consumer app has a large audience of people looking for classes, which can bring new clients your way. It also has a long track record and many integrations.",
     },
     momence: {
       name: "Momence",
       move: "From the Customers list, Export includes memberships and the credits left; subscriptions export separately. Momence can count packs with 0 credits as active, so we check each one with you rather than moving it as live.",
-      them: { price: "A free plan, then about USD 60 and USD 199 a month", contract: UNK, fees: "Write-ups mention a platform fee of about 2.5 to 5%, plus card processing of 3.9% + 30¢, depending on the plan", app: "About USD 250 a month more" },
+      example: [["With us: Growth with your own app", "SGD 498", "Every month, with nothing taken from your sales."], ["On Momence: the SGD 260 plan plus the app", "SGD 585+", "About SGD 260 (USD 199) plus about SGD 325 for the app (USD 250), before any fees on sales."]],
+      them: { price: ["A free plan, then about SGD 80 and SGD 260 a month", "Custom plans above that"], quote: ["Custom plans"], contract: [UNK], fees: ["About 2.5 to 5% of sales on some plans", "Plus card processing of 3.9% + 30¢, from third-party write-ups"], app: ["About SGD 325 a month more"] },
+      ours: ["No fee on your sales, on any plan.", "Instructor pay built in, with five ways to pay. Momence doesn't have payroll.", "Your own app for SGD 99 a month, not about SGD 325.", "The same support on every plan, from the people who build it."],
       stronger: "Momence does more for studios that sell recorded classes and online content, with video on demand built in.",
     },
     glofox: {
       name: "Glofox",
       move: "Reports, Memberships, Members, then Download, which needs the Admin role. The client list needs the Clients Export permission. If your login can't export, add us as a staff user and we'll do it for you.",
-      them: { price: "From about USD 99 a month; the Elite tier about USD 250 to 400 or more, by quote", contract: "Annual contracts", fees: UNK, app: "On the Elite tier" },
+      example: [["With us: Growth with your own app", "SGD 498", "Every month, no contract, nothing quoted."], ["On Glofox: the Elite tier, for its app", "SGD 325 to 520+", "By quote, on an annual contract."]],
+      them: { price: ["From about SGD 130 a month", "Elite about SGD 325 to 520 or more"], quote: ["Every plan"], contract: ["Annual"], fees: [UNK], app: ["On the Elite tier only"] },
+      ours: ["Prices on the website, not after a sales call.", "Month to month, not annual.", "Your own app from Growth, without moving to the top tier.", "Made for boutique studios: shared packs, instructor pay and the WhatsApp inbox."],
       stronger: "Glofox suits gyms as well as studios, and is part of ABC Fitness, a large gym software group.",
     },
     sheet: {
       name: "a spreadsheet",
       move: "Send us whatever you keep, in Excel, Google Sheets or CSV. Excel often damages phone numbers (6.59123E+09, or a lost leading zero); we fix what can be fixed from the rest of the row and ask you about anything else.",
-      stronger: null,
     },
   };
+  const ROWS = [["Published price", "price"], ["Decided on a sales call", "quote"], ["Contract", "contract"], ["Fees on your sales", "fees"], ["Your own app", "app"]];
+  const cell = ([main, sub], cls = "") => { const td = el("td", { class: `${cls} ${main === UNK ? "unk" : ""}`, text: main }); if (sub) td.append(el("small", { text: sub })); return td; };
   const panel = $("#fromPanel");
   function showFrom(k) {
     const f = FROM[k];
     panel.innerHTML = "";
     const copy = el("div", { class: "copy" }, [el("h3", { text: `Moving from ${f.name}` }), el("p", { text: f.move })]);
-    if (f.stronger) copy.append(el("div", { class: "stronger" }, [el("b", { text: `Where ${f.name} is stronger` }), el("p", { text: f.stronger })]));
-    panel.append(copy);
-    if (f.them) {
-      const t = el("table", { class: "vs", html: `<thead><tr><th scope="col"><span style="position:absolute;left:-9999px">Compared</span></th><th scope="col"></th><th scope="col">Us</th></tr></thead>` });
-      t.querySelector("thead th:nth-child(2)").textContent = f.name;
-      const body = el("tbody");
-      [["Price, one location", "price"], ["Contract", "contract"], ["Fees on your sales", "fees"], ["Your own app", "app"]].forEach(([label, key]) => {
-        body.append(el("tr", {}, [el("th", { scope: "row", text: label }), el("td", { class: f.them[key] === UNK ? "unk" : "", text: f.them[key] }), el("td", { text: US[key] })]));
-      });
-      t.append(body);
-      panel.append(el("div", { class: "vs-wrap" }, [t]));
-    } else {
-      panel.append(el("div", { class: "stronger" }, [el("b", { text: "Starting from scratch is fine too" }), el("p", { text: "New studios with nothing to move skip straight to setup: we add your classes, packages and rules, and you open when you're ready." })]));
+    const top = el("div", { class: "panel-top" }, [copy]);
+    if (!f.them) {
+      top.append(el("div", { class: "stronger" }, [el("b", { text: "Starting from scratch is fine too" }), el("p", { text: "New studios with nothing to move skip straight to setup: we add your classes, packages and rules, and you open when you're ready." })]));
+      panel.append(top);
+      replay(panel, "swap-in");
+      return;
     }
+    const ex = el("div", { class: "example", "aria-label": "Example: one boutique studio with its own app" }, [el("p", { text: "One boutique studio that wants its own app, a month:" })]);
+    f.example.forEach(([t, amt, sub], i) => ex.append(el("div", { class: `ex-row ${i === 0 ? "us" : ""}` }, [el("b", { text: t }), el("span", { class: "amt", text: amt }), el("small", { text: sub })])));
+    top.append(ex);
+    panel.append(top);
+
+    panel.append(el("p", { class: "vs-note", text: `${f.name}'s published prices are where quotes start. Higher tiers, apps and add-ons are priced after a sales call, so the figure you're quoted can only match these or go up. Ours is the whole price.` }));
+    const t = el("table", { class: "vs" });
+    const hr = el("tr", {}, [el("th", { scope: "col", html: '<span style="position:absolute;left:-9999px">Compared</span>' }), el("th", { scope: "col", class: "us", text: "Us" }), el("th", { scope: "col", text: f.name })]);
+    t.append(el("thead", {}, [hr]));
+    const body = el("tbody");
+    ROWS.forEach(([label, key]) => body.append(el("tr", {}, [el("th", { scope: "row", text: label }), cell(US[key], "us"), cell(f.them[key])])));
+    t.append(body);
+    panel.append(el("div", { class: "vs-wrap" }, [t]));
+
+    const ours = el("div", { class: "side ours" }, [el("b", { text: `Where we're stronger than ${f.name}` }), el("ul", { class: "ticks" }, f.ours.map((x) => el("li", { html: tick() + "<span></span>" })))]);
+    $$("li span", ours).forEach((sp, i) => (sp.textContent = f.ours[i]));
+    panel.append(el("div", { class: "sides" }, [ours, el("div", { class: "side" }, [el("b", { text: `Where ${f.name} is stronger` }), el("p", { text: f.stronger })])]));
     replay(panel, "swap-in");
   }
   seg($$("[data-from]"), (b) => showFrom(b.dataset.from));
   showFrom("mindbody");
+
+  // --- Questions for any sales call -----------------------------------------------------------
+  const ASK = [
+    ["What will I pay each month, for my locations, with everything I need?", "<strong>The price on our Pricing page.</strong> SGD 129, 399 or 699, plus SGD 199 for each location past five on Signature."],
+    ["Is there a contract, and what does leaving early cost?", "<strong>No contract.</strong> Stop at the end of any month. Yearly is optional."],
+    ["Do you take a percentage of my sales, on top of card fees?", "<strong>No.</strong> Payments go to your own Stripe account."],
+    ["What does my own app cost?", "<strong>SGD 99 a month on Growth,</strong> and included in Signature."],
+    ["Is moving my data included?", "<strong>Yes, free</strong> for a standard move, done by us and checked with you."],
+    ["If I leave, can I take my data, and what does it cost?", "<strong>Yes, at no cost.</strong> Your reports export to CSV whenever you like, and we'll help with the rest."],
+    ["Is support the same on every plan?", "<strong>Yes.</strong> The same people, whichever plan you're on."],
+  ];
+  const asks = $("#asks");
+  ASK.forEach(([q, a]) => asks.append(el("div", { class: "ask-row" }, [el("b", { text: q }), el("p", { html: a })])));
 })();
 </script>
