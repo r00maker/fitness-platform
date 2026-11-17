@@ -22,6 +22,7 @@ apps/api/            The API server and background worker (TypeScript, Fastify, 
     settings/        Studio policies, the signed-in user, push-token registration
   drizzle/           Database migrations (SQL, committed and reviewed like code)
   test/              Automated tests against a real PostgreSQL database
+apps/web/            The client web app (Vite, React): booking page, booking, buying, account (docs/WEB_APP.md)
 packages/shared/     Used by the API, web app and mobile app:
   fields.ts            plain-English labels + hover help for every field
   schemas.ts           request validation (same rules on the forms and the server)
@@ -40,7 +41,9 @@ pnpm db:migrate
 pnpm db:seed                                 # demo studio; prints an owner sign-in token
 pnpm dev                                     # API on http://localhost:3000
 pnpm worker                                  # in a second terminal: sends notifications, runs timers
+pnpm web                                     # the client web app on http://localhost:5173 (sign in with any email, code 000000)
 pnpm test                                    # needs a studio_test database
+pnpm e2e                                     # the web app end to end in a real browser (needs a studio_e2e database)
 ```
 
 Example: `curl "localhost:3000/v1/calendar?view=week&date=2026-11-11" -H "Authorization: Bearer <token>"`
@@ -111,6 +114,7 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Online payments: the studio's Stripe (connect, status, how clients pay, passing the fee on) | `GET /payments`, `POST /payments/connect` (owner), `POST /payments/refresh`, `PUT /payments/settings` | owner, admin |
 | Paying online: checkout `payWith`, paying a waiting order, the card kept for memberships | `POST /checkout` / `/gift-cards/checkout` / `/shop/checkout` with `payWith`, `POST /orders/:id/pay`, `GET /orders/:id/pay-options`, `GET/POST/DELETE /me/payment-card` | clients |
 | Stripe's webhook (connected accounts; signed) | `POST /public/payments/stripe/webhook` | Stripe |
+| Signed in, before choosing a studio: the studios someone belongs to | `GET /me/studios` (any signed-in person; the studio for other calls comes from the `X-Studio-Id` header) | signed in |
 | Booking page and widget (the studio's link, on/off, the code for its website) | `GET/PUT /booking-page` | owner, admin |
 | Public booking data (no sign-in; any website may read it) | `GET /public/studios/:slug`, `.../schedule`, `.../classes/:id`, `.../packages`, `GET /public/widget.js` | anyone |
 | Automations (client journeys and team reminders in one list) | `GET /automations` | owner, admin |
