@@ -1,0 +1,271 @@
+<title>Plans and pricing</title>
+<meta name="description" content="Essentials SGD 129, Growth SGD 399 and Signature SGD 799 a month. No cut of your sales, no contract, setup and your data move included.">
+<style>
+.calc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 18px; background: var(--ink-2); overflow: hidden }
+@media (max-width: 860px) { .calc { grid-template-columns: minmax(0, 1fr) } }
+.calc-in { padding: clamp(20px, 3vw, 32px); display: flex; flex-direction: column; gap: 22px; min-width: 0 }
+.calc-out { padding: clamp(20px, 3vw, 32px); border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; justify-content: center; min-width: 0; background: var(--ink-3) }
+@media (max-width: 860px) { .calc-out { border-left: 0; border-top: 1px solid var(--line) } }
+.ctl { display: flex; flex-direction: column; gap: 10px }
+.ctl > span { font-weight: 600; font-size: .95rem }
+.stepper { display: inline-flex; align-items: center; gap: 0; border: 1px solid var(--line-2); border-radius: 11px; overflow: hidden; align-self: flex-start }
+.stepper button { width: 48px; height: 48px; background: none; border: 0; color: var(--fg); font: 500 1.4rem/1 var(--text); cursor: pointer }
+.stepper button:hover { background: var(--ink-3) }
+.stepper button:disabled { color: var(--line-2); cursor: default; background: none }
+.stepper output { min-width: 64px; text-align: center; font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; border-inline: 1px solid var(--line-2); line-height: 48px }
+.toggle { display: inline-flex; align-items: center; gap: 12px; cursor: pointer; font-weight: 500; color: var(--fg); align-self: flex-start }
+.toggle input { appearance: none; width: 42px; height: 24px; border-radius: 999px; background: var(--line-2); position: relative; cursor: pointer; margin: 0; transition: background .2s; flex: none }
+.toggle input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--fg); transition: transform .2s }
+.toggle input:checked { background: var(--steel) } .toggle input:checked::after { transform: translateX(18px); background: var(--steel-ink) }
+.out-plan { color: var(--mute) }
+.out-plan b { color: var(--fg); font-weight: 600 }
+.out-amt { font-size: var(--step-4); font-weight: 560; letter-spacing: -0.045em; line-height: 1; font-variant-numeric: tabular-nums; font-variation-settings: "wdth" 82 }
+.out-amt small { font-size: 1rem; letter-spacing: 0; font-weight: 500; color: var(--mute); font-variation-settings: "wdth" 100 }
+.out-lines { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; color: var(--mute); font-size: .95rem }
+.out-lines li { display: flex; justify-content: space-between; gap: 16px; font-variant-numeric: tabular-nums }
+.out-note { color: var(--mute); font-size: .9rem; min-height: 1.4em }
+
+.plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 40px; align-items: stretch }
+@media (max-width: 960px) { .plans { grid-template-columns: minmax(0, 1fr) } }
+.plan { border: 1px solid var(--line); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 14px; transition: border-color .3s, background .3s }
+.plan.fit { border-color: var(--steel); background: color-mix(in srgb, var(--steel) 5%, var(--ink)) }
+.plan h3 { font-size: var(--step-2); letter-spacing: -0.02em }
+.plan .who { color: var(--mute); min-height: 3.2em }
+.amount { font-size: var(--step-3); font-weight: 560; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums }
+.amount small { font-size: .95rem; font-weight: 500; letter-spacing: 0; color: var(--mute) }
+.amount-note { color: var(--mute); font-size: .9rem; min-height: 1.4em }
+.plan ul { list-style: none; padding: 0; margin: 4px 0 0; display: flex; flex-direction: column; gap: 9px; font-size: .97rem }
+.plan li { display: flex; gap: 10px } .plan li svg { flex: none; margin-top: 4px; color: var(--steel) }
+.plan .fitnote { color: var(--steel); font-size: .9rem; font-weight: 600; min-height: 1.4em; margin-top: auto }
+
+/* Comparison table */
+.cmp-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px }
+table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size: .95rem }
+.cmp th, .cmp td { padding: 13px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top }
+.cmp thead th { position: sticky; top: 0; background: var(--ink-2); font-weight: 600; font-size: 1rem }
+.cmp thead th small { display: block; color: var(--mute); font-weight: 500; font-size: .85rem; font-variant-numeric: tabular-nums }
+.cmp td { width: 20%; color: var(--fg) }
+.cmp tbody th { font-weight: 500; color: var(--fg) }
+.cmp tbody th small { display: block; color: var(--mute); font-weight: 400; font-size: .85rem; margin-top: 2px }
+.cmp tr.grp th { background: var(--ink); color: var(--mute); font-weight: 600; font-size: .88rem; padding-top: 22px }
+.cmp td svg { color: var(--steel); vertical-align: -3px }
+.cmp .no { color: var(--line-2) }
+.cmp tbody tr:last-child > * { border-bottom: 0 }
+.cmp-note { color: var(--mute); font-size: .9rem; margin-top: 14px }
+
+/* Fees */
+.fees { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 32px }
+.fees > div { padding-top: 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px }
+.fees b { font-weight: 600; font-size: 1.05rem }
+.fees p { color: var(--mute) }
+@media (max-width: 800px) { .fees { grid-template-columns: minmax(0, 1fr); gap: 24px } }
+
+/* FAQ */
+.faq { display: flex; flex-direction: column; max-width: 820px }
+.faq details { border-top: 1px solid var(--line) }
+.faq details:last-child { border-bottom: 1px solid var(--line) }
+.faq summary { list-style: none; cursor: pointer; padding: 20px 40px 20px 0; font-weight: 600; font-size: 1.08rem; position: relative }
+.faq summary::-webkit-details-marker { display: none }
+.faq summary::after { content: ""; position: absolute; right: 6px; top: 50%; width: 10px; height: 10px; border-right: 1.5px solid var(--mute); border-bottom: 1.5px solid var(--mute); transform: translateY(-70%) rotate(45deg); transition: transform .2s }
+.faq details[open] summary::after { transform: translateY(-30%) rotate(-135deg) }
+.faq details p { color: var(--mute); padding: 0 0 22px; max-width: 68ch }
+</style>
+<!-- BODY -->
+<main id="main">
+  <section class="opener" aria-labelledby="prT">
+    <div class="wrap">
+      <h1 id="prT">One price a month. No cut of your sales.</h1>
+      <p class="lede">Every plan includes setup, your data moved across and the same people answering when you need help. Prices are in Singapore dollars, month to month.</p>
+    </div>
+  </section>
+
+  <section aria-label="Work out your price">
+    <div class="wrap">
+      <div class="calc">
+        <div class="calc-in">
+          <div class="ctl">
+            <span id="locL">How many locations do you run?</span>
+            <div class="stepper" role="group" aria-labelledby="locL">
+              <button type="button" id="locMinus" aria-label="One fewer location">&minus;</button>
+              <output id="locN" aria-live="polite">1</output>
+              <button type="button" id="locPlus" aria-label="One more location">+</button>
+            </div>
+          </div>
+          <label class="toggle" for="wantApp"><input type="checkbox" id="wantApp">I want our own app, with our name on it</label>
+          <div class="ctl">
+            <span id="billL">How you'd like to pay</span>
+            <div class="seg" role="radiogroup" aria-labelledby="billL">
+              <button type="button" role="radio" aria-checked="true" data-bill="month">Monthly</button>
+              <button type="button" role="radio" aria-checked="false" data-bill="year">Yearly, 2 months free</button>
+            </div>
+          </div>
+        </div>
+        <div class="calc-out" role="status" aria-live="polite">
+          <p class="out-plan" id="outPlan"></p>
+          <div class="out-amt" id="outAmt"></div>
+          <ul class="out-lines" id="outLines"></ul>
+          <p class="out-note" id="outNote"></p>
+        </div>
+      </div>
+      <div class="plans" id="plans"></div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="cmpT">
+    <div class="wrap">
+      <div class="head">
+        <h2 id="cmpT">Everything on each plan</h2>
+        <p class="lede">Each plan adds one job: run the studio, fill your classes, run a brand. Features a plan doesn't include stay out of the menu, so nobody trips over them.</p>
+      </div>
+      <div class="cmp-wrap">
+        <table class="cmp" id="cmp">
+          <thead><tr><th scope="col"><span class="sr" style="position:absolute;left:-9999px">Feature</span></th><th scope="col">Essentials<small>SGD 129</small></th><th scope="col">Growth<small>SGD 399</small></th><th scope="col">Signature<small>SGD 799</small></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="cmp-note">Prices are a month, in Singapore dollars. Pay yearly and get two months free.</p>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="feesT">
+    <div class="wrap">
+      <div class="head">
+        <h2 id="feesT">What clients pay, and where the money goes</h2>
+        <p class="lede">Payments go to your studio's own Stripe account. We never sit in the middle.</p>
+      </div>
+      <div class="fees">
+        <div><b>We take nothing</b><p>No percentage of your sales, on any plan. Your plan price is the whole of what you pay us.</p></div>
+        <div><b>Stripe's standard fees</b><p>Stripe charges its usual processing fee on each payment, the same as if you used it directly. You see every fee in your own Stripe dashboard.</p></div>
+        <div><b>Pass card fees on, if you like</b><p>You can add the card or GrabPay fee to what the client pays, shown before they pay. PayNow is never charged extra.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="faqT">
+    <div class="wrap">
+      <div class="head"><h2 id="faqT">Questions studios ask</h2></div>
+      <div class="faq">
+        <details><summary>Is there a contract?</summary><p>No. Plans are month to month and you can stop at the end of any month. Paying yearly is optional: it gets you two months free, and runs to the end of the year you paid for.</p></details>
+        <details><summary>What does moving my data cost?</summary><p>Nothing for a standard move: your clients, packages with the classes they have left, memberships and upcoming bookings, from one old system. If your move is unusual (several old systems, or custom data), we tell you the price before we start.</p></details>
+        <details><summary>Why are prices in Singapore dollars?</summary><p>We're based in Singapore, and payments here are settled in Singapore dollars. Studios elsewhere in Southeast Asia are billed in SGD for now. Your own clients still pay you in your studio's currency.</p></details>
+        <details><summary>Can I change plans later?</summary><p>Yes, at any time. Moving up switches the new features on straight away. Before you move down, we show you exactly what would switch off, so nothing disappears by surprise.</p></details>
+        <details><summary>I have one location but want my own app.</summary><p>The app comes with Growth (SGD 129 a month more) and is included in Signature. For one location, Growth with the app is the cheapest way to get it, at SGD 528 a month.</p></details>
+        <details><summary>Do WhatsApp messages cost extra?</summary><p>Replying to clients who message you is free. Some messages your studio starts, like reminders, are charged by Meta per message. We pass that on at cost, with nothing added.</p></details>
+        <details><summary>What's a founding studio?</summary><p>We're starting with a small group of studios in Singapore. They use the full platform free while we run the pilot together, then keep a founding price for as long as they stay. <a class="textlink" href="index.html#walkthrough">Ask about a place</a></p></details>
+      </div>
+    </div>
+  </section>
+</main>
+{{close}}
+
+<script>
+(() => {
+  "use strict";
+  const { $, $$, el, tick, seg } = window.S;
+  // Prices in SGD a month (the same figures as PLAN_INFO in packages/shared/src/features.ts).
+  const P = { essentials: 129, growth: 399, signature: 799, app: 129, extra: 199, included: { essentials: 1, growth: 3, signature: 5 } };
+  const money = (n) => `SGD ${n.toLocaleString("en")}`;
+  const PLANS = [
+    { key: "essentials", name: "Essentials", who: "One independent studio.", items: ["Classes, bookings, packages and memberships", "Online payments and your booking page", "Instructor pay, reviews and gift cards", "1 admin, unlimited instructors and front desk"] },
+    { key: "growth", name: "Growth", who: "Studios with a team, up to 3 locations.", items: ["Everything in Essentials", "Trial follow-ups and win-backs, switched on for you", "WhatsApp inbox, emails and refer a friend", "Your own app for SGD 129 a month more"] },
+    { key: "signature", name: "Signature", who: "Brands with several locations.", items: ["Everything in Growth", "Every location compared side by side", "Leads from your ads, and AI that drafts the work", "Your own app included, admins without limit"], extra: "Up to 5 locations, then SGD 199 for each one after" },
+  ];
+  let locs = 1, app = false, bill = "month";
+
+  // The cheapest plan that fits: Essentials has no app, Growth stops at 3 locations.
+  function quote() {
+    if (locs >= 4) { const extra = Math.max(0, locs - 5); return { plan: "signature", lines: [["Signature, up to 5 locations", P.signature], ...(extra ? [[`${extra} more location${extra > 1 ? "s" : ""}, SGD 199 each`, extra * P.extra]] : [])], note: app ? "Your own app is included in Signature." : "" }; }
+    if (locs > 1 || app) return { plan: "growth", lines: [[`Growth, up to 3 locations`, P.growth], ...(app ? [["Your own app", P.app]] : [])], note: locs === 1 && app ? "Essentials doesn't include an app, so Growth with the app is the cheapest way to get one." : "" };
+    return { plan: "essentials", lines: [["Essentials, 1 location", P.essentials]], note: "" };
+  }
+  function render() {
+    const q = quote();
+    const monthly = q.lines.reduce((a, [, v]) => a + v, 0);
+    const yearly = bill === "year";
+    $("#locN").textContent = String(locs);
+    $("#locMinus").disabled = locs <= 1;
+    $("#locPlus").disabled = locs >= 20;
+    const name = PLANS.find((p) => p.key === q.plan).name;
+    $("#outPlan").innerHTML = "";
+    $("#outPlan").append("The plan for you: ", el("b", { text: name }));
+    $("#outAmt").innerHTML = "";
+    $("#outAmt").append(money(yearly ? monthly * 10 : monthly), el("small", { text: yearly ? " a year" : " a month" }));
+    const lines = $("#outLines");
+    lines.innerHTML = "";
+    q.lines.forEach(([t, v]) => lines.append(el("li", {}, [el("span", { text: t }), el("span", { text: money(yearly ? v * 10 : v) })])));
+    $("#outNote").textContent = yearly ? `That's ${money(monthly * 2)} less than paying monthly.${q.note ? " " + q.note : ""}` : q.note;
+
+    const plansEl = $("#plans");
+    plansEl.innerHTML = "";
+    PLANS.forEach((p) => {
+      const fit = p.key === q.plan;
+      const m = P[p.key];
+      const card = el("article", { class: `plan ${fit ? "fit" : ""}`, "aria-label": `${p.name} plan${fit ? ", the one for you" : ""}` });
+      card.append(
+        el("h3", { text: p.name }),
+        el("p", { class: "who", text: p.who }),
+        el("div", { class: "amount", html: `${money(yearly ? m * 10 : m)}<small>${yearly ? " a year" : " a month"}</small>` }),
+        el("p", { class: "amount-note", text: p.extra ?? "" }),
+        el("ul", { html: p.items.map((i) => `<li>${tick()}<span>${i}</span></li>`).join("") }),
+        el("p", { class: "fitnote", text: fit ? "The one for you" : "" }),
+      );
+      plansEl.append(card);
+    });
+  }
+  $("#locMinus").addEventListener("click", () => { locs = Math.max(1, locs - 1); render(); });
+  $("#locPlus").addEventListener("click", () => { locs = Math.min(20, locs + 1); render(); });
+  $("#wantApp").addEventListener("change", (e) => { app = e.target.checked; render(); });
+  seg($$("[data-bill]"), (b) => { bill = b.dataset.bill; render(); });
+  render();
+
+  // --- Comparison table -----------------------------------------------------------------------
+  const Y = true, N = false;
+  const ROWS = [
+    ["The plan"],
+    ["Locations", "", "1", "Up to 3", "Up to 5, then SGD 199 each"],
+    ["Admin accounts", "Owners count as admins", "1", "1 for each location", "No limit"],
+    ["Instructors and front desk", "", "Unlimited", "Unlimited", "Unlimited"],
+    ["Your own app", "Your brand's name and colours", N, "+SGD 129 a month", "Included"],
+    ["Run the studio"],
+    ["Timetable, classes and appointments", "With rooms, repeats and ClassPass", Y, Y, Y],
+    ["Packages, memberships and shared packs", "", Y, Y, Y],
+    ["Online payments", "Cards, PayNow and GrabPay to your own Stripe", Y, Y, Y],
+    ["Booking page and website timetable", "", Y, Y, Y],
+    ["Waitlists, late-cancel and no-show fees", "", Y, Y, Y],
+    ["Closures and holidays", "Classes cancelled and clients told for you", Y, Y, Y],
+    ["Instructor pay", "Five ways to pay, each pay period", Y, Y, Y],
+    ["Reviews and gift cards", "", Y, Y, Y],
+    ["Ask", "Questions about your studio, answered from your data", Y, Y, Y],
+    ["Fill your classes"],
+    ["Journeys", "Intro offer follow-up, first-class welcome, win-back", N, Y, Y],
+    ["Emails, campaigns and app banners", "", N, Y, Y],
+    ["WhatsApp inbox", "Your studio's number, shared by the team", N, Y, Y],
+    ["Refer a friend and loyalty points", "", N, Y, Y],
+    ["Shop", "Products picked up at the front desk", N, Y, Y],
+    ["Run a brand"],
+    ["Reports by location", "", N, N, Y],
+    ["Leads and ad tracking", "", N, N, Y],
+    ["AI workflows", "Staff reminders, drafted announcements and recaps", N, N, Y],
+    ["Service"],
+    ["Setup done for you", "", Y, Y, Y],
+    ["Your data moved across", "Free for a standard move", Y, Y, Y],
+    ["Support", "The same people, on every plan", Y, Y, Y],
+    ["Cut of your sales", "", "None", "None", "None"],
+  ];
+  const tb = $("#cmp tbody");
+  ROWS.forEach((r) => {
+    if (r.length === 1) { tb.append(el("tr", { class: "grp" }, [el("th", { scope: "colgroup", colspan: "4", text: r[0] })])); return; }
+    const th = el("th", { scope: "row", text: r[0] });
+    if (r[1]) th.append(el("small", { text: r[1] }));
+    const tr = el("tr", {}, [th]);
+    r.slice(2).forEach((v) => {
+      const td = el("td");
+      if (v === true) td.innerHTML = `${tick(18)}<span style="position:absolute;left:-9999px">Included</span>`;
+      else if (v === false) td.innerHTML = '<span class="no" aria-hidden="true">&mdash;</span><span style="position:absolute;left:-9999px">Not included</span>';
+      else td.textContent = v;
+      tr.append(td);
+    });
+    tb.append(tr);
+  });
+})();
+</script>

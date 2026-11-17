@@ -1,5 +1,6 @@
-// Screenshots and basic checks of the built site: desktop and phone, no page errors, no sideways scroll,
-// and the interactive parts respond. Usage: node check.mjs (after node build.mjs)
+// Screenshots and checks of the built site, every page at desktop and phone sizes: no page errors,
+// no sideways scroll, links between pages work, and the interactive parts respond.
+// Usage: node check.mjs (after node build.mjs)
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,35 +8,94 @@ import { mkdirSync } from "node:fs";
 const { chromium, devices } = createRequire(import.meta.url)("playwright");
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(here, "shots"); mkdirSync(out, { recursive: true });
+const url = (page) => "file://" + path.join(here, "dist", `${page}.html`);
 const results = []; const ok = (n, c, x = "") => results.push([c ? "PASS" : "FAIL", n + (x ? `  (${x})` : "")]);
 const b = await chromium.launch();
 for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }], ["phone", { ...devices["iPhone 13"] }]]) {
   const p = await b.newPage(opts);
   const errors = []; p.on("pageerror", (e) => errors.push(e.message));
-  await p.goto("file://" + path.join(here, "dist/index.html"));
-  await p.waitForTimeout(2600);
-  ok(`${label}: no sideways scroll`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-  ok(`${label}: timetable filled`, (await p.locator("#tt .cls").count()) === 17);
-  await p.screenshot({ path: path.join(out, `${label}-hero.png`) });
+  const noHScroll = () => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
+  const text = (s) => p.locator(s).first().innerText();
+  const open = async (page) => { await p.goto(url(page)); await p.waitForTimeout(400); };
+  const phone = label === "phone";
+  const nav = async (name) => {
+    if (phone) await p.locator(".menu-btn").click();
+    await p.locator(`#nav a[data-page="${name}"]`).click();
+    await p.waitForLoadState("load"); await p.waitForTimeout(400);
+  };
+
+  // Home
+  await open("index"); await p.waitForTimeout(2200);
+  ok(`${label} home: no sideways scroll`, await noHScroll());
+  ok(`${label} home: timetable filled`, (await p.locator("#tt .cls").count()) === 17);
+  ok(`${label} home: no waiver on the to-do list`, !/waiver/i.test(await text("#att")));
+  await p.screenshot({ path: path.join(out, `${label}-home-hero.png`) });
   await p.locator("#tt .cls").nth(1).click();
   await p.locator(".pop .abtn.go").click();
-  ok(`${label}: book from the timetable`, /booked|waitlist/.test(await p.locator(".pop").innerText()));
+  ok(`${label} home: book from the timetable`, /booked|waitlist/.test(await text(".pop")));
   await p.keyboard.press("Escape");
   for (let i = 0; i < 4; i++) await p.locator(".att-item:not(.done) .abtn").first().click().then(() => p.waitForTimeout(500));
-  ok(`${label}: to-do list clears`, await p.locator("#attEmpty").isVisible());
-  await p.locator('[data-chk="double"]').click();
-  ok(`${label}: warnings switch`, /double-booked/i.test(await p.locator("#chk").innerText()));
+  ok(`${label} home: to-do list clears`, await p.locator("#attEmpty").isVisible());
   await p.locator('[data-local="pay"]').click();
-  ok(`${label}: checkout tab`, /PayNow/.test(await p.locator("#localPanel").innerText()));
-  await p.locator("#markAll").click(); await p.waitForTimeout(700);
-  ok(`${label}: mark everyone present`, (await p.locator(".rp.here").count()) === 6);
-  await p.locator('[data-loc="3"]').click();
-  ok(`${label}: plan recommended`, /Growth/.test(await p.locator(".plan.fit").innerText()));
-  await p.locator('[data-bill="year"]').click();
-  ok(`${label}: yearly prices`, /USD 2,990/.test(await p.locator("#plans").innerText()));
+  ok(`${label} home: checkout tab`, /PayNow/.test(await text("#localPanel")));
+  ok(`${label} home: prices in SGD`, /SGD 129[\s\S]*SGD 399[\s\S]*SGD 799/.test(await text(".prices")));
   await p.locator('#join button[type="submit"]').click();
-  ok(`${label}: form says what's missing`, /Add your name/.test(await p.locator("#joinNote").innerText()));
-  await p.screenshot({ path: path.join(out, `${label}-full.png`), fullPage: true });
+  ok(`${label} home: form says what's missing`, /Add your name/.test(await text("#joinNote")));
+  await p.screenshot({ path: path.join(out, `${label}-home-full.png`), fullPage: true });
+
+  // Product
+  await nav("product");
+  ok(`${label} nav: to Product`, p.url().endsWith("product.html"));
+  ok(`${label} product: marked as the current page`, (await p.locator('#nav a[aria-current="page"]').getAttribute("data-page")) === "product");
+  ok(`${label} product: no sideways scroll`, await noHScroll());
+  await p.locator('[data-chk="double"]').click();
+  ok(`${label} product: warnings switch`, /double-booked/i.test(await text("#chk")));
+  await p.locator("#markAll").click(); await p.waitForTimeout(700);
+  ok(`${label} product: mark everyone present`, (await p.locator(".rp.here").count()) === 6);
+  await p.locator('[data-jr="intro"]').click();
+  ok(`${label} product: journey shows its steps`, (await p.locator(".jr-steps li").count()) === 3);
+  await p.locator("#jrOn").click({ force: true });
+  ok(`${label} product: journey switches off`, /Switched off/.test(await text(".jr-result")));
+  await p.locator("#bars").scrollIntoViewIfNeeded(); await p.waitForTimeout(500);
+  await p.locator('[data-m="fill"]').click(); await p.waitForTimeout(700);
+  ok(`${label} product: report by location`, /58%/.test(await text("#bars")) && (await p.locator("#bars li.low").count()) === 1);
+  await p.locator("#qs button").nth(2).click();
+  ok(`${label} product: Ask answers`, /SGD 4,737/.test(await text("#ans")));
+  await p.screenshot({ path: path.join(out, `${label}-product-full.png`), fullPage: true });
+
+  // Pricing
+  await nav("pricing");
+  ok(`${label} nav: to Pricing`, p.url().endsWith("pricing.html"));
+  ok(`${label} pricing: no sideways scroll`, await noHScroll());
+  ok(`${label} pricing: starts at Essentials`, /Essentials/.test(await text("#outPlan")) && /SGD 129/.test(await text("#outAmt")));
+  await p.locator("#wantApp").check({ force: true });
+  ok(`${label} pricing: one location with an app is Growth`, /Growth/.test(await text("#outPlan")) && /SGD 528/.test(await text("#outAmt")));
+  for (let i = 0; i < 5; i++) await p.locator("#locPlus").click();
+  ok(`${label} pricing: 6 locations is Signature plus one`, /Signature/.test(await text("#outPlan")) && /SGD 998/.test(await text("#outAmt")) && /Signature/.test(await text(".plan.fit")));
+  await p.locator('[data-bill="year"]').click();
+  ok(`${label} pricing: yearly`, /SGD 9,980/.test(await text("#outAmt")) && /SGD 7,990/.test(await text("#plans")));
+  ok(`${label} pricing: comparison table`, (await p.locator("#cmp tbody tr").count()) > 25);
+  await p.locator(".faq summary").first().click();
+  ok(`${label} pricing: FAQ opens`, await p.locator(".faq details").first().evaluate((d) => d.open));
+  await p.screenshot({ path: path.join(out, `${label}-pricing-full.png`), fullPage: true });
+
+  // Switching
+  await nav("switching");
+  ok(`${label} nav: to Switching`, p.url().endsWith("switching.html"));
+  ok(`${label} switching: no sideways scroll`, await noHScroll());
+  for (let i = 0; i < 3; i++) await p.locator(".qa-item:not(.done) .abtn").first().click();
+  ok(`${label} switching: questions answered, move ready`, /ready to run/.test(await text("#qaLog")));
+  await p.locator('[data-from="momence"]').click();
+  ok(`${label} switching: Momence comparison`, /Moving from Momence/.test(await text("#fromPanel")) && /USD 250/.test(await text("#fromPanel")));
+  await p.locator('[data-from="sheet"]').click();
+  ok(`${label} switching: spreadsheet has no comparison table`, (await p.locator("#fromPanel table").count()) === 0);
+  ok(`${label} switching: comparison is dated`, /November 2026/.test(await text(".dated")));
+  await p.screenshot({ path: path.join(out, `${label}-switching-full.png`), fullPage: true });
+
+  // Back home from the call to action
+  await p.locator(".close .btn").click(); await p.waitForLoadState("load");
+  ok(`${label} nav: walkthrough link goes home`, /index\.html#walkthrough$/.test(p.url()));
+
   ok(`${label}: no page errors`, !errors.length, errors.join(" | "));
   await p.close();
 }

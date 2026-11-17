@@ -1,21 +1,61 @@
-// Builds the marketing site: src/page.html is the page (its head part above <!-- BODY -->),
-// wrapped into a full document at dist/index.html. No framework, no bundler: one fast page.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-const src = readFileSync(new URL("./src/page.html", import.meta.url), "utf8");
-const [head, body] = src.split("<!-- BODY -->");
-if (!body) throw new Error("src/page.html needs a <!-- BODY --> marker between its head part and its body.");
-const html = `<!doctype html>
+// Builds the marketing site. Each file in src/pages/ is one page: its head part (title, description,
+// page styles) above <!-- BODY -->, its content below. The build adds the shared styles (src/site.css),
+// the header, footer and helpers (src/partials/, src/site.js) and writes:
+//   dist/<page>.html           full pages, ready to host as they are
+//   dist/artifact/index.html   the home page without the document wrapper (the artifact host adds it),
+//   dist/artifact/<page>.html  the other pages as full documents, published beside it
+// No framework, no bundler.
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
+const css = read("./src/site.css");
+const js = read("./src/site.js");
+const header = read("./src/partials/header.html");
+const footer = read("./src/partials/footer.html");
+const close = read("./src/partials/close.html");
+const PAGES = ["index", "product", "pricing", "switching"];
+const found = readdirSync(new URL("./src/pages/", import.meta.url)).map((f) => f.replace(/\.html$/, ""));
+for (const p of PAGES) if (!found.includes(p)) throw new Error(`src/pages/${p}.html is missing.`);
+
+const shared = `<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&display=swap">
+<style>
+${css.trim()}
+</style>`;
+
+function parts(name) {
+  const src = read(`./src/pages/${name}.html`);
+  const [head, body] = src.split("<!-- BODY -->");
+  if (!body) throw new Error(`src/pages/${name}.html needs a <!-- BODY --> marker between its head part and its content.`);
+  if (!/<title>[^<]+<\/title>/.test(head)) throw new Error(`src/pages/${name}.html needs a <title>.`);
+  const nav = header.replace(`data-page="${name}"`, `data-page="${name}" aria-current="page"`);
+  const content = body.trim().replace("{{close}}", close.trim());
+  // Title first: the artifact host reads the title from the top of the file.
+  const title = head.match(/<title>[^<]+<\/title>/)[0];
+  return {
+    head: `${title}\n${shared}\n${head.replace(title, "").trim()}`,
+    body: `${nav.trim()}\n<script>\n${js.trim()}\n</script>\n${content}\n${footer.trim()}`,
+  };
+}
+const full = ({ head, body }) => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-${head.trim()}
+${head}
 </head>
 <body>
-${body.trim()}
+${body}
 </body>
 </html>
 `;
-mkdirSync(new URL("./dist/", import.meta.url), { recursive: true });
-writeFileSync(new URL("./dist/index.html", import.meta.url), html);
-console.log(`dist/index.html (${(html.length / 1024).toFixed(1)} KB)`);
+
+mkdirSync(new URL("./dist/artifact/", import.meta.url), { recursive: true });
+for (const name of PAGES) {
+  const p = parts(name);
+  const html = full(p);
+  writeFileSync(new URL(`./dist/${name}.html`, import.meta.url), html);
+  writeFileSync(new URL(`./dist/artifact/${name}.html`, import.meta.url), name === "index" ? `${p.head}\n${p.body}\n` : html);
+  console.log(`dist/${name}.html (${(html.length / 1024).toFixed(1)} KB)`);
+}

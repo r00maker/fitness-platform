@@ -1,0 +1,510 @@
+<title>Studio software site</title>
+<meta name="description" content="Bookings, packages, payments, instructor pay and WhatsApp for pilates, yoga and barre studios in Southeast Asia. We set you up and move your data for free.">
+<style>
+/* Hero: the timetable is the one loud thing on the page. */
+.hero { padding-block: clamp(40px, 7vw, 88px) 72px; position: relative; isolation: isolate; overflow-x: clip }
+.hero::before { content: ""; position: absolute; inset: -20% -25% auto auto; width: 72vw; height: 72vw; max-width: 940px; max-height: 940px; background: radial-gradient(closest-side, color-mix(in srgb, var(--steel) 9%, transparent), transparent 70%); z-index: -1; pointer-events: none }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(32px, 5vw, 72px); align-items: center }
+@media (max-width: 1000px) { .hero-grid { grid-template-columns: minmax(0, 1fr) } }
+.hero h1 .w { display: inline-block; white-space: pre }
+.hero .lede { margin-top: 22px }
+.cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px }
+.promises { list-style: none; padding: 0; margin: 26px 0 0; display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--mute); font-size: .95rem }
+.promises li { display: flex; align-items: center; gap: 8px }
+.promises svg { flex: none; color: var(--steel) }
+
+.tt { padding: 14px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; position: relative }
+.tt-day { display: flex; flex-direction: column; gap: 8px; min-width: 0 }
+.tt-day h4 { margin: 0 0 2px; font: 600 12.5px/1.2 var(--text); color: var(--app-mute); display: flex; justify-content: space-between }
+.tt-day h4 b { color: var(--app-fg); font-weight: 600 }
+.cls { position: relative; text-align: left; border: 0; cursor: pointer; font: inherit; color: var(--app-fg); background: color-mix(in srgb, var(--c) 14%, var(--app-2)); border-radius: 9px; padding: 8px 9px 9px 11px; display: flex; flex-direction: column; gap: 2px; min-height: 76px; transition: background .2s }
+.cls::before { content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 3px; background: var(--c) }
+.cls:hover { background: color-mix(in srgb, var(--c) 22%, var(--app-2)) }
+.cls .t { font-size: 11.5px; color: var(--app-mute); font-variant-numeric: tabular-nums }
+.cls .n { font-size: 12.5px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere }
+.cls .s { font-size: 11.5px; margin-top: auto; color: var(--app-mute); font-variant-numeric: tabular-nums }
+.cls .s.few { color: var(--warn) } .cls .s.full { color: var(--bad) }
+.cls.pulse { animation: pulse .7s ease-out }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 70%, transparent) } 100% { box-shadow: 0 0 0 10px transparent } }
+.tt-feed { display: flex; align-items: center; gap: 8px; min-width: 0 }
+.tt-feed span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.live { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; animation: live 2s infinite }
+@keyframes live { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent) } 70%, 100% { box-shadow: 0 0 0 7px transparent } }
+.tt-toggle { background: none; border: 1px solid var(--app-line); color: var(--app-mute); border-radius: 999px; padding: 5px 11px; font: 500 12px/1 var(--text); cursor: pointer; flex: none }
+@media (max-width: 640px) { .tt { grid-template-columns: repeat(3, minmax(0, 1fr)) } .tt-day:nth-child(n+4) { display: none } .tt-day h4 span { display: none } }
+/* Load moment: the headline settles, then the week fills up. */
+.js .tt .cls { opacity: 0; transform: translateY(-14px) scale(.98) }
+.js .tt.filled .cls { opacity: 1; transform: none; transition: opacity .45s ease, transform .55s cubic-bezier(.2, .8, .2, 1.15); transition-delay: var(--d, 0ms) }
+.js .hero h1 .w { opacity: 0; transform: translateY(.35em); font-variation-settings: "wdth" 75 }
+.js .hero.in h1 .w { opacity: 1; transform: none; font-variation-settings: "wdth" 86; transition: opacity .6s ease, transform .7s cubic-bezier(.2, .8, .2, 1), font-variation-settings 1.1s ease; transition-delay: var(--d, 0ms) }
+.pop { position: absolute; z-index: 5; width: min(260px, calc(100% - 28px)); background: var(--app-2); border: 1px solid var(--app-line); border-radius: 12px; padding: 14px; box-shadow: 0 20px 50px -10px rgba(0,0,0,.6); display: flex; flex-direction: column; gap: 8px }
+.pop h5 { margin: 0; font: 600 15px/1.3 var(--text) }
+.pop p { color: var(--app-mute); font-size: 13px }
+.pop .row { display: flex; gap: 8px; margin-top: 4px }
+
+/* Needs attention */
+.att { padding: 8px 0 }
+.att-group { padding: 8px 16px 4px; font: 600 12px/1 var(--text); color: var(--app-mute); display: flex; align-items: center; gap: 8px }
+.sev { width: 8px; height: 8px; border-radius: 50% } .sev.urgent { background: var(--bad) } .sev.soon { background: var(--warn) } .sev.fyi { background: var(--app-mute) }
+.att-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--app-line); transition: opacity .35s, max-height .45s ease, padding .45s ease; max-height: 140px; overflow: hidden }
+.att-item b { font-weight: 600 } .att-item p { color: var(--app-mute); font-size: 13px; grid-column: 1 }
+.att-item .abtn { grid-row: 1 / span 2; grid-column: 2 }
+.att-item.done { opacity: 0; max-height: 0; padding-block: 0; border-top-color: transparent }
+.att-empty { padding: 26px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--app-mute) }
+.att-empty b { color: var(--app-fg); display: flex; align-items: center; gap: 8px }
+.att-empty svg { color: var(--ok) }
+
+/* Made for here */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px }
+.tabs button { font: 600 .95rem/1 var(--text); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--mute); cursor: pointer }
+.tabs button:hover { color: var(--fg) }
+.tabs button[aria-selected="true"] { color: var(--fg); border-color: var(--steel); background: color-mix(in srgb, var(--steel) 8%, transparent) }
+.local { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: clamp(24px, 4vw, 56px); align-items: start }
+.local > .copy { padding-top: clamp(0px, 3vw, 28px) }
+@media (max-width: 920px) { .local { grid-template-columns: minmax(0, 1fr) } }
+.local .copy h3 { font-size: var(--step-2); letter-spacing: -0.02em }
+.chat { padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 300px }
+.msg { max-width: 82%; padding: 10px 12px; border-radius: 12px; font-size: 13.5px }
+.msg.them { background: var(--app-2); align-self: flex-start; border-top-left-radius: 4px }
+.msg.us { background: #134e43; align-self: flex-end; border-top-right-radius: 4px }
+.msg small { display: block; color: var(--app-mute); font-size: 11px; margin-top: 4px }
+.chat-side { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px dashed var(--app-line); border-radius: 10px; color: var(--app-mute); font-size: 12.5px }
+.typing { display: inline-flex; gap: 4px } .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--app-mute); animation: typing 1.2s infinite } .typing i:nth-child(2) { animation-delay: .15s } .typing i:nth-child(3) { animation-delay: .3s }
+@keyframes typing { 0%, 60%, 100% { opacity: .3 } 30% { opacity: 1 } }
+.pay { padding: 16px; display: flex; flex-direction: column; gap: 8px }
+.payopt { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--app-line); border-radius: 10px; cursor: pointer }
+.payopt.on { border-color: var(--app-accent); box-shadow: inset 0 0 0 1px var(--app-accent) }
+.payopt input { accent-color: var(--app-accent) } .payopt span { flex: 1 } .payopt small { display: block; color: var(--app-mute); font-size: 12px } .payopt em { font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums }
+.paytotal { display: flex; justify-content: space-between; padding: 6px 2px; font-weight: 600 }
+.share { padding: 18px; display: flex; flex-direction: column; gap: 14px }
+.share-top { display: flex; justify-content: space-between; align-items: baseline }
+.share-top b { font-size: 16px } .share-top span { color: var(--app-mute); font-size: 13px }
+.meter { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: var(--app-2); gap: 2px }
+.meter i { display: block; height: 100% }
+.people { display: flex; flex-direction: column; gap: 8px }
+.person { display: flex; align-items: center; gap: 10px; font-size: 13.5px } .person .av { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #04211b; font-style: normal }
+.person span { flex: 1 } .person em { font-style: normal; color: var(--app-mute); font-variant-numeric: tabular-nums }
+.payroll { width: 100%; border-collapse: collapse; font-size: 13px }
+.payroll th, .payroll td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--app-line); vertical-align: top }
+.payroll th { color: var(--app-mute); font-weight: 500; font-size: 12px }
+.payroll td.num { text-align: right; white-space: nowrap }
+.scroll-x { overflow-x: auto }
+
+/* Three jobs */
+.jobs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line) }
+.job { padding: 28px 28px 8px 0; display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.job + .job { padding-left: 28px; border-left: 1px solid var(--line) }
+.job .on { color: var(--mute); font-size: .9rem }
+.job h3 { font-size: var(--step-2); letter-spacing: -0.02em }
+.job p { color: var(--mute) }
+.job .textlink { align-self: flex-start; margin-top: 6px }
+@media (max-width: 860px) { .jobs { grid-template-columns: minmax(0, 1fr) } .job, .job + .job { padding: 24px 0 18px; border-left: 0 } .job + .job { border-top: 1px solid var(--line) } }
+
+/* Moving over (short) */
+.ledger { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 28px; align-items: center; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--ink-2) }
+.ledger-bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 2px; grid-column: 1 / -1 }
+.ledger-bar i { display: block; height: 100% }
+.ledger dl { display: flex; flex-direction: column; gap: 8px; margin: 0 }
+.ledger dl div { display: flex; align-items: center; gap: 10px; font-size: .95rem } .ledger dt { color: var(--mute); flex: 1 } .ledger dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums }
+.ledger dl i { width: 10px; height: 10px; border-radius: 3px; flex: none }
+.ledger p { color: var(--mute); font-size: .9rem; grid-column: 1 / -1 }
+.ledger .total { font-size: var(--step-3); font-weight: 560; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; align-self: start }
+.ledger .total small { display: block; font-size: .85rem; font-weight: 500; letter-spacing: 0; color: var(--mute); margin-top: 6px }
+
+/* Prices, in brief */
+.prices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line); margin-top: 8px }
+.price { padding: 24px 24px 4px 0; display: flex; flex-direction: column; gap: 6px }
+.price + .price { padding-left: 24px; border-left: 1px solid var(--line) }
+.price b { font-weight: 600 }
+.price .amt { font-size: var(--step-3); font-weight: 560; letter-spacing: -0.03em; line-height: 1.05; font-variant-numeric: tabular-nums }
+.price .amt small { font-size: .95rem; font-weight: 500; letter-spacing: 0; color: var(--mute) }
+.price p { color: var(--mute); font-size: .95rem }
+@media (max-width: 760px) { .prices { grid-template-columns: minmax(0, 1fr) } .price, .price + .price { padding: 18px 0 14px; border-left: 0 } .price + .price { border-top: 1px solid var(--line) } }
+.price-foot { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; margin-top: 28px; color: var(--mute) }
+
+/* Founding studios */
+.founding { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 6vw, 80px); align-items: start }
+@media (max-width: 920px) { .founding { grid-template-columns: minmax(0, 1fr) } }
+.founding h2 { font-size: var(--step-4); line-height: 1; letter-spacing: -0.04em }
+form.join { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; padding: 26px; border: 1px solid var(--line); border-radius: 18px; background: var(--ink-2) }
+form.join .full { grid-column: 1 / -1 }
+@media (max-width: 520px) { form.join { grid-template-columns: minmax(0, 1fr) } }
+.f { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: .92rem }
+.f input, .f select { font: 400 1rem/1.3 var(--text); color: var(--fg); background: var(--ink); border: 1px solid var(--line-2); border-radius: 10px; padding: 13px 14px; min-height: 48px }
+.f input:focus-visible, .f select:focus-visible { outline: 2px solid var(--steel); outline-offset: 1px }
+.f input[aria-invalid="true"] { border-color: var(--bad) }
+.form-note { color: var(--mute); font-size: .88rem }
+.thanks { grid-column: 1 / -1; display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 12px; background: color-mix(in srgb, var(--steel) 10%, transparent) }
+.thanks svg { color: var(--steel); flex: none; margin-top: 2px }
+@media (prefers-reduced-motion: reduce) { .js .tt .cls, .js .hero h1 .w { opacity: 1 !important; transform: none !important } }
+</style>
+<!-- BODY -->
+<main id="main">
+  <section class="hero" aria-labelledby="heroT">
+    <div class="wrap hero-grid">
+      <div>
+        <h1 id="heroT" data-split>Studio software your front desk learns in an afternoon.</h1>
+        <p class="lede">Bookings, packages, payments, instructor pay and WhatsApp for pilates, yoga and barre studios, from one room to a dozen locations. We set it up and move your clients across for you.</p>
+        <div class="cta-row">
+          <a class="btn btn-main" href="#walkthrough">Book a walkthrough</a>
+          <a class="btn btn-line" href="product.html">See the product</a>
+        </div>
+        <ul class="promises" aria-label="Our promises">
+          <li data-tick>No cut of your sales</li>
+          <li data-tick>No lock-in contracts</li>
+          <li data-tick>Your data moved for free</li>
+        </ul>
+      </div>
+      <figure class="win" style="margin:0" aria-label="The class timetable, as your clients and team see it">
+        <div class="win-bar"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><b>This week</b><small>Tanjong Pagar</small></div>
+        <div class="tt" id="tt"></div>
+        <div class="win-foot">
+          <div class="tt-feed"><i class="live" aria-hidden="true"></i><span id="feed">Tap a class to book a spot</span></div>
+          <button type="button" class="tt-toggle" id="ttToggle" aria-pressed="false">Pause</button>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="attT">
+    <div class="wrap pair">
+      <div class="copy">
+        <h2 id="attT">Your day starts with a to-do list, not a wall of charts.</h2>
+        <p class="lede">Home shows what needs you today, most urgent first, with one button for each. Clear it, then get back to the studio floor.</p>
+        <p class="small">Only what you can act on is shown. Instructors see their own cover requests; the front desk sees orders waiting at the counter.</p>
+      </div>
+      <div class="win" aria-label="Needs attention, on Home">
+        <div class="win-bar"><b>Needs attention</b><small id="attCount">4 things</small></div>
+        <div class="att" id="att">
+          <div class="att-group"><i class="sev urgent"></i>Urgent</div>
+          <div class="att-item"><div><b>1 class has no instructor</b></div><p>Mat Pilates, Thursday 12:30pm. Ben and Priya are free then.</p><button type="button" class="abtn go" data-done="Cover request sent to Ben and Priya">Ask for cover</button></div>
+          <div class="att-item"><div><b>2 membership renewals didn't go through</b></div><p>Their cards were declined this morning. They can still book while they update their card.</p><button type="button" class="abtn go" data-done="A link to update their card went to both clients">Send card link</button></div>
+          <div class="att-group"><i class="sev soon"></i>Soon</div>
+          <div class="att-item"><div><b>Attendance not taken for 3 classes</b></div><p>Finished in the last 24 hours. Pay and no-show fees depend on it.</p><button type="button" class="abtn go" data-done="Attendance saved for 3 classes">Take attendance</button></div>
+          <div class="att-group"><i class="sev fyi"></i>When you can</div>
+          <div class="att-item"><div><b>1 low review to follow up</b></div><p>2 stars or fewer. A quick, kind reply often wins a client back.</p><button type="button" class="abtn go" data-done="Reply drafted for you to check">Reply</button></div>
+          <div class="att-empty" id="attEmpty" hidden><b data-tick>All caught up</b><button type="button" class="abtn" id="attReset">Show the list again</button></div>
+        </div>
+        <div class="win-foot" role="status" aria-live="polite"><span id="attLog">Try it: each button does the job and clears the line.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="localT">
+    <div class="wrap">
+      <div class="head">
+        <h2 id="localT">Made for how studios here actually run.</h2>
+        <p class="lede">Your clients message on WhatsApp, pay by PayNow and share packages with their partners. Your instructors are paid five different ways. It's all built in, not bolted on.</p>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Built for Southeast Asia">
+        <button type="button" role="tab" aria-selected="true" aria-controls="localPanel" data-local="wa">WhatsApp inbox</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="localPanel" data-local="pay">PayNow and cards</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="localPanel" data-local="share">Shared packages</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="localPanel" data-local="payroll">Instructor pay</button>
+      </div>
+      <div class="local" id="localPanel" role="tabpanel"></div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="jobsT">
+    <div class="wrap">
+      <div class="head">
+        <h2 id="jobsT">Three jobs, one app. You only see the ones you use.</h2>
+        <p class="lede">Every studio runs its day. Most want fuller classes. Some run a brand across several locations. Each plan adds the next job, so a one-room studio never wades through tools built for a chain.</p>
+      </div>
+      <div class="jobs">
+        <article class="job"><span class="on">Every plan</span><h3>Run the studio</h3><p>Timetable, bookings, packages, payments, closures and instructor pay, with plain-English warnings before mistakes happen.</p><a class="textlink" href="product.html#run">How it runs your day</a></article>
+        <article class="job"><span class="on">Growth and Signature</span><h3>Fill your classes</h3><p>Trials followed up, lapsed clients won back and first-timers welcomed, automatically. Plus the shared WhatsApp inbox.</p><a class="textlink" href="product.html#fill">How it fills classes</a></article>
+        <article class="job"><span class="on">Signature</span><h3>Run a brand</h3><p>Every location side by side, leads from your ads followed up, AI that drafts the replies and recaps, and your own app.</p><a class="textlink" href="product.html#brand">How it runs a brand</a></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="moveT">
+    <div class="wrap pair">
+      <div class="copy">
+        <h2 id="moveT">We move your studio across. You don't lift a spreadsheet.</h2>
+        <p class="lede">Clients, the classes they have left, memberships and upcoming bookings come across exactly. Nothing is guessed: anything unclear comes back to you first.</p>
+        <p><a class="textlink" href="switching.html">How switching works</a></p>
+      </div>
+      <div class="ledger" aria-label="An example move: every row accounted for">
+        <dl>
+          <div><i style="background:var(--app-accent)"></i><dt>Created</dt><dd>1,204</dd></div>
+          <div><i style="background:var(--c-reformer)"></i><dt>Linked to existing accounts</dt><dd>61</dd></div>
+          <div><i style="background:var(--steel)"></i><dt>Duplicates merged</dt><dd>12</dd></div>
+          <div><i style="background:var(--mute)"></i><dt>Not moved, each with a reason</dt><dd>7</dd></div>
+        </dl>
+        <div class="total">1,284<small>rows, all accounted for</small></div>
+        <div class="ledger-bar" aria-hidden="true"><i style="width:93.8%;background:var(--app-accent)"></i><i style="width:4.75%;background:var(--c-reformer)"></i><i style="width:.93%;background:var(--steel)"></i><i style="width:.55%;background:var(--mute)"></i></div>
+        <p>An example of the report you see before anything is moved. The numbers always add up, or the move doesn't go ahead.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="priceT">
+    <div class="wrap">
+      <div class="head">
+        <h2 id="priceT">One price a month. No cut of your sales.</h2>
+        <p class="lede">Every plan comes with setup, your data moved and the same people answering when you need help.</p>
+      </div>
+      <div class="prices">
+        <div class="price"><b>Essentials</b><div class="amt">SGD 129<small> a month</small></div><p>One independent studio.</p></div>
+        <div class="price"><b>Growth</b><div class="amt">SGD 399<small> a month</small></div><p>Studios with a team, up to 3 locations.</p></div>
+        <div class="price"><b>Signature</b><div class="amt">SGD 799<small> a month</small></div><p>Brands with up to 5 locations, then SGD 199 for each one after.</p></div>
+      </div>
+      <div class="price-foot"><a class="textlink" href="pricing.html">Compare plans and work out your price</a><span>Pay yearly and get two months free.</span></div>
+    </div>
+  </section>
+
+  <section class="band" id="walkthrough" aria-labelledby="foundT">
+    <div class="wrap founding">
+      <div class="copy">
+        <h2 id="foundT">Be one of our founding studios.</h2>
+        <p class="lede">We're opening in Singapore with a small group of studios first: an independent studio, a couple of reformer studios and one brand with several locations.</p>
+        <ul class="ticks">
+          <li data-tick>The full platform, free while we run the pilot together</li>
+          <li data-tick>A founding price, locked in for as long as you stay</li>
+          <li data-tick>Your data moved and your classes set up by us</li>
+          <li data-tick>A direct line to the people building it</li>
+        </ul>
+      </div>
+      <form class="join" id="join" novalidate>
+        <label class="f" for="fName">Your name<input id="fName" name="name" autocomplete="name" required></label>
+        <label class="f" for="fStudio">Studio name<input id="fStudio" name="studio" autocomplete="organization" required></label>
+        <label class="f full" for="fEmail">Email<input id="fEmail" name="email" type="email" autocomplete="email" inputmode="email" required></label>
+        <label class="f" for="fLocs">Locations<select id="fLocs" name="locations"><option>1</option><option>2 or 3</option><option>4 or more</option></select></label>
+        <label class="f" for="fNow">What you use today<select id="fNow" name="current"><option>Mindbody</option><option>Momence</option><option>Glofox</option><option>TeamUp</option><option>Spreadsheets</option><option>Something else</option></select></label>
+        <button class="btn btn-main full" type="submit">Book a walkthrough</button>
+        <p class="form-note full" id="joinNote">We'll reply within two working days to find a time that suits you. A walkthrough takes about 30 minutes.</p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const { reduce, $, $$, el, tick, replay, seg } = window.S;
+  $$("[data-tick]").forEach((n) => n.insertAdjacentHTML("afterbegin", tick(n.tagName === "B" ? 18 : 16)));
+
+  // --- Hero: the headline settles, then the week fills up ---------------------------------
+  const h1 = $("[data-split]");
+  const words = h1.textContent.trim().split(/\s+/);
+  h1.setAttribute("aria-label", h1.textContent.trim());
+  h1.textContent = "";
+  words.forEach((w, i) => h1.append(el("span", { class: "w", "aria-hidden": "true", text: w + (i < words.length - 1 ? " " : ""), style: `--d:${i * 55}ms` })));
+
+  const TYPES = {
+    reformer: ["Reformer - Intermediate", "var(--c-reformer)"], yoga: ["Vinyasa Yoga", "var(--c-yoga)"], barre: ["Barre", "var(--c-barre)"],
+    sweat: ["Sweat - Essentials", "var(--c-sweat)"], mat: ["Mat Pilates - Foundations", "var(--c-mat)"],
+  };
+  const WEEK = [
+    ["Mon", 17, [["7:00am", "reformer", "Ana L.", 8, 8], ["12:30pm", "mat", "Ben T.", 12, 5], ["6:30pm", "yoga", "Priya N.", 14, 9], ["7:45pm", "barre", "Ana L.", 12, 10]]],
+    ["Tue", 18, [["7:00am", "sweat", "Marcus W.", 10, 6], ["9:30am", "barre", "Priya N.", 12, 4], ["6:30pm", "reformer", "Ana L.", 8, 7]]],
+    ["Wed", 19, [["7:00am", "yoga", "Priya N.", 14, 11], ["12:30pm", "reformer", "Ben T.", 8, 3], ["6:30pm", "mat", "Ben T.", 12, 9], ["7:45pm", "sweat", "Marcus W.", 10, 8]]],
+    ["Thu", 20, [["7:00am", "reformer", "Ana L.", 8, 6], ["9:30am", "yoga", "Priya N.", 14, 5], ["6:30pm", "barre", "Ana L.", 12, 11]]],
+    ["Fri", 21, [["7:00am", "mat", "Ben T.", 12, 4], ["12:30pm", "sweat", "Marcus W.", 10, 7], ["6:30pm", "reformer", "Ana L.", 8, 8]]],
+  ];
+  const tt = $("#tt");
+  const classes = [];
+  let order = 0;
+  WEEK.forEach(([dow, date, list]) => {
+    const col = el("div", { class: "tt-day" }, [el("h4", { html: `<b>${dow}</b><span>${date} Nov</span>` })]);
+    list.forEach(([time, type, who, cap, booked]) => {
+      const c = { dow, date, time, type, who, cap, booked, waiting: 0 };
+      c.el = el("button", { type: "button", class: "cls", style: `--c:${TYPES[type][1]};--d:${120 + order++ * 45}ms` });
+      c.el.addEventListener("click", () => openPop(c));
+      col.append(c.el);
+      classes.push(c);
+      paint(c);
+    });
+    tt.append(col);
+  });
+  function spotsText(c) { const left = c.cap - c.booked; return left <= 0 ? (c.waiting ? `Full, ${c.waiting} waiting` : "Full") : `${left} ${left === 1 ? "spot" : "spots"} left`; }
+  function paint(c) {
+    const left = c.cap - c.booked;
+    c.el.innerHTML = "";
+    c.el.append(el("span", { class: "t", text: c.time }), el("span", { class: "n", text: TYPES[c.type][0] }), el("span", { class: `s ${left <= 0 ? "full" : left <= 2 ? "few" : ""}`, text: spotsText(c) }));
+    c.el.setAttribute("aria-label", `${TYPES[c.type][0]}, ${c.dow} ${c.time} with ${c.who}. ${spotsText(c)}. Open to book.`);
+  }
+
+  // Bookings come in while you watch (sample names; nothing real).
+  const NAMES = ["Chloe", "Dev", "Mei", "Hana", "Arjun", "Siti", "Wei Ling", "Farah", "Ravi", "Jun", "Aisha", "Marcus"];
+  const feed = $("#feed");
+  let timer = null, paused = false, ticks = 0;
+  function step() {
+    const open = classes.filter((c) => c.booked < c.cap);
+    if (!open.length || ticks++ > 40) return stop();
+    const c = open[Math.floor(Math.random() * open.length)];
+    c.booked++;
+    paint(c);
+    replay(c.el, "pulse");
+    feed.textContent = `${NAMES[Math.floor(Math.random() * NAMES.length)]} booked ${TYPES[c.type][0]}, ${c.dow} ${c.time}`;
+  }
+  function start() { if (!timer && !paused && !reduce) timer = setInterval(step, 2600); }
+  function stop() { clearInterval(timer); timer = null; }
+  const toggle = $("#ttToggle");
+  toggle.addEventListener("click", () => { paused = !paused; toggle.setAttribute("aria-pressed", String(paused)); toggle.textContent = paused ? "Play" : "Pause"; paused ? stop() : start(); });
+  if (reduce) toggle.hidden = true;
+  document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
+
+  let pop = null;
+  function closePop() { pop?.remove(); pop = null; }
+  function openPop(c) {
+    closePop();
+    const left = c.cap - c.booked;
+    const t = TYPES[c.type][0];
+    pop = el("div", { class: "pop", role: "dialog", "aria-label": `${t} details` }, [
+      el("h5", { text: t }),
+      el("p", { text: `${c.dow} ${c.date} Nov, ${c.time} with ${c.who}. Studio 1, Tanjong Pagar.` }),
+      el("p", { class: "pop-state", text: spotsText(c) }),
+    ]);
+    const go = el("button", { type: "button", class: "abtn go", text: left > 0 ? "Book a spot" : "Join the waitlist" });
+    const no = el("button", { type: "button", class: "abtn", text: "Close" });
+    go.addEventListener("click", () => {
+      if (c.booked < c.cap) { c.booked++; $(".pop-state", pop).textContent = `You're booked. ${spotsText(c)}.`; feed.textContent = `You booked ${t}, ${c.dow} ${c.time}`; }
+      else { c.waiting++; $(".pop-state", pop).textContent = `You're number ${c.waiting} on the waitlist. If a spot opens, you're booked in and told straight away.`; feed.textContent = `You joined the waitlist for ${t}`; }
+      go.disabled = true; paint(c); replay(c.el, "pulse");
+    });
+    no.addEventListener("click", () => { closePop(); c.el.focus(); });
+    pop.append(el("div", { class: "row" }, [go, no]));
+    tt.append(pop);
+    const r = c.el.getBoundingClientRect(), box = tt.getBoundingClientRect();
+    const x = Math.min(Math.max(8, r.left - box.left), box.width - pop.offsetWidth - 8);
+    const y = Math.min(r.bottom - box.top + 6, box.height - pop.offsetHeight - 8);
+    pop.style.left = `${x}px`; pop.style.top = `${Math.max(8, y)}px`;
+    go.focus();
+  }
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePop(); });
+  document.addEventListener("click", (e) => { if (pop && !pop.contains(e.target) && !e.target.closest(".cls")) closePop(); });
+
+  // One orchestrated load: headline, then the week drops into place, then bookings start.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    $(".hero").classList.add("in");
+    tt.classList.add("filled");
+    setTimeout(start, reduce ? 0 : 1800);
+  }));
+
+  // --- Needs attention ----------------------------------------------------------------------
+  const att = $("#att"), log = $("#attLog");
+  function refreshAtt() {
+    const left = $$(".att-item:not(.done)", att);
+    $("#attCount").textContent = left.length ? `${left.length} ${left.length === 1 ? "thing" : "things"}` : "Nothing to do";
+    $$(".att-group", att).forEach((g) => { let n = g.nextElementSibling, any = false; while (n && n.classList.contains("att-item")) { if (!n.classList.contains("done")) any = true; n = n.nextElementSibling; } g.hidden = !any; });
+    $("#attEmpty").hidden = left.length > 0;
+  }
+  $$(".att-item .abtn", att).forEach((b) => b.addEventListener("click", () => {
+    b.closest(".att-item").classList.add("done");
+    log.textContent = b.dataset.done + ".";
+    setTimeout(refreshAtt, reduce ? 0 : 420);
+  }));
+  $("#attReset").addEventListener("click", () => { $$(".att-item", att).forEach((i) => i.classList.remove("done")); refreshAtt(); log.textContent = "Back again. Try clearing it."; });
+
+  // --- Made for here ------------------------------------------------------------------------
+  const panel = $("#localPanel");
+  const win = (title, sub) => el("div", { class: "win" }, [el("div", { class: "win-bar", html: `<b>${title}</b><small>${sub}</small>` })]);
+  const LOCAL = {
+    wa: {
+      title: "WhatsApp, in the same inbox as email",
+      body: "Clients message the studio's own WhatsApp number. Your team answers from one shared inbox, with the client's bookings and packages beside the chat.",
+      win: () => {
+        const w = win("Mei Tan", "WhatsApp");
+        const chat = el("div", { class: "chat" });
+        chat.append(el("div", { class: "msg them", html: "Hi! Is there still space in tonight's 6:30 reformer? <small>6:02pm</small>" }));
+        const typing = el("div", { class: "msg us", html: '<span class="typing" aria-label="Typing"><i></i><i></i><i></i></span>' });
+        chat.append(typing, el("div", { class: "chat-side", text: "Mei has 4 classes left on her 10-class pack, valid until 9 Jan." }));
+        setTimeout(() => { typing.innerHTML = "Yes, 2 spots left. I've booked you in with your 10-class pack. See you at 6:30! <small>6:03pm</small>"; }, reduce ? 0 : 1300);
+        w.append(chat);
+        return w;
+      },
+    },
+    pay: {
+      title: "PayNow, GrabPay and cards, straight to you",
+      body: "Clients pay online when they buy, and the money goes to your own Stripe account. Memberships renew on the card they used. You can pass the card fee on, and PayNow is never charged extra.",
+      win: () => {
+        const opts = [["card", "Card, Apple Pay or Google Pay", "+SGD 5.80 card fee", "SGD 155.80"], ["paynow", "PayNow", "No fee", "SGD 150.00"], ["grabpay", "GrabPay", "+SGD 5.12 GrabPay fee", "SGD 155.12"], ["desk", "Pay at the studio", "Order now, pay at the front desk", "SGD 150.00"]];
+        const w = win("5-class pack", "Checkout");
+        const box = el("div", { class: "pay", role: "radiogroup", "aria-label": "Pay with" });
+        const total = el("div", { class: "paytotal", html: "<span>Total</span><span>SGD 150.00</span>" });
+        opts.forEach(([k, l, s, t], i) => {
+          const lab = el("label", { class: `payopt ${i === 1 ? "on" : ""}` });
+          const r = el("input", { type: "radio", name: "pw", value: k });
+          if (i === 1) r.checked = true;
+          r.addEventListener("change", () => { $$(".payopt", box).forEach((x) => x.classList.toggle("on", x === lab)); total.innerHTML = `<span>Total</span><span>${t}</span>`; });
+          lab.append(r, el("span", { html: `${l}<small>${s}</small>` }), el("em", { text: t }));
+          box.append(lab);
+        });
+        box.append(total);
+        w.append(box);
+        return w;
+      },
+    },
+    share: {
+      title: "One package for a couple or a family",
+      body: "Share a pack as one pool anyone can use, or split the classes between people. When someone stops sharing, their unused classes go back to the person who paid.",
+      win: () => {
+        const w = win("Couple's 20-class pack", "Shared");
+        const people = [["Jun", 7, "var(--c-yoga)"], ["Mei", 5, "var(--c-barre)"]];
+        const s = el("div", { class: "share" });
+        const meter = el("div", { class: "meter", "aria-hidden": "true" });
+        people.forEach(([, n, c]) => meter.append(el("i", { style: `width:${(n / 20) * 100}%;background:${c}` })));
+        meter.append(el("i", { style: `width:${(8 / 20) * 100}%;background:var(--app-line)` }));
+        s.append(el("div", { class: "share-top", html: "<b>12 classes left</b><span>Valid until 28 Feb</span>" }), meter);
+        const list = el("div", { class: "people" });
+        people.forEach(([n, k, c]) => list.append(el("div", { class: "person", html: `<i class="av" style="background:${c}">${n[0]}</i><span>${n}</span><em>${k} left</em>` })));
+        list.append(el("div", { class: "person", html: '<i class="av" style="background:var(--app-line);color:var(--app-mute)">+</i><span style="color:var(--app-mute)">Room for 1 more person</span><em></em>' }));
+        s.append(list);
+        w.append(s);
+        return w;
+      },
+    },
+    payroll: {
+      title: "Instructor pay, worked out for you",
+      body: "Per class, per client, by class size, hourly or salaried, with different rates for different classes. The report is ready when the pay period ends, and marking it paid locks the figures.",
+      win: () => {
+        const w = win("Pay, 1 to 15 November", "Ready");
+        const rows = [["Ana Lim", "SGD 60 a class, +SGD 5 a client over 6", "SGD 1,385.00"], ["Ben Tan", "By class size: SGD 45 to 75", "SGD 840.00"], ["Priya Nair", "SGD 38 an hour", "SGD 912.00"], ["Marcus Wong", "SGD 3,200 a month", "SGD 1,600.00"]];
+        const tb = el("table", { class: "payroll", html: '<thead><tr><th scope="col">Instructor</th><th scope="col">How they\'re paid</th><th scope="col" style="text-align:right">This period</th></tr></thead>' });
+        const body = el("tbody");
+        rows.forEach(([n, how, amt]) => body.append(el("tr", {}, [el("td", { text: n }), el("td", { text: how }), el("td", { class: "num", text: amt })])));
+        tb.append(body);
+        w.append(el("div", { class: "scroll-x" }, [tb]));
+        return w;
+      },
+    },
+  };
+  function showLocal(k) {
+    const d = LOCAL[k];
+    panel.innerHTML = "";
+    panel.append(d.win(), el("div", { class: "copy" }, [el("h3", { text: d.title }), el("p", { class: "lede", text: d.body })]));
+    replay(panel, "swap-in");
+  }
+  seg($$("[data-local]"), (b) => showLocal(b.dataset.local));
+  showLocal("wa");
+
+  // --- Founding studios form ----------------------------------------------------------------
+  // Where requests go: set data-endpoint on the form (an API route) when the site is hosted.
+  const form = $("#join");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fields = [$("#fName"), $("#fStudio"), $("#fEmail")];
+    let firstBad = null;
+    fields.forEach((f) => { const bad = !f.value.trim() || (f.type === "email" && !/^\S+@\S+\.\S+$/.test(f.value.trim())); f.setAttribute("aria-invalid", String(bad)); if (bad && !firstBad) firstBad = f; });
+    const note = $("#joinNote");
+    if (firstBad) { note.textContent = firstBad.id === "fEmail" && firstBad.value ? "Check your email address: it should look like name@studio.com." : "Add your name, your studio's name and your email so we can reply."; firstBad.focus(); return; }
+    const endpoint = form.dataset.endpoint;
+    const first = $("#fName").value.trim().split(/\s+/)[0];
+    if (endpoint) {
+      try {
+        const r = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+        if (!r.ok) throw new Error();
+      } catch { note.textContent = "That didn't go through. Check your connection and try again."; return; }
+      form.innerHTML = "";
+      form.append(el("div", { class: "thanks", role: "status", html: `${tick(18)}<div><b></b><br>We'll reply within two working days to find a time for your walkthrough.</div>` }));
+      $(".thanks b", form).textContent = `Thanks, ${first}.`;
+    } else {
+      note.textContent = `Thanks, ${first}. This is a preview of the site, so nothing was sent yet.`;
+    }
+  });
+})();
+</script>
