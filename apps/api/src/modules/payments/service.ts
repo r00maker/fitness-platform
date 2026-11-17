@@ -106,7 +106,9 @@ async function exclusions(api: StripeApi, org: Org, method: OnlineMethod | null)
   const on = await api.enabledMethods(org.stripeAccountId!);
   if (!on.includes(method)) throw conflict("method_off", `${method === "card" ? "Card payments are" : `${PAY_WITH[method]} is`} not switched on for this studio. Choose another way to pay.`);
   const keep = method === "card" ? CARD_GROUP : [method];
-  const out = on.filter((m) => !keep.includes(m));
+  // Wallets (Apple Pay, Google Pay, Link) are card payments: Stripe hides them with "card" and
+  // refuses them by name.
+  const out = on.filter((m) => !keep.includes(m) && !CARD_GROUP.slice(1).includes(m));
   return out.length ? out : undefined;
 }
 

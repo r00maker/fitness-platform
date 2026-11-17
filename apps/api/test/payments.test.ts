@@ -199,7 +199,7 @@ describe("payments: paying online", () => {
     const pn = await s.c1.call("POST", "/checkout", { planId: pack.id, payWith: "paynow" });
     let [, sess] = lastSession(f);
     expect(sess.p.line_items).toHaveLength(1);
-    expect(sess.p.excluded_payment_method_types).toEqual(["card", "apple_pay", "google_pay", "link", "grabpay"]);
+    expect(sess.p.excluded_payment_method_types).toEqual(["card", "grabpay"]); // wallets go with "card"
     await s.c1.call("POST", `/orders/${pn.body.order.id}/cancel`);
 
     const r = await s.c1.call("POST", "/checkout", { planId: pack.id, payWith: "card" });
