@@ -53,8 +53,8 @@ function fakeStripe() {
       };
     },
     async expireCheckoutSession(_a, id) { f.calls.push(["expire", id]); },
-    async chargeSavedCard(account, p) {
-      f.calls.push(["chargeSavedCard", account, p]);
+    async chargeSavedCard(account, p, key) {
+      f.calls.push(["chargeSavedCard", account, p, key]);
       if (f.decline) throw f.decline;
       return { id: `pi_renew_${++n}`, status: "succeeded", amount: p.amount, payment_method: p.paymentMethod, metadata: p.metadata };
     },
@@ -312,6 +312,9 @@ describe("payments: memberships and cards on file", () => {
     expect(saved.body.handled, JSON.stringify(saved.body)).toBe("card_saved");
     const [ok] = await db.select().from(clientPackages).where(eq(clientPackages.id, p!.id));
     expect(ok!.paymentHeldAt).toBeNull();
+    // The same day, a new card is a new attempt (Stripe would replay the decline for the same key).
+    const keys = f.calls.filter((c) => c[0] === "chargeSavedCard").map((c) => c[3]);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it("removing the card asks first while a membership renews by card", async () => {

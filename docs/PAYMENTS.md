@@ -7,7 +7,7 @@ How clients pay online, how studios connect, and what happens behind the scenes.
 | Question | Choice | Why |
 |---|---|---|
 | Provider | **Stripe Connect** | Cards, Apple Pay, Google Pay, PayNow and GrabPay in Singapore, and studios each get their own account. |
-| How studios connect | **Each studio has its own full Stripe account** (full Stripe dashboard; the studio pays Stripe's fees; Stripe collects what it needs from the studio) | The studio is the seller. Money goes straight to it; we never hold clients' money, which keeps us furthest from needing a licence from MAS (have a lawyer confirm). |
+| How studios connect | **Each studio has its own full Stripe account**, created with Stripe's v2 accounts API (full Stripe dashboard; Stripe collects its fees from the account and covers losses; Stripe collects what it needs from the studio; card payments, and in Singapore PayNow and GrabPay, requested). Stripe refuses the older v1 account creation for new platforms. | The studio is the seller. Money goes straight to it; we never hold clients' money, which keeps us furthest from needing a licence from MAS (have a lawyer confirm). |
 | How charges are made | **Direct charges** in the studio's account | The charge, the customer, refunds and disputes all live in the studio's Stripe account, where the studio can see them. |
 | Our cut | **None for now** | Plan price only. Each plan has `paymentFeeBps` (0 today) in `packages/shared/src/features.ts`; above 0 it's taken as Stripe's application fee, with no other code change. |
 | Stripe's fees | **Paid by the studio; it can pass them on** | Optional, off by default, for cards and GrabPay only, shown before paying. Never for PayNow: the banks' PayNow rules (ABS) don't allow surcharges. Card networks and studios' Stripe agreements have their own rules on card surcharges; the setting says so. |
@@ -16,7 +16,7 @@ How clients pay online, how studios connect, and what happens behind the scenes.
 ## For studios
 
 1. **Connect** (Setup, Payments; owners only, as the account is in the business's name). `POST /payments/connect` creates the studio's Stripe account once and returns Stripe's sign-up page. Stripe asks for the business's details, the owner's details and a bank account.
-2. **Stripe checks the details.** Stripe tells us as it goes (the `account.updated` webhook): the page shows what's still needed, and the owner and admins are told when payments are ready. `POST /payments/refresh` asks Stripe again.
+2. **Stripe checks the details.** Stripe tells us as it goes (v2 account events, and `account.updated`): the page shows what's still needed, and the owner and admins are told when payments are ready. `POST /payments/refresh` asks Stripe again.
 3. **Choose how clients pay** (`PUT /payments/settings`): online on or off, paying at the studio on or off (at least one stays on, and the desk stays on until online is ready), and passing the fee on with the studio's own rates (Stripe's standard Singapore rates are filled in: 3.4% + S$0.50 for cards, 3.3% for GrabPay; set them to what's on the studio's account).
 4. **Which methods clients see** is set in the studio's Stripe dashboard (Settings, Payment methods). Stripe now lists whatever the account has switched on; we no longer pick methods per payment, except to show only the one a client chose when a fee is passed on.
 
@@ -44,7 +44,10 @@ When a membership renews, its saved card is charged with nobody present (an off-
 
 ## Webhooks
 
-`POST /v1/public/payments/stripe/webhook`, signed with the endpoint's secret (`STRIPE_WEBHOOK_SECRET`; requests more than 5 minutes old are refused). Each event is handled once (`payment_events`); an error makes Stripe send it again. Events used, from connected accounts:
+`POST /v1/public/payments/stripe/webhook`, signed by Stripe (requests more than 5 minutes old are refused). Each event is handled once (`payment_events`); an error makes Stripe send it again. Two Stripe destinations send here, each with its own signing secret (both go in `STRIPE_WEBHOOK_SECRET`, separated by a comma):
+
+1. **Account events** (an event destination for v2 "thin" events on connected accounts): `v2.core.account[requirements].updated`, `v2.core.account[configuration.merchant].capability_status_updated` (and any other `v2.core.account…` event). They only name the account; the API reads its status from Stripe.
+2. **Payment events** (a webhook endpoint for connected accounts, snapshot events):
 
 - `account.updated`, `account.application.deauthorized`
 - `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`
@@ -57,7 +60,7 @@ The full payment page is fetched from Stripe rather than trusting the event's co
 
 1. A Stripe account for the platform, registered to the Singapore business, with **Connect** signed up (Dashboard, Connect, Get started, Platform). Test mode needs no activation.
 2. `STRIPE_SECRET_KEY` (the platform's secret key; `sk_test_…` while testing, `sk_live_…` in production, which the API checks).
-3. A webhook endpoint **for connected accounts** at `<PUBLIC_API_URL>/v1/public/payments/stripe/webhook` with the events above; its signing secret goes in `STRIPE_WEBHOOK_SECRET` (required in production when the key is set).
+3. Both destinations above pointing at `<PUBLIC_API_URL>/v1/public/payments/stripe/webhook`; put their signing secrets in `STRIPE_WEBHOOK_SECRET`, comma-separated (required in production when the key is set).
 4. `PUBLIC_APP_URL` is where Stripe sends people back (`/payments/done`, `/payments/cancelled`, `/payments/card-saved`, `/setup/payments`).
 
 The API talks to Stripe over its REST API, pinned to version `2026-10-28.endive` (`modules/payments/stripe.ts`), so Stripe's changes don't reach us until we choose to move.
@@ -65,7 +68,12 @@ The API talks to Stripe over its REST API, pinned to version `2026-10-28.endive`
 ## Tested
 
 - API: `apps/api/test/payments.test.ts` against a stand-in for Stripe (connecting, signatures and repeats, paying online, fees for cards and GrabPay but not PayNow, the desk, paid twice, gift cards and the shop, memberships and saved cards, declines and retries, removing a card, refunds, failed refunds, dashboard refunds, disputes).
-- Against Stripe's test mode (November 2026): reading the account's payment methods, a payment page with a card fee line showing only cards and wallets, fetching it back with its payment details, closing it, saving a customer, and a card-saving page. Creating studio accounts needs Connect signed up on the platform account first.
+- **Full live run against Stripe's test mode** (November 2026), through the API's own code with a separate database, Stripe's real events replayed to the webhook with a signature:
+  - Connecting: a real v2 studio account and Stripe's sign-up link; connecting again reuses it; Stripe's account events give "needs details (20 to go)" and, once signed up, "ready".
+  - Paying: payment pages on the studio's account for a class pack, a membership (card kept), a drop-in with the card fee (SGD 35.00 + 1.75) and PayNow (no fee), paid in a browser with Stripe's test card and test PayNow. Stripe's `checkout.session.completed` events completed all four orders and their invoices (the fee as its own line); repeats were handled once. GrabPay gave the "not switched on for this studio" message, as the test studio hadn't switched it on.
+  - Renewals: a real off-session charge on the saved card; a card that fails after saving held the membership ("the card was declined"); with a working card again, it was paid and active again.
+  - Refunds: a refund from the app (asked first) went through Stripe; a refund made directly in Stripe was recorded on the sale.
+  - Found and fixed along the way: v1 account creation is refused for new platforms (moved to v2 accounts); thin events have no `data.object`; Stripe refuses wallets (Apple Pay, Google Pay, Link) by name when choosing methods (they're hidden with "card"); and a same-day retry with a new card reused the failed attempt's key (the key now includes the card).
 
 ## Not built yet
 

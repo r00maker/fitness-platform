@@ -155,6 +155,6 @@ Online payments use **Stripe Connect**: each studio connects its own Stripe acco
 
 1. Sign up for **Connect** on the platform's Stripe account (Dashboard, Connect, Get started, Platform).
 2. Set `STRIPE_SECRET_KEY` (`sk_live_…` in production; the API refuses a test key there).
-3. Add a webhook endpoint **for connected accounts** at `<PUBLIC_API_URL>/v1/public/payments/stripe/webhook` with the events listed in `PAYMENTS.md`, and set `STRIPE_WEBHOOK_SECRET` to its signing secret (required in production with the key).
+3. Point two Stripe destinations at `<PUBLIC_API_URL>/v1/public/payments/stripe/webhook`: an event destination for v2 account events on connected accounts, and a webhook endpoint for connected accounts with the payment events (both lists in `PAYMENTS.md`). Set `STRIPE_WEBHOOK_SECRET` to both signing secrets, comma-separated (required in production with the key).
 
 With the key set, the API and the worker charge memberships' saved cards at renewal (`stripeRenewalCharger`, plugged into `setRenewalCharger` in `modules/packages/payments.ts`). A declined renewal puts the membership on hold for 7 days, retries on days 3 and 7, and then ends it and charges any early termination fee; the worker runs the retries every 15 minutes. Without the key, or for a studio that hasn't connected, renewals stay "pay at the desk" and nothing is put on hold.

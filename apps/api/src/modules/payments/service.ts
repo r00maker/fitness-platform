@@ -226,10 +226,11 @@ export function stripeRenewalCharger(db: Db) {
       const org = await getOrg(db, i.orgId);
       const [c] = await db.select().from(paymentCustomers).where(and(eq(paymentCustomers.orgId, i.orgId), eq(paymentCustomers.userId, i.clientId), eq(paymentCustomers.stripeAccountId, org.stripeAccountId ?? "")));
       if (!api || !c?.cardPaymentMethodId) return { ok: false as const, reason: "there's no card saved" };
-      // One attempt per invoice per day: a retry later the same day returns the same answer.
+      // One attempt per invoice, card and day: a repeat the same day returns the same answer,
+      // but a new card (after a decline) is a new attempt.
       const day = new Date().toISOString().slice(0, 10);
       try {
-        const pi = await api.chargeSavedCard(org.stripeAccountId!, { customer: c.stripeCustomerId, paymentMethod: c.cardPaymentMethodId, amount: i.amountCents, currency: i.currency, description: i.description, metadata: { invoice_id: i.invoiceId, org_id: i.orgId, purpose: "renewal" }, applicationFee: platformFee(org, i.amountCents) }, `renewal-${i.invoiceId}-${day}`);
+        const pi = await api.chargeSavedCard(org.stripeAccountId!, { customer: c.stripeCustomerId, paymentMethod: c.cardPaymentMethodId, amount: i.amountCents, currency: i.currency, description: i.description, metadata: { invoice_id: i.invoiceId, org_id: i.orgId, purpose: "renewal" }, applicationFee: platformFee(org, i.amountCents) }, `renewal-${i.invoiceId}-${c.cardPaymentMethodId}-${day}`);
         if (pi.status === "succeeded" || pi.status === "processing") return { ok: true as const, ref: pi.id };
         return { ok: false as const, reason: pi.status === "requires_action" ? "your bank wants you to confirm this payment. Open the app and tap Pay now" : "the payment couldn't be taken" };
       } catch (err) {
