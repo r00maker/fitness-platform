@@ -6,11 +6,11 @@
 .hero::before { content: ""; position: absolute; inset: -20% -25% auto auto; width: 72vw; height: 72vw; max-width: 940px; max-height: 940px; background: radial-gradient(closest-side, color-mix(in srgb, var(--steel) 9%, transparent), transparent 70%); z-index: -1; pointer-events: none }
 .hero { padding-bottom: clamp(96px, 12vw, 160px) }
 .hero::after { content: ""; position: absolute; left: 50%; bottom: -1px; width: max(1600px, 160vw); height: 260px; transform: translate(-50%, 50%); border-radius: 50%; border-top: 1px solid color-mix(in srgb, var(--steel) 40%, transparent); box-shadow: 0 -30px 90px -30px color-mix(in srgb, var(--steel) 32%, transparent), inset 0 30px 60px -40px color-mix(in srgb, #d9c9ff 18%, transparent); background: var(--ink); z-index: -1; pointer-events: none }
-.hero-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(32px, 5vw, 72px); align-items: center }
-@media (max-width: 1000px) { .hero { padding-bottom: clamp(96px, 12vw, 160px) }
-.hero::after { content: ""; position: absolute; left: 50%; bottom: -1px; width: max(1600px, 160vw); height: 260px; transform: translate(-50%, 50%); border-radius: 50%; border-top: 1px solid color-mix(in srgb, var(--steel) 40%, transparent); box-shadow: 0 -30px 90px -30px color-mix(in srgb, var(--steel) 32%, transparent), inset 0 30px 60px -40px color-mix(in srgb, #d9c9ff 18%, transparent); background: var(--ink); z-index: -1; pointer-events: none }
-.hero-grid { grid-template-columns: minmax(0, 1fr) } }
-.hero .lede { margin-top: 22px }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr); gap: 28px clamp(32px, 5vw, 72px); align-items: end; margin-bottom: clamp(36px, 5vw, 64px) }
+.hero h1 { max-width: 13ch }
+.hero-side { display: flex; flex-direction: column; gap: 0 }
+@media (max-width: 900px) { .hero-grid { grid-template-columns: minmax(0, 1fr); align-items: start } }
+.hero .lede { margin-top: 0 }
 .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px }
 .promises { list-style: none; padding: 0; margin: 26px 0 0; display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--mute); font-size: .95rem }
 .promises li { display: flex; align-items: center; gap: 8px }
@@ -21,41 +21,27 @@
 /* Needs attention */
 
 
-/* A day at the studio: on wide screens the list stays put while the product windows stack up as
-   you scroll; on phones (and with reduced motion) each step simply shows its window below it. */
-.day { padding-block: clamp(56px, 7vw, 96px) }
-.day-head { display: flex; flex-direction: column; gap: 16px; max-width: 34rem }
-.day-steps { list-style: none; margin: 32px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px }
-.day-steps li { display: flex; flex-direction: column; gap: 8px; padding: 14px 0 14px 18px; border-left: 2px solid var(--line) }
-.day-t { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 2px }
-.day-t:focus-visible { outline: 2px solid var(--steel); outline-offset: 4px; border-radius: 6px }
-.day-t time { color: var(--mute); font-size: .9rem; font-variant-numeric: tabular-nums }
-.day-t b { font-family: var(--display); font-size: var(--step-1); font-weight: 600; letter-spacing: -0.015em }
-.day-steps p { color: var(--mute); max-width: 44ch }
-.day-card { border: 1px solid var(--line); border-radius: 18px; background: var(--ink-2); padding: clamp(14px, 2.4vw, 26px); display: grid; place-items: center; min-width: 0 }
-.day-card > .vid:not(.phone) { width: 100% }
-.day-card > .vid.phone { width: min(240px, 100%) }
-.day-steps .day-card { margin-top: 10px }
-.day-steps .day-card > .vid.phone { width: min(280px, 100%) }
-@media (min-width: 980px) {
-  .js .day.scrolly { height: calc(100vh + (var(--n) - 1) * 80vh); padding-block: 0 }
-  .js .day.scrolly .day-in { position: sticky; top: 66px; height: calc(100vh - 66px); display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(40px, 5vw, 72px); align-items: center }
-  .js .day.scrolly .day-steps li { opacity: .42; border-left-color: var(--line); transition: opacity .5s var(--ease-out), border-color .5s var(--ease-out) }
-  .js .day.scrolly .day-steps li.on { opacity: 1; border-left-color: var(--steel) }
-  .js .day.scrolly .day-steps li > p { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .6s var(--ease-out), opacity .5s var(--ease-out) }
-  .js .day.scrolly .day-steps li.on > p { max-height: 8em; opacity: 1 }
-  .js .day.scrolly .day-stage { position: relative; height: min(600px, calc(100vh - 140px)) }
-  .js .day.scrolly .day-card { position: absolute; inset: 0; transform-origin: 50% 0; transition: transform .9s var(--ease-out), opacity .7s var(--ease-out), filter .7s var(--ease-out) }
-  .js .day.scrolly .day-card.below { transform: translateY(90px) scale(.98); opacity: 0; pointer-events: none }
-  .js .day.scrolly .day-card.past { transform: translateY(calc(var(--back) * -26px)) scale(calc(1 - var(--back) * .05)); opacity: calc(1 - var(--back) * .45); filter: brightness(.55); pointer-events: none }
-}
+/* A day at the studio: one film, and its chapters underneath (they follow the film; tap one to jump). */
+.day .vid.film { margin-bottom: 28px }
+.chapters { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px }
+.chapters button { all: unset; box-sizing: border-box; position: relative; display: flex; flex-direction: column; gap: 6px; width: 100%; height: 100%; padding: 18px 18px 22px; border-radius: 14px; border: 1px solid var(--line); cursor: pointer; overflow: hidden; transition: border-color .3s, background .3s }
+.chapters button:hover { border-color: var(--line-2) }
+.chapters button:focus-visible { outline: 2px solid var(--steel); outline-offset: 3px }
+.chapters time { color: var(--mute); font-size: .9rem; font-variant-numeric: tabular-nums }
+.chapters b { font-family: var(--display); font-weight: 600; font-size: 1.08rem; letter-spacing: -0.01em }
+.chapters span { color: var(--mute); font-size: .92rem }
+.chapters .bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; background: var(--steel) }
+.chapters li.on button { border-color: color-mix(in srgb, var(--steel) 55%, var(--line)); background: var(--ink-2) }
+.chapters li.on time { color: var(--steel) }
+@media (max-width: 900px) { .chapters { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+@media (max-width: 480px) { .chapters { grid-template-columns: minmax(0, 1fr) } .chapters span { display: none } }
 
 /* Made for here: two windows side by side. */
-.here { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px clamp(24px, 4vw, 48px); align-items: start }
+.here { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px clamp(24px, 4vw, 56px); align-items: start; margin-top: 32px }
 @media (max-width: 920px) { .here { grid-template-columns: minmax(0, 1fr) } }
-.here > div { display: flex; flex-direction: column; gap: 14px; min-width: 0 }
-.here h3 { font-size: var(--step-2); letter-spacing: -0.02em }
-.here p.lede { font-size: 1.02rem }
+.here > div { display: flex; flex-direction: column; gap: 10px; min-width: 0 }
+.here h3 { font-size: var(--step-1); letter-spacing: -0.015em }
+.here p { color: var(--mute) }
 
 /* Windows */
 
@@ -110,8 +96,8 @@ form.join .full { grid-column: 1 / -1 }
 <main id="main">
   <section class="hero" aria-labelledby="heroT">
     <div class="wrap hero-grid">
-      <div>
-        <h1 id="heroT">Studio software your front desk learns in an afternoon.</h1>
+      <h1 id="heroT">Studio software your front desk learns in an afternoon.</h1>
+      <div class="hero-side">
         <p class="lede">Bookings, packages, payments, instructor pay and WhatsApp for pilates, yoga and barre studios, from one room to a dozen locations. We set it up and move your clients across for you.</p>
         <div class="cta-row">
           <a class="btn btn-main" href="#walkthrough">Book a walkthrough</a>
@@ -123,30 +109,26 @@ form.join .full { grid-column: 1 / -1 }
           <li data-tick>Your data moved for free</li>
         </ul>
       </div>
-      <figure class="vid"><video muted playsinline loop preload="none" poster="media/schedule.jpg" aria-label="Adding a Barre class to Saturday on the week's schedule"><source data-src="media/schedule.mp4" type="video/mp4"><source data-src="media/schedule.webm" type="video/webm"></video></figure>
+      
     </div>
+    <figure class="vid film"><video muted playsinline loop preload="none" poster="media/film-hero.jpg" aria-label="The studio's day in a few verbs: plan the week, check them in, answer every message, pay the team, fill the next class"><source data-src="media/film-hero.mp4" type="video/mp4"><source data-src="media/film-hero.webm" type="video/webm"></video></figure>
   </section>
 
-  <section class="day" id="day" aria-labelledby="dayT" style="--n:4">
-    <div class="wrap day-in">
-      <div>
-        <div class="day-head">
-          <h2 id="dayT">A day at the studio, handled.</h2>
-          <p class="lede">Scroll through an ordinary day. Every clip is the real product, recorded as it is.</p>
-        </div>
-        <ol class="day-steps" id="daySteps">
-          <li data-step="0"><button type="button" class="day-t"><time>7:00am</time><b>Open Home to a to-do list</b></button><p>What needs you today, most urgent first, with one button for each. Here, cover for an evening class is approved in two clicks.</p></li>
-          <li data-step="1"><button type="button" class="day-t"><time>12:20pm</time><b>Instructors check in from their phone</b></button><p>Big names to tap at the door, with injuries and first-timers marked. Their pay follows from who came.</p></li>
-          <li data-step="2"><button type="button" class="day-t"><time>6:02pm</time><b>A WhatsApp question, answered from one inbox</b></button><p>Clients message the studio's own number. The whole team replies from one shared inbox, so nothing waits on one person's phone.</p></li>
-          <li data-step="3"><button type="button" class="day-t"><time>11:59pm</time><b>Pay, worked out from attendance</b></button><p>Each instructor's pay comes from the classes they taught and who came. Mark the month paid and the figures lock.</p></li>
-        </ol>
+  <section class="band day" id="day" aria-labelledby="dayT">
+    <div class="wrap">
+      <div class="head">
+        <h2 id="dayT">A day at the studio, handled.</h2>
+        <p class="lede">Four moments from an ordinary day, from before the first class to lights off.</p>
       </div>
-      <div class="day-stage" id="dayStage">
-        <div class="day-card" data-card="0"><figure class="vid"><video muted playsinline loop preload="none" poster="media/todo.jpg" aria-label="Home's to-do list, then approving cover for an evening class"><source data-src="media/todo.mp4" type="video/mp4"><source data-src="media/todo.webm" type="video/webm"></video></figure></div>
-        <div class="day-card" data-card="1"><figure class="vid phone"><video muted playsinline loop preload="none" poster="media/checkin.jpg" aria-label="An instructor checking clients in to Barre on their phone"><source data-src="media/checkin.mp4" type="video/mp4"><source data-src="media/checkin.webm" type="video/webm"></video></figure></div>
-        <div class="day-card" data-card="2"><figure class="vid"><video muted playsinline loop preload="none" poster="media/whatsapp.jpg" aria-label="Answering a WhatsApp question from the shared inbox"><source data-src="media/whatsapp.mp4" type="video/mp4"><source data-src="media/whatsapp.webm" type="video/webm"></video></figure></div>
-        <div class="day-card" data-card="3"><figure class="vid"><video muted playsinline loop preload="none" poster="media/pay.jpg" aria-label="The pay report, one instructor's classes, and marking the month paid"><source data-src="media/pay.mp4" type="video/mp4"><source data-src="media/pay.webm" type="video/webm"></video></figure></div>
-      </div>
+    </div>
+    <figure class="vid film" id="dayFilm"><video muted playsinline loop preload="none" poster="media/film-day.jpg" aria-label="A day at the studio in four chapters: cover approved at 7am, check-in at 12:20pm, a WhatsApp reply at 6:02pm, pay marked as paid at 11:59pm"><source data-src="media/film-day.mp4" type="video/mp4"><source data-src="media/film-day.webm" type="video/webm"></video></figure>
+    <div class="wrap">
+      <ol class="chapters" id="chapters">
+        <li><button type="button" data-at="0"><time>7:00am</time><b>Cover, sorted before coffee</b><span>Home lists what needs you. Cover for an evening class is approved in one click.</span><i class="bar" aria-hidden="true"></i></button></li>
+        <li><button type="button" data-at="6.1"><time>12:20pm</time><b>Check-in at the door</b><span>Instructors tap names on their phone, with injuries and first-timers marked.</span><i class="bar" aria-hidden="true"></i></button></li>
+        <li><button type="button" data-at="12.1"><time>6:02pm</time><b>A WhatsApp question, answered</b><span>The whole team replies from one shared inbox.</span><i class="bar" aria-hidden="true"></i></button></li>
+        <li><button type="button" data-at="18.1"><time>11:59pm</time><b>Pay, worked out</b><span>From the classes taught and who came. Mark it paid and it locks.</span><i class="bar" aria-hidden="true"></i></button></li>
+      </ol>
     </div>
   </section>
 
@@ -156,9 +138,12 @@ form.join .full { grid-column: 1 / -1 }
         <h2 id="localT">Made for how studios here actually run.</h2>
         <p class="lede">You close for Chinese New Year, Hari Raya, Deepavali and the odd team retreat. Couples and families share one pack. It's all built in, not bolted on.</p>
       </div>
+    </div>
+    <figure class="vid film"><video muted playsinline loop preload="none" poster="media/film-here.jpg" aria-label="Closing for a team retreat, with the classes it cancels; then a client sharing their family pack"><source data-src="media/film-here.mp4" type="video/mp4"><source data-src="media/film-here.webm" type="video/webm"></video></figure>
+    <div class="wrap">
       <div class="here">
-        <div><h3>Closed days, handled for you</h3><p class="lede">Add a holiday or a retreat once. You see exactly which classes it cancels; everyone booked gets one message, their classes go back on their packs, and repeating classes skip the days.</p><figure class="vid"><video muted playsinline loop preload="none" poster="media/closure.jpg" aria-label="Adding a two-day team retreat and the classes it cancels"><source data-src="media/closure.mp4" type="video/mp4"><source data-src="media/closure.webm" type="video/webm"></video></figure></div>
-        <div><h3>One package for a couple or a family</h3><p class="lede">Clients share a pack from their own app. Use it as one pool or split the classes; when someone stops sharing, their unused classes go back to the person who paid.</p><figure class="vid"><video muted playsinline loop preload="none" poster="media/share.jpg" aria-label="A client sharing their family pack from the app"><source data-src="media/share.mp4" type="video/mp4"><source data-src="media/share.webm" type="video/webm"></video></figure></div>
+        <div><h3>Closed days, handled for you</h3><p>Add a holiday or a retreat once. You see exactly which classes it cancels; everyone booked gets one message, their classes go back on their packs, and repeating classes skip the days.</p></div>
+        <div><h3>One package for a couple or a family</h3><p>Clients share a pack from their own app. Use it as one pool or split the classes; when someone stops sharing, their unused classes go back to the person who paid.</p></div>
       </div>
     </div>
   </section>
@@ -244,48 +229,28 @@ form.join .full { grid-column: 1 / -1 }
   const { reduce, $, $$, el, tick } = window.S;
   $$("[data-tick]").forEach((n) => n.insertAdjacentHTML("afterbegin", tick(n.tagName === "B" ? 18 : 16)));
 
-  // --- A day at the studio --------------------------------------------------------------------
-  const day = $("#day"), steps = $$("#daySteps li"), cards = $$("#dayStage .day-card");
-  const wide = matchMedia("(min-width: 980px)");
-  let active = -1;
-  function setActive(i) {
-    if (i === active) return;
-    active = i;
-    steps.forEach((li, k) => li.classList.toggle("on", k === i));
-    cards.forEach((c, k) => {
-      c.classList.toggle("below", k > i);
-      c.classList.toggle("past", k < i);
-      c.style.setProperty("--back", String(i - k));
-      c.style.zIndex = String(k);
-    });
-    window.S.syncVideos?.($("video", cards[i]));
+  // --- A day at the studio: the chapters follow the film; tapping one jumps there ---------------
+  {
+    const v = $("#dayFilm video"), items = $$("#chapters li");
+    const at = items.map((li) => Number($("button", li).dataset.at));
+    const sync = () => {
+      const t = v.currentTime, d = v.duration || 25;
+      items.forEach((li, k) => {
+        const a0 = at[k], a1 = at[k + 1] ?? d;
+        const on = t >= a0 && t < a1;
+        li.classList.toggle("on", on);
+        $(".bar", li).style.width = on ? `${Math.min(100, ((t - a0) / (a1 - a0)) * 100)}%` : "0%";
+      });
+    };
+    v.addEventListener("timeupdate", sync);
+    items.forEach((li, k) => $("button", li).addEventListener("click", () => {
+      v.querySelectorAll("source[data-src]").forEach((x) => { if (!x.src) x.src = x.dataset.src; });
+      if (v.readyState === 0) v.load();
+      const go = () => { v.currentTime = at[k]; v.play().catch(() => {}); sync(); };
+      v.readyState > 0 ? go() : v.addEventListener("loadedmetadata", go, { once: true });
+    }));
+    items[0].classList.add("on");
   }
-  function onScroll() {
-    const r = day.getBoundingClientRect();
-    const run = day.offsetHeight - innerHeight;
-    const p = Math.min(1, Math.max(0, -r.top / Math.max(1, run)));
-    setActive(Math.min(cards.length - 1, Math.floor(p * cards.length * 0.999)));
-  }
-  // Wide screens with motion: the list stays and the clips stack. Otherwise each clip sits under its step.
-  function layout() {
-    const scrolly = wide.matches && !reduce;
-    day.classList.toggle("scrolly", scrolly);
-    if (scrolly) { cards.forEach((c) => $("#dayStage").append(c)); active = -1; onScroll(); }
-    else {
-      cards.forEach((c, k) => steps[k].append(c));
-      steps.forEach((li) => li.classList.add("on"));
-      cards.forEach((c) => { c.classList.remove("below", "past"); c.style.zIndex = ""; });
-      window.S.syncVideos?.();
-    }
-  }
-  wide.addEventListener?.("change", layout);
-  addEventListener("scroll", () => { if (day.classList.contains("scrolly")) onScroll(); }, { passive: true });
-  layout();
-  steps.forEach((li, k) => $(".day-t", li).addEventListener("click", () => {
-    if (!day.classList.contains("scrolly")) return;
-    const run = day.offsetHeight - innerHeight;
-    scrollTo({ top: day.offsetTop + ((k + 0.5) / cards.length) * run, behavior: reduce ? "auto" : "smooth" });
-  }));
 
   // --- Founding studios form ----------------------------------------------------------------
   // Where requests go: set data-endpoint on the form (an API route) when the site is hosted.

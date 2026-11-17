@@ -14,6 +14,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, "../../..");
 export const OUT = path.join(here, "out");
 const TMP = path.join(here, ".frames");
+export const STILLS = path.join(here, "stills");
 
 export const STUDIO = "Linden Reformer Studio";
 
@@ -148,6 +149,23 @@ async function recordOnce(shot, launchBrowser) {
     },
   };
   if (shot.setup) await shot.setup(api);
+
+  // Stills: one 2x screenshot of the window, plus where each named detail sits (in its pixels).
+  if (shot.still) {
+    await page.evaluate(() => { const c = document.getElementById("__cur"); if (c) c.style.display = "none"; });
+    await page.waitForTimeout(shot.settle ?? 500);
+    const boxes = {};
+    for (const [k, sel] of Object.entries(shot.boxes ?? {})) {
+      const b = await page.locator(sel).first().boundingBox({ timeout: 3000 }).catch(() => null);
+      if (b) boxes[k] = [b.x, b.y, b.width, b.height].map(Math.round); else console.warn(`${shot.name}: no box for ${k} (${sel})`);
+    }
+    mkdirSync(STILLS, { recursive: true });
+    await page.screenshot({ path: path.join(STILLS, `${shot.name}.png`) });
+    writeFileSync(path.join(STILLS, `${shot.name}.json`), JSON.stringify({ w: viewport.width * Z, h: viewport.height * Z, boxes }, null, 1));
+    if (file !== path.join(ROOT, shot.file)) rmSync(file, { force: true });
+    console.log(`${shot.name}: still ${viewport.width * Z}x${viewport.height * Z}, ${Object.keys(boxes).length} boxes`);
+    return;
+  }
   await setCursor(pos);
   await page.waitForTimeout(300);
 

@@ -11,6 +11,8 @@
 .jobhead .plan b { display: block; color: var(--fg); font-weight: 600 }
 @media (max-width: 700px) { .jobhead { grid-template-columns: minmax(0, 1fr) } .jobhead .plan { text-align: left } }
 .stack { display: flex; flex-direction: column; gap: clamp(56px, 8vw, 104px) }
+.jobfilm { margin-block: 0 clamp(40px, 6vw, 72px) }
+.every-copy { margin-bottom: clamp(32px, 5vw, 56px); max-width: 760px }
 
 
 
@@ -47,23 +49,9 @@
   <section class="band" id="run" aria-labelledby="runT">
     <div class="wrap">
       <div class="jobhead"><h2 id="runT">Run the studio</h2><p class="plan"><b>Every plan</b>From SGD 129 a month</p></div>
-      <div class="stack">
-        <div class="pair">
-          <div class="copy">
-            <h3 class="also-t">Plain English when something looks off</h3>
-            <p class="lede">Likely mistakes are flagged and explained before they happen. Nothing is silently blocked, and every consequence is spelled out, from late-cancel fees to when attendance locks.</p>
-          </div>
-          <figure class="vid"><video muted playsinline loop preload="none" poster="media/warning.jpg" aria-label="A class that would double-book an instructor, the warning, and the fix"><source data-src="media/warning.mp4" type="video/mp4"><source data-src="media/warning.webm" type="video/webm"></video></figure>
-        </div>
-
-        <div class="pair flip">
-          <div class="copy">
-            <h3 class="also-t">Instructors get the class on their own phone</h3>
-            <p class="lede">Check-in opens an hour before class: big names to tap at the door, with injuries and first-timers marked. Their pay follows from who came.</p>
-            <p class="small">Cover requests, their own pay and their schedule live there too, so the group chat goes quiet.</p>
-          </div>
-          <figure class="vid phone"><video muted playsinline loop preload="none" poster="media/checkin.jpg" aria-label="An instructor checking clients in to Barre on their phone"><source data-src="media/checkin.mp4" type="video/mp4"><source data-src="media/checkin.webm" type="video/webm"></video></figure>
-        </div>
+    </div>
+      <figure class="vid film jobfilm"><video muted playsinline loop preload="none" poster="media/film-run.jpg" aria-label="A clash caught and explained in plain English, then instructors checking clients in at the door"><source data-src="media/film-run.mp4" type="video/mp4"><source data-src="media/film-run.webm" type="video/webm"></video></figure>
+      <div class="wrap"><div class="stack">
 
         <div>
           <p class="also-t">Also in Run the studio</p>
@@ -86,15 +74,9 @@
   <section class="band" id="fill" aria-labelledby="fillT">
     <div class="wrap">
       <div class="jobhead"><h2 id="fillT">Fill your classes</h2><p class="plan"><b>Growth and Signature</b>From SGD 399 a month</p></div>
-      <div class="stack">
-        <div class="pair">
-          <div class="copy">
-            <h3 class="also-t">Follow-ups that run without a marketing team</h3>
-            <p class="lede">Three are switched on when you start: a nudge before an intro offer runs out, a welcome after a first class, and a note for clients who've gone quiet. Home tells you who came back.</p>
-            <p class="small">Edit the wording, change the timing or switch any of them off. They stop on their own once a client books.</p>
-          </div>
-          <figure class="vid"><video muted playsinline loop preload="none" poster="media/journey.jpg" aria-label="The intro-offer journey, step by step"><source data-src="media/journey.mp4" type="video/mp4"><source data-src="media/journey.webm" type="video/webm"></video></figure>
-        </div>
+    </div>
+      <figure class="vid film jobfilm"><video muted playsinline loop preload="none" poster="media/film-fill.jpg" aria-label="The intro-offer journey: who started, who bought a pack, who gets a nudge"><source data-src="media/film-fill.mp4" type="video/mp4"><source data-src="media/film-fill.webm" type="video/webm"></video></figure>
+      <div class="wrap"><div class="stack">
         <div>
           <p class="also-t">Also in Fill your classes</p>
           <div class="also">
@@ -113,14 +95,9 @@
   <section class="band" id="brand" aria-labelledby="brandT">
     <div class="wrap">
       <div class="jobhead"><h2 id="brandT">Run a brand</h2><p class="plan"><b>Signature</b>From SGD 699 a month</p></div>
-      <div class="stack">
-        <div class="pair flip">
-          <div class="copy">
-            <h3 class="also-t">Every location, side by side</h3>
-            <p class="lede">See which locations are filling and which need help, in the reports you already use. Compare visits, how full classes were and sales, month by month.</p>
-          </div>
-          <figure class="vid"><video muted playsinline loop preload="none" poster="media/locations.jpg" aria-label="Reports: locations side by side, over different periods"><source data-src="media/locations.mp4" type="video/mp4"><source data-src="media/locations.webm" type="video/webm"></video></figure>
-        </div>
+    </div>
+      <figure class="vid film jobfilm"><video muted playsinline loop preload="none" poster="media/film-brand.jpg" aria-label="Reports by location: the fullest location, compared with the period before"><source data-src="media/film-brand.mp4" type="video/mp4"><source data-src="media/film-brand.webm" type="video/webm"></video></figure>
+      <div class="wrap"><div class="stack">
         <div>
           <p class="also-t">Also in Run a brand</p>
           <div class="also">
@@ -136,8 +113,7 @@
   </section>
 
   <section class="band" id="every" aria-labelledby="everyT">
-    <div class="wrap pair">
-      <div class="copy">
+    <div class="wrap"><div class="copy every-copy">
         <h2 id="everyT">On every plan</h2>
         <p class="lede">Ask how to do something, or why something isn't working, in plain words. And the same service, whichever plan you're on.</p>
         <ul class="ticks every">
@@ -148,9 +124,8 @@
           <li data-tick>Unlimited instructors and front desk</li>
           <li data-tick>Month to month, no contract</li>
         </ul>
-      </div>
-      <figure class="vid"><video muted playsinline loop preload="none" poster="media/ask.jpg" aria-label="Asking how to change lots of classes at once, and the answer"><source data-src="media/ask.mp4" type="video/mp4"><source data-src="media/ask.webm" type="video/webm"></video></figure>
-    </div>
+      </div></div>
+    <figure class="vid film"><video muted playsinline loop preload="none" poster="media/film-ask.jpg" aria-label="Asking how to change lots of classes at once, and the answer"><source data-src="media/film-ask.mp4" type="video/mp4"><source data-src="media/film-ask.webm" type="video/webm"></video></figure>
   </section>
 </main>
 {{close}}

@@ -60,12 +60,12 @@ for (const name of PAGES) {
   console.log(`dist/${name}.html (${(html.length / 1024).toFixed(1)} KB)`);
 }
 
-// The product videos and their posters (recorded by media/shots.mjs), next to the pages.
+// The product films and their posters (rendered by media/film/render.mjs), next to the pages.
 const media = new URL("./media/out/", import.meta.url);
 if (existsSync(media)) {
   const dirs = ["./dist/media/", "./dist/artifact/media/"];
   for (const dir of dirs) mkdirSync(new URL(dir, import.meta.url), { recursive: true });
-  const files = readdirSync(media).filter((f) => /\.(mp4|webm|jpg)$/.test(f));
+  const files = readdirSync(media).filter((f) => /^film-.*\.(mp4|webm|jpg)$/.test(f));
   for (const f of files) for (const dir of dirs) copyFileSync(new URL(f, media), new URL(dir + f, import.meta.url));
   console.log(`media: ${files.length} files`);
 }

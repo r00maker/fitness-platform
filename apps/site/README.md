@@ -4,14 +4,14 @@ Four pages, plain HTML, CSS and JavaScript, no framework:
 
 | Page | Source | What's on it |
 |---|---|---|
-| Home | `src/pages/index.html` | The hero clip (a class added to the week), **A day at the studio** (7:00am to-do list, 12:20pm instructor check-in, 6:02pm WhatsApp, 11:59pm pay: on wide screens the list stays put while the clips stack as you scroll and only the one in front plays; on phones each clip sits under its step), closed days and shared packs, the three jobs, moving over in brief, prices in brief, founding studios and the walkthrough form (`#walkthrough`). |
-| Product | `src/pages/product.html` | By job, each with a clip. **Run the studio**: a plain-English warning and its fix, the instructor's phone, everything else in the base plan. **Fill your classes**: the intro-offer journey. **Run a brand**: the report by location. **On every plan**: Ask, and the service promises. |
+| Home | `src/pages/index.html` | The headline over the hero film (plan the week, check them in, answer every message, pay the team, fill the next class), **A day at the studio** (one film in four chapters: 7:00am cover, 12:20pm check-in, 6:02pm WhatsApp, 11:59pm pay; the chapter buttons under it follow the film and jump to their part), the made-for-here film (closed days, shared packs), the three jobs, moving over in brief, prices in brief, founding studios and the walkthrough form (`#walkthrough`). |
+| Product | `src/pages/product.html` | By job, each with a film and then everything else in it. **Run the studio**: a clash caught in plain English, check-in at the door. **Fill your classes**: the intro-offer journey. **Run a brand**: reports by location. **On every plan**: the service promises and an Ask film. |
 | Pricing | `src/pages/pricing.html` | A price calculator (locations, own app, monthly or yearly) that picks the cheapest plan that fits, the three plans, the full comparison table and an FAQ (payments are covered there, briefly). |
-| Switching | `src/pages/switching.html` | The four steps, a clip of our team's check before a move (every row accounted for, then the import), what comes across, and, for Mindbody, Momence, Glofox or a spreadsheet: how we get the data out, an example month for a studio with its own app, a side-by-side table in SGD (their published prices are where quotes start; what's decided on a sales call), where we're stronger and where they are. Then the questions to ask on any sales call, with our answers. |
+| Switching | `src/pages/switching.html` | The four steps, a film of our team's check before a move (every row accounted for, anything unclear listed), what comes across, and, for Mindbody, Momence, Glofox or a spreadsheet: how we get the data out, an example month for a studio with its own app, a side-by-side table in SGD (their published prices are where quotes start; what's decided on a sales call), where we're stronger and where they are. Then the questions to ask on any sales call, with our answers. |
 
 Shared parts: `src/site.css` (tokens and shared styles), `src/site.js` (helpers and the phone menu), `src/partials/` (header, footer, and the closing "Book a walkthrough" band, placed with `{{close}}`).
 
-`node build.mjs` writes `dist/<page>.html` (full pages to host) and `dist/artifact/` (the same pages, the home page without its document wrapper, for publishing as an artifact), each with `media/` (the clips and their posters). `pnpm --filter @studio/site check` (needs Playwright) builds, takes screenshots of every page at desktop and phone sizes into `shots/`, and checks the links between pages and every interactive part.
+`node build.mjs` writes `dist/<page>.html` (full pages to host) and `dist/artifact/` (the same pages, the home page without its document wrapper, for publishing as an artifact), each with `media/` (the films and their posters). `pnpm --filter @studio/site check` (needs Playwright) builds, takes screenshots of every page at desktop and phone sizes into `shots/`, and checks the links between pages and every interactive part.
 
 Look: graphite with one pale steel-blue accent. Headlines and big numbers are Manrope (`--display`, chosen from the options in `fonts.html`); body text is Instrument Sans.
 
@@ -30,12 +30,30 @@ All names, numbers and messages in the product windows are sample data.
   - on Product, beside "Run the studio": three real-looking moments (an instructor with a client on a reformer, the front desk with a phone, a client checking in), natural light, no faces in sharp focus.
 - **To confirm:** the reply promise ("within two working days"), the founding studios offer, "moved within a day", the WhatsApp cost wording, the Chinese New Year dates in the holidays example (6 and 7 February 2027), and our answer on leaving ("your data at no cost, and we'll help with the rest").
 
-## The product clips
+## The product films
 
-Every clip on the site is a real recording of the product, made from the clickable previews (`preview/studio-calendar-preview.html`, and `preview/hq-preview.html` for the data move), with their sample data. On film the sample studio is called **Linden Reformer Studio** (a made-up name; the preview itself still says Demo Studio).
+The films are edited, not screen recordings: the camera pans and zooms between details of the real product, captions and labels point out what matters, and shots cut on the beat. Everything in them comes from the product itself: 2x captures of the clickable previews (`preview/studio-calendar-preview.html`, and `preview/hq-preview.html` for the data move) with their sample data, the studio shown as **Linden Reformer Studio** (a made-up name).
 
-- `media/shots.mjs` lists the shots: what to open, what to click and type, what to hide, and how to crop. `media/rec.mjs` records them: Chromium at twice the resolution, the preview-only controls hidden, waiver reminders kept out of shot, a cursor (or a touch dot on phones) that glides between real clicks, every painted frame captured, then ffmpeg crops, adds a slow zoom where set, fades the loop's ends, and writes an H.264 mp4 and a poster.
-- `media/webm.sh` adds a VP9 WebM copy of each clip. Pages list the mp4 first and the WebM second; each browser plays the first it can (Playwright's Chromium, used by the checks, needs the WebM).
-- `media/sheet.sh <name> <out.png>` makes a contact sheet of a clip for review.
-- Re-record after the product changes: `NODE_PATH=<playwright's node_modules> node media/shots.mjs [name...]`, then `media/webm.sh`, then `node build.mjs`.
-- On the page, clips load as they come near, play muted and looped while on screen, and pause off screen. With reduced motion they show their poster and a Play button (which brings up the controls).
+| Film | Where | What |
+|---|---|---|
+| `hero` | Home, top | Plan the week, check them in, answer every message, pay the team, fill the next class, then "One app for the whole studio." |
+| `day` | Home | 7:00am, 12:20pm, 6:02pm, 11:59pm (chapters start at 0, 6.1, 12.1 and 18.1 seconds; the page's chapter buttons use the same times) |
+| `here` | Home | Closing for a retreat and what it cancels; a family pack shared from the client's app |
+| `run`, `fill`, `brand`, `ask` | Product | A clash caught in plain English and check-in; the intro-offer journey; locations side by side; Ask |
+| `move` | Switching | Our team's check: every row accounted for, anything unclear listed |
+
+How they're made:
+
+1. `media/stills.mjs` captures the screens (`media/stills/<name>.png`, at 2x) and where each detail sits on them (`<name>.json`). It reuses `media/rec.mjs`, which opens the preview, hides the preview-only controls and waiver reminders, and swaps in the studio's name.
+2. `media/film/films.js` scripts each film as a timeline: shots with camera keyframes (focus on a named detail, zoom, offset), captions, time stamps, callouts (a ring around a detail, with a label that moves with the camera) and an end card. `media/film/engine.js` turns a time into a frame; `media/film/stage.html` is the 1920x1080 canvas.
+3. `media/film/render.mjs` steps through every frame at 30 fps and encodes `media/out/film-<name>.mp4` (H.264), `.webm` (VP9) and a poster. `--preview` makes a contact sheet of 12 moments per film in `media/.preview/` instead, for quick review.
+
+```bash
+NODE_PATH=<playwright's node_modules> node media/stills.mjs
+```
+
+```bash
+NODE_PATH=<playwright's node_modules> node media/film/render.mjs
+```
+
+After the product changes, recapture the stills, check the previews, then render. On the page, films load as they come near, play muted and looped while on screen, and pause off screen; with reduced motion they show their poster and a Play button.
