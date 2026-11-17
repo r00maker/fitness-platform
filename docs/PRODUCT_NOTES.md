@@ -47,7 +47,7 @@ The full reasoning, competitor comparison and pricing are in `docs/MARKET_AND_LA
 5. ~~One AI entry point~~: built (see below).
 6. ~~One "Tell clients" flow~~: built (see below).
 
-**Before launch (blocking):** ~~online payments~~ (built: Stripe Connect with cards, Apple Pay, Google Pay, PayNow, GrabPay and cards on file for memberships; see `docs/PAYMENTS.md`), ~~data import~~ (built: CSV, Excel and exports from Mindbody, Momence, Glofox and others; see `docs/MIGRATION_AND_HQ.md`), and client booking on the web plus a website widget (next).
+**Before launch (blocking):** ~~online payments~~ (built: Stripe Connect with cards, Apple Pay, Google Pay, PayNow, GrabPay and cards on file for memberships; see `docs/PAYMENTS.md`), ~~data import~~ (built: CSV, Excel and exports from Mindbody, Momence, Glofox and others; see `docs/MIGRATION_AND_HQ.md`), and ~~client booking on the web plus a website widget~~ (built: each studio's public booking page and a timetable widget; see `docs/WEB_BOOKING.md`).
 
 **Soon after launch:** self check-in (QR code or tablet), Xero / QuickBooks, a card reader at the front desk, location managers for chains, notification preferences.
 

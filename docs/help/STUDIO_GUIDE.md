@@ -153,6 +153,16 @@ Clients can pay online by card, Apple Pay, Google Pay, PayNow and GrabPay once y
 - **Refunds** are made from the sale, as now. Ones back to how they paid go through Stripe straight away (PayNow refunds can take a few days, and we'll tell you if one fails). Refunds you make in your Stripe dashboard show up on the sale too.
 - **Disputes:** if a client asks their bank to reverse a payment, we'll tell you; answer it in your Stripe dashboard before the deadline, with what shows they booked or came (bookings, attendance, the receipt).
 
+## Your booking page and website widget
+
+Under **Setup**, **Booking page**:
+
+- **Your link**, like book.studioapp.sg/s/your-studio. Anyone can see your timetable and packages there without signing in; they sign in (or create an account) to book or buy, then everything works as in the app. Put it in your Instagram bio and Google Business profile. Choose the link carefully: changing it later breaks the old one.
+- **On or off**, a line at the top (what you offer, who it's for), and the colour of the buttons.
+- **On your website:** copy the code into your website's "Embed" or "Custom code" block (Wix, Squarespace, WordPress, Webflow all have one). It shows your timetable with spots left and Book buttons. You can show one location only and choose light, dark or the visitor's own setting. It doesn't change the rest of your website.
+
+People see first names and initials of instructors, how many spots are left, and when booking opens, but never who else is booked. Private sessions aren't shown.
+
 ## Membership payments that fail
 
 Memberships renew on the client's saved card when you take payments online. When a membership's renewal payment doesn't go through, the membership is **on hold**: the client can't book with it until it's paid. The card is tried again 3 and 7 days later, and the client is asked to update their card (they can pay straight away in the app). Owners and admins can also take the payment at the desk. If it still hasn't been paid after 7 days, the membership ends: upcoming bookings made with it are cancelled, any early termination fee applies (if it's within the minimum term), and to carry on the client buys a new membership, starting a new minimum term.

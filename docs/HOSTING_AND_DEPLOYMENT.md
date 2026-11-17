@@ -149,6 +149,10 @@ Studios connect their own mailbox by signing in with Google or Microsoft. The pl
 
 Refresh tokens are stored encrypted with `SECRETS_KEY`. The worker checks connected mailboxes every 2 minutes. Disconnecting deletes the stored tokens.
 
+## 6b. Booking page and widget
+
+The public booking data and the widget are served by the API (`/v1/public/studios/...`, `/v1/public/widget.js`); any website may read them (see `WEB_BOOKING.md`). Put a CDN or cache in front of `/v1/public/` if traffic grows: the responses are marked cacheable (one to five minutes; the widget for an hour). `PUBLIC_APP_URL` must be where the web app serves `/s/<slug>`.
+
 ## 7. Membership renewals and card payments
 
 Online payments use **Stripe Connect**: each studio connects its own Stripe account and is the seller, so money goes straight to the studio and the platform never holds clients' money (holding it could need a MAS licence; confirm with a lawyer). The design, the events and the steps are in `PAYMENTS.md`. In short:

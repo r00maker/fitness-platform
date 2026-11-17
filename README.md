@@ -111,6 +111,8 @@ Fees are recorded as "to be collected" until the payments module is built.
 | Online payments: the studio's Stripe (connect, status, how clients pay, passing the fee on) | `GET /payments`, `POST /payments/connect` (owner), `POST /payments/refresh`, `PUT /payments/settings` | owner, admin |
 | Paying online: checkout `payWith`, paying a waiting order, the card kept for memberships | `POST /checkout` / `/gift-cards/checkout` / `/shop/checkout` with `payWith`, `POST /orders/:id/pay`, `GET /orders/:id/pay-options`, `GET/POST/DELETE /me/payment-card` | clients |
 | Stripe's webhook (connected accounts; signed) | `POST /public/payments/stripe/webhook` | Stripe |
+| Booking page and widget (the studio's link, on/off, the code for its website) | `GET/PUT /booking-page` | owner, admin |
+| Public booking data (no sign-in; any website may read it) | `GET /public/studios/:slug`, `.../schedule`, `.../classes/:id`, `.../packages`, `GET /public/widget.js` | anyone |
 | Automations (client journeys and team reminders in one list) | `GET /automations` | owner, admin |
 | Write with AI (next to text boxes) | `POST /ai/write` (`kind`: message, reply, review_reply, class_description, package_description, journey_step, rewrite) | whoever can use that box; AI workflows |
 | Phone date strip (clients) | `GET /calendar/strip?date=&days=` (same filters as the calendar) | everyone |
