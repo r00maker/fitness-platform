@@ -22,7 +22,7 @@ import { inTx, withFlags } from "../../lib/route.js";
 import { parse } from "../../lib/validate.js";
 import { requirePermission } from "../../plugins/auth.js";
 import { getOrg } from "../sessions/context.js";
-import { adminCount, locationCount, planView, setPlan, usd } from "../settings/plans.js";
+import { adminCount, locationCount, planView, setPlan, planMoney } from "../settings/plans.js";
 import { sendStaffInvite } from "../staff/routes.js";
 import { studioHealth } from "./health.js";
 import { platformMigrationRoutes } from "../migration/routes.js";
@@ -107,7 +107,7 @@ export async function platformRoutes(app: FastifyInstance) {
       if (o.lifecycle === "onboarding") onboarding.push({ orgId: o.id, name: o.name, plan: PLAN_INFO[o.plan].label, setup: `${h.setup.done} of ${h.setup.total} done`, since: o.createdAt });
     }
     attention.sort((a, b) => (a.status === b.status ? 0 : a.status === "problem" ? -1 : 1));
-    return { studios: { total: orgs.length, byLifecycle, byPlan }, mrr: { cents: mrrCents, display: usd(mrrCents), note: "Live studios at plan prices. Billing isn't connected yet, so this is what they'd pay, not what's been collected." }, needsAttention: attention, onboarding };
+    return { studios: { total: orgs.length, byLifecycle, byPlan }, mrr: { cents: mrrCents, display: planMoney(mrrCents), note: "Live studios at plan prices. Billing isn't connected yet, so this is what they'd pay, not what's been collected." }, needsAttention: attention, onboarding };
   });
 
   // --- Studios -------------------------------------------------------------------------------
@@ -121,7 +121,7 @@ export async function platformRoutes(app: FastifyInstance) {
       const locs = await locationCount(db, o.id);
       const [{ n: clients } = { n: 0 }] = await db.select({ n: count }).from(memberships).where(and(eq(memberships.orgId, o.id), eq(memberships.role, "client"), eq(memberships.active, true)));
       const h = await studioHealth(db, o);
-      rows.push({ id: o.id, name: o.name, plan: o.plan, planLabel: PLAN_INFO[o.plan].label, lifecycle: o.lifecycle, locations: locs, clients, price: usd(planPrice(o.plan, locs, o.brandedApp).totalCents), health: h.status, signals: h.signals.map((s) => s.text), setup: `${h.setup.done} of ${h.setup.total}`, lastActivityAt: h.lastActivityAt, createdAt: o.createdAt });
+      rows.push({ id: o.id, name: o.name, plan: o.plan, planLabel: PLAN_INFO[o.plan].label, lifecycle: o.lifecycle, locations: locs, clients, price: planMoney(planPrice(o.plan, locs, o.brandedApp).totalCents), health: h.status, signals: h.signals.map((s) => s.text), setup: `${h.setup.done} of ${h.setup.total}`, lastActivityAt: h.lastActivityAt, createdAt: o.createdAt });
     }
     return { studios: rows };
   });

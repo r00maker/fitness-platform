@@ -1,0 +1,12 @@
+{
+  "name": "@studio/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "echo 'plain HTML, CSS and JS: nothing to typecheck'",
+    "test": "node build.mjs",
+    "check": "node build.mjs && node check.mjs"
+  }
+}

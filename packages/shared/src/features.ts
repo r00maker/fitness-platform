@@ -97,6 +97,8 @@ export function presetRuleText(key: PresetRuleKey, value: unknown): string {
  * choose" questionnaire or a first call); studios can switch off anything their plan includes.
  * Every plan gets the same done-for-you setup, data move and support.
  */
+/** Plans are priced in Singapore dollars: the platform is in Singapore and Stripe settles in SGD. */
+export const PLAN_CURRENCY = "SGD";
 export const PLANS = ["essentials", "growth", "signature"] as const;
 export type Plan = (typeof PLANS)[number];
 
@@ -125,19 +127,19 @@ export const PLAN_INFO: Record<Plan, PlanInfo> = {
   essentials: {
     label: "Essentials",
     tagline: "For one independent studio. Everything to run classes, take bookings, pay instructors and get paid.",
-    priceCents: 9900, locationsIncluded: 1, maxLocations: 1, extraLocationCents: null, app: "not_available", appAddOnCents: null, adminSeats: 1,
+    priceCents: 12900, locationsIncluded: 1, maxLocations: 1, extraLocationCents: null, app: "not_available", appAddOnCents: null, adminSeats: 1,
     features: ["giftCards", "reviews", "payroll"], studioType: "independent", paymentFeeBps: 0,
   },
   growth: {
     label: "Growth",
     tagline: "For studios with a team, up to 3 locations. Adds marketing, WhatsApp and the shop.",
-    priceCents: 29900, locationsIncluded: 3, maxLocations: 3, extraLocationCents: null, app: "add_on", appAddOnCents: 10000, adminSeats: "per_location",
+    priceCents: 39900, locationsIncluded: 3, maxLocations: 3, extraLocationCents: null, app: "add_on", appAddOnCents: 9900, adminSeats: "per_location",
     features: ["giftCards", "reviews", "payroll", "marketing", "loyalty", "referrals", "shop", "inbox"], studioType: "boutique", paymentFeeBps: 0,
   },
   signature: {
     label: "Signature",
     tagline: "For brands with up to 5 locations. Your own app included, plus AI that does the work for you.",
-    priceCents: 59900, locationsIncluded: 5, maxLocations: null, extraLocationCents: 15000, app: "included", appAddOnCents: null, adminSeats: "unlimited",
+    priceCents: 69900, locationsIncluded: 5, maxLocations: null, extraLocationCents: 19900, app: "included", appAddOnCents: null, adminSeats: "unlimited",
     features: FEATURES.map((f) => f.key), studioType: "multi", paymentFeeBps: 0,
   },
 };
@@ -157,7 +159,7 @@ export function planAdminSeats(plan: Plan, locations: number): number | null {
   return s === "unlimited" ? null : s === "per_location" ? Math.max(1, locations) : s;
 }
 
-/** What a studio pays each month (USD cents), with the parts. */
+/** What a studio pays each month (in PLAN_CURRENCY cents), with the parts. */
 export function planPrice(plan: Plan, locations: number, brandedApp: boolean) {
   const p = PLAN_INFO[plan];
   const extra = p.extraLocationCents ? Math.max(0, locations - p.locationsIncluded) : 0;
