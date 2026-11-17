@@ -42,10 +42,10 @@ export const STILLS = [
       await s.page.locator("#ibxText").fill("Hi Wei Jie! Yes, Reformer at 7am every weekday. A 10-class pack is SGD 280 and lasts 3 months. Shall I book you in for tomorrow?");
       await click(s, "#ibxSend");
     },
-    boxes: { reply: "text=Hi Wei Jie! Yes >> nth=-1", question: "text=And do you have morning classes", list: ".ibx-row[data-conv=c2]", window: "text=Free to reply until" } },
+    boxes: { channels: "[data-ibxch=all]", inbox: "text=Every message from clients in one place", reply: "text=Hi Wei Jie! Yes >> nth=-1", question: "text=And do you have morning classes", list: ".ibx-row[data-conv=c2]", window: "text=Free to reply until" } },
   { name: "pay", file: APP, ...desk,
     setup: async (s) => { await s.nav("staff"); await click(s, "[data-hubtab=payroll]"); await click(s, "[data-payopen=ana]"); },
-    boxes: { total: "text=SGD 4,809.00", ana: "[data-payopen=ana]", paid: "button:has-text('Mark as paid')", rows: "text=7am Reformer - Intermediate >> nth=0" } },
+    boxes: { total: "text=SGD 4,809.00", ana: "[data-payopen=ana]", paid: "button:has-text('Mark as paid')", rows: "text=7am Reformer - Intermediate >> nth=0", rule: "text=SGD 25.00 per class >> nth=0", sofar: "text=So far: classes count once" } },
   { name: "paid", file: APP, ...desk,
     setup: async (s) => {
       await s.nav("staff"); await click(s, "[data-hubtab=payroll]");
@@ -71,6 +71,9 @@ export const STILLS = [
       await click(s, ".modal .btn:has-text('Share'), [role=dialog] .btn:has-text('Share')");
     },
     boxes: { family: "article.pkgcard:has-text('Family 30-pack')", mei: "text=Mei Ling Goh", couples: "article.pkgcard:has-text('Couples 20-pack')" } },
+  { name: "newclass", file: APP, ...desk,
+    setup: async (s) => { await s.nav("schedule"); await click(s, "button:has-text('+ New class')"); },
+    boxes: { waitlist: "text=Allow waitlist", autocancel: "text=Cancel automatically if not enough people book", rule: "text=are booked >> nth=0", classpass: "text=Take ClassPass bookings" } },
   { name: "warning", file: APP, ...desk,
     setup: async (s) => {
       await s.nav("schedule"); await click(s, "button:has-text('+ New class')");

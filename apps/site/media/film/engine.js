@@ -37,17 +37,17 @@
       const b = d.boxes[f]; if (!b) throw new Error(`${name}: no box ${f}`);
       return [b[0] + b[2] / 2, b[1] + b[3] / 2];
     };
-    const keys = o.cam.map(([t, f, z, off = {}]) => ({ t, p: pt(f), z, ox: off.ox ?? 0, oy: off.oy ?? 0 }));
+    const keys = o.cam.map(([t, f, z, off = {}]) => ({ t, p: pt(f), z, ox: off.ox ?? 0, oy: off.oy ?? 0, ease: off.ease ?? "io" }));
     const camAt = (t) => {
       if (t <= keys[0].t) return keys[0];
       for (let i = 1; i < keys.length; i++) {
         const a = keys[i - 1], b = keys[i];
-        if (t <= b.t) { const k = E.io(prog(t, a.t, b.t)); return { p: [lerp(a.p[0], b.p[0], k), lerp(a.p[1], b.p[1], k)], z: lerp(a.z, b.z, k), ox: lerp(a.ox, b.ox, k), oy: lerp(a.oy, b.oy, k) }; }
+        if (t <= b.t) { const k = E[b.ease](prog(t, a.t, b.t)); return { p: [lerp(a.p[0], b.p[0], k), lerp(a.p[1], b.p[1], k)], z: lerp(a.z, b.z, k), ox: lerp(a.ox, b.ox, k), oy: lerp(a.oy, b.oy, k) }; }
       }
       return keys.at(-1);
     };
     // A slow drift on top of the keyed camera keeps still moments alive.
-    const drift = o.drift ?? 0.025;
+    const drift = o.drift ?? 0;
     const L = {
       o, wrap,
       // Where a point of the still lands on the stage at time t.
@@ -141,6 +141,13 @@
         else { tx = x0 + w / 2; ty = y0 + h + gap; }
         tag.style.left = tx + "px"; tag.style.top = ty + "px";
         tag.style.opacity = String(tk * (1 - out));
+        // Keep the label inside the frame: nudge it in from any edge it would cross.
+        tag.style.marginLeft = "0px"; tag.style.marginTop = "0px";
+        const r = tag.getBoundingClientRect(), m = 28;
+        if (r.right > W - m) tag.style.marginLeft = `${W - m - r.right}px`;
+        if (r.left < m) tag.style.marginLeft = `${m - r.left}px`;
+        if (r.bottom > H - m) tag.style.marginTop = `${H - m - r.bottom}px`;
+        if (r.top < m) tag.style.marginTop = `${m - r.top}px`;
         const shift = (1 - tk) * 16;
         tag.style.transform = side === "right" ? `translate(${shift}px, -50%)` : side === "left" ? `translate(calc(-100% - ${shift}px), -50%)` : side === "top" ? `translate(-50%, calc(-100% - ${shift}px))` : `translate(-50%, ${shift}px)`;
         // The connector from ring to label.

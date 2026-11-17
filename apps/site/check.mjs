@@ -75,11 +75,12 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   ok(`${label} product: marked as the current page`, (await p.locator('#nav a[aria-current="page"]').getAttribute("data-page")) === "product");
   ok(`${label} product: no sideways scroll`, await noHScroll());
   await videosOk("product");
-  ok(`${label} product: one clip, four stills`, (await p.locator(".vid video").count()) === 1 && (await p.locator(".still img").count()) === 4);
-  await p.locator("#run .vid video").scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
-  ok(`${label} product: the check-in clip plays`, await playing("#run .vid video"));
-  await p.locator("#every .still img").scrollIntoViewIfNeeded(); await p.waitForTimeout(400);
-  ok(`${label} product: stills load`, await p.evaluate(() => [...document.querySelectorAll(".still img")].every((i) => !i.loading || i.complete) && [...document.querySelectorAll(".still img")].filter((i) => i.complete).every((i) => i.naturalWidth > 0)));
+  ok(`${label} product: a clip for every point`, (await p.locator(".vid.clip video").count()) === 7 && (await p.locator(".still").count()) === 0);
+  await p.locator("#run .vid video").first().scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
+  ok(`${label} product: the first clip plays`, await playing("#run .vid video"));
+  await p.locator("#fill .vid video").first().scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
+  ok(`${label} product: the journey clip plays`, await playing("#fill .vid video"));
+  ok(`${label} product: Growth sold as trials into regulars`, /Turn trials into regulars/.test(await text("#fillT")));
   await p.screenshot({ path: path.join(out, `${label}-product-full.png`), fullPage: true });
 
   // Pricing

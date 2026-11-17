@@ -4,8 +4,8 @@ Four pages, plain HTML, CSS and JavaScript, no framework:
 
 | Page | Source | What's on it |
 |---|---|---|
-| Home | `src/pages/index.html` | The headline over the big hero film; **A day at the studio** (7:00am cover sorts itself out, 12:20pm one tap settles the class, 6:02pm questions answered by whoever's on, 11:59pm pay is already done: on wide screens the list stays put while each moment's short clip stacks as you scroll; on phones each clip sits under its step); **Simpler, by design** (only what you use, checks not surprises, every location priced up front); the three jobs; moving over in brief; prices in brief with the locations each plan covers; founding studios and the walkthrough form (`#walkthrough`). |
-| Product | `src/pages/product.html` | By job, words beside a still of the product, with one clip (check-in). **Run the studio**: anyone on the team can run the schedule (checks in plain English), one tap settles the class. **Fill your classes**: journeys. **Run a brand**: reports by location. **On every plan**: Ask and the service promises. |
+| Home | `src/pages/index.html` | The headline over the big hero film; **A day at the studio** (7:00am cover sorts itself out, 12:20pm classes look after themselves, 6:02pm one inbox, not four phones, 11:59pm pay, worked out as you go: on wide screens the list stays put while each moment's short clip stacks as you scroll; on phones each clip sits under its step); **Simpler, by design** (only what you use, built to make your job easier, every location priced up front); the three jobs; moving over in brief; prices in brief with the locations each plan covers; founding studios and the walkthrough form (`#walkthrough`). |
+| Product | `src/pages/product.html` | By job, each point with words beside a small clip. **Run the studio**: anyone on the team can run the schedule, classes look after themselves, pay worked out as you go. **Turn trials into regulars** (Growth): follow-ups that run themselves, one inbox. **Run a brand**: reports by location. **On every plan**: Ask and the service promises. |
 | Pricing | `src/pages/pricing.html` | A price calculator (locations, own app, monthly or yearly) that picks the cheapest plan that fits, the three plans, every location priced up front, the full comparison table and an FAQ. |
 | Switching | `src/pages/switching.html` | The four steps, a clip of our team's check before a move, what comes across, and, for Mindbody, Momence, Glofox or a spreadsheet: how we get the data out, an example month for a studio with its own app, a side-by-side table in SGD (including the locations a price covers), where we're stronger and where they are. Then the questions to ask on any sales call, with our answers. |
 
@@ -36,12 +36,12 @@ The films are edited, not screen recordings: the camera pans and zooms between d
 
 | Film | Where | What |
 |---|---|---|
-| `hero` (60 fps) | Home, top, full width | Plan the week, check them in, answer every message, pay the team, fill the next class, then "One app for the whole studio." |
-| `dayCover`, `dayCheckin`, `dayWhatsapp`, `dayPay` | Home, a day at the studio | One short clip per moment, labels only (the page's words sit beside them) |
-| `dayCheckin` | Product, run the studio | The same check-in clip |
+| `hero` (60 fps) | Home, top, full width | Plan the week, cover sorted, one inbox for every message, pay the team, turn trials into regulars, then "One app for the whole studio." |
+| `dayCover`, `dayClasses`, `dayWhatsapp`, `dayPay` | Home (a day at the studio) and Product | Cover sorts itself out; classes look after themselves (waitlist, auto-cancel); one inbox, not four phones; pay worked out as you go |
+| `checks`, `journey`, `locations`, `ask` | Product | Anyone can run the schedule; the intro-offer journey; locations side by side; Ask |
 | `move` | Switching | Our team's check: every row accounted for, anything unclear listed |
 
-Elsewhere the pages use stills: cropped captures of the product (`media/out/still-*.jpg`, from the same 2x screens).
+Camera rule: one move per beat, then a still hold. A second small zoom straight after a big one reads as a stutter, so there are none, and no drift. The small films (everything but the hero) are shown at about a third of their size, so they start closer in, zoom tighter and use bigger labels (`F.labels(1.7)`); labels are kept inside the frame automatically.
 
 How they're made:
 

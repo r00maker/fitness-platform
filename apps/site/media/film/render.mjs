@@ -21,7 +21,7 @@ const args = process.argv.slice(2);
 const fps = Number(args.find((a) => a.startsWith("--fps="))?.slice(6) ?? 30);
 const preview = args.includes("--preview");
 const names = args.filter((a) => !a.startsWith("--"));
-const all = ["hero", "dayCover", "dayCheckin", "dayWhatsapp", "dayPay", "move"];
+const all = ["hero", "dayCover", "dayClasses", "dayWhatsapp", "dayPay", "checks", "journey", "locations", "ask", "move"];
 // The hero plays big and first, so it gets 60 frames a second; the rest 30.
 const fpsFor = (n) => (n === "hero" ? 60 : fps);
 
