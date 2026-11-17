@@ -22,7 +22,7 @@ export function SignIn() {
     e.preventDefault();
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setErr("Enter your email address.");
     setBusy(true); setErr(null);
-    try { await auth.sendCode(email.trim()); setSent(true); } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
+    try { await auth.sendCode(email.trim(), `${location.origin}/s/${slug}/sign-in?next=${encodeURIComponent(next)}`); setSent(true); } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
   }
   async function verify(e: FormEvent) {
     e.preventDefault();
@@ -41,7 +41,7 @@ export function SignIn() {
           </form>
         ) : (
           <form onSubmit={verify} className="form" noValidate>
-            <p>We've sent a 6-digit code to <b>{email}</b>. {auth.kind === "dev" && <span className="muted">(Locally, it's 000000.)</span>}</p>
+            <p>We've emailed <b>{email}</b>. Tap the link in the email, or enter the 6-digit code. {auth.kind === "dev" && <span className="muted">(Locally, the code is 000000.)</span>}</p>
             <label className="field">Code<input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} aria-invalid={!!err} aria-describedby={err ? "siErr" : undefined} /></label>
             <button className="btn big" disabled={busy || code.length !== 6}>{busy ? "Checking…" : "Continue"}</button>
             <button type="button" className="link" onClick={() => { setSent(false); setCode(""); }}>Use a different email</button>

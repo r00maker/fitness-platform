@@ -11,7 +11,7 @@ Built with Vite, React 18, TypeScript and React Router. No state library: each p
 | `/s/<slug>` | The booking page: the studio, the timetable (a week, day by day; location and class filters; spots left), and the Packages tab. Public. |
 | `/s/<slug>/classes/<id>` | One class: when, where, instructor, spots, the packages that cover it, and **Book**. |
 | `/s/<slug>/packages/<planId>` | Checkout: the terms, price, studio credit, how to pay (online, or a method with its fee, or at the studio), then Stripe's page or the order. |
-| `/s/<slug>/sign-in` | Email and a 6-digit code (or Google, Apple). New people get an account. |
+| `/s/<slug>/sign-in` | Email, then the 6-digit code or the link in the email (or Google, Apple). New people get an account. |
 | `/s/<slug>/join` | Signed in but new to this studio: name, mobile, a referral code, and their choice about news and offers. |
 | `/s/<slug>/me`, `/me/packages`, `/me/payment` | My bookings (cancel, with the late-cancellation check), My packages (classes left, renewals, payment holds), Payment method (the card kept for memberships). |
 | `/payments/done`, `/payments/cancelled`, `/payments/card-saved` | Back from Stripe: waits for the API to hear from Stripe, then says it's paid. |
@@ -45,13 +45,13 @@ The app keeps the session; every API call sends the token and the studio (`X-Stu
 - Settings for each environment:
   - API: `AUTH_JWKS_URL=https://lezcugmdxretpofadjio.supabase.co/auth/v1/.well-known/jwks.json`, `AUTH_ISSUER=https://lezcugmdxretpofadjio.supabase.co/auth/v1`, `AUTH_AUDIENCE=authenticated`.
   - Web app: `VITE_AUTH=supabase`, `VITE_SUPABASE_URL=https://lezcugmdxretpofadjio.supabase.co`, `VITE_SUPABASE_ANON_KEY=<the publishable key>`, `VITE_API_URL=<the API's address>`.
-- Still to do in Supabase: the email template's `{{ .Token }}` (step 3 below), and the Site URL and redirect URLs once the web app has an address (step 4).
+- Still to do in Supabase: our own email sender and the templates' `{{ .Token }}` (step 3 below; this needs the platform's domain), and the Site URL and redirect URLs once the web app has an address (step 4).
 
 ### Setting it up
 
 1. Create a Supabase project in the Singapore region. Only its Auth is used (the database can be anywhere).
 2. **Authentication → Sign In / Providers:** Email on; turn on Google and Apple when their developer apps exist.
-3. **Authentication → Email templates → Magic link / OTP:** include `{{ .Token }}` so the email carries the 6-digit code.
+3. **Email:** set up your own sender first (Authentication → Emails → SMTP Settings, e.g. Postmark on the studio platform's domain). New free projects can't edit their email templates, and send only about 2 emails an hour, until they do. Then, in **Templates**, add `{{ .Token }}` to both **Magic Link** (people who have an account) and **Confirm signup** (a first sign-in creates the account) so the emails carry the 6-digit code. Until then, Supabase's standard email has a link instead, which the app also accepts: it comes back to the sign-in page signed in, then on to where they were going.
 4. **Authentication → URL configuration:** the web app's address as the Site URL, and `<web app>/s/*` as a redirect URL (for Google and Apple).
 5. **Project settings → JWT signing keys:** use asymmetric keys (new projects do), so there's a JWKS address.
 6. The API: `AUTH_JWKS_URL=https://<project>.supabase.co/auth/v1/.well-known/jwks.json`, `AUTH_ISSUER=https://<project>.supabase.co/auth/v1`, `AUTH_AUDIENCE=authenticated`.

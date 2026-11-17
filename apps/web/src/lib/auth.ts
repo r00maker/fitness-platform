@@ -10,8 +10,11 @@ export interface Auth {
   kind: "supabase" | "dev";
   token(): Promise<string | null>;
   email(): Promise<string | null>;
-  /** Send a 6-digit code to this email. */
-  sendCode(email: string): Promise<void>;
+  /**
+   * Email a sign-in code (and, with Supabase's standard email, a link that comes back to
+   * `returnTo` signed in: until the email can be edited, that's what Supabase sends).
+   */
+  sendCode(email: string, returnTo: string): Promise<void>;
   verifyCode(email: string, code: string): Promise<void>;
   social(provider: "google" | "apple", returnTo: string): Promise<void>;
   signOut(): Promise<void>;
@@ -24,8 +27,8 @@ function supabaseAuth(url: string, key: string): Auth {
     kind: "supabase",
     token: async () => (await sb.auth.getSession()).data.session?.access_token ?? null,
     email: async () => (await sb.auth.getSession()).data.session?.user.email ?? null,
-    async sendCode(email) {
-      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    async sendCode(email, returnTo) {
+      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: returnTo } });
       if (error) throw new Error(error.message);
     },
     async verifyCode(email, code) {
