@@ -38,6 +38,15 @@ Recommended because:
 
 The app keeps the session; every API call sends the token and the studio (`X-Studio-Id`). The API reads the person's role from its own records, so neither can grant anything (see `apps/api/src/plugins/auth.ts`).
 
+### This project
+
+- Supabase project: `https://lezcugmdxretpofadjio.supabase.co`, with a publishable key (`sb_publishable_…`, public by design: it goes in the web app's settings, not in the code). Never use or share the project's secret or service-role key; nothing here needs it.
+- Checked: it publishes an ES256 signing key, email sign-in is on and new people can sign up, Google and Apple are off for now. The API loads its keys and refuses forged tokens (`apps/api/test/supabase-auth.test.ts` covers the same checks with a stand-in key server: right project, `authenticated` audience, the right key, joining and using a studio).
+- Settings for each environment:
+  - API: `AUTH_JWKS_URL=https://lezcugmdxretpofadjio.supabase.co/auth/v1/.well-known/jwks.json`, `AUTH_ISSUER=https://lezcugmdxretpofadjio.supabase.co/auth/v1`, `AUTH_AUDIENCE=authenticated`.
+  - Web app: `VITE_AUTH=supabase`, `VITE_SUPABASE_URL=https://lezcugmdxretpofadjio.supabase.co`, `VITE_SUPABASE_ANON_KEY=<the publishable key>`, `VITE_API_URL=<the API's address>`.
+- Still to do in Supabase: the email template's `{{ .Token }}` (step 3 below), and the Site URL and redirect URLs once the web app has an address (step 4).
+
 ### Setting it up
 
 1. Create a Supabase project in the Singapore region. Only its Auth is used (the database can be anywhere).
