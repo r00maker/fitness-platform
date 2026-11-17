@@ -5,7 +5,9 @@
   //    never PayNow), and recent online payments.
   //  - Checkout: choose how to pay, with any fee shown before paying. A stand-in for Stripe's
   //    page opens; paying completes the order the same way a desk payment does.
-  //  - My packages: the card kept for membership renewals (replace or remove).
+  //  - Payment method (client menu, web and phone): the card kept for membership renewals, which
+  //    memberships use it, replace it; it can't be removed while a membership renews on it.
+  //  - Memberships are paid by card at checkout: no paying at the studio.
   // ===========================================================================
   {
     const PAY = (STUDIO.pay ||= { status: location.hash === "#payments-ready" ? "ready" : "not_connected", payouts: false, online: true, desk: true, passOn: false, cardBps: 340, cardFixed: 50, grabBps: 330, recent: [] });
@@ -23,7 +25,8 @@
         if (PAY.passOn) for (const k of ["card", ...(recurring || STUDIO.currency !== "SGD" ? [] : ["paynow", "grabpay"])]) out.push({ k, fee: feeFor(k, amt) });
         else out.push({ k: recurring ? "card" : "online", fee: 0 });
       }
-      if (amt > 0 && (PAY.desk || !ready())) out.push({ k: "desk", fee: 0 });
+      // Memberships renew on the card they're bought with, so they can't be paid at the studio.
+      if (amt > 0 && !recurring && (PAY.desk || !ready())) out.push({ k: "desk", fee: 0 });
       return out;
     }
     const STEPS = [["not_connected", "Connect Stripe"], ["pending", "Stripe checks your details"], ["ready", "Take payments"]];
@@ -121,6 +124,10 @@
       }
       const pr = checkoutPrice(ME.client, pl);
       const opts = payOptions(pr.due, recurring);
+      if (recurring && pr.due > 0 && !opts.length) {
+        return out.replace(/<div class="paybox">[\s\S]*?<\/div>/, `<div class="paybox"><b>Paid by card</b><span class="muted" style="font-size:13px">This membership renews by card, and the studio isn't taking card payments online yet. Ask at the front desk and they'll set it up for you.</span></div>`)
+          .replace(/<button type="button" class="btn primary" data-order="place"([^>]*)>[^<]*</, `<button type="button" class="btn primary" data-order="place"$1 disabled>Ask at the front desk<`);
+      }
       if (!opts.some((o) => o.k !== "desk")) return out;
       if (!opts.some((o) => o.k === state.coPay)) state.coPay = opts[0].k;
       const sel = opts.find((o) => o.k === state.coPay);
@@ -181,21 +188,37 @@
       }
     }, true);
 
-    // --- My packages: the card for membership renewals ------------------------------------------
-    const pageMine = PAGES["my-packages"], bindMine = BIND["my-packages"];
-    const hasMembership = () => myPkgs(ME.client).some((pk) => PLANS.find((p) => p.id === pk.plan)?.billing === "recurring" && pk.owner === ME.client && !pk.cancelled);
-    PAGES["my-packages"] = function () {
-      const out = pageMine.call(this);
-      if (PAY.status !== "ready" || !hasMembership()) return out;
-      const card = CARD.last4 ? `<b>${esc(CARD.brand)} ending ${esc(CARD.last4)}</b><span class="muted">Expires ${esc(CARD.exp)} · used for your membership's renewals</span>` : `<b>No card saved</b><span class="muted">Your next renewal is due at the studio. Add a card so it renews by itself.</span>`;
-      return out + `<div class="card paycard"><div class="stack" style="gap:2px">${card}</div><div class="inline2"><button type="button" class="btn" id="cardReplace">${CARD.last4 ? "Replace card" : "Add a card"}</button>${CARD.last4 ? `<button type="button" class="btn ghost danger" id="cardRemove">Remove</button>` : ""}</div></div>`;
+    // --- Payment method (client menu) ------------------------------------------------------------
+    NAV.push({ id: "payment-method", group: "Account", roles: ["client"], label: "Payment method", help: "The card kept for your membership's renewals: see it, replace it." });
+    NAV_ORDER.find(([g]) => g === "Account")[1].splice(NAV_ORDER.find(([g]) => g === "Account")[1].indexOf("profile"), 0, "payment-method");
+    ICONS["payment-method"] = ICONS.payments;
+    const renewing = () => myPkgs(ME.client).filter((pk) => PLANS.find((p) => p.id === pk.plan)?.billing === "recurring" && pk.owner === ME.client && !pk.cancelled && !pk.stopped);
+    PAGES["payment-method"] = function () {
+      const mem = renewing();
+      if (PAY.status !== "ready") return head("Payment method", "") + `<div class="card" style="max-width:640px">${alertBox("info", "Online payments aren't on yet", "This studio isn't taking card payments online yet, so you pay at the front desk. Once it is, you can add a card here for your membership.")}</div>`;
+      const card = CARD.last4
+        ? `<div class="pmcard"><span class="pmbrand">${esc(CARD.brand)}</span><b>•••• ${esc(CARD.last4)}</b><span class="muted">Expires ${esc(CARD.exp)}</span></div>`
+        : `<div class="pmcard empty"><b>No card saved</b><span class="muted">${mem.length ? "Your membership needs a card to renew. Add one so it doesn't go on hold." : "Add a card for a membership's renewals. Nothing is charged until a renewal is due."}</span></div>`;
+      const uses = mem.length ? `<div class="stack" style="gap:4px"><span class="lbl">Used for</span>${mem.map((pk) => `<span>${esc(pk.name)}${pk.expires ? ` · renews ${fmtDay(pk.expires)}` : ""}${pk.hold ? ' · <span class="bdg bad">On hold: payment didn\'t go through</span>' : ""}</span>`).join("")}</div>` : `<span class="muted">No membership uses it right now.</span>`;
+      return head("Payment method", "The card kept for your membership's renewals. Packages, gift cards and shop items are paid when you buy them.") +
+        `<div class="card stack pmwrap" style="gap:14px;max-width:640px">${card}${uses}
+          <div class="inline2"><button type="button" class="btn primary" id="cardReplace">${CARD.last4 ? "Replace card" : "Add a card"}</button>${CARD.last4 ? `<button type="button" class="btn ghost danger" id="cardRemove">Remove card</button>` : ""}</div>
+          <span class="hint">Your card is kept securely by Stripe; the studio never sees the full number. Replacing it doesn't charge anything${mem.some((pk) => pk.hold) ? ", but a membership on hold is paid straight away" : ""}.</span></div>`;
     };
-    BIND["my-packages"] = function () {
-      bindMine?.call(this);
+    BIND["payment-method"] = function () {
       if ($("#cardReplace")) $("#cardReplace").onclick = () => {
-        standIn("Save a card", `<p style="margin:0">Add the card for your membership's renewals. Nothing is charged now.</p>`, `<button type="button" class="btn ghost" data-mclose>Back</button><button type="button" class="btn primary" id="ssSave">Save card</button>`);
-        $("#ssSave").onclick = () => { Object.assign(CARD, { brand: "Mastercard", last4: "5454", exp: "03/29" }); closeModal(); render(); toast("Card saved for your renewals."); };
+        standIn(CARD.last4 ? "Replace your card" : "Add a card", `<p style="margin:0">Add the card for your membership's renewals. Nothing is charged now.</p>`, `<button type="button" class="btn ghost" data-mclose>Back</button><button type="button" class="btn primary" id="ssSave">Save card</button>`);
+        $("#ssSave").onclick = () => {
+          Object.assign(CARD, { brand: "Mastercard", last4: "5454", exp: "03/29" });
+          const held = renewing().filter((pk) => pk.hold);
+          held.forEach((pk) => typeof liftHold === "function" && liftHold(pk, "card"));
+          closeModal(); render(); toast(held.length ? "Card saved, and your membership is paid and active again." : "Card saved for your renewals.");
+        };
       };
-      if ($("#cardRemove")) $("#cardRemove").onclick = () => confirmFlags([{ level: "confirm", title: "Remove the card for your membership?", msg: "Your membership renews by card. Without a card, its next payment is due at the studio, and the membership goes on hold if it isn't paid." }], { proceedLabel: "Remove card", proceed: () => { CARD.last4 = ""; render(); toast("Card removed."); } });
+      if ($("#cardRemove")) $("#cardRemove").onclick = () => {
+        const mem = renewing();
+        if (mem.length) return toast(`Your ${mem[0].name} renews on this card, so it can't be removed. Replace it instead, or stop the membership's renewal first.`);
+        CARD.last4 = ""; render(); toast("Card removed.");
+      };
     };
   }

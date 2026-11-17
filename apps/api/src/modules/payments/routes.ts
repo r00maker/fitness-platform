@@ -157,7 +157,8 @@ export async function paymentRoutes(app: FastifyInstance) {
         .from(clientPackages)
         .innerJoin(packagePlans, eq(packagePlans.id, clientPackages.planId))
         .where(and(eq(clientPackages.orgId, org.id), eq(clientPackages.ownerId, req.auth.userId), eq(packagePlans.billing, "recurring"), isNull(clientPackages.cancelledAt), isNull(clientPackages.stopsRenewingAt), gt(clientPackages.expiresAt, new Date())));
-      if (live.length) flags.confirm({ code: "remove_card_membership", message: `Your ${live[0]!.name} renews by card. Without a card, its next payment is due at the studio, and the membership goes on hold if it isn't paid.` });
+      // A membership renewing by card needs one: replace it instead.
+      if (live.length) throw conflict("card_needed", `Your ${live[0]!.name} renews on this card, so it can't be removed. Replace it with another card instead, or stop the membership's renewal first.`);
       await tx.update(paymentCustomers).set({ cardPaymentMethodId: null, cardBrand: null, cardLast4: null, cardExpMonth: null, cardExpYear: null, updatedAt: new Date() }).where(eq(paymentCustomers.id, c.id));
       const api = stripe();
       if (api) await api.detachPaymentMethod(org.stripeAccountId!, c.cardPaymentMethodId).catch(() => undefined);

@@ -222,7 +222,6 @@ export const FLAG_TITLES: Record<FlagCode, string> = {
   extra_location_cost: "This adds to the monthly price",
   migration_warnings: "Import with these warnings?",
   pass_on_fees: "Pass the fee on to clients?",
-  remove_card_membership: "Remove the card for your membership?",
   refund_online: "Refund to how they paid?",
   attendance_locked: "Attendance is locked",
   fee_not_final: "Attendance can still change",

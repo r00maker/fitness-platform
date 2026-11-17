@@ -317,17 +317,33 @@ describe("payments: memberships and cards on file", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it("removing the card asks first while a membership renews by card", async () => {
+  it("a membership needs a card: no paying at the studio, and its card can be replaced but not removed", async () => {
     const { f, s, plan } = await membership();
+    const q = (await s.c1.call("GET", `/checkout/quote?planId=${plan.id}`)).body;
+    expect(q.payments.options.map((o: { payWith: string }) => o.payWith)).toEqual(["online"]);
+    expect((await s.c1.call("POST", "/checkout", { planId: plan.id, payWith: "desk" })).body.error.code).toBe("membership_needs_card");
     await s.c1.call("POST", "/checkout", { planId: plan.id });
     await paid(lastSession(f)[0]);
-    const ask = await s.c1.call("DELETE", "/me/payment-card", {});
-    expect(ask.status).toBe(409);
-    expect(ask.body.error.flags[0].code).toBe("remove_card_membership");
-    expect((await s.c1.call("DELETE", "/me/payment-card", { acknowledge: ["remove_card_membership"] })).body.card).toBeNull();
+    const no = await s.c1.call("DELETE", "/me/payment-card", {});
+    expect(no.status).toBe(409);
+    expect(no.body.error.code).toBe("card_needed");
+    expect(f.calls.some((c) => c[0] === "detach")).toBe(false);
+    // Once the membership stops renewing, the card can go.
+    const [pk] = await db.select().from(clientPackages).where(eq(clientPackages.ownerId, s.c1.id));
+    await db.update(clientPackages).set({ stopsRenewingAt: new Date() }).where(eq(clientPackages.id, pk!.id));
+    expect((await s.c1.call("DELETE", "/me/payment-card", {})).body.card).toBeNull();
     expect(f.calls.some((c) => c[0] === "detach")).toBe(true);
     const [c] = await db.select().from(paymentCustomers).where(eq(paymentCustomers.userId, s.c1.id));
     expect(c!.cardLast4).toBeNull();
+  });
+
+  it("a studio not taking card payments online can't sell memberships at checkout", async () => {
+    const { s, plan } = await membership();
+    await db.update(organizations).set({ stripeChargesEnabled: false }).where(eq(organizations.id, s.orgId));
+    const q = (await s.c1.call("GET", `/checkout/quote?planId=${plan.id}`)).body;
+    expect(q.payments.options).toEqual([]);
+    expect(q.payments.message).toMatch(/Ask at the front desk/);
+    expect((await s.c1.call("POST", "/checkout", { planId: plan.id })).body.error.code).toBe("membership_needs_card");
   });
 
   it("without a saved card, a renewal is due at the studio as before", async () => {

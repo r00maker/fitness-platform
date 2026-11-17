@@ -64,13 +64,21 @@ export function payOptions(org: Org, amountCents: number, opts: { recurring: boo
       out.push({ payWith: "online", label: opts.recurring ? "Card, Apple Pay or Google Pay" : "Pay online", feeCents: 0, fee: null, total: m(amountCents) });
     }
   }
-  if (amountCents > 0 && (org.payAtDesk || !onlineReady(org))) out.push({ payWith: "desk", label: PAY_WITH.desk, feeCents: 0, fee: null, total: m(amountCents) });
+  // Memberships renew on the card they're bought with, so they can't be paid at the studio.
+  if (amountCents > 0 && !opts.recurring && (org.payAtDesk || !onlineReady(org))) out.push({ payWith: "desk", label: PAY_WITH.desk, feeCents: 0, fee: null, total: m(amountCents) });
   return out;
 }
+
+export const MEMBERSHIP_NOT_ONLINE = "This membership renews by card, and the studio isn't taking card payments online yet. Ask at the front desk and they'll set it up for you.";
 
 /** Check the client's choice before anything is created. */
 export function choosePayment(org: Org, requested: PayWith | undefined, opts: { recurring: boolean }): { online: false } | { online: true; method: OnlineMethod | null } {
   const ready = onlineReady(org);
+  if (opts.recurring) {
+    // A membership renews on the card it's bought with: it needs a card, not the desk.
+    if (!ready) throw conflict("membership_needs_card", MEMBERSHIP_NOT_ONLINE);
+    if (requested === "desk") throw badRequest("membership_needs_card", "Memberships renew by card, so they're paid by card when you buy them (including Apple Pay and Google Pay).");
+  }
   const choice = requested ?? (ready ? (org.passOnFees ? "card" : "online") : "desk");
   if (choice === "desk") {
     if (ready && !org.payAtDesk) throw badRequest("pay_online", "This studio takes payment online. Choose how you'd like to pay.");

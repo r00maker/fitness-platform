@@ -39,6 +39,10 @@ const file = "file://" + path.join(__dirname, "py-test.html");
     await role("client");
     await buy("p2");
     ok(`${label}: before connecting, no online choice`, (await p.locator('input[name="coPay"]').count()) === 0);
+    await buy("p3");
+    ok(`${label}: before connecting, a membership can't be bought at checkout`, /Ask at the front desk/.test(await txt('[data-order="place"]')) && (await p.locator('[data-order="place"]').isDisabled()));
+    await go("payment-method");
+    ok(`${label}: payment method says online payments aren't on yet`, /aren't on yet/.test(await txt("#pgOther")));
 
     // --- Setup, Payments ---
     await role("admin");
@@ -90,22 +94,24 @@ const file = "file://" + path.join(__dirname, "py-test.html");
     ok(`${label}: paid and on their account`, /is on your account/.test(await txt("#pgOther")) && /Paid with Visa ending 4242/.test(await txt("#pgOther")));
     ok(`${label}: the fee is on the order`, /card fee/.test(await txt(".summary")));
 
-    // A membership is card only, and the card is kept.
+    // A membership is card only (no paying at the studio), and the card is kept.
     await buy("p3");
     const mchoices = await p.locator('input[name="coPay"]').evaluateAll((xs) => xs.map((x) => x.value));
-    ok(`${label}: memberships are card or desk (${mchoices})`, mchoices.join() === "card,desk");
+    ok(`${label}: memberships are card only (${mchoices})`, mchoices.join() === "card");
     await press('[data-order="place"]');
     await press("#ssPay");
     await go("my-packages");
-    ok(`${label}: card kept for renewals`, /Visa ending 4242/.test(await txt(".paycard")));
+    ok(`${label}: card isn't on My packages any more`, (await p.locator(".paycard, #cardReplace").count()) === 0);
+    const items = await p.evaluate(() => [...document.querySelectorAll("#side .navitem span:not(.count)")].map((x) => x.textContent));
+    ok(`${label}: Payment method is in the client menu`, items.includes("Payment method"));
+    await go("payment-method");
+    ok(`${label}: card kept for renewals`, /•••• 4242/.test(await txt(".pmcard")) && /Unlimited monthly/.test(await txt(".pmwrap")));
     await press("#cardRemove");
-    ok(`${label}: removing it asks first`, /renews by card/.test(await txt(".warnmodal")));
-    await press("#mProceed");
-    ok(`${label}: card removed`, /No card saved/.test(await txt(".paycard")));
+    ok(`${label}: can't remove the card a membership renews on (${await toast()})`, /can't be removed/.test(await toast()) && /•••• 4242/.test(await txt(".pmcard")));
     await press("#cardReplace");
     await press("#ssSave");
-    ok(`${label}: a new card saved`, /Mastercard ending 5454/.test(await txt(".paycard")));
-    ok(`${label}: my packages no h-scroll`, await noHScroll());
+    ok(`${label}: replaced with a new card`, /Mastercard/.test(await txt(".pmcard")) && /•••• 5454/.test(await txt(".pmcard")));
+    ok(`${label}: payment method no h-scroll`, await noHScroll());
     await shot("5-card");
 
     // An order left unpaid can be paid later.

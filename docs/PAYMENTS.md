@@ -26,9 +26,9 @@ If a studio disconnects us from its Stripe dashboard, online payments stop, clie
 
 - **Checkout** (packages, gift cards, shop) offers the ways to pay (`GET /checkout/quote` → `payments.options`): "Pay online" or, when the fee is passed on, Card (with its fee), PayNow (no fee) and GrabPay (with its fee), plus "Pay at the studio" when the studio allows it. `payWith` on the checkout picks one.
 - The order is made first, exactly as before (credit and discounts taken off, invoice issued), then Stripe's payment page opens for what's left. Paying completes the order the same way a desk payment does: the package is added, the gift card released, the shop order made ready, the invoice paid with its receipt. A fee passed on is added to the invoice as its own line once paid.
-- **Memberships** are paid by card (including Apple Pay and Google Pay), and the card is kept by Stripe for the renewals. PayNow and GrabPay can't be saved for later, so they're offered for one-off purchases only.
+- **Memberships** are paid by card (including Apple Pay and Google Pay) when they're bought, and the card is kept by Stripe for the renewals. They can't be paid at the studio, and a studio that isn't taking card payments online can't sell them at checkout (staff can still sell one from the client's profile). PayNow and GrabPay can't be saved for later, so they're offered for one-off purchases only.
 - **Pay later:** an order left unpaid (or a renewal due) can be paid online from the app (`POST /orders/:id/pay`).
-- **The card on file** (`GET/POST/DELETE /me/payment-card`): replace it on Stripe's page (nothing is charged), or remove it (asks first while a membership renews by card; renewals are then due at the studio).
+- **Payment method** (its own page in the client menu; `GET/POST/DELETE /me/payment-card`): the card on file and which memberships renew on it. Replace it on Stripe's page (nothing is charged, but a membership on hold is tried again straight away). It can't be removed while a membership renews on it: replace it, or stop the renewal first.
 
 ## Renewals
 

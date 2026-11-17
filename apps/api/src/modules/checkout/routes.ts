@@ -33,7 +33,7 @@ import { returnCredit, spendCredit, usableGrants, usableVouchers, voucherDiscoun
 import { checkAmount, findRecipient, giftCardPaid, giftCode } from "../marketing/giftcards.js";
 import { loyaltyForSpend } from "../marketing/loyalty.js";
 import { issueInvoice, payFor, voidFor } from "../sales/invoices.js";
-import { choosePayment, closeCheckout, payOptions, paymentFor } from "../payments/service.js";
+import { MEMBERSHIP_NOT_ONLINE, choosePayment, closeCheckout, payOptions, paymentFor } from "../payments/service.js";
 
 const idParam = z.object({ id: schemas.id });
 const ordersQuery = z.object({ status: z.enum(["pending", "paid", "cancelled"]).default("pending") });
@@ -137,7 +137,8 @@ export async function checkoutRoutes(app: FastifyInstance) {
         if (price.due === 0) return { online: false, options: [], message: "Nothing to pay: your credit and discount cover it." };
         const options = payOptions(org, price.due, { recurring: p.billing === "recurring" });
         const online = options.some((o) => o.payWith !== "desk");
-        return { online, options, message: online ? (p.billing === "recurring" ? "Your card is kept securely by Stripe for the renewals." : null) : "Place your order and pay at the front desk; your package is ready as soon as the studio confirms payment." };
+        if (p.billing === "recurring") return { online, options, message: online ? "Your card is kept securely by Stripe for the renewals." : MEMBERSHIP_NOT_ONLINE };
+        return { online, options, message: online ? null : "Place your order and pay at the front desk; your package is ready as soon as the studio confirms payment." };
       })(),
     };
   });
