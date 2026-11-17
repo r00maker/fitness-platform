@@ -189,6 +189,11 @@ export const organizations = pgTable("organizations", {
   phone: text("phone"),
   website: text("website"),
   instagram: text("instagram"),
+  // Booking on the web: the public booking page (<app>/s/<slug>) and the website widget.
+  slug: text("slug").unique(),
+  bookingPageEnabled: boolean("booking_page_enabled").notNull().default(true),
+  bookingIntro: text("booking_intro"),
+  bookingAccent: text("booking_accent"),
   // Online payments (Stripe Connect: the studio's own Stripe account; it's the seller).
   stripeAccountId: text("stripe_account_id").unique(),
   stripeChargesEnabled: boolean("stripe_charges_enabled").notNull().default(false),

@@ -44,6 +44,7 @@ import { tellClientsRoutes } from "./modules/marketing/tell.js";
 import { automationsRoutes } from "./modules/agents/automations.js";
 import { settingsRoutes } from "./modules/settings/routes.js";
 import { paymentRoutes } from "./modules/payments/routes.js";
+import { bookingPageRoutes } from "./modules/booking-page/routes.js";
 import { configurePayments, stripe, stripeRenewalCharger } from "./modules/payments/service.js";
 import { setRenewalCharger } from "./modules/packages/payments.js";
 import { substituteRoutes } from "./modules/substitutes/routes.js";
@@ -73,7 +74,15 @@ export async function buildApp(opts: { config: Config; db: Db }) {
   // data. Nothing reads a form body, so it's accepted and ignored.
   app.addContentTypeParser("application/x-www-form-urlencoded", { parseAs: "string", bodyLimit: 4096 }, (_req, _body, done) => done(null, {}));
   await app.register(helmet);
-  await app.register(cors, { origin: opts.config.CORS_ORIGINS.split(",").map((o) => o.trim()), credentials: false });
+  // The app's own origins, except the public booking data and widget, which any studio's website
+  // may read (GET only, no credentials, nothing private in them).
+  const appOrigins = opts.config.CORS_ORIGINS.split(",").map((o) => o.trim());
+  await app.register(cors, {
+    delegator: (req, cb) => {
+      const open = /^\/v1\/public\/(studios\/|widget\.js)/.test(req.url ?? "");
+      cb(null, open ? { origin: "*", methods: ["GET", "HEAD"], credentials: false } : { origin: appOrigins, credentials: false });
+    },
+  });
   // Per address. (Keying on the sign-in token would let anyone dodge the limit by sending made-up
   // tokens, since this runs before tokens are checked.) Busier routes have their own limits.
   await app.register(rateLimit, {
@@ -136,6 +145,7 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(fileRoutes);
       await v1.register(checkoutRoutes);
       await v1.register(paymentRoutes);
+      await v1.register(bookingPageRoutes);
       await v1.register(marketingRoutes);
       await v1.register(marketingAppRoutes);
       await v1.register(loyaltyRoutes);
