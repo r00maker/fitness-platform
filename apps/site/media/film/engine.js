@@ -11,7 +11,7 @@
   const lerp = (a, b, k) => a + (b - a) * k;
   const prog = (t, a, b) => clamp((t - a) / (b - a));
   const E = {
-    io: (k) => (k < 0.5 ? 16 * k ** 5 : 1 - Math.pow(-2 * k + 2, 5) / 2), // sharp in-out: camera moves
+    io: (k) => (k < 0.5 ? 4 * k ** 3 : 1 - Math.pow(-2 * k + 2, 3) / 2), // smooth in-out: camera moves
     out: (k) => 1 - Math.pow(1 - k, 4),                                      // arrivals
     in: (k) => k * k * k,                                                    // exits
   };
@@ -66,8 +66,8 @@
         // Points are in the still's pixels; a phone's image sits inside its bezel, so the frame starts a bezel earlier.
         const pad = phone ? 22 : 0;
         const m = L.map(t, -pad, -pad);
-        frame.style.transform = `translate(${m.x}px, ${m.y}px) scale(${m.s})`;
-        wrap.style.opacity = String(o.cut ? (t < o.t1 - 0.12 ? 1 : 1 - prog(t, o.t1 - 0.12, o.t1)) : inK * (1 - outK));
+        frame.style.transform = `translate3d(${m.x}px, ${m.y}px, 0) scale(${m.s})`;
+        wrap.style.opacity = String(o.cut ? prog(t, o.t0, o.t0 + 0.25) * (1 - prog(t, o.t1 - 0.25, o.t1)) : inK * (1 - outK));
         wrap.style.filter = o.cut ? "" : `blur(${(1 - inK) * 10 + outK * 8}px)`;
       },
     };
@@ -132,7 +132,7 @@
         const k = E.out(prog(t, o.t0, o.t0 + 0.5)), out = E.in(prog(t, o.t1 - 0.3, o.t1)), op = k * (1 - out);
         ring.style.cssText = `left:${x0}px;top:${y0}px;width:${w}px;height:${h}px;opacity:${op};transform:scale(${lerp(1.12, 1, k)})`;
         const tk = E.out(prog(t, o.t0 + 0.18, o.t0 + 0.7));
-        const gap = 48;
+        const gap = 48 * (Number(getComputedStyle(stage).getPropertyValue("--k")) || 1);
         let tx, ty;
         const side = o.side ?? "right";
         if (side === "right") { tx = x0 + w + gap; ty = y0 + h / 2; }
@@ -173,6 +173,8 @@
   const glow = document.getElementById("glow");
   layers.push({ update(t) { glow.style.transform = `translate(${Math.sin(t / 4) * 80}px, ${Math.cos(t / 5) * 50}px)`; } });
 
-  window.FILM = { shot, caption, title, callout, endcard };
+  // Labels and rings bigger, for films shown small on the page.
+  const labels = (k) => stage.style.setProperty("--k", String(k));
+  window.FILM = { shot, caption, title, callout, endcard, labels };
   window.seek = (t) => { for (const L of layers) L.update(t); };
 })();

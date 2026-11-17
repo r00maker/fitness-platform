@@ -21,7 +21,9 @@ const args = process.argv.slice(2);
 const fps = Number(args.find((a) => a.startsWith("--fps="))?.slice(6) ?? 30);
 const preview = args.includes("--preview");
 const names = args.filter((a) => !a.startsWith("--"));
-const all = ["hero", "day", "here", "run", "fill", "brand", "ask", "move"];
+const all = ["hero", "dayCover", "dayCheckin", "dayWhatsapp", "dayPay", "move"];
+// The hero plays big and first, so it gets 60 frames a second; the rest 30.
+const fpsFor = (n) => (n === "hero" ? 60 : fps);
 
 const browser = await chromium.launch();
 try {
@@ -44,11 +46,11 @@ try {
       continue;
     }
     const mp4 = path.join(OUT, `film-${name}.mp4`);
-    const ff = spawn("ffmpeg", ["-v", "error", "-y", "-f", "image2pipe", "-framerate", String(fps), "-c:v", "mjpeg", "-i", "-",
+    const ff = spawn("ffmpeg", ["-v", "error", "-y", "-f", "image2pipe", "-framerate", String(fpsFor(name)), "-c:v", "mjpeg", "-i", "-",
       "-vf", "fade=t=in:st=0:d=0.3", "-c:v", "libx264", "-preset", "slow", "-crf", "27", "-tune", "animation", "-pix_fmt", "yuv420p", "-profile:v", "high", "-movflags", "+faststart", "-an", mp4], { stdio: ["pipe", "inherit", "inherit"] });
-    const frames = Math.round(dur * fps);
+    const f = fpsFor(name), frames = Math.round(dur * f);
     for (let i = 0; i < frames; i++) {
-      await page.evaluate((x) => window.seek(x), i / fps);
+      await page.evaluate((x) => window.seek(x), i / f);
       const buf = await page.screenshot({ type: "jpeg", quality: 92 });
       if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once("drain", r));
     }

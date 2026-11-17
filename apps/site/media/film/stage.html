@@ -12,7 +12,7 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: radial-gradient(120% 90% at 50% 120%, #161b22 0%, var(--ink) 60%); font-family: "Instrument Sans", sans-serif; color: var(--fg) }
 #glow { position: absolute; left: 50%; top: 40%; width: 1500px; height: 1100px; margin: -550px 0 0 -750px; background: radial-gradient(closest-side, rgba(166, 192, 220, .13), transparent 70%); pointer-events: none }
 .shot { position: absolute; inset: 0 }
-.frame { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform }
+.frame { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; backface-visibility: hidden }
 .frame img { display: block }
 .frame.window img { border-radius: 26px; box-shadow: 0 0 0 2px rgba(255, 255, 255, .07), 0 60px 160px -40px rgba(0, 0, 0, .85) }
 .frame.phone { padding: 22px; border-radius: 96px; background: #050a09; box-shadow: 0 0 0 3px #2a3431, 0 80px 180px -40px rgba(0, 0, 0, .9) }
@@ -36,9 +36,10 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 .chip { position: absolute; left: 56px; top: 52px; z-index: 6; padding: 14px 26px; border-radius: 999px; background: rgba(14, 17, 21, .78); border: 2px solid rgba(166, 192, 220, .5); font: 700 38px/1 "Manrope", sans-serif; letter-spacing: -0.02em; backdrop-filter: blur(10px) }
 
 /* Callouts */
-.ring { position: absolute; z-index: 4; border-radius: 22px; border: 4px solid var(--steel); box-shadow: 0 0 0 8px rgba(166, 192, 220, .18), 0 0 60px rgba(166, 192, 220, .35); pointer-events: none }
-.tag { position: absolute; z-index: 5; padding: 18px 30px; border-radius: 999px; background: var(--fg); color: var(--ink); font: 700 40px/1 "Manrope", sans-serif; letter-spacing: -0.02em; white-space: nowrap; box-shadow: 0 24px 60px -16px rgba(0, 0, 0, .7) }
+.ring { position: absolute; z-index: 4; border-radius: calc(22px * var(--k, 1)); border: calc(4px * var(--k, 1)) solid var(--steel); box-shadow: 0 0 0 calc(8px * var(--k, 1)) rgba(166, 192, 220, .18), 0 0 60px rgba(166, 192, 220, .35); pointer-events: none }
+.tag { position: absolute; z-index: 5; padding: calc(18px * var(--k, 1)) calc(30px * var(--k, 1)); border-radius: 999px; background: var(--fg); color: var(--ink); font: 700 calc(40px * var(--k, 1))/1 "Manrope", sans-serif; letter-spacing: -0.02em; white-space: nowrap; box-shadow: 0 24px 60px -16px rgba(0, 0, 0, .7) }
 .tagline { position: absolute; z-index: 4; background: var(--steel) }
+.chip, .cap { --k: 1 }
 
 /* End card */
 .end { position: absolute; inset: 0; z-index: 7; display: grid; place-content: center; text-align: center; gap: 26px; background: radial-gradient(80% 70% at 50% 50%, rgba(14, 17, 21, .9), var(--ink)) }

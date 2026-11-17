@@ -98,12 +98,14 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
   </section>
 
   <section class="band" aria-labelledby="askT">
-    <div class="wrap"><div class="copy" style="max-width:760px;margin-bottom:clamp(32px,5vw,56px)">
+    <div class="wrap pair">
+      <div class="copy">
         <h2 id="askT">Nothing is guessed. Every row is accounted for.</h2>
         <p class="lede">Before anything moves, our team runs the check. It lists what it couldn't be sure about, in plain words, with the row it came from, and anything unclear comes back to you before we import.</p>
         <p class="small">Every row ends up created, linked to an existing account, merged as a duplicate, or not moved with a reason. The four always add up, or the move doesn't go ahead.</p>
-      </div></div>
-    <figure class="vid film"><video muted playsinline loop preload="none" poster="media/film-move.jpg" aria-label="Our team's check before a move: every row accounted for, and anything unclear listed in plain words"><source data-src="media/film-move.mp4" type="video/mp4"><source data-src="media/film-move.webm" type="video/webm"></video></figure>
+      </div>
+      <figure class="vid clip"><video muted playsinline loop preload="none" poster="media/film-move.jpg" aria-label="Our team's check before a move: every row accounted for, and anything unclear listed in plain words"><source data-src="media/film-move.mp4" type="video/mp4"><source data-src="media/film-move.webm" type="video/webm"></video></figure>
+    </div>
   </section>
 
   <section class="band" aria-labelledby="whatT">
@@ -193,13 +195,14 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
     contract: ["Month to month", "Yearly is optional, with two months free"],
     fees: ["None", "Only Stripe's standard processing fee"],
     app: ["+SGD 99 a month on Growth", "Included in Signature"],
+    locs: ["Up to 3 on Growth, 5 on Signature", "Then SGD 199 each, on the pricing page"],
   };
   const FROM = {
     mindbody: {
       name: "Mindbody",
       move: "We work from Mindbody's own reports: Mailing Lists for clients, Membership Detail, and the sales and series reports. We tell you exactly which ones to run. Some of its \"Excel\" downloads are really web pages; we read those too. A full export through Mindbody's support can cost around USD 500, and the standard reports are usually enough.",
       example: [["With us: Growth with your own app", "SGD 498", "Every month, no contract, nothing quoted."], ["On Mindbody: a higher tier plus the app", "Quoted", "Higher tiers start around SGD 335 a month before the app, which is a paid add-on, usually on a 12 to 36 month contract."]],
-      them: { price: ["From about SGD 130 a month", "Higher tiers about SGD 335 to 360, and SGD 650 or more"], quote: ["Higher tiers and the branded app"], contract: ["12 to 36 months is common"], fees: [UNK], app: ["A paid add-on", "Priced on the call"] },
+      them: { locs: ["Priced on the sales call"], price: ["From about SGD 130 a month", "Higher tiers about SGD 335 to 360, and SGD 650 or more"], quote: ["Higher tiers and the branded app"], contract: ["12 to 36 months is common"], fees: [UNK], app: ["A paid add-on", "Priced on the call"] },
       ours: ["Easy to learn: Home is a to-do list, not menus of reports. Reviewers often call Mindbody's back end confusing.", "No contract, and every price is published.", "Your data moved for you, free.", "Made for here: the WhatsApp inbox, shared packs and public holidays handled."],
       stronger: "Mindbody's consumer app has a large audience of people looking for classes, which can bring new clients your way. It also has a long track record and many integrations.",
     },
@@ -207,7 +210,7 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
       name: "Momence",
       move: "From the Customers list, Export includes memberships and the credits left; subscriptions export separately. Momence can count packs with 0 credits as active, so we check each one with you rather than moving it as live.",
       example: [["With us: Growth with your own app", "SGD 498", "Every month, with nothing taken from your sales."], ["On Momence: the SGD 260 plan plus the app", "SGD 585+", "About SGD 260 (USD 199) plus about SGD 325 for the app (USD 250), before any fees on sales."]],
-      them: { price: ["A free plan, then about SGD 80 and SGD 260 a month", "Custom plans above that"], quote: ["Custom plans"], contract: [UNK], fees: ["About 2.5 to 5% of sales on some plans", "Plus card processing of 3.9% + 30¢, from third-party write-ups"], app: ["About SGD 325 a month more"] },
+      them: { locs: [UNK], price: ["A free plan, then about SGD 80 and SGD 260 a month", "Custom plans above that"], quote: ["Custom plans"], contract: [UNK], fees: ["About 2.5 to 5% of sales on some plans", "Plus card processing of 3.9% + 30¢, from third-party write-ups"], app: ["About SGD 325 a month more"] },
       ours: ["No fee on your sales, on any plan.", "Instructor pay built in, with five ways to pay. Momence doesn't have payroll.", "Your own app for SGD 99 a month, not about SGD 325.", "The same support on every plan, from the people who build it."],
       stronger: "Momence does more for studios that sell recorded classes and online content, with video on demand built in.",
     },
@@ -215,7 +218,7 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
       name: "Glofox",
       move: "Reports, Memberships, Members, then Download, which needs the Admin role. The client list needs the Clients Export permission. If your login can't export, add us as a staff user and we'll do it for you.",
       example: [["With us: Growth with your own app", "SGD 498", "Every month, no contract, nothing quoted."], ["On Glofox: the Elite tier, for its app", "SGD 325 to 520+", "By quote, on an annual contract."]],
-      them: { price: ["From about SGD 130 a month", "Elite about SGD 325 to 520 or more"], quote: ["Every plan"], contract: ["Annual"], fees: [UNK], app: ["On the Elite tier only"] },
+      them: { locs: ["Priced on the sales call"], price: ["From about SGD 130 a month", "Elite about SGD 325 to 520 or more"], quote: ["Every plan"], contract: ["Annual"], fees: [UNK], app: ["On the Elite tier only"] },
       ours: ["Prices on the website, not after a sales call.", "Month to month, not annual.", "Your own app from Growth, without moving to the top tier.", "Made for boutique studios: shared packs, instructor pay and the WhatsApp inbox."],
       stronger: "Glofox suits gyms as well as studios, and is part of ABC Fitness, a large gym software group.",
     },
@@ -224,7 +227,7 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
       move: "Send us whatever you keep, in Excel, Google Sheets or CSV. Excel often damages phone numbers (6.59123E+09, or a lost leading zero); we fix what can be fixed from the rest of the row and ask you about anything else.",
     },
   };
-  const ROWS = [["Published price", "price"], ["Decided on a sales call", "quote"], ["Contract", "contract"], ["Fees on your sales", "fees"], ["Your own app", "app"]];
+  const ROWS = [["Published price", "price"], ["Locations covered", "locs"], ["Decided on a sales call", "quote"], ["Contract", "contract"], ["Fees on your sales", "fees"], ["Your own app", "app"]];
   const cell = ([main, sub], cls = "") => { const td = el("td", { class: `${cls} ${main === UNK ? "unk" : ""}`, text: main }); if (sub) td.append(el("small", { text: sub })); return td; };
   const panel = $("#fromPanel");
   function showFrom(k) {
@@ -262,7 +265,7 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
 
   // --- Questions for any sales call -----------------------------------------------------------
   const ASK = [
-    ["What will I pay each month, for my locations, with everything I need?", "<strong>The price on our Pricing page.</strong> SGD 129, 399 or 699, plus SGD 199 for each location past five on Signature."],
+    ["What will I pay each month, for every location, with everything I need?", "<strong>The price on our Pricing page.</strong> SGD 129, 399 or 699, covering 1, up to 3 or up to 5 locations, then SGD 199 for each one more."],
     ["Is there a contract, and what does leaving early cost?", "<strong>No contract.</strong> Stop at the end of any month. Yearly is optional."],
     ["Do you take a percentage of my sales, on top of card fees?", "<strong>No.</strong> Payments go to your own Stripe account."],
     ["What does my own app cost?", "<strong>SGD 99 a month on Growth,</strong> and included in Signature."],

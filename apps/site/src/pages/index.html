@@ -21,27 +21,48 @@
 /* Needs attention */
 
 
-/* A day at the studio: one film, and its chapters underneath (they follow the film; tap one to jump). */
-.day .vid.film { margin-bottom: 28px }
-.chapters { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px }
-.chapters button { all: unset; box-sizing: border-box; position: relative; display: flex; flex-direction: column; gap: 6px; width: 100%; height: 100%; padding: 18px 18px 22px; border-radius: 14px; border: 1px solid var(--line); cursor: pointer; overflow: hidden; transition: border-color .3s, background .3s }
-.chapters button:hover { border-color: var(--line-2) }
-.chapters button:focus-visible { outline: 2px solid var(--steel); outline-offset: 3px }
-.chapters time { color: var(--mute); font-size: .9rem; font-variant-numeric: tabular-nums }
-.chapters b { font-family: var(--display); font-weight: 600; font-size: 1.08rem; letter-spacing: -0.01em }
-.chapters span { color: var(--mute); font-size: .92rem }
-.chapters .bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; background: var(--steel) }
-.chapters li.on button { border-color: color-mix(in srgb, var(--steel) 55%, var(--line)); background: var(--ink-2) }
-.chapters li.on time { color: var(--steel) }
-@media (max-width: 900px) { .chapters { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
-@media (max-width: 480px) { .chapters { grid-template-columns: minmax(0, 1fr) } .chapters span { display: none } }
+/* A day at the studio: on wide screens the list stays put while the product windows stack up as
+   you scroll; on phones (and with reduced motion) each step simply shows its window below it. */
+.day { padding-block: clamp(56px, 7vw, 96px) }
+.day-head { display: flex; flex-direction: column; gap: 16px; max-width: 34rem }
+.day-steps { list-style: none; margin: 32px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px }
+.day-steps li { display: flex; flex-direction: column; gap: 8px; padding: 14px 0 14px 18px; border-left: 2px solid var(--line) }
+.day-t { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 2px }
+.day-t:focus-visible { outline: 2px solid var(--steel); outline-offset: 4px; border-radius: 6px }
+.day-t time { color: var(--mute); font-size: .9rem; font-variant-numeric: tabular-nums }
+.day-t b { font-family: var(--display); font-size: var(--step-1); font-weight: 600; letter-spacing: -0.015em }
+.day-steps p { color: var(--mute); max-width: 44ch }
+.day-card { border: 1px solid var(--line); border-radius: 18px; background: var(--ink-2); padding: clamp(14px, 2.4vw, 26px); display: grid; place-items: center; min-width: 0 }
+.day-card > .vid:not(.phone) { width: 100% }
+.day-card:has(> .vid.clip) { border: 0; background: none; padding: 0 }
+.day-card > .vid.phone { width: min(240px, 100%) }
+.day-steps .day-card { margin-top: 10px }
+.day-steps .day-card > .vid.phone { width: min(280px, 100%) }
+@media (min-width: 980px) {
+  .js .day.scrolly { height: calc(100vh + (var(--n) - 1) * 80vh); padding-block: 0 }
+  .js .day.scrolly .day-in { position: sticky; top: 66px; height: calc(100vh - 66px); display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(40px, 5vw, 72px); align-items: center }
+  .js .day.scrolly .day-steps li { opacity: .42; border-left-color: var(--line); transition: opacity .5s var(--ease-out), border-color .5s var(--ease-out) }
+  .js .day.scrolly .day-steps li.on { opacity: 1; border-left-color: var(--steel) }
+  .js .day.scrolly .day-steps li > p { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .6s var(--ease-out), opacity .5s var(--ease-out) }
+  .js .day.scrolly .day-steps li.on > p { max-height: 8em; opacity: 1 }
+  .js .day.scrolly .day-stage { position: relative; height: min(600px, calc(100vh - 140px)) }
+  .js .day.scrolly .day-card { position: absolute; inset: 0; transform-origin: 50% 0; transition: transform .9s var(--ease-out), opacity .7s var(--ease-out), filter .7s var(--ease-out) }
+  .js .day.scrolly .day-card.below { transform: translateY(90px) scale(.98); opacity: 0; pointer-events: none }
+  .js .day.scrolly .day-card.past { transform: translateY(calc(var(--back) * -26px)) scale(calc(1 - var(--back) * .05)); opacity: calc(1 - var(--back) * .45); filter: brightness(.55); pointer-events: none }
+}
 
-/* Made for here: two windows side by side. */
-.here { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px clamp(24px, 4vw, 56px); align-items: start; margin-top: 32px }
+/* Simpler, by design: three points. */
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 36px }
+.three > div { padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; min-width: 0 }
+.three h3 { font-size: var(--step-1) }
+.three p { color: var(--mute) }
+@media (max-width: 860px) { .three { grid-template-columns: minmax(0, 1fr); gap: 24px } }
+/* (was: made for here) */
+.here { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px clamp(24px, 4vw, 48px); align-items: start }
 @media (max-width: 920px) { .here { grid-template-columns: minmax(0, 1fr) } }
-.here > div { display: flex; flex-direction: column; gap: 10px; min-width: 0 }
-.here h3 { font-size: var(--step-1); letter-spacing: -0.015em }
-.here p { color: var(--mute) }
+.here > div { display: flex; flex-direction: column; gap: 14px; min-width: 0 }
+.here h3 { font-size: var(--step-2); letter-spacing: -0.02em }
+.here p.lede { font-size: 1.02rem }
 
 /* Windows */
 
@@ -75,6 +96,7 @@
 .price .amt small { font-family: var(--text); font-size: .95rem; font-weight: 500; letter-spacing: 0; color: var(--mute) }
 .price p { color: var(--mute); font-size: .95rem }
 @media (max-width: 760px) { .prices { grid-template-columns: minmax(0, 1fr) } .price, .price + .price { padding: 18px 0 14px; border-left: 0 } .price + .price { border-top: 1px solid var(--line) } }
+.loc-note { margin-top: 24px; color: var(--fg); max-width: 70ch; padding-left: 16px; border-left: 2px solid var(--steel) }
 .price-foot { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; margin-top: 28px; color: var(--mute) }
 
 /* Founding studios */
@@ -98,15 +120,15 @@ form.join .full { grid-column: 1 / -1 }
     <div class="wrap hero-grid">
       <h1 id="heroT">Studio software your front desk learns in an afternoon.</h1>
       <div class="hero-side">
-        <p class="lede">Bookings, packages, payments, instructor pay and WhatsApp for pilates, yoga and barre studios, from one room to a dozen locations. We set it up and move your clients across for you.</p>
+        <p class="lede">Classes, packs, payments, instructor pay and WhatsApp in one place, with the admin done as the day happens. For pilates, yoga and barre studios, from one room to a dozen locations.</p>
         <div class="cta-row">
           <a class="btn btn-main" href="#walkthrough">Book a walkthrough</a>
           <a class="btn btn-line" href="product.html">See the product</a>
         </div>
         <ul class="promises" aria-label="Our promises">
           <li data-tick>No cut of your sales</li>
-          <li data-tick>No lock-in contracts</li>
-          <li data-tick>Your data moved for free</li>
+          <li data-tick>Every location priced up front</li>
+          <li data-tick>Your data moved, every row checked</li>
         </ul>
       </div>
       
@@ -114,36 +136,39 @@ form.join .full { grid-column: 1 / -1 }
     <figure class="vid film"><video muted playsinline loop preload="none" poster="media/film-hero.jpg" aria-label="The studio's day in a few verbs: plan the week, check them in, answer every message, pay the team, fill the next class"><source data-src="media/film-hero.mp4" type="video/mp4"><source data-src="media/film-hero.webm" type="video/webm"></video></figure>
   </section>
 
-  <section class="band day" id="day" aria-labelledby="dayT">
-    <div class="wrap">
-      <div class="head">
-        <h2 id="dayT">A day at the studio, handled.</h2>
-        <p class="lede">Four moments from an ordinary day, from before the first class to lights off.</p>
+  <section class="day" id="day" aria-labelledby="dayT" style="--n:4">
+    <div class="wrap day-in">
+      <div>
+        <div class="day-head">
+          <h2 id="dayT">A day at the studio, handled.</h2>
+          <p class="lede">Scroll through an ordinary day. The admin happens as you go, not at the end of it.</p>
+        </div>
+        <ol class="day-steps" id="daySteps">
+          <li data-step="0"><button type="button" class="day-t"><time>7:00am</time><b>Cover sorts itself out</b></button><p>An instructor asks for cover in the app and the ones who are free say yes. You approve with one tap, and the class, the instructors and everyone booked are told. No group-chat chasing.</p></li>
+          <li data-step="1"><button type="button" class="day-t"><time>12:20pm</time><b>One tap settles the class</b></button><p>Instructors run the door from their own phone, no front desk or tablet needed. That tap is the record everything else runs on: no-show fees, the instructor's pay and your reports. Nothing to reconcile tonight.</p></li>
+          <li data-step="2"><button type="button" class="day-t"><time>6:02pm</time><b>Questions answered by whoever's on</b></button><p>Clients message the studio's own WhatsApp number. Your team answers from one shared inbox, with the client's packs and bookings beside the chat, so nothing waits on the owner's phone.</p></li>
+          <li data-step="3"><button type="button" class="day-t"><time>11:59pm</time><b>Pay is already done</b></button><p>Pay is worked out as classes happen, at each instructor's own rate: per class, per head, by class size, hourly or salaried. Instructors see their own figures, so the month-end questions stop. Check it, mark it paid, export it for the bank.</p></li>
+        </ol>
       </div>
-    </div>
-    <figure class="vid film" id="dayFilm"><video muted playsinline loop preload="none" poster="media/film-day.jpg" aria-label="A day at the studio in four chapters: cover approved at 7am, check-in at 12:20pm, a WhatsApp reply at 6:02pm, pay marked as paid at 11:59pm"><source data-src="media/film-day.mp4" type="video/mp4"><source data-src="media/film-day.webm" type="video/webm"></video></figure>
-    <div class="wrap">
-      <ol class="chapters" id="chapters">
-        <li><button type="button" data-at="0"><time>7:00am</time><b>Cover, sorted before coffee</b><span>Home lists what needs you. Cover for an evening class is approved in one click.</span><i class="bar" aria-hidden="true"></i></button></li>
-        <li><button type="button" data-at="6.1"><time>12:20pm</time><b>Check-in at the door</b><span>Instructors tap names on their phone, with injuries and first-timers marked.</span><i class="bar" aria-hidden="true"></i></button></li>
-        <li><button type="button" data-at="12.1"><time>6:02pm</time><b>A WhatsApp question, answered</b><span>The whole team replies from one shared inbox.</span><i class="bar" aria-hidden="true"></i></button></li>
-        <li><button type="button" data-at="18.1"><time>11:59pm</time><b>Pay, worked out</b><span>From the classes taught and who came. Mark it paid and it locks.</span><i class="bar" aria-hidden="true"></i></button></li>
-      </ol>
+      <div class="day-stage" id="dayStage">
+        <div class="day-card" data-card="0"><figure class="vid clip"><video muted playsinline loop preload="none" poster="media/film-dayCover.jpg" aria-label="Home lists what needs you; Ben said yes to cover, you approve, and everyone's told"><source data-src="media/film-dayCover.mp4" type="video/mp4"><source data-src="media/film-dayCover.webm" type="video/webm"></video></figure></div>
+        <div class="day-card" data-card="1"><figure class="vid clip"><video muted playsinline loop preload="none" poster="media/film-dayCheckin.jpg" aria-label="Check-in on the instructor's phone: one tap and they're in, injuries flagged, pay and fees follow"><source data-src="media/film-dayCheckin.mp4" type="video/mp4"><source data-src="media/film-dayCheckin.webm" type="video/webm"></video></figure></div>
+        <div class="day-card" data-card="2"><figure class="vid clip"><video muted playsinline loop preload="none" poster="media/film-dayWhatsapp.jpg" aria-label="A WhatsApp question answered from the shared inbox"><source data-src="media/film-dayWhatsapp.mp4" type="video/mp4"><source data-src="media/film-dayWhatsapp.webm" type="video/webm"></video></figure></div>
+        <div class="day-card" data-card="3"><figure class="vid clip"><video muted playsinline loop preload="none" poster="media/film-dayPay.jpg" aria-label="Pay worked out from who came, then paid and locked"><source data-src="media/film-dayPay.mp4" type="video/mp4"><source data-src="media/film-dayPay.webm" type="video/webm"></video></figure></div>
+      </div>
     </div>
   </section>
 
-  <section class="band" aria-labelledby="localT">
+  <section class="band" aria-labelledby="simplerT">
     <div class="wrap">
       <div class="head">
-        <h2 id="localT">Made for how studios here actually run.</h2>
-        <p class="lede">You close for Chinese New Year, Hari Raya, Deepavali and the odd team retreat. Couples and families share one pack. It's all built in, not bolted on.</p>
+        <h2 id="simplerT">Simpler, by design.</h2>
+        <p class="lede">Most studio software grows a menu item for every feature and leaves you to work it out. Ours shows only what you use, checks your work, and tells you what needs doing.</p>
       </div>
-    </div>
-    <figure class="vid film"><video muted playsinline loop preload="none" poster="media/film-here.jpg" aria-label="Closing for a team retreat, with the classes it cancels; then a client sharing their family pack"><source data-src="media/film-here.mp4" type="video/mp4"><source data-src="media/film-here.webm" type="video/webm"></video></figure>
-    <div class="wrap">
-      <div class="here">
-        <div><h3>Closed days, handled for you</h3><p>Add a holiday or a retreat once. You see exactly which classes it cancels; everyone booked gets one message, their classes go back on their packs, and repeating classes skip the days.</p></div>
-        <div><h3>One package for a couple or a family</h3><p>Clients share a pack from their own app. Use it as one pool or split the classes; when someone stops sharing, their unused classes go back to the person who paid.</p></div>
+      <div class="three">
+        <div><h3>Only what you use</h3><p>Switch features on as you need them. A one-room studio never sees tools built for a chain, and the menu stays short enough to learn in an afternoon.</p></div>
+        <div><h3>Checks, not surprises</h3><p>Every change is checked against your rules, your team and your rooms. Anything off is explained in plain English before it's saved, and nothing is silently blocked.</p></div>
+        <div><h3>Every location, priced up front</h3><p>Growth covers up to 3 locations and Signature up to 5, then SGD 199 for each one more. It's on our pricing page, not in a sales call.</p></div>
       </div>
     </div>
   </section>
@@ -157,7 +182,7 @@ form.join .full { grid-column: 1 / -1 }
       <div class="jobs">
         <article class="job"><span class="on">Every plan</span><h3>Run the studio</h3><p>Timetable, bookings, packages, payments, closures and instructor pay, with plain-English warnings before mistakes happen.</p><a class="textlink" href="product.html#run">How it runs your day</a></article>
         <article class="job"><span class="on">Growth and Signature</span><h3>Fill your classes</h3><p>Trials followed up, lapsed clients won back and first-timers welcomed, automatically. Plus the shared WhatsApp inbox.</p><a class="textlink" href="product.html#fill">How it fills classes</a></article>
-        <article class="job"><span class="on">Signature</span><h3>Run a brand</h3><p>Every location side by side, leads from your ads followed up, AI that drafts the replies and recaps, and your own app.</p><a class="textlink" href="product.html#brand">How it runs a brand</a></article>
+        <article class="job"><span class="on">Signature</span><h3>Run a brand</h3><p>Every location side by side, leads from your ads followed up, admins for each location, and your own app.</p><a class="textlink" href="product.html#brand">How it runs a brand</a></article>
       </div>
     </div>
   </section>
@@ -194,6 +219,7 @@ form.join .full { grid-column: 1 / -1 }
         <div class="price"><b>Growth</b><div class="amt">SGD 399<small> a month</small></div><p>Studios with a team, up to 3 locations.</p></div>
         <div class="price"><b>Signature</b><div class="amt">SGD 699<small> a month</small></div><p>Brands with up to 5 locations, then SGD 199 for each one after.</p></div>
       </div>
+      <p class="loc-note">Essentials covers 1 location, Growth up to 3 and Signature up to 5, then SGD 199 for each one more. Many platforms charge per location or only tell you on a sales call; ours is on the page.</p>
       <div class="price-foot"><a class="textlink" href="pricing.html">Compare plans and work out your price</a><span>Pay yearly and get two months free.</span></div>
     </div>
   </section>
@@ -229,28 +255,48 @@ form.join .full { grid-column: 1 / -1 }
   const { reduce, $, $$, el, tick } = window.S;
   $$("[data-tick]").forEach((n) => n.insertAdjacentHTML("afterbegin", tick(n.tagName === "B" ? 18 : 16)));
 
-  // --- A day at the studio: the chapters follow the film; tapping one jumps there ---------------
-  {
-    const v = $("#dayFilm video"), items = $$("#chapters li");
-    const at = items.map((li) => Number($("button", li).dataset.at));
-    const sync = () => {
-      const t = v.currentTime, d = v.duration || 25;
-      items.forEach((li, k) => {
-        const a0 = at[k], a1 = at[k + 1] ?? d;
-        const on = t >= a0 && t < a1;
-        li.classList.toggle("on", on);
-        $(".bar", li).style.width = on ? `${Math.min(100, ((t - a0) / (a1 - a0)) * 100)}%` : "0%";
-      });
-    };
-    v.addEventListener("timeupdate", sync);
-    items.forEach((li, k) => $("button", li).addEventListener("click", () => {
-      v.querySelectorAll("source[data-src]").forEach((x) => { if (!x.src) x.src = x.dataset.src; });
-      if (v.readyState === 0) v.load();
-      const go = () => { v.currentTime = at[k]; v.play().catch(() => {}); sync(); };
-      v.readyState > 0 ? go() : v.addEventListener("loadedmetadata", go, { once: true });
-    }));
-    items[0].classList.add("on");
+  // --- A day at the studio --------------------------------------------------------------------
+  const day = $("#day"), steps = $$("#daySteps li"), cards = $$("#dayStage .day-card");
+  const wide = matchMedia("(min-width: 980px)");
+  let active = -1;
+  function setActive(i) {
+    if (i === active) return;
+    active = i;
+    steps.forEach((li, k) => li.classList.toggle("on", k === i));
+    cards.forEach((c, k) => {
+      c.classList.toggle("below", k > i);
+      c.classList.toggle("past", k < i);
+      c.style.setProperty("--back", String(i - k));
+      c.style.zIndex = String(k);
+    });
+    window.S.syncVideos?.($("video", cards[i]));
   }
+  function onScroll() {
+    const r = day.getBoundingClientRect();
+    const run = day.offsetHeight - innerHeight;
+    const p = Math.min(1, Math.max(0, -r.top / Math.max(1, run)));
+    setActive(Math.min(cards.length - 1, Math.floor(p * cards.length * 0.999)));
+  }
+  // Wide screens with motion: the list stays and the clips stack. Otherwise each clip sits under its step.
+  function layout() {
+    const scrolly = wide.matches && !reduce;
+    day.classList.toggle("scrolly", scrolly);
+    if (scrolly) { cards.forEach((c) => $("#dayStage").append(c)); active = -1; onScroll(); }
+    else {
+      cards.forEach((c, k) => steps[k].append(c));
+      steps.forEach((li) => li.classList.add("on"));
+      cards.forEach((c) => { c.classList.remove("below", "past"); c.style.zIndex = ""; });
+      window.S.syncVideos?.();
+    }
+  }
+  wide.addEventListener?.("change", layout);
+  addEventListener("scroll", () => { if (day.classList.contains("scrolly")) onScroll(); }, { passive: true });
+  layout();
+  steps.forEach((li, k) => $(".day-t", li).addEventListener("click", () => {
+    if (!day.classList.contains("scrolly")) return;
+    const run = day.offsetHeight - innerHeight;
+    scrollTo({ top: day.offsetTop + ((k + 0.5) / cards.length) * run, behavior: reduce ? "auto" : "smooth" });
+  }));
 
   // --- Founding studios form ----------------------------------------------------------------
   // Where requests go: set data-endpoint on the form (an API route) when the site is hosted.

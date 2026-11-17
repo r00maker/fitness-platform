@@ -38,6 +38,14 @@
 .plan li { display: flex; gap: 10px } .plan li svg { flex: none; margin-top: 4px; color: var(--steel) }
 .plan .fitnote { color: var(--steel); font-size: .9rem; font-weight: 600; min-height: 1.4em; margin-top: auto }
 
+/* Locations, up front */
+.loc-band { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px clamp(32px, 6vw, 80px); align-items: center }
+@media (max-width: 860px) { .loc-band { grid-template-columns: minmax(0, 1fr) } }
+.locs { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 }
+.locs > div { padding: 20px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px }
+.locs dt { color: var(--mute); font-size: .95rem }
+.locs dd { margin: 0; font-family: var(--display); font-weight: 600; font-size: var(--step-2); letter-spacing: -0.02em }
+
 /* Comparison table */
 .cmp-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px }
 table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size: .95rem }
@@ -104,6 +112,23 @@ table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size:
     </div>
   </section>
 
+  <section class="band" aria-labelledby="locT">
+    <div class="wrap">
+      <div class="loc-band">
+        <div class="head" style="margin-bottom:0">
+          <h2 id="locT">Every location, priced up front.</h2>
+          <p class="lede">Many studio platforms charge for each location, or only tell you after a sales call. Ours is here, before you talk to anyone.</p>
+        </div>
+        <dl class="locs">
+          <div><dt>Essentials</dt><dd>1 location</dd></div>
+          <div><dt>Growth</dt><dd>Up to 3 locations</dd></div>
+          <div><dt>Signature</dt><dd>Up to 5 locations</dd></div>
+          <div><dt>After that</dt><dd>SGD 199 a month each</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
   <section class="band" aria-labelledby="cmpT">
     <div class="wrap">
       <div class="head">
@@ -126,7 +151,6 @@ table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size:
       <div class="faq">
         <details><summary>Is there a contract?</summary><p>No. Plans are month to month and you can stop at the end of any month. Paying yearly is optional: it gets you two months free, and runs to the end of the year you paid for.</p></details>
         <details><summary>What does moving my data cost?</summary><p>Nothing for a standard move: your clients, packages with the classes they have left, memberships and upcoming bookings, from one old system. If your move is unusual (several old systems, or custom data), we tell you the price before we start.</p></details>
-        <details><summary>Why are prices in Singapore dollars?</summary><p>We're based in Singapore, and payments here are settled in Singapore dollars. Studios elsewhere in Southeast Asia are billed in SGD for now. Your own clients still pay you in your studio's currency.</p></details>
         <details><summary>Do you take a cut of payments?</summary><p>No. Clients pay into your studio's own Stripe account, and Stripe charges its standard fee, the same as using it directly. You can pass card and GrabPay fees on to clients if you like.</p></details>
         <details><summary>Can I change plans later?</summary><p>Yes, at any time. Moving up switches the new features on straight away. Before you move down, we show you exactly what would switch off, so nothing disappears by surprise.</p></details>
         <details><summary>I have one location but want my own app.</summary><p>The app comes with Growth (SGD 99 a month more) and is included in Signature. For one location, Growth with the app is the cheapest way to get it, at SGD 498 a month.</p></details>
@@ -148,7 +172,7 @@ table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size:
   const PLANS = [
     { key: "essentials", name: "Essentials", who: "One independent studio.", items: ["Classes, bookings, packages and memberships", "Online payments and your booking page", "Instructor pay, reviews and gift cards", "1 admin, unlimited instructors and front desk"] },
     { key: "growth", name: "Growth", who: "Studios with a team, up to 3 locations.", items: ["Everything in Essentials", "Trial follow-ups and win-backs, switched on for you", "WhatsApp inbox, emails and refer a friend", "Your own app for SGD 99 a month more"] },
-    { key: "signature", name: "Signature", who: "Brands with several locations.", items: ["Everything in Growth", "Every location compared side by side", "Leads from your ads, and AI that drafts the work", "Your own app included, admins without limit"], extra: "Up to 5 locations, then SGD 199 for each one after" },
+    { key: "signature", name: "Signature", who: "Brands with several locations.", items: ["Everything in Growth", "Every location compared side by side", "Leads from your ads, followed up for you", "Your own app included, admins without limit"], extra: "Up to 5 locations, then SGD 199 for each one more" },
   ];
   let locs = 1, app = false, bill = "month";
 
@@ -225,7 +249,7 @@ table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size:
     ["Run a brand"],
     ["Reports by location", "", N, N, Y],
     ["Leads and ad tracking", "", N, N, Y],
-    ["AI workflows", "Staff reminders, drafted announcements and recaps", N, N, Y],
+    ["Team reminders and drafted messages", "Like tomorrow's classes without an instructor", N, N, Y],
     ["Service"],
     ["Setup done for you", "", Y, Y, Y],
     ["Your data moved across", "Free for a standard move", Y, Y, Y],

@@ -39,18 +39,28 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   await videosOk("home");
   await p.locator(".hero video").scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
   ok(`${label} home: the hero video plays`, await playing(".hero video"));
-  ok(`${label} home: the hero film is big`, await p.locator(".hero .vid.film").evaluate((f) => f.getBoundingClientRect().width >= innerWidth - 40 || f.getBoundingClientRect().width >= 1400));
+  ok(`${label} home: the hero film is big`, await p.locator(".hero .vid.film").evaluate((f) => f.getBoundingClientRect().width >= Math.min(1400, innerWidth - 40)));
   await p.evaluate(() => scrollTo(0, 0));
   await p.screenshot({ path: path.join(out, `${label}-home-hero.png`) });
   ok(`${label} home: headline sweeps in`, phone || (await p.locator("#heroT.sweep.go").count()) === 1);
-  // A day at the studio: one film; its chapters follow it, and tapping one jumps there.
-  await p.locator("#dayFilm video").scrollIntoViewIfNeeded(); await p.waitForTimeout(1400);
-  ok(`${label} home: the day film plays`, await playing("#dayFilm video"));
+  // A day at the studio: on desktop the clips stack as you scroll and only the one in front plays;
+  // on phones each sits under its step.
+  const dayAt = (f) => p.evaluate((f) => { const d = document.getElementById("day"); scrollTo({ top: d.offsetTop + f * (d.offsetHeight - innerHeight), behavior: "instant" }); }, f);
+  await dayAt(0); await p.waitForTimeout(1200);
+  ok(`${label} home: day story layout`, phone ? (await p.locator("#daySteps .day-card").count()) === 4 : (await p.locator("#day.scrolly").count()) === 1 && /7:00am/.test(await text("#daySteps li.on")));
   ok(`${label} home: dock shows once the hero has gone`, await p.locator("#dock.show").count() === 1);
-  await p.locator('#chapters button[data-at="12.1"]').click(); await p.waitForTimeout(900);
-  ok(`${label} home: a chapter jumps the film there`, await p.locator("#dayFilm video").evaluate((v) => v.currentTime >= 12 && v.currentTime < 18) && /6:02pm/.test(await text("#chapters li.on")));
-  await p.locator('.vid.film video[aria-label^="Closing"]').scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
-  ok(`${label} home: made-for-here film plays`, await playing('.vid.film video[aria-label^="Closing"]'));
+  if (!phone) {
+    ok(`${label} home: the clip in front plays`, await playing('.day-card[data-card="0"] video'));
+    await dayAt(0.6); await p.waitForTimeout(1200);
+    ok(`${label} home: WhatsApp step in front, and only it plays`, /6:02pm/.test(await text("#daySteps li.on")) && await playing('.day-card[data-card="2"] video') && await p.locator('.day-card[data-card="0"] video').evaluate((v) => v.paused));
+    await dayAt(0.97); await p.waitForTimeout(1200);
+    ok(`${label} home: pay step`, /11:59pm/.test(await text("#daySteps li.on")) && (await p.locator('.day-card[data-card="3"]:not(.below):not(.past)').count()) === 1);
+  } else {
+    await p.locator('.day-card[data-card="1"] video').scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
+    ok(`${label} home: the phone clip plays under its step`, await playing('.day-card[data-card="1"] video'));
+  }
+  ok(`${label} home: simpler by design, three points`, (await p.locator(".three > div").count()) === 3);
+  ok(`${label} home: locations each plan covers`, /up to 3[\s\S]*up to 5[\s\S]*SGD 199/.test(await text(".loc-note")));
   ok(`${label} home: prices in SGD`, /SGD 129[\s\S]*SGD 399[\s\S]*SGD 699/.test(await text(".prices")));
   await p.locator("#walkthrough").scrollIntoViewIfNeeded(); await p.waitForTimeout(700);
   ok(`${label} home: dock steps aside at the form`, (await p.locator("#dock.show").count()) === 0);
@@ -65,10 +75,11 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   ok(`${label} product: marked as the current page`, (await p.locator('#nav a[aria-current="page"]').getAttribute("data-page")) === "product");
   ok(`${label} product: no sideways scroll`, await noHScroll());
   await videosOk("product");
-  ok(`${label} product: four films`, (await p.locator(".vid.film video").count()) === 4);
-  const fillFilm = '.vid.film video[aria-label^="The intro-offer journey"]';
-  await p.locator(fillFilm).scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
-  ok(`${label} product: the journey film plays`, await playing(fillFilm));
+  ok(`${label} product: one clip, four stills`, (await p.locator(".vid video").count()) === 1 && (await p.locator(".still img").count()) === 4);
+  await p.locator("#run .vid video").scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
+  ok(`${label} product: the check-in clip plays`, await playing("#run .vid video"));
+  await p.locator("#every .still img").scrollIntoViewIfNeeded(); await p.waitForTimeout(400);
+  ok(`${label} product: stills load`, await p.evaluate(() => [...document.querySelectorAll(".still img")].every((i) => !i.loading || i.complete) && [...document.querySelectorAll(".still img")].filter((i) => i.complete).every((i) => i.naturalWidth > 0)));
   await p.screenshot({ path: path.join(out, `${label}-product-full.png`), fullPage: true });
 
   // Pricing
@@ -85,6 +96,8 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   ok(`${label} pricing: comparison table`, (await p.locator("#cmp tbody tr").count()) > 25);
   await p.locator(".faq summary").first().click();
   ok(`${label} pricing: FAQ opens`, await p.locator(".faq details").first().evaluate((d) => d.open));
+  ok(`${label} pricing: locations priced up front`, (await p.locator(".locs > div").count()) === 4 && /SGD 199/.test(await text(".locs")));
+  ok(`${label} pricing: no currency question`, !/Why are prices in Singapore dollars/.test(await text(".faq")));
   await p.screenshot({ path: path.join(out, `${label}-pricing-full.png`), fullPage: true });
 
   // Switching
@@ -94,10 +107,11 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   ok(`${label} switching: systems we move from`, (await p.locator(".mq-row li").count()) === 24 && /Mariana Tek/.test(await text(".marquee")));
   await videosOk("switching");
   await p.locator(".vid video").first().scrollIntoViewIfNeeded(); await p.waitForTimeout(1200);
-  ok(`${label} switching: the move film plays`, await playing(".vid video"));
+  ok(`${label} switching: the move clip plays`, await playing(".vid video"));
   await p.locator('[data-from="momence"]').click();
   const mo = await text("#fromPanel");
   ok(`${label} switching: Momence comparison in SGD, with where we're stronger`, /Moving from Momence/.test(mo) && /SGD 585\+/.test(mo) && /Where we're stronger than Momence/.test(mo) && /Where Momence is stronger/.test(mo));
+  ok(`${label} switching: locations covered, compared`, /Locations covered/.test(await text("#fromPanel")) && /Up to 3 on Growth/.test(await text("#fromPanel")));
   ok(`${label} switching: our column comes first`, (await p.locator("#fromPanel thead th").nth(1).innerText()) === "Us");
   await p.locator('[data-from="sheet"]').click();
   ok(`${label} switching: spreadsheet has no comparison table`, (await p.locator("#fromPanel table").count()) === 0);
@@ -117,6 +131,7 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   await p.goto(url("index")); await p.waitForTimeout(1200);
   ok("reduced motion: nothing plays by itself", await p.evaluate(() => [...document.querySelectorAll(".vid video")].every((v) => v.paused)));
   ok("reduced motion: each video offers Play", (await p.locator(".vid .vid-play").count()) === (await p.locator(".vid video").count()));
+  ok("reduced motion: the day story is a plain list", (await p.locator("#day.scrolly").count()) === 0 && (await p.locator("#daySteps .day-card").count()) === 4);
   await p.locator(".hero .vid-play").click(); await p.waitForTimeout(1000);
   ok("reduced motion: Play starts it, with controls", await p.locator(".hero video").evaluate((v) => !v.paused && v.controls));
   await p.close();

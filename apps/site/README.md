@@ -4,10 +4,10 @@ Four pages, plain HTML, CSS and JavaScript, no framework:
 
 | Page | Source | What's on it |
 |---|---|---|
-| Home | `src/pages/index.html` | The headline over the hero film (plan the week, check them in, answer every message, pay the team, fill the next class), **A day at the studio** (one film in four chapters: 7:00am cover, 12:20pm check-in, 6:02pm WhatsApp, 11:59pm pay; the chapter buttons under it follow the film and jump to their part), the made-for-here film (closed days, shared packs), the three jobs, moving over in brief, prices in brief, founding studios and the walkthrough form (`#walkthrough`). |
-| Product | `src/pages/product.html` | By job, each with a film and then everything else in it. **Run the studio**: a clash caught in plain English, check-in at the door. **Fill your classes**: the intro-offer journey. **Run a brand**: reports by location. **On every plan**: the service promises and an Ask film. |
-| Pricing | `src/pages/pricing.html` | A price calculator (locations, own app, monthly or yearly) that picks the cheapest plan that fits, the three plans, the full comparison table and an FAQ (payments are covered there, briefly). |
-| Switching | `src/pages/switching.html` | The four steps, a film of our team's check before a move (every row accounted for, anything unclear listed), what comes across, and, for Mindbody, Momence, Glofox or a spreadsheet: how we get the data out, an example month for a studio with its own app, a side-by-side table in SGD (their published prices are where quotes start; what's decided on a sales call), where we're stronger and where they are. Then the questions to ask on any sales call, with our answers. |
+| Home | `src/pages/index.html` | The headline over the big hero film; **A day at the studio** (7:00am cover sorts itself out, 12:20pm one tap settles the class, 6:02pm questions answered by whoever's on, 11:59pm pay is already done: on wide screens the list stays put while each moment's short clip stacks as you scroll; on phones each clip sits under its step); **Simpler, by design** (only what you use, checks not surprises, every location priced up front); the three jobs; moving over in brief; prices in brief with the locations each plan covers; founding studios and the walkthrough form (`#walkthrough`). |
+| Product | `src/pages/product.html` | By job, words beside a still of the product, with one clip (check-in). **Run the studio**: anyone on the team can run the schedule (checks in plain English), one tap settles the class. **Fill your classes**: journeys. **Run a brand**: reports by location. **On every plan**: Ask and the service promises. |
+| Pricing | `src/pages/pricing.html` | A price calculator (locations, own app, monthly or yearly) that picks the cheapest plan that fits, the three plans, every location priced up front, the full comparison table and an FAQ. |
+| Switching | `src/pages/switching.html` | The four steps, a clip of our team's check before a move, what comes across, and, for Mindbody, Momence, Glofox or a spreadsheet: how we get the data out, an example month for a studio with its own app, a side-by-side table in SGD (including the locations a price covers), where we're stronger and where they are. Then the questions to ask on any sales call, with our answers. |
 
 Shared parts: `src/site.css` (tokens and shared styles), `src/site.js` (helpers and the phone menu), `src/partials/` (header, footer, and the closing "Book a walkthrough" band, placed with `{{close}}`).
 
@@ -36,11 +36,12 @@ The films are edited, not screen recordings: the camera pans and zooms between d
 
 | Film | Where | What |
 |---|---|---|
-| `hero` | Home, top | Plan the week, check them in, answer every message, pay the team, fill the next class, then "One app for the whole studio." |
-| `day` | Home | 7:00am, 12:20pm, 6:02pm, 11:59pm (chapters start at 0, 6.1, 12.1 and 18.1 seconds; the page's chapter buttons use the same times) |
-| `here` | Home | Closing for a retreat and what it cancels; a family pack shared from the client's app |
-| `run`, `fill`, `brand`, `ask` | Product | A clash caught in plain English and check-in; the intro-offer journey; locations side by side; Ask |
+| `hero` (60 fps) | Home, top, full width | Plan the week, check them in, answer every message, pay the team, fill the next class, then "One app for the whole studio." |
+| `dayCover`, `dayCheckin`, `dayWhatsapp`, `dayPay` | Home, a day at the studio | One short clip per moment, labels only (the page's words sit beside them) |
+| `dayCheckin` | Product, run the studio | The same check-in clip |
 | `move` | Switching | Our team's check: every row accounted for, anything unclear listed |
+
+Elsewhere the pages use stills: cropped captures of the product (`media/out/still-*.jpg`, from the same 2x screens).
 
 How they're made:
 
