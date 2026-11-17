@@ -23,6 +23,7 @@ apps/api/            The API server and background worker (TypeScript, Fastify, 
   drizzle/           Database migrations (SQL, committed and reviewed like code)
   test/              Automated tests against a real PostgreSQL database
 apps/web/            The client web app (Vite, React): booking page, booking, buying, account (docs/WEB_APP.md)
+apps/site/           The marketing website: one dark, interactive page with live product sneak peeks (apps/site/README.md)
 packages/shared/     Used by the API, web app and mobile app:
   fields.ts            plain-English labels + hover help for every field
   schemas.ts           request validation (same rules on the forms and the server)
