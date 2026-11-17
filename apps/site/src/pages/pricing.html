@@ -19,8 +19,8 @@
 .toggle input:checked { background: var(--steel) } .toggle input:checked::after { transform: translateX(18px); background: var(--steel-ink) }
 .out-plan { color: var(--mute) }
 .out-plan b { color: var(--fg); font-weight: 600 }
-.out-amt { font-size: var(--step-4); font-weight: 560; letter-spacing: -0.045em; line-height: 1; font-variant-numeric: tabular-nums; font-variation-settings: "wdth" 82 }
-.out-amt small { font-size: 1rem; letter-spacing: 0; font-weight: 500; color: var(--mute); font-variation-settings: "wdth" 100 }
+.out-amt { font-family: var(--display); font-size: var(--step-4); font-weight: 600; letter-spacing: -0.045em; line-height: 1; font-variant-numeric: tabular-nums }
+.out-amt small { font-family: var(--text); font-size: 1rem; letter-spacing: 0; font-weight: 500; color: var(--mute) }
 .out-lines { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; color: var(--mute); font-size: .95rem }
 .out-lines li { display: flex; justify-content: space-between; gap: 16px; font-variant-numeric: tabular-nums }
 .out-note { color: var(--mute); font-size: .9rem; min-height: 1.4em }
@@ -31,8 +31,8 @@
 .plan.fit { border-color: var(--steel); background: color-mix(in srgb, var(--steel) 5%, var(--ink)) }
 .plan h3 { font-size: var(--step-2); letter-spacing: -0.02em }
 .plan .who { color: var(--mute); min-height: 3.2em }
-.amount { font-size: var(--step-3); font-weight: 560; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums }
-.amount small { font-size: .95rem; font-weight: 500; letter-spacing: 0; color: var(--mute) }
+.amount { font-family: var(--display); font-size: var(--step-3); font-weight: 600; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums }
+.amount small { font-family: var(--text); font-size: .95rem; font-weight: 500; letter-spacing: 0; color: var(--mute) }
 .amount-note { color: var(--mute); font-size: .9rem; min-height: 1.4em }
 .plan ul { list-style: none; padding: 0; margin: 4px 0 0; display: flex; flex-direction: column; gap: 9px; font-size: .97rem }
 .plan li { display: flex; gap: 10px } .plan li svg { flex: none; margin-top: 4px; color: var(--steel) }

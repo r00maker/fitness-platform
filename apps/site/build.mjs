@@ -19,7 +19,7 @@ for (const p of PAGES) if (!found.includes(p)) throw new Error(`src/pages/${p}.h
 const shared = `<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=Manrope:wght@500..700&display=swap">
 <style>
 ${css.trim()}
 </style>`;

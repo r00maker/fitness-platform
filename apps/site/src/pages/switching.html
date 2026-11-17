@@ -3,7 +3,7 @@
 <style>
 .steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); counter-reset: s }
 .steps li { position: relative; padding: 24px 24px 4px 0; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line) }
-.steps li::before { counter-increment: s; content: counter(s); font-size: var(--step-3); font-weight: 500; line-height: 1; color: var(--steel); font-variation-settings: "wdth" 75; font-variant-numeric: tabular-nums }
+.steps li::before { counter-increment: s; content: counter(s); font-family: var(--display); font-size: var(--step-3); font-weight: 600; line-height: 1; color: var(--steel); font-variant-numeric: tabular-nums }
 .steps li p { color: var(--mute) }
 @media (max-width: 900px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 8px } }
 @media (max-width: 520px) { .steps { grid-template-columns: minmax(0, 1fr) } }
@@ -40,7 +40,7 @@
 .ex-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 16px 18px; align-items: baseline }
 .ex-row + .ex-row { border-top: 1px solid var(--line) }
 .ex-row b { font-weight: 600 }
-.ex-row .amt { font-size: var(--step-2); font-weight: 560; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap }
+.ex-row .amt { font-family: var(--display); font-size: var(--step-2); font-weight: 600; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap }
 .ex-row small { grid-column: 1 / -1; color: var(--mute); font-size: .88rem }
 .ex-row.us .amt { color: var(--steel) }
 .vs-note { color: var(--mute); font-size: .95rem; max-width: 75ch }
@@ -66,6 +66,17 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
 .stronger b { display: block; font-weight: 600; margin-bottom: 4px }
 .stronger p { color: var(--mute) }
 
+/* Systems we move studios from */
+.marquee { display: flex; flex-direction: column; gap: 10px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent) }
+.mq-row { display: flex; width: max-content; animation: mq 46s linear infinite }
+.mq-row.rev { animation-direction: reverse; animation-duration: 54s }
+.marquee:hover .mq-row { animation-play-state: paused }
+.mq-row ul { display: flex; gap: 10px; margin: 0; padding: 0 10px 0 0; list-style: none }
+.mq-row li { padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--ink-2); color: var(--fg); font-weight: 500; white-space: nowrap }
+.mq-row li small { color: var(--mute); font-weight: 400; margin-left: 8px }
+@keyframes mq { to { transform: translateX(-50%) } }
+@media (prefers-reduced-motion: reduce) { .mq-row { width: auto; flex-wrap: wrap } .mq-row ul[aria-hidden] { display: none } .mq-row ul { flex-wrap: wrap } }
+
 /* Questions for any sales call */
 .asks { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--line) }
 .ask-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 40px; padding: 18px 0; border-bottom: 1px solid var(--line) }
@@ -75,7 +86,7 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
 @media (max-width: 700px) { .ask-row { grid-template-columns: minmax(0, 1fr) } }
 .dated { color: var(--mute); font-size: .88rem; max-width: 80ch }
 .also-read { color: var(--mute) }
-.steps-t { font-size: var(--step-1); font-weight: 600; letter-spacing: 0; margin-bottom: 18px; font-variation-settings: "wdth" 100 }
+.steps-t { font-size: var(--step-1); font-weight: 600; letter-spacing: 0; margin-bottom: 18px }
 </style>
 <!-- BODY -->
 <main id="main">
@@ -144,6 +155,10 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
         <h2 id="fromT">Coming from another system</h2>
         <p class="lede">Choose what you use today: how we get your data out of it, and how it compares with us, side by side.</p>
       </div>
+      <div class="marquee" aria-label="Systems we move studios from">
+        <div class="mq-row" data-row="0"></div>
+        <div class="mq-row rev" data-row="1"></div>
+      </div>
       <div class="seg" role="tablist" aria-label="What you use today">
         <button type="button" role="tab" aria-selected="true" aria-controls="fromPanel" data-from="mindbody">Mindbody</button>
         <button type="button" role="tab" aria-selected="false" aria-controls="fromPanel" data-from="momence">Momence</button>
@@ -151,7 +166,6 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
         <button type="button" role="tab" aria-selected="false" aria-controls="fromPanel" data-from="sheet">A spreadsheet</button>
       </div>
       <div class="panel" id="fromPanel" role="tabpanel"></div>
-      <p class="also-read">Also on TeamUp, PunchPass, Arketa, Vibefam, Rezerv, Walla, Mariana Tek or bsport? Each exports clients and passes to CSV or Excel, and we read both.</p>
       <p class="dated">Comparisons checked in November 2026 from public pricing pages and third-party write-ups. Their prices are published in US dollars; we show them in Singapore dollars at about S$1.30 to US$1. Upper tiers are priced by quote, so these figures are where quotes start: check with each provider before you decide. Mindbody, Momence and Glofox are trademarks of their owners, and we're not affiliated with any of them.</p>
     </div>
   </section>
@@ -200,6 +214,20 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
     });
     item.append(row);
     qa.append(item);
+  });
+
+  // --- Systems we move studios from (each row twice, so the loop is seamless) --------------------
+  const SYSTEMS = [
+    [["Mindbody", "reports, Excel or CSV"], ["Momence", "customer export"], ["Glofox", "member download"], ["TeamUp", "CSV or Excel"], ["PunchPass", "CSV"], ["Arketa", "CSV"]],
+    [["Vibefam", "CSV or Excel"], ["Rezerv", "CSV"], ["Walla", "CSV"], ["Mariana Tek", "CSV"], ["bsport", "CSV or Excel"], ["A spreadsheet", "anything you kept"]],
+  ];
+  SYSTEMS.forEach((row, r) => {
+    const host = $(`.mq-row[data-row="${r}"]`);
+    [false, true].forEach((copy) => {
+      const ul = el("ul", copy ? { "aria-hidden": "true" } : {});
+      row.forEach(([n, how]) => { const li = el("li", { text: n }); li.append(el("small", { text: how })); ul.append(li); });
+      host.append(ul);
+    });
   });
 
   // --- Coming from another system -------------------------------------------------------------

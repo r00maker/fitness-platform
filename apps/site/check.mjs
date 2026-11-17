@@ -34,12 +34,28 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   await p.locator(".pop .abtn.go").click();
   ok(`${label} home: book from the timetable`, /booked|waitlist/.test(await text(".pop")));
   await p.keyboard.press("Escape");
+  ok(`${label} home: headline sweeps in`, phone || (await p.locator("#heroT.sweep.go").count()) === 1);
+  // A day at the studio: on desktop the windows stack as you scroll; on phones each sits under its step.
+  const dayAt = (f) => p.evaluate((f) => { const d = document.getElementById("day"); scrollTo({ top: d.offsetTop + f * (d.offsetHeight - innerHeight), behavior: "instant" }); }, f);
+  await dayAt(0); await p.waitForTimeout(900);
+  ok(`${label} home: day story layout`, phone ? (await p.locator("#daySteps .day-card").count()) === 4 : (await p.locator("#day.scrolly").count()) === 1 && /7:00am/.test(await text("#daySteps li.on")));
+  ok(`${label} home: dock shows once the hero has gone`, await p.locator("#dock.show").count() === 1);
   for (let i = 0; i < 4; i++) await p.locator(".att-item:not(.done) .abtn").first().click().then(() => p.waitForTimeout(500));
   ok(`${label} home: to-do list clears`, await p.locator("#attEmpty").isVisible());
-  await p.locator('[data-local="holiday"]').click();
+  if (phone) await p.locator("#markAll").scrollIntoViewIfNeeded(); else { await dayAt(0.3); await p.waitForTimeout(1000); }
+  ok(`${label} home: instructor step`, phone || /12:20pm/.test(await text("#daySteps li.on")));
+  await p.locator("#markAll").click(); await p.waitForTimeout(700);
+  ok(`${label} home: mark everyone present`, (await p.locator("#day .rp.here").count()) === 5);
+  if (phone) await p.locator("#waReply").scrollIntoViewIfNeeded(); else await dayAt(0.6);
+  await p.waitForTimeout(5200);
+  ok(`${label} home: WhatsApp reply types itself`, /booked you in with your 10-class pack/.test(await text("#waReply")));
+  if (!phone) { await dayAt(0.97); await p.waitForTimeout(1000); }
+  ok(`${label} home: pay step`, phone || (/11:59pm/.test(await text("#daySteps li.on")) && (await p.locator('.day-card[data-card="3"]:not(.below):not(.past)').count()) === 1));
   await p.locator("#closeDays").click();
-  ok(`${label} home: public holidays tab`, /9 classes cancelled and 64 people told/.test(await text("#localPanel")));
+  ok(`${label} home: public holidays`, /9 classes cancelled and 64 people told/.test(await text("#holidayWin")));
   ok(`${label} home: prices in SGD`, /SGD 129[\s\S]*SGD 399[\s\S]*SGD 699/.test(await text(".prices")));
+  await p.locator("#walkthrough").scrollIntoViewIfNeeded(); await p.waitForTimeout(700);
+  ok(`${label} home: dock steps aside at the form`, (await p.locator("#dock.show").count()) === 0);
   await p.locator('#join button[type="submit"]').click();
   ok(`${label} home: form says what's missing`, /Add your name/.test(await text("#joinNote")));
   await p.screenshot({ path: path.join(out, `${label}-home-full.png`), fullPage: true });
@@ -60,8 +76,8 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   await p.locator("#bars").scrollIntoViewIfNeeded(); await p.waitForTimeout(500);
   await p.locator('[data-m="fill"]').click(); await p.waitForTimeout(700);
   ok(`${label} product: report by location`, /58%/.test(await text("#bars")) && (await p.locator("#bars li.low").count()) === 1);
-  await p.locator("#qs button").nth(2).click();
-  ok(`${label} product: Ask answers`, /SGD 4,737/.test(await text("#ans")));
+  await p.locator("#qs button").nth(2).click(); await p.waitForTimeout(2600);
+  ok(`${label} product: Ask types the question, then answers`, /What do I owe instructors/.test(await text("#askQ")) && /SGD 4,737/.test(await text("#ans")));
   await p.screenshot({ path: path.join(out, `${label}-product-full.png`), fullPage: true });
 
   // Pricing
@@ -84,6 +100,7 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   await nav("switching");
   ok(`${label} nav: to Switching`, p.url().endsWith("switching.html"));
   ok(`${label} switching: no sideways scroll`, await noHScroll());
+  ok(`${label} switching: systems we move from`, (await p.locator(".mq-row li").count()) === 24 && /Mariana Tek/.test(await text(".marquee")));
   for (let i = 0; i < 3; i++) await p.locator(".qa-item:not(.done) .abtn").first().click();
   ok(`${label} switching: questions answered, move ready`, /ready to run/.test(await text("#qaLog")));
   await p.locator('[data-from="momence"]').click();

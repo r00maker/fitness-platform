@@ -39,7 +39,7 @@
 /* Lists of what's included */
 .also { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 36px }
 .also > div { padding: 20px 0 22px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; min-width: 0 }
-.also h3 { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.005em; font-variation-settings: "wdth" 100 }
+.also h3 { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.005em }
 .also p { color: var(--mute); font-size: .95rem }
 @media (max-width: 900px) { .also { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 @media (max-width: 560px) { .also { grid-template-columns: minmax(0, 1fr) } }
@@ -88,6 +88,11 @@
 .qs button[aria-pressed="true"] { border-color: var(--app-accent) }
 .ans { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 12px; background: var(--app-2); font-size: 13.5px }
 .ans small { color: var(--app-mute); font-size: 12px }
+.ask-q { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border: 1px solid var(--app-line); border-radius: 12px; font-size: 13.5px; min-height: 44px }
+.ask-q svg { color: var(--app-accent); flex: none }
+.ask-q span { flex: 1 }
+.stream > * { animation: rise .55s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 140ms) }
+@keyframes rise { from { opacity: 0; transform: translateY(6px) } }
 .ans ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px }
 .every { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 32px; margin-top: 8px }
 @media (max-width: 560px) { .every { grid-template-columns: minmax(0, 1fr) } }
@@ -250,6 +255,7 @@
         <div class="win-bar"><b>Ask</b><small>Answers from your studio's data</small></div>
         <div class="ask">
           <div class="qs" id="qs"></div>
+          <div class="ask-q" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span id="askQ"></span></div>
           <div class="ans" id="ans" role="status" aria-live="polite"></div>
         </div>
       </div>
@@ -261,7 +267,7 @@
 <script>
 (() => {
   "use strict";
-  const { reduce, $, $$, el, tick, replay, seg } = window.S;
+  const { reduce, $, $$, el, tick, replay, seg, type } = window.S;
   $$("[data-tick]").forEach((n) => n.insertAdjacentHTML("afterbegin", tick()));
   const warnIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5M12 18v.5" stroke-linecap="round"/></svg>';
 
@@ -369,16 +375,25 @@
     ["What do I owe instructors this period?", "SGD 4,737 for 1 to 15 November, across 4 instructors.", ["Ana Lim: SGD 1,385", "Marcus Wong: SGD 1,600 (salaried)"], "From the pay report. It locks once you mark it paid."],
   ];
   const qs = $("#qs"), ans = $("#ans");
+  let asking = 0;
   ASKS.forEach((a, i) => {
     const b = el("button", { type: "button", "aria-pressed": "false", text: a[0] });
-    b.addEventListener("click", () => {
-      $$("button", qs).forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    const show = () => {
       ans.innerHTML = "";
-      ans.append(el("b", { text: a[1] }), el("ul", {}, a[2].map((t) => el("li", { text: t }))), el("small", { text: a[3] }));
-      replay(ans, "swap-in");
+      ans.classList.add("stream");
+      const parts = [el("b", { text: a[1] }), el("ul", {}, a[2].map((t) => el("li", { text: t }))), el("small", { text: a[3] })];
+      parts.forEach((x, k) => x.style.setProperty("--i", String(k)));
+      ans.append(...parts);
+    };
+    b.addEventListener("click", async () => {
+      $$("button", qs).forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      const ticket = ++asking;
+      ans.innerHTML = "";
+      await type($("#askQ"), a[0], 18);
+      if (ticket === asking) show();
     });
     qs.append(b);
-    if (i === 0) b.click();
+    if (i === 0) { b.setAttribute("aria-pressed", "true"); $("#askQ").textContent = a[0]; show(); }
   });
 })();
 </script>

@@ -4,9 +4,12 @@
 /* Hero: the timetable is the one loud thing on the page. */
 .hero { padding-block: clamp(40px, 7vw, 88px) 72px; position: relative; isolation: isolate; overflow-x: clip }
 .hero::before { content: ""; position: absolute; inset: -20% -25% auto auto; width: 72vw; height: 72vw; max-width: 940px; max-height: 940px; background: radial-gradient(closest-side, color-mix(in srgb, var(--steel) 9%, transparent), transparent 70%); z-index: -1; pointer-events: none }
+.hero { padding-bottom: clamp(96px, 12vw, 160px) }
+.hero::after { content: ""; position: absolute; left: 50%; bottom: -1px; width: max(1600px, 160vw); height: 260px; transform: translate(-50%, 50%); border-radius: 50%; border-top: 1px solid color-mix(in srgb, var(--steel) 40%, transparent); box-shadow: 0 -30px 90px -30px color-mix(in srgb, var(--steel) 32%, transparent), inset 0 30px 60px -40px color-mix(in srgb, #d9c9ff 18%, transparent); background: var(--ink); z-index: -1; pointer-events: none }
 .hero-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(32px, 5vw, 72px); align-items: center }
-@media (max-width: 1000px) { .hero-grid { grid-template-columns: minmax(0, 1fr) } }
-.hero h1 .w { display: inline-block; white-space: pre }
+@media (max-width: 1000px) { .hero { padding-bottom: clamp(96px, 12vw, 160px) }
+.hero::after { content: ""; position: absolute; left: 50%; bottom: -1px; width: max(1600px, 160vw); height: 260px; transform: translate(-50%, 50%); border-radius: 50%; border-top: 1px solid color-mix(in srgb, var(--steel) 40%, transparent); box-shadow: 0 -30px 90px -30px color-mix(in srgb, var(--steel) 32%, transparent), inset 0 30px 60px -40px color-mix(in srgb, #d9c9ff 18%, transparent); background: var(--ink); z-index: -1; pointer-events: none }
+.hero-grid { grid-template-columns: minmax(0, 1fr) } }
 .hero .lede { margin-top: 22px }
 .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px }
 .promises { list-style: none; padding: 0; margin: 26px 0 0; display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--mute); font-size: .95rem }
@@ -35,8 +38,6 @@
 /* Load moment: the headline settles, then the week fills up. */
 .js .tt .cls { opacity: 0; transform: translateY(-14px) scale(.98) }
 .js .tt.filled .cls { opacity: 1; transform: none; transition: opacity .45s ease, transform .55s cubic-bezier(.2, .8, .2, 1.15); transition-delay: var(--d, 0ms) }
-.js .hero h1 .w { opacity: 0; transform: translateY(.35em); font-variation-settings: "wdth" 75 }
-.js .hero.in h1 .w { opacity: 1; transform: none; font-variation-settings: "wdth" 86; transition: opacity .6s ease, transform .7s cubic-bezier(.2, .8, .2, 1), font-variation-settings 1.1s ease; transition-delay: var(--d, 0ms) }
 .pop { position: absolute; z-index: 5; width: min(260px, calc(100% - 28px)); background: var(--app-2); border: 1px solid var(--app-line); border-radius: 12px; padding: 14px; box-shadow: 0 20px 50px -10px rgba(0,0,0,.6); display: flex; flex-direction: column; gap: 8px }
 .pop h5 { margin: 0; font: 600 15px/1.3 var(--text) }
 .pop p { color: var(--app-mute); font-size: 13px }
@@ -54,15 +55,58 @@
 .att-empty b { color: var(--app-fg); display: flex; align-items: center; gap: 8px }
 .att-empty svg { color: var(--ok) }
 
-/* Made for here */
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px }
-.tabs button { font: 600 .95rem/1 var(--text); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--mute); cursor: pointer }
-.tabs button:hover { color: var(--fg) }
-.tabs button[aria-selected="true"] { color: var(--fg); border-color: var(--steel); background: color-mix(in srgb, var(--steel) 8%, transparent) }
-.local { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: clamp(24px, 4vw, 56px); align-items: start }
-.local > .copy { padding-top: clamp(0px, 3vw, 28px) }
-@media (max-width: 920px) { .local { grid-template-columns: minmax(0, 1fr) } }
-.local .copy h3 { font-size: var(--step-2); letter-spacing: -0.02em }
+
+/* A day at the studio: on wide screens the list stays put while the product windows stack up as
+   you scroll; on phones (and with reduced motion) each step simply shows its window below it. */
+.day { padding-block: clamp(56px, 7vw, 96px) }
+.day-head { display: flex; flex-direction: column; gap: 16px; max-width: 34rem }
+.day-steps { list-style: none; margin: 32px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px }
+.day-steps li { display: flex; flex-direction: column; gap: 8px; padding: 14px 0 14px 18px; border-left: 2px solid var(--line) }
+.day-t { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 2px }
+.day-t:focus-visible { outline: 2px solid var(--steel); outline-offset: 4px; border-radius: 6px }
+.day-t time { color: var(--mute); font-size: .9rem; font-variant-numeric: tabular-nums }
+.day-t b { font-family: var(--display); font-size: var(--step-1); font-weight: 600; letter-spacing: -0.015em }
+.day-steps p { color: var(--mute); max-width: 44ch }
+.day-card { border: 1px solid var(--line); border-radius: 18px; background: var(--ink-2); padding: clamp(14px, 2.4vw, 26px); display: grid; place-items: center; min-width: 0 }
+.day-card > .win { width: 100% }
+.day-steps .day-card { margin-top: 10px }
+.phone { width: min(300px, 100%); margin-inline: auto; border-radius: 38px; padding: 9px; background: #050a09; border: 1px solid #2a3431; box-shadow: 0 40px 90px -30px rgba(0,0,0,.8) }
+.phone .win { border-radius: 30px; border: 0; box-shadow: none }
+.phone-in { padding: 16px 14px 18px; display: flex; flex-direction: column; gap: 10px }
+.next { background: color-mix(in srgb, var(--c-reformer) 16%, var(--app-2)); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 3px }
+.next small { color: var(--app-mute) } .next b { font-size: 15px }
+.rp { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--app-line); font-size: 13.5px }
+.rp .tick { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--app-line); display: grid; place-items: center; flex: none; transition: background .25s, border-color .25s }
+.rp.here .tick { background: var(--ok); border-color: var(--ok) } .rp .tick svg { opacity: 0; color: #04211b } .rp.here .tick svg { opacity: 1 }
+.rp span { flex: 1; min-width: 0 }
+.chip { font-size: 11px; font-weight: 600; font-style: normal; padding: 3px 7px; border-radius: 999px }
+.chip.note { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn) }
+.chip.new { background: color-mix(in srgb, var(--app-accent) 18%, transparent); color: var(--app-accent) }
+.phone .abtn.go { width: 100%; padding: 12px; font-size: 14px }
+.lock { display: flex; align-items: center; gap: 8px; color: var(--app-mute); font-size: 12.5px }
+.lock b { color: var(--app-fg); font-weight: 600 }
+@media (min-width: 980px) {
+  .js .day.scrolly { height: calc(100vh + (var(--n) - 1) * 80vh); padding-block: 0 }
+  .js .day.scrolly .day-in { position: sticky; top: 66px; height: calc(100vh - 66px); display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(40px, 5vw, 72px); align-items: center }
+  .js .day.scrolly .day-steps li { opacity: .42; border-left-color: var(--line); transition: opacity .5s var(--ease-out), border-color .5s var(--ease-out) }
+  .js .day.scrolly .day-steps li.on { opacity: 1; border-left-color: var(--steel) }
+  .js .day.scrolly .day-steps li > p { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .6s var(--ease-out), opacity .5s var(--ease-out) }
+  .js .day.scrolly .day-steps li.on > p { max-height: 8em; opacity: 1 }
+  .js .day.scrolly .day-stage { position: relative; height: min(600px, calc(100vh - 140px)) }
+  .js .day.scrolly .day-card { position: absolute; inset: 0; transform-origin: 50% 0; transition: transform .9s var(--ease-out), opacity .7s var(--ease-out), filter .7s var(--ease-out) }
+  .js .day.scrolly .day-card.below { transform: translateY(90px) scale(.98); opacity: 0; pointer-events: none }
+  .js .day.scrolly .day-card.past { transform: translateY(calc(var(--back) * -26px)) scale(calc(1 - var(--back) * .05)); opacity: calc(1 - var(--back) * .45); filter: brightness(.55); pointer-events: none }
+  .js .day.scrolly .phone { transform: scale(.9); transform-origin: 50% 50% }
+}
+
+/* Made for here: two windows side by side. */
+.here { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px clamp(24px, 4vw, 48px); align-items: start }
+@media (max-width: 920px) { .here { grid-template-columns: minmax(0, 1fr) } }
+.here > div { display: flex; flex-direction: column; gap: 14px; min-width: 0 }
+.here h3 { font-size: var(--step-2); letter-spacing: -0.02em }
+.here p.lede { font-size: 1.02rem }
+
+/* Windows */
 .chat { padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 300px }
 .msg { max-width: 82%; padding: 10px 12px; border-radius: 12px; font-size: 13.5px }
 .msg.them { background: var(--app-2); align-self: flex-start; border-top-left-radius: 4px }
@@ -113,16 +157,16 @@
 .ledger dl div { display: flex; align-items: center; gap: 10px; font-size: .95rem } .ledger dt { color: var(--mute); flex: 1 } .ledger dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums }
 .ledger dl i { width: 10px; height: 10px; border-radius: 3px; flex: none }
 .ledger p { color: var(--mute); font-size: .9rem; grid-column: 1 / -1 }
-.ledger .total { font-size: var(--step-3); font-weight: 560; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; align-self: start }
-.ledger .total small { display: block; font-size: .85rem; font-weight: 500; letter-spacing: 0; color: var(--mute); margin-top: 6px }
+.ledger .total { font-family: var(--display); font-size: var(--step-3); font-weight: 600; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; align-self: start }
+.ledger .total small { display: block; font-family: var(--text); font-size: .85rem; font-weight: 500; letter-spacing: 0; color: var(--mute); margin-top: 6px }
 
 /* Prices, in brief */
 .prices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line); margin-top: 8px }
 .price { padding: 24px 24px 4px 0; display: flex; flex-direction: column; gap: 6px }
 .price + .price { padding-left: 24px; border-left: 1px solid var(--line) }
 .price b { font-weight: 600 }
-.price .amt { font-size: var(--step-3); font-weight: 560; letter-spacing: -0.03em; line-height: 1.05; font-variant-numeric: tabular-nums }
-.price .amt small { font-size: .95rem; font-weight: 500; letter-spacing: 0; color: var(--mute) }
+.price .amt { font-family: var(--display); font-size: var(--step-3); font-weight: 600; letter-spacing: -0.03em; line-height: 1.05; font-variant-numeric: tabular-nums }
+.price .amt small { font-family: var(--text); font-size: .95rem; font-weight: 500; letter-spacing: 0; color: var(--mute) }
 .price p { color: var(--mute); font-size: .95rem }
 @media (max-width: 760px) { .prices { grid-template-columns: minmax(0, 1fr) } .price, .price + .price { padding: 18px 0 14px; border-left: 0 } .price + .price { border-top: 1px solid var(--line) } }
 .price-foot { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; margin-top: 28px; color: var(--mute) }
@@ -141,14 +185,14 @@ form.join .full { grid-column: 1 / -1 }
 .form-note { color: var(--mute); font-size: .88rem }
 .thanks { grid-column: 1 / -1; display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 12px; background: color-mix(in srgb, var(--steel) 10%, transparent) }
 .thanks svg { color: var(--steel); flex: none; margin-top: 2px }
-@media (prefers-reduced-motion: reduce) { .js .tt .cls, .js .hero h1 .w { opacity: 1 !important; transform: none !important } }
+@media (prefers-reduced-motion: reduce) { .js .tt .cls { opacity: 1 !important; transform: none !important } }
 </style>
 <!-- BODY -->
 <main id="main">
   <section class="hero" aria-labelledby="heroT">
     <div class="wrap hero-grid">
       <div>
-        <h1 id="heroT" data-split>Studio software your front desk learns in an afternoon.</h1>
+        <h1 id="heroT">Studio software your front desk learns in an afternoon.</h1>
         <p class="lede">Bookings, packages, payments, instructor pay and WhatsApp for pilates, yoga and barre studios, from one room to a dozen locations. We set it up and move your clients across for you.</p>
         <div class="cta-row">
           <a class="btn btn-main" href="#walkthrough">Book a walkthrough</a>
@@ -171,26 +215,65 @@ form.join .full { grid-column: 1 / -1 }
     </div>
   </section>
 
-  <section class="band" aria-labelledby="attT">
-    <div class="wrap pair">
-      <div class="copy">
-        <h2 id="attT">Your day starts with a to-do list, not a wall of charts.</h2>
-        <p class="lede">Home shows what needs you today, most urgent first, with one button for each. Clear it, then get back to the studio floor.</p>
-        <p class="small">Only what you can act on is shown. Instructors see their own cover requests; the front desk sees orders waiting at the counter.</p>
-      </div>
-      <div class="win" aria-label="Needs attention, on Home">
-        <div class="win-bar"><b>Needs attention</b><small id="attCount">4 things</small></div>
-        <div class="att" id="att">
-          <div class="att-group"><i class="sev urgent"></i>Urgent</div>
-          <div class="att-item"><div><b>1 class has no instructor</b></div><p>Mat Pilates, Thursday 12:30pm. Ben and Priya are free then.</p><button type="button" class="abtn go" data-done="Cover request sent to Ben and Priya">Ask for cover</button></div>
-          <div class="att-item"><div><b>2 membership renewals didn't go through</b></div><p>Their cards were declined this morning. They can still book while they update their card.</p><button type="button" class="abtn go" data-done="A link to update their card went to both clients">Send card link</button></div>
-          <div class="att-group"><i class="sev soon"></i>Soon</div>
-          <div class="att-item"><div><b>Attendance not taken for 3 classes</b></div><p>Finished in the last 24 hours. Pay and no-show fees depend on it.</p><button type="button" class="abtn go" data-done="Attendance saved for 3 classes">Take attendance</button></div>
-          <div class="att-group"><i class="sev fyi"></i>When you can</div>
-          <div class="att-item"><div><b>1 low review to follow up</b></div><p>2 stars or fewer. A quick, kind reply often wins a client back.</p><button type="button" class="abtn go" data-done="Reply drafted for you to check">Reply</button></div>
-          <div class="att-empty" id="attEmpty" hidden><b data-tick>All caught up</b><button type="button" class="abtn" id="attReset">Show the list again</button></div>
+  <section class="day" id="day" aria-labelledby="dayT" style="--n:4">
+    <div class="wrap day-in">
+      <div>
+        <div class="day-head">
+          <h2 id="dayT">A day at the studio, handled.</h2>
+          <p class="lede">Scroll through an ordinary day. Every window here is the real product.</p>
         </div>
-        <div class="win-foot" role="status" aria-live="polite"><span id="attLog">Try it: each button does the job and clears the line.</span></div>
+        <ol class="day-steps" id="daySteps">
+          <li data-step="0"><button type="button" class="day-t"><time>7:00am</time><b>Open Home to a to-do list</b></button><p>What needs you today, most urgent first, with one button for each. Clear it and get back to the studio floor.</p></li>
+          <li data-step="1"><button type="button" class="day-t"><time>12:20pm</time><b>Instructors check in from their phone</b></button><p>Who's coming, who's new, whose lower back needs care. One tap marks the whole class present.</p></li>
+          <li data-step="2"><button type="button" class="day-t"><time>6:02pm</time><b>A WhatsApp question, booked in one reply</b></button><p>Clients message the studio's own number. The team answers from one inbox, with the client's pack beside the chat.</p></li>
+          <li data-step="3"><button type="button" class="day-t"><time>11:59pm</time><b>Attendance locks, and pay follows</b></button><p>No-show fees and instructor pay are worked out from the day's attendance, ready when the pay period ends.</p></li>
+        </ol>
+      </div>
+      <div class="day-stage" id="dayStage">
+        <div class="day-card" data-card="0">
+          <div class="win" aria-label="Needs attention, on Home">
+            <div class="win-bar"><b>Needs attention</b><small id="attCount">4 things</small></div>
+            <div class="att" id="att">
+              <div class="att-group"><i class="sev urgent"></i>Urgent</div>
+              <div class="att-item"><div><b>1 class has no instructor</b></div><p>Mat Pilates, Thursday 12:30pm. Ben and Priya are free then.</p><button type="button" class="abtn go" data-done="Cover request sent to Ben and Priya">Ask for cover</button></div>
+              <div class="att-item"><div><b>2 membership renewals didn't go through</b></div><p>Their cards were declined this morning. They can still book while they update their card.</p><button type="button" class="abtn go" data-done="A link to update their card went to both clients">Send card link</button></div>
+              <div class="att-group"><i class="sev soon"></i>Soon</div>
+              <div class="att-item"><div><b>Attendance not taken for 3 classes</b></div><p>Finished in the last 24 hours. Pay and no-show fees depend on it.</p><button type="button" class="abtn go" data-done="Attendance saved for 3 classes">Take attendance</button></div>
+              <div class="att-group"><i class="sev fyi"></i>When you can</div>
+              <div class="att-item"><div><b>1 low review to follow up</b></div><p>2 stars or fewer. A quick, kind reply often wins a client back.</p><button type="button" class="abtn go" data-done="Reply drafted for you to check">Reply</button></div>
+              <div class="att-empty" id="attEmpty" hidden><b data-tick>All caught up</b><button type="button" class="abtn" id="attReset">Show the list again</button></div>
+            </div>
+            <div class="win-foot" role="status" aria-live="polite"><span id="attLog">Try it: each button does the job and clears the line.</span></div>
+          </div>
+        </div>
+        <div class="day-card" data-card="1">
+          <div class="phone">
+            <div class="win" aria-label="My day, on an instructor's phone">
+              <div class="phone-in">
+                <div class="next"><small>Up next, in 10 minutes</small><b>Mat Pilates - Foundations</b><small>12:30pm to 1:20pm, Studio 2</small></div>
+                <div id="roster"></div>
+                <button type="button" class="abtn go" id="markAll">Mark everyone present</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="day-card" data-card="2">
+          <div class="win" aria-label="A WhatsApp conversation in the shared inbox">
+            <div class="win-bar"><b>Mei Tan</b><small>WhatsApp</small></div>
+            <div class="chat">
+              <div class="msg them">Hi! Is there still space in tonight's 6:30 reformer? <small>6:02pm</small></div>
+              <div class="chat-side">Mei has 4 classes left on her 10-class pack, valid until 9 Jan.</div>
+              <div class="msg us" id="waReply"><span class="typing" aria-label="Typing"><i></i><i></i><i></i></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="day-card" data-card="3">
+          <div class="win" aria-label="Instructor pay for the period">
+            <div class="win-bar"><b>Pay, 1 to 15 November</b><small>Ready</small></div>
+            <div class="scroll-x"><table class="payroll" id="payTable"><thead><tr><th scope="col">Instructor</th><th scope="col">How they're paid</th><th scope="col" style="text-align:right">This period</th></tr></thead><tbody></tbody></table></div>
+            <div class="win-foot"><span class="lock"><b>Attendance locked at midnight.</b> 2 no-show fees charged, SGD 30 in all.</span></div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -199,15 +282,12 @@ form.join .full { grid-column: 1 / -1 }
     <div class="wrap">
       <div class="head">
         <h2 id="localT">Made for how studios here actually run.</h2>
-        <p class="lede">Your clients message on WhatsApp and share packages with their partners. You close for Chinese New Year, Hari Raya and Deepavali. Your instructors are paid five different ways. It's all built in, not bolted on.</p>
+        <p class="lede">You close for Chinese New Year, Hari Raya and Deepavali. Couples and families share one pack. It's all built in, not bolted on.</p>
       </div>
-      <div class="tabs" role="tablist" aria-label="Built for Southeast Asia">
-        <button type="button" role="tab" aria-selected="true" aria-controls="localPanel" data-local="wa">WhatsApp inbox</button>
-        <button type="button" role="tab" aria-selected="false" aria-controls="localPanel" data-local="holiday">Public holidays</button>
-        <button type="button" role="tab" aria-selected="false" aria-controls="localPanel" data-local="share">Shared packages</button>
-        <button type="button" role="tab" aria-selected="false" aria-controls="localPanel" data-local="payroll">Instructor pay</button>
+      <div class="here">
+        <div><h3>Public holidays, handled for you</h3><p class="lede">Add a holiday once. Classes on those days are cancelled, everyone booked gets one message, their classes go back on their packs, and repeating classes skip the days from then on.</p><div id="holidayWin"></div></div>
+        <div><h3>One package for a couple or a family</h3><p class="lede">Share a pack as one pool, or split the classes between people. When someone stops sharing, their unused classes go back to the person who paid.</p><div id="shareWin"></div></div>
       </div>
-      <div class="local" id="localPanel" role="tabpanel"></div>
     </div>
   </section>
 
@@ -289,16 +369,10 @@ form.join .full { grid-column: 1 / -1 }
 <script>
 (() => {
   "use strict";
-  const { reduce, $, $$, el, tick, replay, seg } = window.S;
+  const { reduce, $, $$, el, tick, replay, type } = window.S;
   $$("[data-tick]").forEach((n) => n.insertAdjacentHTML("afterbegin", tick(n.tagName === "B" ? 18 : 16)));
 
-  // --- Hero: the headline settles, then the week fills up ---------------------------------
-  const h1 = $("[data-split]");
-  const words = h1.textContent.trim().split(/\s+/);
-  h1.setAttribute("aria-label", h1.textContent.trim());
-  h1.textContent = "";
-  words.forEach((w, i) => h1.append(el("span", { class: "w", "aria-hidden": "true", text: w + (i < words.length - 1 ? " " : ""), style: `--d:${i * 55}ms` })));
-
+  // --- Hero: the headline sweeps in, then the week fills up ----------------------------------
   const TYPES = {
     reformer: ["Reformer - Intermediate", "var(--c-reformer)"], yoga: ["Vinyasa Yoga", "var(--c-yoga)"], barre: ["Barre", "var(--c-barre)"],
     sweat: ["Sweat - Essentials", "var(--c-sweat)"], mat: ["Mat Pilates - Foundations", "var(--c-mat)"],
@@ -385,9 +459,85 @@ form.join .full { grid-column: 1 / -1 }
 
   // One orchestrated load: headline, then the week drops into place, then bookings start.
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    $(".hero").classList.add("in");
     tt.classList.add("filled");
     setTimeout(start, reduce ? 0 : 1800);
+  }));
+
+  // --- A day at the studio --------------------------------------------------------------------
+  const ROSTER = [["Chloe Ng", null], ["Arjun Rao", ["note", "Lower back"]], ["Hana Sato", null], ["Siti Rahman", ["new", "First class"]], ["Dev Kumar", null]];
+  const roster = $("#roster");
+  ROSTER.forEach(([n, chip]) => {
+    const row = el("div", { class: "rp", html: `<i class="tick">${tick(14, 3)}</i>` });
+    row.append(el("span", { text: n }));
+    if (chip) row.append(el("em", { class: `chip ${chip[0]}`, text: chip[1] }));
+    roster.append(row);
+  });
+  const markAll = $("#markAll");
+  markAll.addEventListener("click", () => {
+    const rows = $$(".rp", roster);
+    const on = !rows[0].classList.contains("here");
+    rows.forEach((r, i) => setTimeout(() => r.classList.toggle("here", on), reduce ? 0 : i * 90));
+    markAll.textContent = on ? "Everyone's marked present. Undo" : "Mark everyone present";
+  });
+  const PAY = [["Ana Lim", "SGD 60 a class, +SGD 5 a client over 6", "SGD 1,385.00"], ["Ben Tan", "By class size: SGD 45 to 75", "SGD 840.00"], ["Priya Nair", "SGD 38 an hour", "SGD 912.00"], ["Marcus Wong", "SGD 3,200 a month", "SGD 1,600.00"]];
+  PAY.forEach(([n, how, amt]) => $("#payTable tbody").append(el("tr", {}, [el("td", { text: n }), el("td", { text: how }), el("td", { class: "num", text: amt })])));
+
+  // The WhatsApp reply types itself the first time its window is shown.
+  let typed = false;
+  const typeReply = () => {
+    if (typed) return; typed = true;
+    const reply = $("#waReply");
+    setTimeout(async () => {
+      const t = el("span"); reply.innerHTML = ""; reply.append(t);
+      await type(t, "Yes, 2 spots left. I've booked you in with your 10-class pack. See you at 6:30!", 22);
+      reply.append(el("small", { text: "6:03pm" }));
+    }, reduce ? 0 : 900);
+  };
+
+  const day = $("#day"), steps = $$("#daySteps li"), cards = $$("#dayStage .day-card");
+  const wide = matchMedia("(min-width: 980px)");
+  let active = -1;
+  function setActive(i) {
+    if (i === active) return;
+    active = i;
+    steps.forEach((li, k) => li.classList.toggle("on", k === i));
+    cards.forEach((c, k) => {
+      c.classList.toggle("below", k > i);
+      c.classList.toggle("past", k < i);
+      c.style.setProperty("--back", String(i - k));
+      c.style.zIndex = String(k);
+    });
+    if (i >= 2) typeReply();
+  }
+  function onScroll() {
+    const r = day.getBoundingClientRect();
+    const run = day.offsetHeight - innerHeight;
+    const p = Math.min(1, Math.max(0, -r.top / Math.max(1, run)));
+    setActive(Math.min(cards.length - 1, Math.floor(p * cards.length * 0.999)));
+  }
+  // Wide screens with motion: the list stays and the windows stack. Otherwise each window sits
+  // under its own step.
+  function layout() {
+    const scrolly = wide.matches && !reduce;
+    day.classList.toggle("scrolly", scrolly);
+    if (scrolly) { cards.forEach((c) => $("#dayStage").append(c)); active = -1; onScroll(); }
+    else {
+      cards.forEach((c, k) => steps[k].append(c));
+      steps.forEach((li) => li.classList.add("on"));
+      cards.forEach((c) => { c.classList.remove("below", "past"); c.style.zIndex = ""; });
+      if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { typeReply(); io.disconnect(); } }, { threshold: 0.5 });
+        io.observe(cards[2]);
+      } else typeReply();
+    }
+  }
+  wide.addEventListener?.("change", layout);
+  addEventListener("scroll", () => { if (day.classList.contains("scrolly")) onScroll(); }, { passive: true });
+  layout();
+  steps.forEach((li, k) => $(".day-t", li).addEventListener("click", () => {
+    if (!day.classList.contains("scrolly")) return;
+    const run = day.offsetHeight - innerHeight;
+    scrollTo({ top: day.offsetTop + ((k + 0.5) / cards.length) * run, behavior: reduce ? "auto" : "smooth" });
   }));
 
   // --- Needs attention ----------------------------------------------------------------------
@@ -403,92 +553,45 @@ form.join .full { grid-column: 1 / -1 }
     log.textContent = b.dataset.done + ".";
     setTimeout(refreshAtt, reduce ? 0 : 420);
   }));
-  $("#attReset").addEventListener("click", () => { $$(".att-item", att).forEach((i) => i.classList.remove("done")); refreshAtt(); log.textContent = "Back again. Try clearing it."; });
+  $("#attReset").addEventListener("click", () => { $$(".att-item", att).forEach((i) => i.classList.toggle("done", false)); refreshAtt(); log.textContent = "Back again. Try clearing it."; });
 
   // --- Made for here ------------------------------------------------------------------------
-  const panel = $("#localPanel");
   const win = (title, sub) => el("div", { class: "win" }, [el("div", { class: "win-bar", html: `<b>${title}</b><small>${sub}</small>` })]);
-  const LOCAL = {
-    wa: {
-      title: "WhatsApp, in the same inbox as email",
-      body: "Clients message the studio's own WhatsApp number. Your team answers from one shared inbox, with the client's bookings and packages beside the chat.",
-      win: () => {
-        const w = win("Mei Tan", "WhatsApp");
-        const chat = el("div", { class: "chat" });
-        chat.append(el("div", { class: "msg them", html: "Hi! Is there still space in tonight's 6:30 reformer? <small>6:02pm</small>" }));
-        const typing = el("div", { class: "msg us", html: '<span class="typing" aria-label="Typing"><i></i><i></i><i></i></span>' });
-        chat.append(typing, el("div", { class: "chat-side", text: "Mei has 4 classes left on her 10-class pack, valid until 9 Jan." }));
-        setTimeout(() => { typing.innerHTML = "Yes, 2 spots left. I've booked you in with your 10-class pack. See you at 6:30! <small>6:03pm</small>"; }, reduce ? 0 : 1300);
-        w.append(chat);
-        return w;
-      },
-    },
-    holiday: {
-      title: "Public holidays, handled for you",
-      body: "Add Chinese New Year, Hari Raya or Deepavali once. Classes on those days are cancelled, everyone booked gets one message, their classes go back on their packs, and repeating classes skip the days from then on.",
-      win: () => {
-        const w = win("Close the studio", "Closures");
-        const box = el("div", { class: "close-days" });
-        box.append(
-          el("div", { class: "cd-when", html: "<b>Chinese New Year</b><span>Saturday 6 and Sunday 7 February</span>" }),
-          el("ul", { class: "cd-list" }, [
-            el("li", { html: "<b>9 classes</b> on those days will be cancelled" }),
-            el("li", { html: "<b>64 people</b> booked get one message each" }),
-            el("li", { html: "<b>Their classes</b> go back on their packs" }),
-            el("li", { html: "<b>Repeating classes</b> skip these days from now on" }),
-          ]),
-          el("div", { class: "msg-prev" }, [el("small", { text: "What Mei will get" }), el("p", { text: "Hi Mei, we're closed for Chinese New Year on 6 and 7 Feb, so Saturday's 9am Barre is cancelled and your class is back on your pack. Happy new year, and see you after the break!" })]),
-        );
-        const res = el("p", { class: "cd-res", role: "status" });
-        const go = el("button", { type: "button", class: "abtn go", id: "closeDays", text: "Close the studio" });
-        go.addEventListener("click", () => { go.disabled = true; res.innerHTML = tick(16, 3); res.append(" Closed. 9 classes cancelled and 64 people told."); });
-        box.append(el("div", { class: "cd-foot" }, [go, res]));
-        w.append(box);
-        return w;
-      },
-    },
-    share: {
-      title: "One package for a couple or a family",
-      body: "Share a pack as one pool anyone can use, or split the classes between people. When someone stops sharing, their unused classes go back to the person who paid.",
-      win: () => {
-        const w = win("Couple's 20-class pack", "Shared");
-        const people = [["Jun", 7, "var(--c-yoga)"], ["Mei", 5, "var(--c-barre)"]];
-        const s = el("div", { class: "share" });
-        const meter = el("div", { class: "meter", "aria-hidden": "true" });
-        people.forEach(([, n, c]) => meter.append(el("i", { style: `width:${(n / 20) * 100}%;background:${c}` })));
-        meter.append(el("i", { style: `width:${(8 / 20) * 100}%;background:var(--app-line)` }));
-        s.append(el("div", { class: "share-top", html: "<b>12 classes left</b><span>Valid until 28 Feb</span>" }), meter);
-        const list = el("div", { class: "people" });
-        people.forEach(([n, k, c]) => list.append(el("div", { class: "person", html: `<i class="av" style="background:${c}">${n[0]}</i><span>${n}</span><em>${k} left</em>` })));
-        list.append(el("div", { class: "person", html: '<i class="av" style="background:var(--app-line);color:var(--app-mute)">+</i><span style="color:var(--app-mute)">Room for 1 more person</span><em></em>' }));
-        s.append(list);
-        w.append(s);
-        return w;
-      },
-    },
-    payroll: {
-      title: "Instructor pay, worked out for you",
-      body: "Per class, per client, by class size, hourly or salaried, with different rates for different classes. The report is ready when the pay period ends, and marking it paid locks the figures.",
-      win: () => {
-        const w = win("Pay, 1 to 15 November", "Ready");
-        const rows = [["Ana Lim", "SGD 60 a class, +SGD 5 a client over 6", "SGD 1,385.00"], ["Ben Tan", "By class size: SGD 45 to 75", "SGD 840.00"], ["Priya Nair", "SGD 38 an hour", "SGD 912.00"], ["Marcus Wong", "SGD 3,200 a month", "SGD 1,600.00"]];
-        const tb = el("table", { class: "payroll", html: '<thead><tr><th scope="col">Instructor</th><th scope="col">How they\'re paid</th><th scope="col" style="text-align:right">This period</th></tr></thead>' });
-        const body = el("tbody");
-        rows.forEach(([n, how, amt]) => body.append(el("tr", {}, [el("td", { text: n }), el("td", { text: how }), el("td", { class: "num", text: amt })])));
-        tb.append(body);
-        w.append(el("div", { class: "scroll-x" }, [tb]));
-        return w;
-      },
-    },
-  };
-  function showLocal(k) {
-    const d = LOCAL[k];
-    panel.innerHTML = "";
-    panel.append(d.win(), el("div", { class: "copy" }, [el("h3", { text: d.title }), el("p", { class: "lede", text: d.body })]));
-    replay(panel, "swap-in");
+  {
+    const w = win("Close the studio", "Closures");
+    const box = el("div", { class: "close-days" });
+    box.append(
+      el("div", { class: "cd-when", html: "<b>Chinese New Year</b><span>Saturday 6 and Sunday 7 February</span>" }),
+      el("ul", { class: "cd-list" }, [
+        el("li", { html: "<b>9 classes</b> on those days will be cancelled" }),
+        el("li", { html: "<b>64 people</b> booked get one message each" }),
+        el("li", { html: "<b>Their classes</b> go back on their packs" }),
+        el("li", { html: "<b>Repeating classes</b> skip these days from now on" }),
+      ]),
+      el("div", { class: "msg-prev" }, [el("small", { text: "What Mei will get" }), el("p", { text: "Hi Mei, we're closed for Chinese New Year on 6 and 7 Feb, so Saturday's 9am Barre is cancelled and your class is back on your pack. Happy new year, and see you after the break!" })]),
+    );
+    const res = el("p", { class: "cd-res", role: "status" });
+    const go = el("button", { type: "button", class: "abtn go", id: "closeDays", text: "Close the studio" });
+    go.addEventListener("click", () => { go.disabled = true; res.innerHTML = tick(16, 3); res.append(" Closed. 9 classes cancelled and 64 people told."); });
+    box.append(el("div", { class: "cd-foot" }, [go, res]));
+    w.append(box);
+    $("#holidayWin").append(w);
   }
-  seg($$("[data-local]"), (b) => showLocal(b.dataset.local));
-  showLocal("wa");
+  {
+    const w = win("Couple's 20-class pack", "Shared");
+    const people = [["Jun", 7, "var(--c-yoga)"], ["Mei", 5, "var(--c-barre)"]];
+    const sh = el("div", { class: "share" });
+    const meter = el("div", { class: "meter", "aria-hidden": "true" });
+    people.forEach(([, n, c]) => meter.append(el("i", { style: `width:${(n / 20) * 100}%;background:${c}` })));
+    meter.append(el("i", { style: `width:${(8 / 20) * 100}%;background:var(--app-line)` }));
+    sh.append(el("div", { class: "share-top", html: "<b>12 classes left</b><span>Valid until 28 Feb</span>" }), meter);
+    const list = el("div", { class: "people" });
+    people.forEach(([n, k, c]) => list.append(el("div", { class: "person", html: `<i class="av" style="background:${c}">${n[0]}</i><span>${n}</span><em>${k} left</em>` })));
+    list.append(el("div", { class: "person", html: '<i class="av" style="background:var(--app-line);color:var(--app-mute)">+</i><span style="color:var(--app-mute)">Room for 1 more person</span><em></em>' }));
+    sh.append(list);
+    w.append(sh);
+    $("#shareWin").append(w);
+  }
 
   // --- Founding studios form ----------------------------------------------------------------
   // Where requests go: set data-endpoint on the form (an API route) when the site is hosted.

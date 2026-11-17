@@ -20,7 +20,18 @@
     buttons.forEach((x) => x.setAttribute(x.getAttribute("role") === "radio" ? "aria-checked" : "aria-selected", String(x === b)));
     onPick(b);
   }));
-  window.S = { reduce, $, $$, el, tick, replay, seg };
+  // Type text into a node, one character at a time, with a blinking caret; resolves when done.
+  const type = (node, text, speed = 28) => new Promise((done) => {
+    if (reduce) { node.textContent = text; return done(); }
+    node.textContent = "";
+    const caret = el("i", { class: "caret", "aria-hidden": "true" });
+    const t = document.createTextNode("");
+    node.append(t, caret);
+    let i = 0;
+    const step = () => { t.data = text.slice(0, ++i); if (i < text.length) setTimeout(step, speed + Math.random() * speed); else { caret.replaceWith(); done(); } };
+    step();
+  });
+  window.S = { reduce, $, $$, el, tick, replay, seg, type };
 
   // A page opened from a link starts at the top (some viewers carry the last page's scroll position
   // over). Links to a section (#walkthrough) and reloads keep theirs, and it stops as soon as the
@@ -33,6 +44,40 @@
     const toTop = () => { if (!moved && scrollY > 0) scrollTo({ top: 0, behavior: "instant" }); };
     toTop(); addEventListener("load", toTop); [120, 400, 900].forEach((ms) => setTimeout(toTop, ms));
   }
+
+  // Parts that need the whole page: run once it has been read.
+  const whenReady = (fn) => (document.readyState === "loading" ? addEventListener("DOMContentLoaded", fn) : fn());
+  whenReady(() => {
+    // Headline sweeps: page-opening headlines on load, the rest once as they come into view.
+    if (!reduce) {
+      const heads = $$("main h1, main h2, .close h2").filter((h) => !h.closest(".win, .faq"));
+      heads.forEach((h) => h.classList.add("sweep"));
+      const go = (h) => h.classList.add("go");
+      if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { go(e.target); io.unobserve(e.target); } }), { rootMargin: "0px 0px -12% 0px" });
+        heads.forEach((h) => io.observe(h));
+      } else heads.forEach(go);
+    }
+
+    // The dock shows once the page's opening has scrolled away, and hides where the page asks for
+    // the walkthrough itself (the form, the closing band) and at the very bottom.
+    const dock = $("#dock");
+    if (dock) {
+      const seen = new Set();
+      const update = () => {
+        const show = scrollY > innerHeight * 0.7 && !seen.size && innerHeight + scrollY < document.documentElement.scrollHeight - 40;
+        dock.classList.toggle("show", show);
+        dock.setAttribute("aria-hidden", String(!show));
+        dock.querySelector("a").tabIndex = show ? 0 : -1;
+      };
+      if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver((es) => { es.forEach((e) => (e.isIntersecting ? seen.add(e.target) : seen.delete(e.target))); update(); });
+        $$("#walkthrough, .close").forEach((t) => io.observe(t));
+      }
+      addEventListener("scroll", update, { passive: true });
+      update();
+    }
+  });
 
   const btn = $(".menu-btn"), nav = $("#nav");
   if (btn && nav) {
