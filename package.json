@@ -13,7 +13,9 @@
     "test": "pnpm -r test",
     "db:generate": "pnpm --filter @studio/api db:generate",
     "db:migrate": "pnpm --filter @studio/api db:migrate",
-    "db:seed": "pnpm --filter @studio/api db:seed"
+    "db:seed": "pnpm --filter @studio/api db:seed",
+    "web": "pnpm --filter @studio/web dev",
+    "e2e": "pnpm --filter @studio/web e2e"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

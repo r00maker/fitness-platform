@@ -42,7 +42,7 @@ The market review, pricing and launch plan are in `docs/MARKET_AND_LAUNCH.md`. D
 
 - **Online payments go live:** built (Stripe Connect, `docs/PAYMENTS.md`) and tested end to end against Stripe's test mode (connect, pay, renew, decline, refund). Connect is signed up on the platform's test account. For each environment, set `STRIPE_SECRET_KEY` and the two destinations' signing secrets (`STRIPE_WEBHOOK_SECRET`); for live, repeat Connect and the destinations in live mode. In the cloud sessions, the test key is saved in the "fitness-platform" environment (injected by the network proxy; run scripts with `NODE_USE_ENV_PROXY=1`).
 - **Email inbox going live:** needs a Google OAuth app (Google verification before more than 100 users) and a Microsoft app. Steps in `docs/HOSTING_AND_DEPLOYMENT.md`, section 6.
-- **No web or mobile app yet:** the preview stands in for them.
+- **The client web app** (`apps/web`, `docs/WEB_APP.md`) runs on the real API: the booking page, booking, buying, sign-in and joining, My bookings, My packages, Payment method. Sign-in is Supabase Auth (to be set up; locally a dev sign-in stands in). The staff web app and the phone apps aren't built yet: the preview stands in for them.
 - **What comes next:** `docs/MARKET_AND_LAUNCH.md` has the market review (competitors, a UX audit, pricing, a launch plan) from the MVP milestone. `docs/PRODUCT_NOTES.md` ("Roadmap after the MVP") lists the order: feature-set improvements first (feature switches, setup by studio type, phone flows for clients and instructors, one AI entry point, one "Tell clients" flow), then what blocks launch (payments, data import and web booking with the website widget are all built). Next is "Soon after launch" in the roadmap (self check-in, Xero / QuickBooks, a card reader, location managers, notification preferences), and the real web and mobile apps that the preview stands in for.
 
 ## The owner's rules
@@ -86,7 +86,7 @@ service postgresql start   # if tests fail with ECONNREFUSED
 # Fresh container? Tests need a "studio" user and "studio_test" database:
 # su postgres -c "psql -c \"create user studio with password 'studio' superuser;\"" && su postgres -c "createdb -O studio studio_test"
 pnpm typecheck
-pnpm test                  # 346 API tests at the time of writing
+pnpm test                  # 351 API tests at the time of writing
 ```
 
 - New migration: edit `apps/api/src/db/schema.ts`, then `cd apps/api && npx drizzle-kit generate --name <name>`. To regenerate one that isn't merged yet, delete its SQL file and snapshot and remove its entry from `drizzle/meta/_journal.json` first.

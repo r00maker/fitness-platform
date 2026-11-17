@@ -6,7 +6,20 @@ import { can, type Permission, type Role } from "@studio/shared";
 import type { Config } from "../config.js";
 import type { Db } from "../db/client.js";
 import { memberships } from "../db/schema.js";
-import { forbidden, unauthorized } from "../lib/errors.js";
+import { badRequest, forbidden, unauthorized } from "../lib/errors.js";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Has the sign-in provider confirmed the person's email? `email_verified` (most providers), or
+ * Supabase's `user_metadata.email_verified`, or a sign-in by a link or code sent to that email.
+ */
+export function emailVerified(p: JWTPayload): boolean {
+  const meta = (p.user_metadata ?? {}) as Record<string, unknown>;
+  const yes = (v: unknown) => v === true || v === "true";
+  const amr = Array.isArray(p.amr) ? (p.amr as { method?: string }[]).map((a) => (typeof a === "string" ? a : a?.method)) : [];
+  return yes(p.email_verified) || yes(meta.email_verified) || amr.some((m) => m === "otp" || m === "magiclink");
+}
 
 export interface AuthContext {
   userId: string;
@@ -36,7 +49,10 @@ declare module "fastify" {
  * then looks up the person's role in this studio from our own database, so a
  * token can never grant itself extra permissions.
  *
- * Expected token claims: `sub` = our user id, `org` = studio id.
+ * Expected token claims: `sub` = our user id (a UUID; Supabase Auth's user ids are used as ours).
+ * The studio comes from the `X-Studio-Id` header (the web and mobile apps send the studio being
+ * used), or from an `org` claim. Either way the person's role is read from our database, so a
+ * header or claim can't grant anything: someone who isn't a member is refused.
  */
 async function authPlugin(app: FastifyInstance, opts: { config: Config; db: Db }) {
   const { config, db } = opts;
@@ -63,8 +79,11 @@ async function authPlugin(app: FastifyInstance, opts: { config: Config; db: Db }
       throw unauthorized();
     }
     const userId = payload.sub;
-    const orgId = typeof payload.org === "string" ? payload.org : undefined;
-    if (!userId || !orgId) throw unauthorized();
+    const header0 = req.headers["x-studio-id"];
+    const studioHeader = typeof header0 === "string" && UUID.test(header0) ? header0 : undefined;
+    const orgId = studioHeader ?? (typeof payload.org === "string" ? payload.org : undefined);
+    if (!userId || !UUID.test(userId)) throw unauthorized();
+    if (!orgId) throw badRequest("studio_needed", "Choose a studio first.");
 
     const [m] = await db
       .select({ role: memberships.role })
@@ -80,7 +99,7 @@ async function authPlugin(app: FastifyInstance, opts: { config: Config; db: Db }
           role: "client",
           joining: true,
           email: typeof payload.email === "string" ? payload.email : undefined,
-          emailVerified: payload.email_verified === true || payload.email_verified === "true",
+          emailVerified: emailVerified(payload),
         };
         return;
       }

@@ -45,6 +45,7 @@ import { automationsRoutes } from "./modules/agents/automations.js";
 import { settingsRoutes } from "./modules/settings/routes.js";
 import { paymentRoutes } from "./modules/payments/routes.js";
 import { bookingPageRoutes } from "./modules/booking-page/routes.js";
+import { accountRoutes } from "./modules/account/routes.js";
 import { configurePayments, stripe, stripeRenewalCharger } from "./modules/payments/service.js";
 import { setRenewalCharger } from "./modules/packages/payments.js";
 import { substituteRoutes } from "./modules/substitutes/routes.js";
@@ -146,6 +147,7 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(checkoutRoutes);
       await v1.register(paymentRoutes);
       await v1.register(bookingPageRoutes);
+      await v1.register(accountRoutes);
       await v1.register(marketingRoutes);
       await v1.register(marketingAppRoutes);
       await v1.register(loyaltyRoutes);
