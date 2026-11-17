@@ -23,6 +23,8 @@ import { completeOrderById } from "../checkout/routes.js";
 import { assertFile, publicFileUrl } from "../files/routes.js";
 import { spendCredit, usableGrants } from "../marketing/credit.js";
 import { issueInvoice } from "../sales/invoices.js";
+import { choosePayment, paymentFor } from "../payments/service.js";
+import { getOrg } from "../sessions/context.js";
 import { available, takeStock } from "./stock.js";
 
 const idParam = z.object({ id: schemas.id });
@@ -97,6 +99,8 @@ export async function shopRoutes(app: FastifyInstance) {
   app.post("/shop/checkout", { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }, async (req, reply) => {
     if (req.auth.role !== "client") throw forbidden("The shop checkout is for clients. Staff can sell items at the desk.");
     const input = parse(shopCheckout, req.body);
+    const studio = await getOrg(db, req.auth.orgId);
+    const choice = choosePayment(studio, input.payWith, { recurring: false });
     const out = await inTx(app, async (tx) => {
       const org = await currencyOf(req.auth.orgId);
       const ids = [...new Set(input.items.map((i) => i.productId))];
@@ -128,9 +132,11 @@ export async function shopRoutes(app: FastifyInstance) {
     });
     reply.code(201);
     const o = out.order;
+    const payment = o.status === "paid" ? { online: false, message: "All paid. Collect it at the front desk." } : await paymentFor(db, studio, o, choice, { description: "Shop order", saveCard: false, deskMessage: "Order placed. Pay and collect it at the front desk." });
     return {
       order: { id: o.id, status: statusOf(o), statusLabel: SHOP_ORDER_STATUSES[statusOf(o)], total: money(o.amountCents, out.currency), items: o.items },
-      message: o.status === "paid" ? "All paid. Collect it at the front desk." : "Order placed. Pay and collect it at the front desk.",
+      message: payment.online ? "Order placed. Pay online, then collect it at the front desk." : (payment.message ?? "Order placed."),
+      payment,
     };
   });
 

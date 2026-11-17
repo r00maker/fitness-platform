@@ -26,6 +26,7 @@ import { cancelPackage } from "../packages/service.js";
 import { getOrg } from "../sessions/context.js";
 import { emailReceipt, markPaid, renderDocument, settingsFor, type Invoice } from "./invoices.js";
 import { restock } from "../shop/stock.js";
+import { paidOnline, refundOnline } from "../payments/service.js";
 
 const idParam = z.object({ id: schemas.id });
 
@@ -99,12 +100,21 @@ export async function refund(tx: DbOrTx, auth: AuthContext, id: string, input: R
     const org = await getOrg(tx, auth.orgId);
     await grantCredit(tx, { orgId: auth.orgId, clientId: inv.clientId, amountCents: input.amountCents, currency: inv.currency, source: "studio", sourceId: inv.id, note: `Refund for ${inv.number}`, expiresAt: endOfDayAfter(365, org.timezone), by: auth.userId });
   }
-  const [r] = await tx.insert(invoiceRefunds).values({ orgId: auth.orgId, invoiceId: inv.id, amountCents: input.amountCents, method: input.method, reason: input.reason, undidSale: input.undoSale, createdBy: auth.userId }).returning();
+  const [r0] = await tx.insert(invoiceRefunds).values({ orgId: auth.orgId, invoiceId: inv.id, amountCents: input.amountCents, method: input.method, reason: input.reason, undidSale: input.undoSale, createdBy: auth.userId }).returning();
   const refunded = inv.refundedCents + input.amountCents;
   const [u] = await tx.update(invoices).set({ refundedCents: refunded, status: refunded >= inv.totalCents ? "refunded" : "partly_refunded" }).where(eq(invoices.id, inv.id)).returning();
+  // Paid online: Stripe sends the money back now (if Stripe refuses, nothing here is kept).
+  let online: Awaited<ReturnType<typeof refundOnline>> = null;
+  if (input.method === "original_payment") {
+    if (await paidOnline(tx, inv)) flags.confirm({ code: "refund_online", message: `${money(input.amountCents, inv.currency)} goes back to how they paid, through Stripe. This can't be undone.` });
+    // Everything must be confirmed before Stripe is asked: a sent refund can't be taken back.
+    flags.enforce();
+    online = await refundOnline(tx, inv, r0!.id, input.amountCents);
+  }
+  const [r] = await tx.select().from(invoiceRefunds).where(eq(invoiceRefunds.id, r0!.id));
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "sale.refunded", entityType: "invoice", entityId: inv.id, details: { amountCents: input.amountCents, method: input.method, undoSale: input.undoSale } });
   await notify(tx, { orgId: auth.orgId, userIds: [inv.clientId], template: "sale.refunded", data: { amount: money(input.amountCents, inv.currency), number: inv.number, toCredit: input.method === "credit", invoiceId: inv.id } });
-  return { sale: present(u!, [r!]) };
+  return { sale: present(u!, [r!]), ...(online ? { message: online.status === "pending" ? `Refund sent to ${online.paidWith === "paynow" ? "PayNow" : "Stripe"}: it can take a few days to reach them, and you'll hear if it fails.` : "Refund sent through Stripe. It can take 5 to 10 days to show on their statement." } : {}) };
 }
 
 export async function salesRoutes(app: FastifyInstance) {

@@ -91,6 +91,36 @@ export const TEMPLATES: Record<string, (d: D) => Rendered> = {
     pushTitle: "Membership ended",
     pushBody: `${s(d.packageName)} ended after 3 failed payments.`,
   }),
+  "payments.ready": (d) => ({
+    subject: "You can take payments online",
+    body: `Stripe has checked ${s(d.studioName)}'s details, so clients can now pay online when they buy packages, gift cards and shop items. Money goes straight to your Stripe account. You can change how clients pay under Setup, Payments.`,
+    pushTitle: "Online payments are on",
+    pushBody: "Clients can now pay online.",
+  }),
+  "payments.disconnected": (d) => ({
+    subject: "Stripe was disconnected",
+    body: `${s(d.studioName)}'s Stripe account was disconnected, so clients can't pay online for now and pay at the studio instead. Memberships renewing by card are paid at the studio until you connect again under Setup, Payments.`,
+    pushTitle: "Stripe disconnected",
+    pushBody: "Clients pay at the studio until you reconnect.",
+  }),
+  "payment.failed": (d) => ({
+    subject: "Your payment didn't go through",
+    body: `Your payment of ${s(d.amount)} didn't go through, so your order is still waiting. You can try again from your orders, or pay at the studio.`,
+    pushTitle: "Payment didn't go through",
+    pushBody: `Your ${s(d.amount)} payment didn't go through. Try again from your orders.`,
+  }),
+  "payment.disputed": (d) => ({
+    subject: `A client disputed a payment of ${s(d.amount)}`,
+    body: `A client has asked their bank to reverse a payment of ${s(d.amount)}${d.reason ? ` (reason given: ${s(d.reason)})` : ""}. Stripe holds the amount until it's settled. Answer it in your Stripe dashboard, under Disputes, before the deadline shown there: send what shows the client booked or used it (bookings, attendance, the receipt).`,
+    pushTitle: "Payment disputed",
+    pushBody: `${s(d.amount)}: answer it in Stripe before the deadline.`,
+  }),
+  "payment.refund_failed": (d) => ({
+    subject: `A refund didn't go through: ${s(d.number)}`,
+    body: `The refund of ${s(d.amount)} for ${s(d.number)} didn't go through${d.reason ? ` (${s(d.reason).replace(/_/g, " ")})` : ""}, so the sale shows as not refunded again. Refund it another way, such as studio credit or a bank transfer.`,
+    pushTitle: "Refund didn't go through",
+    pushBody: `${s(d.amount)} for ${s(d.number)}: refund it another way.`,
+  }),
   "sale.refunded": (d) => ({
     subject: `Refund: ${s(d.amount)}`,
     body: d.toCredit ? `We've refunded ${s(d.amount)} for ${s(d.number)} as studio credit. You'll see it at checkout next time.` : `We've refunded ${s(d.amount)} for ${s(d.number)}. Depending on your bank, it can take a few days to appear.`,

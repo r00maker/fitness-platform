@@ -11,3 +11,5 @@ export * from "./comms.js";
 export * from "./agents.js";
 export * from "./sales.js";
 export * from "./features.js";
+export * from "./payments.js";
+export * from "./booking.js";

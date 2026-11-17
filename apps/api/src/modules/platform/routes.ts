@@ -9,6 +9,7 @@
  *    the studio's own audit log, visible to the studio, and endable by them.
  *  - Every change we make is in the studio's audit log, with our staff member as the actor.
  */
+import { uniqueSlug } from "../booking-page/routes.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { and, asc, desc, eq, gt, ilike, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
@@ -130,7 +131,8 @@ export async function platformRoutes(app: FastifyInstance) {
     requirePlatform(req, "manageStudios");
     const input = parse(schemas.createStudio, req.body);
     const out = await inTx(app, async (tx) => {
-      const [org] = await tx.insert(organizations).values({ name: input.name, timezone: input.timezone, currency: input.currency, lifecycle: "onboarding" }).returning();
+      // Its booking page link (<app>/s/<slug>) comes from the name; the studio can change it.
+      const [org] = await tx.insert(organizations).values({ name: input.name, timezone: input.timezone, currency: input.currency, lifecycle: "onboarding", slug: await uniqueSlug(tx, input.name) }).returning();
       await tx.insert(locations).values({ orgId: org!.id, name: input.locationName ?? input.name, timezone: input.timezone });
       // A brand-new studio has nothing running, so switching features to the plan needs no question.
       await setPlan(tx, new Flags(["plan_changes"]), org!.id, { plan: input.plan, brandedApp: input.brandedApp }, req.platform.userId);

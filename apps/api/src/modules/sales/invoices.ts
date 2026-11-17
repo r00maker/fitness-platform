@@ -108,6 +108,16 @@ export async function markPaid(tx: DbOrTx, inv: Invoice, method: PaymentMethod, 
   return u ?? inv;
 }
 
+/** Add a line to an unpaid invoice (e.g. the card fee a client chose to pay online). */
+export async function addInvoiceLine(tx: DbOrTx, inv: Invoice, line: Omit<Line, "amountCents"> & { amountCents?: number }) {
+  if (inv.status !== "open") return inv;
+  const s = await settingsFor(tx, inv.orgId);
+  const l = { ...line, amountCents: line.unitCents * line.quantity };
+  const total = inv.totalCents + l.amountCents;
+  const [u] = await tx.update(invoices).set({ lines: [...inv.lines, l], subtotalCents: inv.subtotalCents + l.amountCents, totalCents: total, taxCents: taxIn(total, s) }).where(eq(invoices.id, inv.id)).returning();
+  return u!;
+}
+
 /** Find an invoice by what it's for. */
 export async function invoiceFor(tx: DbOrTx, by: { orderId?: string; feeId?: string }) {
   const [inv] = await tx.select().from(invoices).where(by.orderId ? eq(invoices.orderId, by.orderId) : eq(invoices.feeId, by.feeId!)).for("update");

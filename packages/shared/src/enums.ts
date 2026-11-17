@@ -340,6 +340,8 @@ export const FLAG_CODES = [
   "plan_changes",
   "extra_location_cost",
   "migration_warnings",
+  "pass_on_fees",
+  "refund_online",
   "attendance_locked",
   "fee_not_final",
   "whatsapp_charge",

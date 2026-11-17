@@ -12,6 +12,7 @@ export default defineConfig({
       SECRETS_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       META_APP_SECRET: "test-meta-app-secret",
       META_VERIFY_TOKEN: "test-verify-token",
+      STRIPE_WEBHOOK_SECRET: "whsec_test_secret_for_tests",
       META_APP_ID: "1234567890",
       GOOGLE_CLIENT_ID: "test-google-client-id",
       GOOGLE_CLIENT_SECRET: "test-google-client-secret",

@@ -1256,3 +1256,113 @@ body.wc-on { overflow: hidden }
 .wc-preview { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: #06221d; color: #a7cbc1; font-size: 13px; padding-block: 8px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px dashed rgba(236, 246, 242, .18) }
 .wc-preview button { font: 600 13px "Inter", system-ui, sans-serif; background: transparent; color: #ecf6f2; border: 1px dashed rgba(236, 246, 242, .4); border-radius: 999px; padding: 6px 14px; cursor: pointer; min-height: 34px }
 .wc-preview button:hover { border-style: solid }
+
+/* --- Online payments (mkt26) --- */
+.paysteps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; counter-reset: none; }
+.paysteps li { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); padding: 8px 10px; border-radius: 10px; background: var(--sunk); min-width: 0; }
+.paysteps li span { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; border: 1.5px solid var(--line); background: var(--surface); }
+.paysteps li.now { color: var(--fg); background: var(--accent-soft); }
+.paysteps li.now span { border-color: var(--accent); color: var(--accent); }
+.paysteps li.done { color: var(--fg); }
+.paysteps li.done span { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+@media (max-width: 560px) { .paysteps { grid-template-columns: 1fr; } }
+.payrow { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+.payrow > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.payrow > div span { font-size: 13px; color: var(--muted); }
+.payrow.off b { color: var(--muted); }
+.payfees { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 12px; margin-top: 8px; border-radius: 10px; background: var(--sunk); }
+.payfees .fl { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.payfees input { width: 64px; }
+.payfees .inline2 { flex-wrap: nowrap; gap: 6px; align-items: center; font-weight: 500; }
+.payfees .hint { grid-column: 1 / -1; }
+.payex { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.payex b { font-size: 13px; }
+.paybox .payopt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; }
+.paybox .payopt.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.paybox .payopt > span { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; font-size: 13.5px; }
+.paybox .payopt > span span { font-size: 12.5px; color: var(--muted); }
+.paybox .payopt em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.paycard { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.stripestand .ssnote { font-size: 12px; color: var(--muted); padding: 6px 10px; border-radius: 8px; background: var(--sunk); align-self: flex-start; }
+.stripestand [data-ssk] { width: 100%; }
+.pmcard { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; row-gap: 2px; align-items: center; padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: linear-gradient(135deg, var(--accent-soft), var(--surface)); max-width: 360px; }
+.pmcard .pmbrand { grid-row: 1 / 3; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 6px 8px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); }
+.pmcard b { font-size: 17px; font-variant-numeric: tabular-nums; letter-spacing: .06em; }
+.pmcard.empty { grid-template-columns: 1fr; background: var(--sunk); border-style: dashed; }
+.pmcard.empty b { font-size: 15px; letter-spacing: 0; }
+.pmwrap .lbl { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+/* --- Booking on the web (mkt27) --- */
+.bplink { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding-left: 10px; font-weight: 400; overflow: hidden; max-width: 560px }
+.bplink .muted { white-space: nowrap; font-size: 13.5px }
+.bplink input { border: 0 !important; box-shadow: none !important; flex: 1; min-width: 80px; padding: 9px 10px 9px 2px; background: transparent; font: inherit; font-weight: 600 }
+.bplink:focus-within { outline: 2px solid var(--accent); outline-offset: 1px }
+.bpcode { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap }
+.bpcode pre { flex: 1; min-width: 0; margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--sunk); border: 1px solid var(--line); font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-all }
+.bpwhost { padding: 20px; border-radius: 12px; background: repeating-linear-gradient(45deg, var(--sunk), var(--sunk) 10px, var(--bg) 10px, var(--bg) 20px); }
+/* The widget as studios' visitors see it (mirrors /v1/public/widget.js). */
+.bpw { --bg: #fff; --fg: #17201d; --muted: #5d6b66; --line: #e2e7e5; --soft: #f3f6f5; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 16px; max-width: 760px }
+.bpw.dark { --bg: #141a18; --fg: #e8eeec; --muted: #9fb0aa; --line: #2a3431; --soft: #1c2421 }
+.bpw-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 12px }
+.bpw-h b { font-size: 17px } .bpw-h a { color: var(--bpa); font-size: 13px; font-weight: 600; text-decoration: none }
+.bpw-days { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 8px }
+.bpw-days button { font: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap }
+.bpw-days button[aria-pressed=true] { background: var(--bpa); border-color: var(--bpa); color: #fff }
+.bpw ul { list-style: none; margin: 0; padding: 0 }
+.bpw li { display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line) }
+.bpw li:first-child { border-top: 0 }
+.bpw .t { font-weight: 700; font-variant-numeric: tabular-nums } .bpw .t span { display: block; font-weight: 400; font-size: 12px; color: var(--muted) }
+.bpw .n { min-width: 0 } .bpw .n b { display: flex; align-items: center; gap: 6px } .bpw .n b i { width: 8px; height: 8px; border-radius: 50%; flex: none } .bpw .n span { display: block; font-size: 13px; color: var(--muted) }
+.bpw .s { font-size: 12px; font-weight: 600; color: var(--muted); text-align: right; margin-bottom: 4px } .bpw .s.few { color: #b45309 } .bpw .s.full { color: #b42318 }
+.bpw .book { display: inline-block; font-size: 13px; font-weight: 700; text-decoration: none; background: var(--bpa); color: #fff; padding: 7px 14px; border-radius: 9px }
+.bpw .book.off { background: var(--soft); color: var(--muted); pointer-events: none }
+.bpw .e { color: var(--muted); padding: 12px 0; font-size: 14px } .bpw .f { margin-top: 10px; font-size: 11px; color: var(--muted); text-align: right }
+@media (max-width: 520px) { .bpw li { grid-template-columns: 52px 1fr } .bpw li .r { grid-column: 2; display: flex; gap: 10px; align-items: center } .bpw .s { margin: 0 } }
+
+/* The public booking page (a separate site in the app; its own calm look, the studio's colour). */
+.bp { --bpink: #16201c; --bpmute: #5f6d68; --bpline: #e4e9e6; --bpsoft: #f4f7f5; position: fixed; inset: 0; z-index: 85; overflow-y: auto; background: #fbfcfb; color: var(--bpink); font: 15px/1.5 "Inter", system-ui, sans-serif }
+body.bp-on { overflow: hidden }
+.bp-wrap { max-width: 880px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)) }
+.bp-top { background: linear-gradient(180deg, color-mix(in srgb, var(--bpa) 12%, #fff), #fbfcfb); border-bottom: 1px solid var(--bpline); padding: 28px 0 24px }
+.bp-top .bp-wrap { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center }
+.bp-logo { width: 52px; height: 52px; border-radius: 14px; background: var(--bpa); color: #fff; display: grid; place-items: center; font: 700 22px "Inter", system-ui }
+.bp-top h1 { margin: 0; font-size: 24px; letter-spacing: -.01em } .bp-top p { margin: 4px 0 0; color: var(--bpmute); max-width: 56ch }
+.bp-tabs { display: flex; gap: 4px; margin: 20px 0 16px; border-bottom: 1px solid var(--bpline) }
+.bp-tabs button { font: 600 15px "Inter", system-ui; background: none; border: 0; padding: 10px 14px; color: var(--bpmute); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px }
+.bp-tabs button[aria-selected=true] { color: var(--bpink); border-bottom-color: var(--bpa) }
+.bp-days { display: grid; grid-template-columns: repeat(7, minmax(44px, 1fr)); gap: 6px; margin-bottom: 12px }
+.bp-days button { font: inherit; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0; border-radius: 12px; border: 1px solid var(--bpline); background: #fff; cursor: pointer; color: var(--bpink) }
+.bp-days button span { font-size: 12px; color: var(--bpmute) } .bp-days button b { font-size: 17px }
+.bp-days button[aria-pressed=true] { background: var(--bpa); border-color: var(--bpa); color: #fff } .bp-days button[aria-pressed=true] span { color: rgba(255,255,255,.85) }
+.bp-filters { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap } .bp-filters select { font: inherit; font-size: 14px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--bpline); background: #fff; color: var(--bpink); min-width: 0; flex: 1 1 160px }
+.bp-list { list-style: none; margin: 0; padding: 0 }
+.bp-row { width: 100%; font: inherit; color: inherit; text-align: left; display: grid; grid-template-columns: 70px 1fr auto; gap: 14px; align-items: center; padding: 14px 6px; background: none; border: 0; border-top: 1px solid var(--bpline); cursor: pointer; border-radius: 10px }
+.bp-list li:first-child .bp-row { border-top: 0 } .bp-row:hover { background: var(--bpsoft) }
+.bp-row:focus-visible, .bp-btn:focus-visible, .bp-days button:focus-visible, .bp-tabs button:focus-visible { outline: 2px solid var(--bpa); outline-offset: 2px }
+.bp-row .t { font-weight: 700; font-variant-numeric: tabular-nums } .bp-row small { display: block; font-size: 12.5px; color: var(--bpmute); font-weight: 400 }
+.bp-row .n b, .bp-chip { display: flex; align-items: center; gap: 7px } .bp-row .n i { width: 9px; height: 9px; border-radius: 50%; flex: none }
+.bp .s { font-size: 12.5px; font-weight: 600; color: var(--bpmute); white-space: nowrap } .bp .s.few { color: #b45309 } .bp .s.full, .bp .s.waitlist { color: #b42318 }
+.bp-empty { color: var(--bpmute); padding: 24px 0 }
+.bp-packs { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; padding-bottom: 8px }
+.bp-pack { display: flex; flex-direction: column; gap: 6px; background: #fff; border: 1px solid var(--bpline); border-radius: 14px; padding: 16px } .bp-pack p { margin: 0; color: var(--bpmute); font-size: 13.5px }
+.bp-pack ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--bpmute); flex: 1 } .bp-price { font-size: 20px; font-weight: 700 } .bp-price small { font-size: 13px; font-weight: 500; color: var(--bpmute) }
+.bp-btn { font: 700 14px "Inter", system-ui; background: var(--bpa); color: #fff; border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; align-self: flex-start; min-height: 40px }
+.bp-btn.big { width: 100%; padding: 13px; font-size: 15px } .bp-btn:disabled { background: var(--bpsoft); color: var(--bpmute); cursor: default }
+.bp-ghost { font: 600 14px "Inter", system-ui; background: #fff; color: var(--bpink); border: 1px solid var(--bpline); border-radius: 10px; padding: 9px 14px; cursor: pointer; min-height: 40px }
+.bp-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--bpmute); font-size: 12.5px; padding: 28px 0 40px; border-top: 1px solid var(--bpline); margin-top: 20px }
+.bp-scrim { position: fixed; inset: 0; background: rgba(10, 20, 16, .35); z-index: 86 }
+.bp-sheet { position: fixed; z-index: 87; right: 0; top: 0; bottom: 0; width: min(440px, 100%); background: #fff; overflow-y: auto; padding: 22px 22px calc(28px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 12px; box-shadow: -10px 0 40px rgba(0,0,0,.12); animation: bpIn .22s ease-out }
+@keyframes bpIn { from { transform: translateX(24px); opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .bp-sheet { animation: none } }
+@media (max-width: 560px) { .bp-sheet { top: auto; max-height: 88vh; border-radius: 18px 18px 0 0; width: 100% } .bp-top .bp-wrap { grid-template-columns: auto 1fr } .bp-in { display: none } .bp-row { grid-template-columns: 56px 1fr; } .bp-row .s { grid-column: 2 } }
+.bp-x { align-self: flex-start; font-size: 18px; background: var(--bpsoft); border: 0; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; color: var(--bpink) }
+.bp-sheet h2 { margin: 0; font-size: 22px; letter-spacing: -.01em } .bp-when { margin: 0; color: var(--bpmute) }
+.bp-chip { font-size: 12px; font-weight: 600; color: var(--bpmute) } .bp-chip::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--c) }
+.bp-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 4px 0; font-size: 14px } .bp-dl dt { color: var(--bpmute) } .bp-dl dd { margin: 0 }
+.bp-need { display: flex; flex-direction: column; gap: 8px; background: var(--bpsoft); border-radius: 12px; padding: 14px; font-size: 14px } .bp-need > span { color: var(--bpmute) }
+.bp-plan { display: flex; justify-content: space-between; gap: 10px; background: #fff; border-radius: 10px; padding: 10px 12px; font-size: 14px } .bp-plan small { display: block; color: var(--bpmute); font-size: 12.5px }
+.bp-small { color: var(--bpmute); font-size: 13px; margin: 0 }
+.bp-fl { display: flex; flex-direction: column; gap: 5px; font-weight: 600; font-size: 13.5px } .bp-fl input { font: inherit; font-weight: 400; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--bpline) }
+.bp-or { display: flex; align-items: center; gap: 10px; color: var(--bpmute); font-size: 12.5px } .bp-or::before, .bp-or::after { content: ""; flex: 1; border-top: 1px solid var(--bpline) }
+.bp-social { display: flex; flex-direction: column; gap: 8px }
+.bp-off { text-align: center; padding: 80px 0 } .bp-off p { color: var(--bpmute) }

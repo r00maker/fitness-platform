@@ -781,6 +781,8 @@ export const checkout = z.object({
   voucherId: id.optional(),
   /** Use studio credit (gift cards, rewards) towards it. On unless turned off. */
   useCredit: z.boolean().default(true),
+  /** Online (any method, or a particular one when the studio passes fees on) or at the studio. */
+  payWith: z.enum(["online", "card", "paynow", "grabpay", "desk"]).optional(),
 });
 export const checkoutQuote = z.object({ planId: id, rolloverFromPackageId: id.optional(), voucherId: id.optional(), useCredit: z.stringbool().default(true) });
 export const sellPackage = z.object({

@@ -454,6 +454,7 @@ export const giftCardCheckout = z.object({
   amountCents: cents.min(100),
   /** Give it straight away. Leave out to keep it in your Gift cards tab and give it later. */
   give: giftRecipient.optional(),
+  payWith: z.enum(["online", "card", "paynow", "grabpay", "desk"]).optional(),
 });
 export const giftCardDesignInput = z.object({ name: z.string().trim().min(1).max(60), fileId: id, active: z.boolean().default(true) });
 export const giftCardSettings = z.object({

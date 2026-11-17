@@ -70,6 +70,16 @@ const envSchema = z
     MICROSOFT_CLIENT_ID: z.string().min(10).optional(),
     MICROSOFT_CLIENT_SECRET: z.string().min(10).optional(),
     MICROSOFT_TENANT: z.string().regex(/^[a-zA-Z0-9.-]+$/).default("common"),
+    /**
+     * Online payments (Stripe Connect). The platform's secret key (sk_test_... while testing) and
+     * the signing secrets of the two destinations that send to
+     * <PUBLIC_API_URL>/v1/public/payments/stripe/webhook (payment events from connected accounts,
+     * and v2 account events). Without the key, everything is paid at the studio, as before.
+     */
+    STRIPE_SECRET_KEY: z.string().regex(/^(sk|rk)_(test|live)_/, "Use the secret key from Stripe (sk_test_... or sk_live_...).").optional(),
+    /** One or more signing secrets, comma-separated (the payment events endpoint and the account events destination). */
+    STRIPE_WEBHOOK_SECRET: z.string().regex(/^whsec_[^,\s]+(\s*,\s*whsec_[^,\s]+)*$/, "Use the endpoint's signing secret (whsec_...), or several separated by commas.").optional(),
+    STRIPE_API_URL: z.string().url().default("https://api.stripe.com"),
     /** How far ahead recurring classes are created on the calendar. */
     SERIES_HORIZON_DAYS: z.coerce.number().int().min(7).max(730).default(120),
   })
@@ -82,6 +92,12 @@ const envSchema = z
     }
     if (env.NODE_ENV === "production" && env.AUTH_DEV_SECRET) {
       ctx.addIssue({ code: "custom", message: "AUTH_DEV_SECRET must not be set in production" });
+    }
+    if (env.STRIPE_SECRET_KEY && !env.STRIPE_WEBHOOK_SECRET && env.NODE_ENV === "production") {
+      ctx.addIssue({ code: "custom", message: "STRIPE_WEBHOOK_SECRET is required with STRIPE_SECRET_KEY, or paid orders never complete" });
+    }
+    if (env.NODE_ENV === "production" && env.STRIPE_SECRET_KEY?.includes("_test_")) {
+      ctx.addIssue({ code: "custom", message: "STRIPE_SECRET_KEY is a test key; use the live key in production" });
     }
     if (env.NODE_ENV !== "production" && !env.AUTH_JWKS_URL && !env.AUTH_DEV_SECRET) {
       ctx.addIssue({ code: "custom", message: "Set AUTH_DEV_SECRET (32+ chars) for local development" });

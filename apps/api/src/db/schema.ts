@@ -189,6 +189,26 @@ export const organizations = pgTable("organizations", {
   phone: text("phone"),
   website: text("website"),
   instagram: text("instagram"),
+  // Booking on the web: the public booking page (<app>/s/<slug>) and the website widget.
+  slug: text("slug").unique(),
+  bookingPageEnabled: boolean("booking_page_enabled").notNull().default(true),
+  bookingIntro: text("booking_intro"),
+  bookingAccent: text("booking_accent"),
+  // Online payments (Stripe Connect: the studio's own Stripe account; it's the seller).
+  stripeAccountId: text("stripe_account_id").unique(),
+  stripeChargesEnabled: boolean("stripe_charges_enabled").notNull().default(false),
+  stripePayoutsEnabled: boolean("stripe_payouts_enabled").notNull().default(false),
+  stripeDetailsSubmitted: boolean("stripe_details_submitted").notNull().default(false),
+  /** What Stripe still needs from the studio (field names, shown as a count and a link). */
+  stripeRequirements: text("stripe_requirements").array().notNull().default(sql`'{}'::text[]`),
+  stripeDisabledReason: text("stripe_disabled_reason"),
+  onlinePayments: boolean("online_payments").notNull().default(true),
+  payAtDesk: boolean("pay_at_desk").notNull().default(true),
+  /** Add the processing fee for cards and GrabPay (never PayNow). */
+  passOnFees: boolean("pass_on_fees").notNull().default(false),
+  cardFeeBps: integer("card_fee_bps").notNull().default(340),
+  cardFeeFixedCents: integer("card_fee_fixed_cents").notNull().default(50),
+  grabpayFeeBps: integer("grabpay_fee_bps").notNull().default(330),
   waiverRequired: boolean("waiver_required").notNull().default(true),
   /** The studio's own wording. Null = a short standard waiver is shown until the studio adds theirs. */
   waiverText: text("waiver_text"),
@@ -977,6 +997,12 @@ export const orders = pgTable(
     /** Shop orders: handed over at the studio. */
     collectedAt: ts("collected_at"),
     collectedBy: uuid("collected_by").references(() => users.id, { onDelete: "set null" }),
+    /** Online: the processing fee passed on to the client (added to the invoice once paid). */
+    surchargeCents: integer("surcharge_cents").notNull().default(0),
+    /** Online: how it was paid (card, paynow, grabpay, ...), from Stripe. */
+    paidWith: text("paid_with"),
+    /** Online: the Stripe Checkout page opened for it (expired if it's paid another way). */
+    checkoutSessionId: text("checkout_session_id"),
     createdAt: createdAt(),
   },
   (t) => [index("orders_client_idx").on(t.orgId, t.clientId)],
@@ -1889,6 +1915,8 @@ export const invoiceRefunds = pgTable(
     undidSale: boolean("undid_sale").notNull().default(false),
     /** The payment provider's reference once payments are connected. */
     providerRef: text("provider_ref"),
+    /** Stripe's refund status: pending, succeeded or failed (PayNow refunds settle later). */
+    providerStatus: text("provider_status"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
@@ -2223,3 +2251,37 @@ export const platformChatMessages = pgTable(
   },
   (t) => [index("platform_chat_messages_chat_idx").on(t.chatId, t.seq)],
 );
+
+// ---------------------------------------------------------------------------
+// Online payments
+// ---------------------------------------------------------------------------
+/** A client as a customer in the studio's Stripe account, with the card kept for memberships. */
+export const paymentCustomers = pgTable(
+  "payment_customers",
+  {
+    id: pk(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** The Stripe account it belongs to (a studio that reconnects gets new customers). */
+    stripeAccountId: text("stripe_account_id").notNull(),
+    stripeCustomerId: text("stripe_customer_id").notNull(),
+    cardPaymentMethodId: text("card_payment_method_id"),
+    cardBrand: text("card_brand"),
+    cardLast4: text("card_last4"),
+    cardExpMonth: integer("card_exp_month"),
+    cardExpYear: integer("card_exp_year"),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("payment_customers_uq").on(t.orgId, t.userId, t.stripeAccountId)],
+);
+
+/** Stripe webhook events we've handled, so a repeat delivery does nothing. */
+export const paymentEvents = pgTable("payment_events", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  account: text("account"),
+  orgId: uuid("org_id").references(() => organizations.id, { onDelete: "set null" }),
+  receivedAt: ts("received_at").notNull().defaultNow(),
+});
+

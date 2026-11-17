@@ -232,6 +232,20 @@
       "when": 1794849701833,
       "tag": "0032_studio_welcome",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794890460386,
+      "tag": "0033_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794898916071,
+      "tag": "0034_booking_page",
+      "breakpoints": true
     }
   ]
 }

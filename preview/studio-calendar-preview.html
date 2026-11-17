@@ -1800,6 +1800,116 @@ body.wc-on { overflow: hidden }
 .wc-preview button { font: 600 13px "Inter", system-ui, sans-serif; background: transparent; color: #ecf6f2; border: 1px dashed rgba(236, 246, 242, .4); border-radius: 999px; padding: 6px 14px; cursor: pointer; min-height: 34px }
 .wc-preview button:hover { border-style: solid }
 
+/* --- Online payments (mkt26) --- */
+.paysteps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; counter-reset: none; }
+.paysteps li { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); padding: 8px 10px; border-radius: 10px; background: var(--sunk); min-width: 0; }
+.paysteps li span { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; border: 1.5px solid var(--line); background: var(--surface); }
+.paysteps li.now { color: var(--fg); background: var(--accent-soft); }
+.paysteps li.now span { border-color: var(--accent); color: var(--accent); }
+.paysteps li.done { color: var(--fg); }
+.paysteps li.done span { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+@media (max-width: 560px) { .paysteps { grid-template-columns: 1fr; } }
+.payrow { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+.payrow > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.payrow > div span { font-size: 13px; color: var(--muted); }
+.payrow.off b { color: var(--muted); }
+.payfees { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 12px; margin-top: 8px; border-radius: 10px; background: var(--sunk); }
+.payfees .fl { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.payfees input { width: 64px; }
+.payfees .inline2 { flex-wrap: nowrap; gap: 6px; align-items: center; font-weight: 500; }
+.payfees .hint { grid-column: 1 / -1; }
+.payex { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.payex b { font-size: 13px; }
+.paybox .payopt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; }
+.paybox .payopt.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.paybox .payopt > span { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; font-size: 13.5px; }
+.paybox .payopt > span span { font-size: 12.5px; color: var(--muted); }
+.paybox .payopt em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.paycard { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.stripestand .ssnote { font-size: 12px; color: var(--muted); padding: 6px 10px; border-radius: 8px; background: var(--sunk); align-self: flex-start; }
+.stripestand [data-ssk] { width: 100%; }
+.pmcard { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; row-gap: 2px; align-items: center; padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: linear-gradient(135deg, var(--accent-soft), var(--surface)); max-width: 360px; }
+.pmcard .pmbrand { grid-row: 1 / 3; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 6px 8px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); }
+.pmcard b { font-size: 17px; font-variant-numeric: tabular-nums; letter-spacing: .06em; }
+.pmcard.empty { grid-template-columns: 1fr; background: var(--sunk); border-style: dashed; }
+.pmcard.empty b { font-size: 15px; letter-spacing: 0; }
+.pmwrap .lbl { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+/* --- Booking on the web (mkt27) --- */
+.bplink { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding-left: 10px; font-weight: 400; overflow: hidden; max-width: 560px }
+.bplink .muted { white-space: nowrap; font-size: 13.5px }
+.bplink input { border: 0 !important; box-shadow: none !important; flex: 1; min-width: 80px; padding: 9px 10px 9px 2px; background: transparent; font: inherit; font-weight: 600 }
+.bplink:focus-within { outline: 2px solid var(--accent); outline-offset: 1px }
+.bpcode { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap }
+.bpcode pre { flex: 1; min-width: 0; margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--sunk); border: 1px solid var(--line); font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-all }
+.bpwhost { padding: 20px; border-radius: 12px; background: repeating-linear-gradient(45deg, var(--sunk), var(--sunk) 10px, var(--bg) 10px, var(--bg) 20px); }
+/* The widget as studios' visitors see it (mirrors /v1/public/widget.js). */
+.bpw { --bg: #fff; --fg: #17201d; --muted: #5d6b66; --line: #e2e7e5; --soft: #f3f6f5; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 16px; max-width: 760px }
+.bpw.dark { --bg: #141a18; --fg: #e8eeec; --muted: #9fb0aa; --line: #2a3431; --soft: #1c2421 }
+.bpw-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 12px }
+.bpw-h b { font-size: 17px } .bpw-h a { color: var(--bpa); font-size: 13px; font-weight: 600; text-decoration: none }
+.bpw-days { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 8px }
+.bpw-days button { font: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap }
+.bpw-days button[aria-pressed=true] { background: var(--bpa); border-color: var(--bpa); color: #fff }
+.bpw ul { list-style: none; margin: 0; padding: 0 }
+.bpw li { display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line) }
+.bpw li:first-child { border-top: 0 }
+.bpw .t { font-weight: 700; font-variant-numeric: tabular-nums } .bpw .t span { display: block; font-weight: 400; font-size: 12px; color: var(--muted) }
+.bpw .n { min-width: 0 } .bpw .n b { display: flex; align-items: center; gap: 6px } .bpw .n b i { width: 8px; height: 8px; border-radius: 50%; flex: none } .bpw .n span { display: block; font-size: 13px; color: var(--muted) }
+.bpw .s { font-size: 12px; font-weight: 600; color: var(--muted); text-align: right; margin-bottom: 4px } .bpw .s.few { color: #b45309 } .bpw .s.full { color: #b42318 }
+.bpw .book { display: inline-block; font-size: 13px; font-weight: 700; text-decoration: none; background: var(--bpa); color: #fff; padding: 7px 14px; border-radius: 9px }
+.bpw .book.off { background: var(--soft); color: var(--muted); pointer-events: none }
+.bpw .e { color: var(--muted); padding: 12px 0; font-size: 14px } .bpw .f { margin-top: 10px; font-size: 11px; color: var(--muted); text-align: right }
+@media (max-width: 520px) { .bpw li { grid-template-columns: 52px 1fr } .bpw li .r { grid-column: 2; display: flex; gap: 10px; align-items: center } .bpw .s { margin: 0 } }
+
+/* The public booking page (a separate site in the app; its own calm look, the studio's colour). */
+.bp { --bpink: #16201c; --bpmute: #5f6d68; --bpline: #e4e9e6; --bpsoft: #f4f7f5; position: fixed; inset: 0; z-index: 85; overflow-y: auto; background: #fbfcfb; color: var(--bpink); font: 15px/1.5 "Inter", system-ui, sans-serif }
+body.bp-on { overflow: hidden }
+.bp-wrap { max-width: 880px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)) }
+.bp-top { background: linear-gradient(180deg, color-mix(in srgb, var(--bpa) 12%, #fff), #fbfcfb); border-bottom: 1px solid var(--bpline); padding: 28px 0 24px }
+.bp-top .bp-wrap { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center }
+.bp-logo { width: 52px; height: 52px; border-radius: 14px; background: var(--bpa); color: #fff; display: grid; place-items: center; font: 700 22px "Inter", system-ui }
+.bp-top h1 { margin: 0; font-size: 24px; letter-spacing: -.01em } .bp-top p { margin: 4px 0 0; color: var(--bpmute); max-width: 56ch }
+.bp-tabs { display: flex; gap: 4px; margin: 20px 0 16px; border-bottom: 1px solid var(--bpline) }
+.bp-tabs button { font: 600 15px "Inter", system-ui; background: none; border: 0; padding: 10px 14px; color: var(--bpmute); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px }
+.bp-tabs button[aria-selected=true] { color: var(--bpink); border-bottom-color: var(--bpa) }
+.bp-days { display: grid; grid-template-columns: repeat(7, minmax(44px, 1fr)); gap: 6px; margin-bottom: 12px }
+.bp-days button { font: inherit; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0; border-radius: 12px; border: 1px solid var(--bpline); background: #fff; cursor: pointer; color: var(--bpink) }
+.bp-days button span { font-size: 12px; color: var(--bpmute) } .bp-days button b { font-size: 17px }
+.bp-days button[aria-pressed=true] { background: var(--bpa); border-color: var(--bpa); color: #fff } .bp-days button[aria-pressed=true] span { color: rgba(255,255,255,.85) }
+.bp-filters { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap } .bp-filters select { font: inherit; font-size: 14px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--bpline); background: #fff; color: var(--bpink); min-width: 0; flex: 1 1 160px }
+.bp-list { list-style: none; margin: 0; padding: 0 }
+.bp-row { width: 100%; font: inherit; color: inherit; text-align: left; display: grid; grid-template-columns: 70px 1fr auto; gap: 14px; align-items: center; padding: 14px 6px; background: none; border: 0; border-top: 1px solid var(--bpline); cursor: pointer; border-radius: 10px }
+.bp-list li:first-child .bp-row { border-top: 0 } .bp-row:hover { background: var(--bpsoft) }
+.bp-row:focus-visible, .bp-btn:focus-visible, .bp-days button:focus-visible, .bp-tabs button:focus-visible { outline: 2px solid var(--bpa); outline-offset: 2px }
+.bp-row .t { font-weight: 700; font-variant-numeric: tabular-nums } .bp-row small { display: block; font-size: 12.5px; color: var(--bpmute); font-weight: 400 }
+.bp-row .n b, .bp-chip { display: flex; align-items: center; gap: 7px } .bp-row .n i { width: 9px; height: 9px; border-radius: 50%; flex: none }
+.bp .s { font-size: 12.5px; font-weight: 600; color: var(--bpmute); white-space: nowrap } .bp .s.few { color: #b45309 } .bp .s.full, .bp .s.waitlist { color: #b42318 }
+.bp-empty { color: var(--bpmute); padding: 24px 0 }
+.bp-packs { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; padding-bottom: 8px }
+.bp-pack { display: flex; flex-direction: column; gap: 6px; background: #fff; border: 1px solid var(--bpline); border-radius: 14px; padding: 16px } .bp-pack p { margin: 0; color: var(--bpmute); font-size: 13.5px }
+.bp-pack ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--bpmute); flex: 1 } .bp-price { font-size: 20px; font-weight: 700 } .bp-price small { font-size: 13px; font-weight: 500; color: var(--bpmute) }
+.bp-btn { font: 700 14px "Inter", system-ui; background: var(--bpa); color: #fff; border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; align-self: flex-start; min-height: 40px }
+.bp-btn.big { width: 100%; padding: 13px; font-size: 15px } .bp-btn:disabled { background: var(--bpsoft); color: var(--bpmute); cursor: default }
+.bp-ghost { font: 600 14px "Inter", system-ui; background: #fff; color: var(--bpink); border: 1px solid var(--bpline); border-radius: 10px; padding: 9px 14px; cursor: pointer; min-height: 40px }
+.bp-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--bpmute); font-size: 12.5px; padding: 28px 0 40px; border-top: 1px solid var(--bpline); margin-top: 20px }
+.bp-scrim { position: fixed; inset: 0; background: rgba(10, 20, 16, .35); z-index: 86 }
+.bp-sheet { position: fixed; z-index: 87; right: 0; top: 0; bottom: 0; width: min(440px, 100%); background: #fff; overflow-y: auto; padding: 22px 22px calc(28px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 12px; box-shadow: -10px 0 40px rgba(0,0,0,.12); animation: bpIn .22s ease-out }
+@keyframes bpIn { from { transform: translateX(24px); opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .bp-sheet { animation: none } }
+@media (max-width: 560px) { .bp-sheet { top: auto; max-height: 88vh; border-radius: 18px 18px 0 0; width: 100% } .bp-top .bp-wrap { grid-template-columns: auto 1fr } .bp-in { display: none } .bp-row { grid-template-columns: 56px 1fr; } .bp-row .s { grid-column: 2 } }
+.bp-x { align-self: flex-start; font-size: 18px; background: var(--bpsoft); border: 0; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; color: var(--bpink) }
+.bp-sheet h2 { margin: 0; font-size: 22px; letter-spacing: -.01em } .bp-when { margin: 0; color: var(--bpmute) }
+.bp-chip { font-size: 12px; font-weight: 600; color: var(--bpmute) } .bp-chip::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--c) }
+.bp-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 4px 0; font-size: 14px } .bp-dl dt { color: var(--bpmute) } .bp-dl dd { margin: 0 }
+.bp-need { display: flex; flex-direction: column; gap: 8px; background: var(--bpsoft); border-radius: 12px; padding: 14px; font-size: 14px } .bp-need > span { color: var(--bpmute) }
+.bp-plan { display: flex; justify-content: space-between; gap: 10px; background: #fff; border-radius: 10px; padding: 10px 12px; font-size: 14px } .bp-plan small { display: block; color: var(--bpmute); font-size: 12.5px }
+.bp-small { color: var(--bpmute); font-size: 13px; margin: 0 }
+.bp-fl { display: flex; flex-direction: column; gap: 5px; font-weight: 600; font-size: 13.5px } .bp-fl input { font: inherit; font-weight: 400; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--bpline) }
+.bp-or { display: flex; align-items: center; gap: 10px; color: var(--bpmute); font-size: 12.5px } .bp-or::before, .bp-or::after { content: ""; flex: 1; border-top: 1px solid var(--bpline) }
+.bp-social { display: flex; flex-direction: column; gap: 8px }
+.bp-off { text-align: center; padding: 80px 0 } .bp-off p { color: var(--bpmute) }
+
 /* MKT-CSS-END */
 </style>
 
@@ -12288,6 +12398,408 @@ body.wc-on { overflow: hidden }
     const openModalBase = typeof openModal === "function" ? openModal : null;
     void openModalBase;
     document.addEventListener("click", () => setTimeout(decorateAI, 0), true);
+  }
+  // ===========================================================================
+  // Online payments (Stripe Connect), the same rules as apps/api/src/modules/payments:
+  //  - Setup, Payments: connect Stripe (the studio's own account; money goes straight to it),
+  //    where it is with Stripe, how clients pay, passing the fee on (cards and GrabPay only,
+  //    never PayNow), and recent online payments.
+  //  - Checkout: choose how to pay, with any fee shown before paying. A stand-in for Stripe's
+  //    page opens; paying completes the order the same way a desk payment does.
+  //  - Payment method (client menu, web and phone): the card kept for membership renewals, which
+  //    memberships use it, replace it; it can't be removed while a membership renews on it.
+  //  - Memberships are paid by card at checkout: no paying at the studio.
+  // ===========================================================================
+  {
+    const PAY = (STUDIO.pay ||= { status: location.hash === "#payments-ready" ? "ready" : "not_connected", payouts: false, online: true, desk: true, passOn: false, cardBps: 340, cardFixed: 50, grabBps: 330, recent: [] });
+    const CARD = (STUDIO.payCard ||= { brand: "Visa", last4: "4242", exp: "08/28" });
+    /** (price + fixed) / (1 − rate), rounded up, minus the price: the studio still gets the full price. */
+    const passedOn = (amt, bps, fixed) => (amt <= 0 || (bps <= 0 && fixed <= 0) ? 0 : Math.ceil((amt + fixed) / (1 - bps / 10000)) - amt);
+    const ready = () => PAY.status === "ready" && PAY.online;
+    const feeFor = (m, amt) => (!PAY.passOn || m === "paynow" ? 0 : m === "card" ? passedOn(amt, PAY.cardBps, PAY.cardFixed) : passedOn(amt, PAY.grabBps, 0));
+    const pct = (bps) => `${(bps / 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+    const LBL = { online: "Pay online", card: "Card, Apple Pay or Google Pay", paynow: "PayNow", grabpay: "GrabPay", desk: "Pay at the studio" };
+    /** The ways a client can pay this amount (the same list GET /checkout/quote gives). */
+    function payOptions(amt, recurring) {
+      const out = [];
+      if (amt > 0 && ready()) {
+        if (PAY.passOn) for (const k of ["card", ...(recurring || STUDIO.currency !== "SGD" ? [] : ["paynow", "grabpay"])]) out.push({ k, fee: feeFor(k, amt) });
+        else out.push({ k: recurring ? "card" : "online", fee: 0 });
+      }
+      // Memberships renew on the card they're bought with, so they can't be paid at the studio.
+      if (amt > 0 && !recurring && (PAY.desk || !ready())) out.push({ k: "desk", fee: 0 });
+      return out;
+    }
+    const STEPS = [["not_connected", "Connect Stripe"], ["pending", "Stripe checks your details"], ["ready", "Take payments"]];
+    const STATUS_TEXT = {
+      not_connected: "Connect Stripe to take cards, PayNow and GrabPay. Money goes straight to your own Stripe account, and you can see every payment in Stripe too.",
+      needs_details: "Stripe needs a few more details (2 to go) before you can take payments.",
+      pending: "Stripe is checking your details. This usually takes a few minutes, sometimes a day or two. We'll tell you when it's done.",
+      ready: "Ready: clients can pay online.",
+    };
+    const stepAt = () => (PAY.status === "ready" ? 2 : PAY.status === "not_connected" ? 0 : 1);
+
+    // --- Setup, Payments ---------------------------------------------------------------------
+    NAV.push({ id: "payments", group: "Setup", roles: ["admin"], label: "Payments", help: "Take cards, PayNow and GrabPay online through your own Stripe account, and choose how clients pay." });
+    NAV_ORDER.find(([g]) => g === "Setup")[1].push("payments");
+    { const t = HUBS.find((h) => h.id === "setup")?.tabs; if (t) t.splice(t.findIndex((x) => x[0] === "studio-details") + 1, 0, ["payments", "Payments"]); }
+    ICONS.payments = '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>';
+
+    PAGES.payments = function () {
+      const at = stepAt();
+      const ex = 3000, m = (c) => m$(c);
+      const steps = `<ol class="paysteps">${STEPS.map(([, l], i) => `<li class="${i < at ? "done" : i === at ? "now" : ""}"><span>${i < at ? "✓" : i + 1}</span>${l}</li>`).join("")}</ol>`;
+      const action = {
+        not_connected: `<button type="button" class="btn primary" id="payConnect" data-help="Only the owner can connect Stripe, as the account is in the business's name.">Connect Stripe</button>`,
+        needs_details: `<button type="button" class="btn primary" id="payConnect">Continue on Stripe</button>`,
+        pending: `<button type="button" class="btn" id="payCheck">Check again</button>`,
+        ready: `<button type="button" class="btn" id="payDash">Open your Stripe dashboard</button>${PAY.payouts ? "" : `<span class="hint">Add your bank account in Stripe to receive payouts.</span>`}`,
+      }[PAY.status];
+      const tg = (id, on, title, hint, dis = "") => `<div class="payrow ${dis ? "off" : ""}"><div><b>${title}</b><span>${hint}</span></div>${toggle(id, on, title)}</div>`;
+      const recent = PAY.recent.length
+        ? `<table class="tbl"><thead><tr><th>Client</th><th>For</th><th>Paid with</th><th class="num">Amount</th><th>When</th></tr></thead><tbody>${PAY.recent.map((r) => `<tr><td>${esc(r.client)}</td><td>${esc(r.what)}</td><td>${esc(r.method)}</td><td class="num">${m(r.amount)}${r.fee ? `<br><span class="muted" style="font-size:12px">incl. ${m(r.fee)} fee</span>` : ""}</td><td>${esc(r.at)}</td></tr>`).join("")}</tbody></table>`
+        : `<span class="muted">No online payments yet. They'll show here, and in your Stripe dashboard.</span>`;
+      return head("Payments", "Take cards, PayNow and GrabPay online. Money goes straight to your own Stripe account; the studio is the seller, and Stripe's fees are paid from each payment.") +
+        `<div class="stack" style="gap:16px;max-width:820px">
+          <div class="card stack paystatus" style="gap:12px">${steps}<p style="margin:0">${STATUS_TEXT[PAY.status]}</p><div class="row" style="gap:8px;flex-wrap:wrap">${action}</div></div>
+          <div class="card stack" style="gap:4px"><h3>How clients pay</h3>
+            ${tg("payOnline", PAY.online, "Online payments", PAY.status === "ready" ? "Clients can pay online when they buy packages, gift cards and shop items, and memberships renew on the card they used." : "Switches on once Stripe has checked your details.", PAY.status === "ready" ? "" : "off")}
+            ${tg("payDesk", PAY.desk, "Paying at the studio", "Clients can still choose to pay at the front desk. Staff mark it paid, as now.")}
+            ${tg("payPass", PAY.passOn, "Pass the fee on to clients", "Add Stripe's fee for cards and GrabPay, shown as its own line before they pay. Never for PayNow: the banks' PayNow rules don't allow it.")}
+            ${PAY.passOn ? `<div class="payfees">
+              <label class="fl">Card fee<span class="inline2"><input id="payCardPct" type="number" min="0" max="10" step="0.01" value="${PAY.cardBps / 100}" aria-label="Card fee percent"> % + ${esc(STUDIO.currency)}<input id="payCardFix" type="number" min="0" max="5" step="0.01" value="${PAY.cardFixed / 100}" aria-label="Card fee fixed"></span></label>
+              <label class="fl">GrabPay fee<span class="inline2"><input id="payGrabPct" type="number" min="0" max="10" step="0.01" value="${PAY.grabBps / 100}" aria-label="GrabPay fee percent"> %</span></label>
+              <div class="payex"><b>On a ${m(ex)} package</b><span>Card: +${m(feeFor("card", ex))} (they pay ${m(ex + feeFor("card", ex))})</span><span>GrabPay: +${m(feeFor("grabpay", ex))}</span><span>PayNow: no fee</span></div>
+              <span class="hint">Set these to the rates on your Stripe account (Stripe's standard Singapore rates are filled in). Card networks and your Stripe agreement have their own rules on card surcharges: check them before switching this on.</span></div>` : ""}
+            <span class="hint" style="margin-top:8px">Which methods clients see (cards, Apple Pay, Google Pay, PayNow, GrabPay and others) is set in your Stripe dashboard, under Settings, Payment methods.</span>
+          </div>
+          <div class="card stack" style="gap:8px"><h3>Recent online payments</h3>${recent}<span class="hint">Refunds are made from the sale (Sales): ones back to how they paid go through Stripe. Disputes are answered in your Stripe dashboard; we'll tell you when one comes in.</span></div>
+        </div>`;
+    };
+
+    function standIn(title, body, actions) {
+      $("#modalRoot").innerHTML = `<div class="modal-wrap" data-mclose><div class="modal stripestand" role="dialog" aria-modal="true" aria-labelledby="ssT" style="width:min(460px,100%)"><header><h2 id="ssT">${title}</h2></header><div class="mb stack" style="gap:10px"><span class="ssnote">Preview: in the app, Stripe's own secure page opens here.</span>${body}</div><footer>${actions}</footer></div></div>`;
+    }
+    BIND.payments = function () {
+      if ($("#payConnect")) $("#payConnect").onclick = () => {
+        standIn("Set up payments with Stripe", `<p style="margin:0">Stripe asks for the business's details (registered name, UEN, address), the owner's details and the bank account for payouts. It takes about 10 minutes.</p>`,
+          `<button type="button" class="btn ghost" id="ssLater">Leave it for later</button><button type="button" class="btn primary" id="ssDone">Finish on Stripe</button>`);
+        $("#ssLater").onclick = () => { PAY.status = "needs_details"; closeModal(); render(); toast("Saved. You can carry on with Stripe any time."); };
+        $("#ssDone").onclick = () => { PAY.status = "pending"; closeModal(); render(); toast("Thanks. Stripe is checking your details."); };
+      };
+      if ($("#payCheck")) $("#payCheck").onclick = () => { PAY.status = "ready"; render(); toast("Stripe has checked your details: clients can now pay online."); };
+      if ($("#payDash")) $("#payDash").onclick = () => toast("In the app, this opens dashboard.stripe.com in a new tab.");
+      const set = () => {
+        const online = $("#payOnline").checked, desk = $("#payDesk").checked;
+        // Refused: show the switches as they really are again.
+        if (!online && !desk) { render(); return toast("Clients need a way to pay: keep paying online or paying at the studio switched on."); }
+        if (!desk && !(PAY.status === "ready" && online)) { render(); return toast("Online payments aren't ready yet, so clients still need to be able to pay at the studio."); }
+        PAY.online = online; PAY.desk = desk; render();
+      };
+      if (PAY.status !== "ready") $("#payOnline").disabled = true;
+      $("#payOnline").onchange = set; $("#payDesk").onchange = set;
+      $("#payPass").onchange = (e) => {
+        if (!e.target.checked) { PAY.passOn = false; return render(); }
+        e.target.checked = false;
+        confirmFlags([{ level: "confirm", title: "Pass the fee on to clients?", msg: "Clients paying by card or GrabPay will see the fee as a separate line before they pay (never for PayNow). Card networks and your Stripe agreement have their own rules on card surcharges: check they allow it for your business." }], { proceedLabel: "Pass it on", proceed: () => { PAY.passOn = true; render(); toast("The fee is shown to clients before they pay."); } });
+      };
+      const num = (id, max) => Math.max(0, Math.min(max, Math.round(Number($(id)?.value || 0) * 100)));
+      ["#payCardPct", "#payCardFix", "#payGrabPct"].forEach((id) => { if ($(id)) $(id).onchange = () => { PAY.cardBps = num("#payCardPct", 1000); PAY.cardFixed = num("#payCardFix", 500); PAY.grabBps = num("#payGrabPct", 1000); render(); }; });
+    };
+
+    // --- Checkout: choose how to pay ------------------------------------------------------------
+    const pageCheckout = PAGES.checkout;
+    let paying = false;
+    PAGES.checkout = function () {
+      let out = pageCheckout.call(this);
+      const pl = PLANS.find((x) => x.id === state.buy) || PLANS[0];
+      const recurring = pl.billing === "recurring";
+      if (state.ordered) {
+        const od = ORDERS.find((o) => o.id === state.ordered);
+        if (od?.online) return out.replace(/<div class="alert ok">[\s\S]*?<\/div><\/div>/, alertBox("ok", `${esc(pl.name)} is on your account`, `Paid with ${esc(od.online.method)}. Your receipt is in Receipts and invoices, and you can book straight away.${recurring ? " Your card is kept securely by Stripe for the renewals." : ""}`)).replace(/<dt>Paid<\/dt><dd>[^<]*<\/dd>/, `<dt>Paid</dt><dd>${m$(od.due + od.online.fee)}</dd>${od.online.fee ? `<dt>Includes</dt><dd>${m$(od.online.fee)} ${od.online.k === "grabpay" ? "GrabPay" : "card"} fee</dd>` : ""}`);
+        if (od?.status === "pending" && ready()) {
+          return out.replace("Pay at the front desk and your package will be ready straight away. Online payment is coming soon.", "Your order is saved. Pay online now, or at the front desk; your package is ready as soon as it's paid.")
+            .replace('<div class="actions"><button type="button" class="btn primary" data-nav="my-packages">', `<div class="actions"><button type="button" class="btn primary" data-paynow="${od.id}">Pay now</button><button type="button" class="btn" data-nav="my-packages">`);
+        }
+        return out;
+      }
+      const pr = checkoutPrice(ME.client, pl);
+      const opts = payOptions(pr.due, recurring);
+      if (recurring && pr.due > 0 && !opts.length) {
+        return out.replace(/<div class="paybox">[\s\S]*?<\/div>/, `<div class="paybox"><b>Paid by card</b><span class="muted" style="font-size:13px">This membership renews by card, and the studio isn't taking card payments online yet. Ask at the front desk and they'll set it up for you.</span></div>`)
+          .replace(/<button type="button" class="btn primary" data-order="place"([^>]*)>[^<]*</, `<button type="button" class="btn primary" data-order="place"$1 disabled>Ask at the front desk<`);
+      }
+      if (!opts.some((o) => o.k !== "desk")) return out;
+      if (!opts.some((o) => o.k === state.coPay)) state.coPay = opts[0].k;
+      const sel = opts.find((o) => o.k === state.coPay);
+      const box = `<div class="paybox"><b>Pay with</b>${opts.map((o) => `<label class="payopt ${o.k === state.coPay ? "on" : ""}" for="coPay_${o.k}"><input type="radio" name="coPay" id="coPay_${o.k}" value="${o.k}" ${o.k === state.coPay ? "checked" : ""}><span><b>${LBL[o.k]}</b><span>${o.k === "desk" ? "Order now, pay at the front desk" : o.fee ? `+${m$(o.fee)} ${o.k === "card" ? "card" : "GrabPay"} fee` : o.k === "paynow" && PAY.passOn ? "No fee" : recurring ? "Kept securely by Stripe for the renewals" : "Card, PayNow, GrabPay and more"}</span></span><em>${m$(pr.due + o.fee)}</em></label>`).join("")}
+        <span class="lockbadge">🔒 Paid securely through Stripe. The studio never sees your card number.</span></div>`;
+      out = out.replace(/<div class="paybox">[\s\S]*?<\/div>/, box);
+      if (sel.fee) out = out.replace('<div class="totalrow">', `<div class="row" style="justify-content:space-between"><span>${sel.k === "card" ? "Card fee" : "GrabPay fee"}</span><span>+${m$(sel.fee)}</span></div><div class="totalrow">`).replace(/(<div class="totalrow"><span>[^<]*<\/span><span>)[^<]*(<\/span>)/, `$1${m$(pr.due + sel.fee)}$2`);
+      return out.replace(/(data-order="place" style="justify-content:center">)[^<]*</, `$1${sel.k === "desk" ? `Place order · ${m$(pr.due)}` : `Continue to payment · ${m$(pr.due + sel.fee)}`}<`);
+    };
+    const bindCheckout = BIND.checkout;
+    BIND.checkout = function () {
+      bindCheckout?.call(this);
+      document.querySelectorAll('input[name="coPay"]').forEach((r) => (r.onchange = () => { state.coPay = r.value; render(); }));
+    };
+    const METHOD_NAME = { online: "Visa ending 4242", card: "Visa ending 4242", paynow: "PayNow", grabpay: "GrabPay" };
+    function payOnline(od, k) {
+      const pl = PLANS.find((x) => x.id === od.plan), fee = feeFor(k === "online" ? "card" : k, od.due);
+      const recurring = pl.billing === "recurring";
+      standIn(`Pay ${esc(document.querySelector(".brand h1, header h1")?.textContent || "the studio")}`, `<dl class="summary"><dt>${esc(pl.name)}</dt><dd>${m$(od.due)}</dd>${fee ? `<dt>${k === "grabpay" ? "GrabPay" : "Card"} fee</dt><dd>${m$(fee)}</dd>` : ""}<dt><b>Total</b></dt><dd><b>${m$(od.due + fee)}</b></dd></dl>
+        <span class="hint">${k === "paynow" ? "Scan the PayNow QR code with your banking app." : k === "grabpay" ? "You'll confirm in the Grab app." : "Card, Apple Pay or Google Pay."}${recurring ? " Your card is saved for the renewals." : ""}</span>`,
+        `<button type="button" class="btn ghost" data-mclose>Back</button><button type="button" class="btn primary" id="ssPay">Pay ${m$(od.due + fee)}</button>`);
+      $("#ssPay").onclick = () => {
+        closeModal();
+        const b = document.createElement("button"); b.type = "button"; b.hidden = true; b.dataset.order = `paid:${od.id}`; document.body.append(b); b.click(); b.remove();
+        od.online = { k, fee, method: METHOD_NAME[k] };
+        PAY.recent.unshift({ client: CLIENTS[od.ci].name, what: pl.name, method: METHOD_NAME[k], amount: od.due + fee, fee, at: "Just now" });
+        if (recurring && k !== "paynow") Object.assign(CARD, { brand: "Visa", last4: "4242", exp: "08/28" });
+        render(); toast(`Paid ${m$(od.due + fee)}. ${pl.name} is on your account.`);
+      };
+    }
+    document.addEventListener("click", (e) => {
+      const place = e.target.closest('[data-order="place"]');
+      if (place && !paying && state.page === "checkout" && ready()) {
+        const pl = PLANS.find((x) => x.id === state.buy) || PLANS[0];
+        const pr = checkoutPrice(ME.client, pl);
+        const k = state.coPay;
+        if (pr.due > 0 && k && k !== "desk") {
+          e.stopImmediatePropagation(); e.preventDefault();
+          // The order is made first (as in the app), then Stripe's page opens for it. (A click
+          // can't start another click on the same button while it's running, hence the wait.)
+          setTimeout(() => {
+            paying = true; place.click(); paying = false;
+            $("#toastRoot").innerHTML = ""; // not "pay at the front desk": they're paying now
+            const od = ORDERS.find((o) => o.id === state.ordered);
+            if (od?.status === "pending") payOnline(od, k);
+          });
+        }
+        return;
+      }
+      const pn = e.target.closest("[data-paynow]");
+      if (pn) {
+        const od = ORDERS.find((o) => o.id === Number(pn.dataset.paynow));
+        const pl = PLANS.find((x) => x.id === od.plan);
+        const opts = payOptions(od.due, pl.billing === "recurring").filter((o) => o.k !== "desk");
+        if (opts.length === 1) return payOnline(od, opts[0].k);
+        standIn("How would you like to pay?", opts.map((o) => `<button type="button" class="btn" data-ssk="${o.k}" style="justify-content:space-between">${LBL[o.k]}<span>${m$(od.due + o.fee)}</span></button>`).join(""), `<button type="button" class="btn ghost" data-mclose>Back</button>`);
+        document.querySelectorAll("[data-ssk]").forEach((b) => (b.onclick = () => payOnline(od, b.dataset.ssk)));
+      }
+    }, true);
+
+    // --- Payment method (client menu) ------------------------------------------------------------
+    NAV.push({ id: "payment-method", group: "Account", roles: ["client"], label: "Payment method", help: "The card kept for your membership's renewals: see it, replace it." });
+    NAV_ORDER.find(([g]) => g === "Account")[1].splice(NAV_ORDER.find(([g]) => g === "Account")[1].indexOf("profile"), 0, "payment-method");
+    ICONS["payment-method"] = ICONS.payments;
+    const renewing = () => myPkgs(ME.client).filter((pk) => PLANS.find((p) => p.id === pk.plan)?.billing === "recurring" && pk.owner === ME.client && !pk.cancelled && !pk.stopped);
+    PAGES["payment-method"] = function () {
+      const mem = renewing();
+      if (PAY.status !== "ready") return head("Payment method", "") + `<div class="card" style="max-width:640px">${alertBox("info", "Online payments aren't on yet", "This studio isn't taking card payments online yet, so you pay at the front desk. Once it is, you can add a card here for your membership.")}</div>`;
+      const card = CARD.last4
+        ? `<div class="pmcard"><span class="pmbrand">${esc(CARD.brand)}</span><b>•••• ${esc(CARD.last4)}</b><span class="muted">Expires ${esc(CARD.exp)}</span></div>`
+        : `<div class="pmcard empty"><b>No card saved</b><span class="muted">${mem.length ? "Your membership needs a card to renew. Add one so it doesn't go on hold." : "Add a card for a membership's renewals. Nothing is charged until a renewal is due."}</span></div>`;
+      const uses = mem.length ? `<div class="stack" style="gap:4px"><span class="lbl">Used for</span>${mem.map((pk) => `<span>${esc(pk.name)}${pk.expires ? ` · renews ${fmtDay(pk.expires)}` : ""}${pk.hold ? ' · <span class="bdg bad">On hold: payment didn\'t go through</span>' : ""}</span>`).join("")}</div>` : `<span class="muted">No membership uses it right now.</span>`;
+      return head("Payment method", "The card kept for your membership's renewals. Packages, gift cards and shop items are paid when you buy them.") +
+        `<div class="card stack pmwrap" style="gap:14px;max-width:640px">${card}${uses}
+          <div class="inline2"><button type="button" class="btn primary" id="cardReplace">${CARD.last4 ? "Replace card" : "Add a card"}</button>${CARD.last4 ? `<button type="button" class="btn ghost danger" id="cardRemove">Remove card</button>` : ""}</div>
+          <span class="hint">Your card is kept securely by Stripe; the studio never sees the full number. Replacing it doesn't charge anything${mem.some((pk) => pk.hold) ? ", but a membership on hold is paid straight away" : ""}.</span></div>`;
+    };
+    BIND["payment-method"] = function () {
+      if ($("#cardReplace")) $("#cardReplace").onclick = () => {
+        standIn(CARD.last4 ? "Replace your card" : "Add a card", `<p style="margin:0">Add the card for your membership's renewals. Nothing is charged now.</p>`, `<button type="button" class="btn ghost" data-mclose>Back</button><button type="button" class="btn primary" id="ssSave">Save card</button>`);
+        $("#ssSave").onclick = () => {
+          Object.assign(CARD, { brand: "Mastercard", last4: "5454", exp: "03/29" });
+          const held = renewing().filter((pk) => pk.hold);
+          held.forEach((pk) => typeof liftHold === "function" && liftHold(pk, "card"));
+          closeModal(); render(); toast(held.length ? "Card saved, and your membership is paid and active again." : "Card saved for your renewals.");
+        };
+      };
+      if ($("#cardRemove")) $("#cardRemove").onclick = () => {
+        const mem = renewing();
+        if (mem.length) return toast(`Your ${mem[0].name} renews on this card, so it can't be removed. Replace it instead, or stop the membership's renewal first.`);
+        CARD.last4 = ""; render(); toast("Card removed.");
+      };
+    };
+  }
+  // ===========================================================================
+  // Booking on the web (the same rules as apps/api/src/modules/booking-page):
+  //  - Setup, Booking page: the studio's link (<app>/s/<slug>), on/off, a line at the top, the
+  //    widget colour, the code to paste into the studio's website (with options) and a live
+  //    preview of the widget.
+  //  - The public booking page, as visitors see it (opened from Setup, or #book): the timetable by
+  //    day with spots left, filters, a class with the packages that cover it, and the packages on
+  //    sale. Book and Buy ask the visitor to sign in (a stand-in), then hand over to the client
+  //    app: the class opens with the usual booking rules, or the package goes to checkout.
+  // ===========================================================================
+  {
+    const BP = (STUDIO.bp ||= { slug: "demo-studio", saved: true, enabled: true, intro: "Small-group reformer, yoga and barre in Tanjong Pagar and Holland Village. First time? Try the 5-class pack.", accent: "" });
+    const V = (state.bpv ||= { tab: "classes", day: 0, loc: "", type: "", open: null, buy: null, signin: null, days: 7, wLoc: "", wTheme: "light" });
+    const APP = "https://book.studioapp.sg";
+    const API = "https://api.studioapp.sg";
+    const RESERVED = ["admin", "api", "app", "book", "booking", "help", "hq", "join", "login", "logout", "new", "pay", "payments", "s", "settings", "setup", "signin", "signup", "static", "studio", "studios", "support", "widget", "www"];
+    const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
+    const accent = () => BP.accent || "#0c6156";
+    const live = () => BP.saved && BP.enabled && STUDIO.lifecycle !== "onboarding";
+    /** "Ana L.": instructors' first name and initial on public pages. */
+    const pubName = (k) => { const [f, ...r] = instrName(k).split(" "); return r.length ? `${f} ${r[r.length - 1][0]}.` : f; };
+    const OPEN_DAYS = 14;
+    function availability(s) {
+      const left = s.cap - s.roster.length;
+      const opens = addDays(day(s.start), -OPEN_DAYS);
+      if (NOW < opens) return { k: "soon", label: `Booking opens ${fmtDay(opens)}`, btn: "Soon" };
+      if (left <= 0) return s.waitlist !== undefined ? { k: "waitlist", label: "Full: join the waitlist", btn: "Join waitlist" } : { k: "full", label: "Full", btn: "Full" };
+      return { k: left <= 3 ? "few" : "open", label: `${plural(left, "spot")} left`, btn: "Book" };
+    }
+    /** What a visitor sees: classes (not appointments), from now on, cancelled ones hidden. */
+    function publicDay(i, loc = V.loc, type = V.type) {
+      const d = addDays(day(NOW), i);
+      return SESSIONS.filter((s) => s.status === "scheduled" && !isAppt(s) && s.start > NOW && sameDay(s.start, d) && (!loc || s.loc === loc) && (!type || s.type === type)).sort((a, b) => a.start - b.start);
+    }
+    const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    const dayLabel = (i) => (i === 0 ? "Today" : fmtDay(addDays(day(NOW), i)));
+    const covering = (s) => PLANS.filter((p) => p.onSale && !p.archived && (!p.types.length || p.types.includes(s.type))).sort((a, b) => a.price - b.price).slice(0, 4);
+
+    // --- Setup, Booking page ------------------------------------------------------------------
+    NAV.push({ id: "booking-page", group: "Setup", roles: ["admin"], label: "Booking page", help: "Your public booking page and the timetable widget for your own website." });
+    NAV_ORDER.find(([g]) => g === "Setup")[1].push("booking-page");
+    { const t = HUBS.find((h) => h.id === "setup")?.tabs; if (t) t.splice(t.findIndex((x) => x[0] === "payments") + 1, 0, ["booking-page", "Booking page"]); }
+    ICONS["booking-page"] = '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>';
+
+    function widgetHTML(opts = {}) {
+      const days = Math.min(opts.days || 7, 7), loc = opts.loc || "", sel = Math.min(opts.sel ?? firstDayWithClasses(loc), days - 1);
+      const list = publicDay(sel, loc, "");
+      return `<div class="bpw ${opts.theme === "dark" ? "dark" : ""}" style="--bpa:${accent()}">
+        <div class="bpw-h"><b>Demo Studio</b><a href="#" data-bpopen>All classes and packages</a></div>
+        <div class="bpw-days" role="group" aria-label="Choose a day">${Array.from({ length: days }, (_, i) => `<button type="button" data-bpwday="${i}" aria-pressed="${i === sel}">${dayLabel(i)}</button>`).join("")}</div>
+        ${list.length ? `<ul>${list.slice(0, 6).map((s) => { const a = availability(s); return `<li><div class="t">${clock(s.start)}<span>${Math.round((s.end - s.start) / 60000)} min</span></div><div class="n"><b><i style="background:${TYPES[s.type].color}"></i>${esc(TYPES[s.type].name)}</b><span>${esc(pubName(s.instr))} · ${esc(LOCS[s.loc])}</span></div><div class="r"><div class="s ${a.k === "few" ? "few" : a.k === "full" || a.k === "waitlist" ? "full" : ""}">${esc(a.label)}</div><a class="book ${["open", "few", "waitlist"].includes(a.k) ? "" : "off"}" href="#" data-bpclass="${s.id}">${a.btn}</a></div></li>`; }).join("")}</ul>` : `<div class="e">No classes this day.</div>`}
+        <div class="f">Times are in the studio's time zone</div></div>`;
+    }
+    const firstDayWithClasses = (loc) => { for (let i = 0; i < 7; i++) if (publicDay(i, loc, "").length) return i; return 0; };
+    const code = () => `<div data-studio-schedule="${BP.slug}"${V.wLoc ? ` data-location="${V.wLoc === "tp" ? "3f1c…" : "8a27…"}"` : ""}${V.wTheme !== "light" ? ` data-theme="${V.wTheme}"` : ""}></div>\n<scr` + `ipt src="${API}/v1/public/widget.js" async></scr` + `ipt>`; // split so the page's own script tag isn't closed early
+
+    PAGES["booking-page"] = function () {
+      const st = live() ? ["Live", "done"] : !BP.enabled ? ["Off", "off"] : STUDIO.lifecycle === "onboarding" ? ["Opens with the studio", "wait"] : ["Not saved", "open"];
+      return head("Booking page", "Your public booking page, and the timetable for your own website. Visitors see classes and packages without signing in; they sign in to book.", `<button type="button" class="btn primary" id="bpOpen">Open booking page</button>`) +
+        `<div class="stack" style="gap:16px;max-width:900px">
+        <div class="card stack" style="gap:12px"><div class="row" style="justify-content:space-between"><h3>Your link</h3><span class="status ${st[1]}">${st[0]}</span></div>
+          <label class="fl bpslug" for="bpSlug">Link<span class="bplink"><span class="muted">${esc(APP.replace("https://", ""))}/s/</span><input id="bpSlug" value="${esc(BP.slug)}" autocomplete="off" spellcheck="false" aria-describedby="bpErr"></span></label>
+          <span class="hint" id="bpErr" role="alert"></span>
+          <div class="payrow" style="border:0;padding:0"><div><b>Booking page on</b><span>Off hides the page and the widget (people with the link see "not found").</span></div>${toggle("bpOn", BP.enabled, "Booking page on")}</div>
+          <label class="fl" for="bpIntro">A line at the top <span class="count">${BP.intro.length}/300</span><textarea id="bpIntro" rows="2" maxlength="300">${esc(BP.intro)}</textarea></label>
+          <label class="fl" for="bpAccent">Button colour<span class="inline2"><input id="bpAccent" type="color" value="${accent()}" aria-label="Button colour"><span class="muted" style="font-weight:400">${BP.accent ? esc(BP.accent) : "Your invoice colour"}</span></span></label>
+          <div class="inline2"><button type="button" class="btn primary" id="bpSave">Save</button><button type="button" class="btn" id="bpCopyLink">Copy link</button></div>
+        </div>
+        <div class="card stack" style="gap:12px"><h3>On your website</h3>
+          <span class="hint">Paste this where the timetable should appear. Most website builders (Wix, Squarespace, WordPress, Webflow) have an "Embed" or "Custom code" block. The Book buttons open your booking page.</span>
+          <div class="bpcode"><pre id="bpCode">${esc(code())}</pre><button type="button" class="btn" id="bpCopy">Copy code</button></div>
+          <div class="inline2" style="gap:12px;flex-wrap:wrap"><label class="fl">Location<select id="bpWLoc"><option value="">All locations</option>${Object.entries(LOCS).map(([k, v]) => `<option value="${k}" ${V.wLoc === k ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></label>
+            <label class="fl">Look<select id="bpWTheme">${[["light", "Light"], ["dark", "Dark"], ["auto", "Follow the visitor's device"]].map(([k, l]) => `<option value="${k}" ${V.wTheme === k ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+          <span class="lbl" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Preview</span>
+          <div class="bpwhost">${widgetHTML({ loc: V.wLoc, theme: V.wTheme === "dark" ? "dark" : "light", sel: V.wSel })}</div>
+          <span class="hint">No website? Put the link in your Instagram bio and Google Business profile instead.</span>
+        </div></div>`;
+    };
+    BIND["booking-page"] = function () {
+      $("#bpOpen").onclick = openVisitor;
+      $("#bpSave").onclick = () => {
+        const slug = $("#bpSlug").value.trim().toLowerCase();
+        const err = !SLUG.test(slug) ? "Use 3 to 40 lowercase letters, numbers and dashes, starting and ending with a letter or number (like breathe-pilates)." : RESERVED.includes(slug) ? "That name is taken by the app itself. Try your studio's name." : slug === "breathe-pilates" ? "Another studio already uses that link. How about breathe-pilates-2?" : "";
+        if (err) { $("#bpErr").textContent = err; $("#bpSlug").setAttribute("aria-invalid", "true"); $("#bpSlug").focus(); return; }
+        Object.assign(BP, { slug, saved: true, enabled: $("#bpOn").checked, intro: $("#bpIntro").value.trim() });
+        render(); toast(BP.enabled ? `Saved. Your booking page is ${APP.replace("https://", "")}/s/${slug}` : "Saved. Your booking page is off.");
+      };
+      $("#bpOn").onchange = (e) => { BP.enabled = e.target.checked; render(); toast(BP.enabled ? "Booking page on." : "Booking page off: the page and the widget are hidden."); };
+      $("#bpIntro").oninput = (e) => { BP.intro = e.target.value; const c = e.target.closest(".fl")?.querySelector(".count"); if (c) c.textContent = `${e.target.value.length}/300`; };
+      $("#bpAccent").onchange = (e) => { BP.accent = e.target.value; render(); };
+      $("#bpCopy").onclick = () => { navigator.clipboard?.writeText(code()).catch(() => {}); toast("Code copied. Paste it into your website's embed block."); };
+      $("#bpCopyLink").onclick = () => { navigator.clipboard?.writeText(`${APP}/s/${BP.slug}`).catch(() => {}); toast("Link copied."); };
+      $("#bpWLoc").onchange = (e) => { V.wLoc = e.target.value; V.wSel = undefined; render(); };
+      $("#bpWTheme").onchange = (e) => { V.wTheme = e.target.value; render(); };
+      document.querySelectorAll(".bpwhost [data-bpwday]").forEach((b) => (b.onclick = () => { V.wSel = Number(b.dataset.bpwday); render(); }));
+      document.querySelectorAll(".bpwhost [data-bpclass]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); if (a.classList.contains("off")) return; openVisitor(); V.open = Number(a.dataset.bpclass); renderVisitor(); }));
+      document.querySelectorAll(".bpwhost [data-bpopen]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); openVisitor(); }));
+    };
+
+    // --- The public booking page ----------------------------------------------------------------
+    function openVisitor() { state.visitor = true; V.open = null; V.signin = null; V.buy = null; renderVisitor(); }
+    function closeVisitor() { state.visitor = false; renderVisitor(); }
+    function classesHTML() {
+      const list = publicDay(V.day);
+      return `<div class="bp-days" role="group" aria-label="Choose a day">${Array.from({ length: V.days }, (_, i) => { const d = addDays(day(NOW), i); return `<button type="button" data-bpday="${i}" aria-pressed="${i === V.day}"><span>${i === 0 ? "Today" : d.toLocaleDateString("en-GB", { weekday: "short" })}</span><b>${d.getDate()}</b></button>`; }).join("")}</div>
+        <div class="bp-filters"><select id="bpvLoc" aria-label="Location"><option value="">All locations</option>${Object.entries(LOCS).map(([k, v]) => `<option value="${k}" ${V.loc === k ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>
+          <select id="bpvType" aria-label="Class"><option value="">All classes</option>${Object.entries(TYPES).filter(([, t]) => t.kind === "class").map(([k, t]) => `<option value="${k}" ${V.type === k ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select></div>
+        ${list.length ? `<ul class="bp-list">${list.map((s) => { const a = availability(s); return `<li><button type="button" class="bp-row" data-bpv="${s.id}"><span class="t">${clock(s.start)}<small>${Math.round((s.end - s.start) / 60000)} min</small></span><span class="n"><b><i style="background:${TYPES[s.type].color}"></i>${esc(TYPES[s.type].name)}</b><small>${esc(pubName(s.instr))} · ${esc(LOCS[s.loc])}</small></span><span class="s ${a.k}">${esc(a.label)}</span></button></li>`; }).join("")}</ul>` : `<p class="bp-empty">No classes ${V.day === 0 ? "left today" : "this day"}${V.loc || V.type ? " with these filters" : ""}.</p>`}`;
+    }
+    function packagesHTML() {
+      const plans = PLANS.filter((p) => p.onSale && !p.archived).sort((a, b) => a.price - b.price);
+      return `<div class="bp-packs">${plans.map((p) => `<div class="bp-pack"><b>${esc(p.name)}</b><span class="bp-price">${m$(p.price)}${p.billing === "recurring" ? ` <small>${esc(perText(p))}</small>` : ""}</span>${p.desc ? `<p>${esc(p.desc)}</p>` : ""}<ul>${termsOf(p).slice(0, 4).map((t) => `<li>${esc(t)}</li>`).join("")}</ul><button type="button" class="bp-btn" data-bpbuy="${p.id}">Buy</button></div>`).join("")}</div>`;
+    }
+    function classHTML(s) {
+      const a = availability(s), t = TYPES[s.type], ok = ["open", "few", "waitlist"].includes(a.k);
+      const plans = covering(s);
+      return `<div class="bp-sheet" role="dialog" aria-modal="true" aria-labelledby="bpcT"><button type="button" class="bp-x" data-bpback aria-label="Back to the timetable">←</button>
+        <span class="bp-chip" style="--c:${t.color}">${esc(LOCS[s.loc])}</span><h2 id="bpcT">${esc(t.name)}</h2>
+        <p class="bp-when">${s.start.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })} · ${clock(s.start)} to ${clock(s.end)}</p>
+        <dl class="bp-dl"><dt>Instructor</dt><dd>${esc(pubName(s.instr))}</dd><dt>Where</dt><dd>${esc(ROOMS[s.room].name)}, ${esc(LOCS[s.loc])}</dd><dt>Spots</dt><dd class="s ${a.k}">${esc(a.label)}</dd></dl>
+        <div class="bp-need"><b>To book</b><span>You'll need a package that covers this class. You can buy one when you book.</span>
+          ${plans.map((p) => `<div class="bp-plan"><span><b>${esc(p.name)}</b><small>${esc(termsOf(p)[0] || "")}</small></span><span>${m$(p.price)}</span></div>`).join("")}</div>
+        <p class="bp-small">Cancel up to 12 hours before to get the class back.</p>
+        <button type="button" class="bp-btn big" data-bpbook="${s.id}" ${ok ? "" : "disabled"}>${ok ? (a.k === "waitlist" ? "Join the waitlist" : "Book this class") : esc(a.label)}</button></div>`;
+    }
+    function signinHTML() {
+      const what = V.signin.kind === "class" ? `to book ${esc(TYPES[SESSIONS.find((x) => x.id === V.signin.id).type].name)}` : `to buy ${esc(PLANS.find((p) => p.id === V.signin.id).name)}`;
+      return `<div class="bp-sheet" role="dialog" aria-modal="true" aria-labelledby="bpsT"><button type="button" class="bp-x" data-bpback aria-label="Back">←</button>
+        <h2 id="bpsT">Sign in ${what}</h2><p class="bp-small">New here? Use your email and we'll set up your account with Demo Studio.</p>
+        <label class="bp-fl" for="bpsEmail">Email<input id="bpsEmail" type="email" autocomplete="email" value="chloe.ng@example.com"></label>
+        <button type="button" class="bp-btn big" id="bpsGo">Continue</button>
+        <div class="bp-or"><span>or</span></div><div class="bp-social"><button type="button" class="bp-ghost" id="bpsG">Continue with Google</button><button type="button" class="bp-ghost" id="bpsA">Continue with Apple</button></div>
+        <p class="bp-small">Preview: signing in here continues as the sample client, Chloe, in the client app.</p></div>`;
+    }
+    function renderVisitor() {
+      let root = $("#bpRoot");
+      if (!state.visitor) { if (root) root.remove(); document.body.classList.remove("bp-on"); return; }
+      if (!root) { document.body.insertAdjacentHTML("beforeend", '<div id="bpRoot" class="bp" role="main" aria-label="Booking page"></div>'); root = $("#bpRoot"); }
+      const s = V.open ? SESSIONS.find((x) => x.id === V.open) : null;
+      const off = !live();
+      root.style.setProperty("--bpa", accent());
+      root.innerHTML = `<div class="wc-preview"><span>Preview: your public booking page at ${esc(APP.replace("https://", ""))}/s/${esc(BP.slug)}, as visitors see it.</span><button type="button" id="bpExit">Back to the studio view</button></div>
+        ${off ? `<div class="bp-wrap"><div class="bp-off"><h1>Page not found</h1><p>${!BP.enabled ? "The booking page is switched off (Setup, Booking page)." : "The booking page opens when the studio does."}</p></div></div>` : `
+        <header class="bp-top"><div class="bp-wrap"><span class="bp-logo">D</span><div><h1>Demo Studio</h1>${BP.intro ? `<p>${esc(BP.intro)}</p>` : ""}</div><button type="button" class="bp-ghost bp-in" id="bpSignin">Sign in</button></div></header>
+        <div class="bp-wrap"><div class="bp-tabs" role="tablist"><button type="button" role="tab" aria-selected="${V.tab === "classes"}" data-bptab="classes">Classes</button><button type="button" role="tab" aria-selected="${V.tab === "packages"}" data-bptab="packages">Packages</button></div>
+          ${V.tab === "classes" ? classesHTML() : packagesHTML()}
+          <footer class="bp-foot"><span>${esc(Object.values(LOCS).join(" · "))}</span><span>Booking opens 14 days ahead · Cancel up to 12 hours before</span></footer></div>
+        ${V.signin ? `<div class="bp-scrim" data-bpback></div>${signinHTML()}` : s ? `<div class="bp-scrim" data-bpback></div>${classHTML(s)}` : ""}`}`;
+      document.body.classList.add("bp-on");
+      bindVisitor();
+    }
+    /** After signing in: on to the client app, where the usual rules apply. */
+    function handOver() {
+      const sig = V.signin;
+      state.visitor = false; renderVisitor();
+      if (state.role !== "client") document.querySelector('#roles [data-role="client"]')?.click();
+      if (sig.kind === "class") { go("schedule"); setTimeout(() => openDrawer(sig.id), 60); toast("Signed in. Check the details and book."); }
+      else { state.buy = sig.id; state.ordered = null; go("checkout"); toast("Signed in. Choose how to pay."); }
+    }
+    function bindVisitor() {
+      const r = $("#bpRoot");
+      r.querySelector("#bpExit").onclick = closeVisitor;
+      r.querySelectorAll("[data-bptab]").forEach((b) => (b.onclick = () => { V.tab = b.dataset.bptab; renderVisitor(); }));
+      r.querySelectorAll("[data-bpday]").forEach((b) => (b.onclick = () => { V.day = Number(b.dataset.bpday); renderVisitor(); }));
+      r.querySelectorAll("[data-bpv]").forEach((b) => (b.onclick = () => { V.open = Number(b.dataset.bpv); renderVisitor(); r.querySelector(".bp-sheet .bp-x")?.focus(); }));
+      r.querySelectorAll("[data-bpback]").forEach((b) => (b.onclick = () => { if (V.signin) V.signin = null; else V.open = null; renderVisitor(); }));
+      r.querySelectorAll("[data-bpbook]").forEach((b) => (b.onclick = () => { V.signin = { kind: "class", id: Number(b.dataset.bpbook) }; renderVisitor(); r.querySelector("#bpsEmail")?.focus(); }));
+      r.querySelectorAll("[data-bpbuy]").forEach((b) => (b.onclick = () => { V.signin = { kind: "plan", id: b.dataset.bpbuy }; renderVisitor(); }));
+      const loc = r.querySelector("#bpvLoc"), type = r.querySelector("#bpvType");
+      if (loc) loc.onchange = () => { V.loc = loc.value; renderVisitor(); };
+      if (type) type.onchange = () => { V.type = type.value; renderVisitor(); };
+      if (r.querySelector("#bpSignin")) r.querySelector("#bpSignin").onclick = () => toast("In the app, this opens sign-in. For the preview, choose a class or package first.");
+      ["#bpsGo", "#bpsG", "#bpsA"].forEach((id) => { const b = r.querySelector(id); if (b) b.onclick = handOver; });
+    }
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.visitor && (V.open || V.signin)) { if (V.signin) V.signin = null; else V.open = null; renderVisitor(); } });
+    if (location.hash === "#book") setTimeout(openVisitor, 0);
+    window.addEventListener("hashchange", () => { if (location.hash === "#book") openVisitor(); });
   }
 
   // MKT-JS-END

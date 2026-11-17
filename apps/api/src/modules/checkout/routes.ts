@@ -5,10 +5,10 @@
  *     discount and studio credit that applies, start-date choices and classes they can roll over.
  *  2. POST /checkout (packages) or POST /gift-cards/checkout creates an order. Studio credit and a
  *     discount are taken off straight away; if nothing's left to pay, it's complete at once.
- *     When a payment provider is connected, the response includes its payment page; until then
- *     the client pays at the desk.
- *  3. The order completes once paid: by the provider's webhook (later), or an admin marking it
- *     paid at the desk (POST /orders/:id/mark-paid). Cancelling puts credit and discounts back.
+ *     With online payments on, the response includes Stripe's payment page (payWith chooses
+ *     online, a particular method when the studio passes the fee on, or the desk).
+ *  3. The order completes once paid: by Stripe's webhook (modules/payments), or an admin marking
+ *     it paid at the desk (POST /orders/:id/mark-paid). Cancelling puts credit and discounts back.
  */
 import type { FastifyInstance } from "fastify";
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
@@ -33,17 +33,7 @@ import { returnCredit, spendCredit, usableGrants, usableVouchers, voucherDiscoun
 import { checkAmount, findRecipient, giftCardPaid, giftCode } from "../marketing/giftcards.js";
 import { loyaltyForSpend } from "../marketing/loyalty.js";
 import { issueInvoice, payFor, voidFor } from "../sales/invoices.js";
-
-/**
- * The seam for a payment provider (e.g. Stripe, HitPay, 2C2P). When one is configured it
- * returns the page to send the client to; the provider then calls back to mark the order paid.
- */
-export interface PaymentProvider {
-  name: string;
-  createPayment(order: { id: string; amountCents: number; currency: string; description: string }): Promise<{ redirectUrl: string; ref: string }>;
-}
-let provider: PaymentProvider | null = null;
-export const setPaymentProvider = (p: PaymentProvider | null) => (provider = p);
+import { MEMBERSHIP_NOT_ONLINE, choosePayment, closeCheckout, payOptions, paymentFor } from "../payments/service.js";
 
 const idParam = z.object({ id: schemas.id });
 const ordersQuery = z.object({ status: z.enum(["pending", "paid", "cancelled"]).default("pending") });
@@ -97,7 +87,10 @@ export async function completeOrderById(tx: DbOrTx, by: AuthContext, orderId: st
   const [o] = await tx.select().from(orders).where(and(eq(orders.id, orderId), eq(orders.orgId, by.orgId))).for("update");
   if (!o) throw notFound("order");
   if (o.status !== "pending") throw conflict("not_pending", `This order is already ${o.status}.`);
-  return completeOrder(tx, o, by, "desk", method);
+  const done = await completeOrder(tx, o, by, method === "online" ? "online" : "desk", method);
+  // Paid another way: close any payment page still open for it.
+  if (method !== "online" && o.checkoutSessionId) await closeCheckout(await getOrg(tx, o.orgId), o);
+  return done;
 }
 
 export async function checkoutRoutes(app: FastifyInstance) {
@@ -140,7 +133,13 @@ export async function checkoutRoutes(app: FastifyInstance) {
       startDate: p.startsOn === "purchase" && p.billing === "one_time" && p.validityValue ? { earliest: today, latest: DateTime.fromISO(today).plus({ days: 60 }).toISODate(), default: today } : null,
       startsNote: p.startsOn === "first_booking" ? "Your package starts when you book your first class." : null,
       rolloverOptions: rollovers,
-      payments: price.due === 0 ? { online: false, message: "Nothing to pay: your credit and discount cover it." } : provider ? { online: true, provider: provider.name } : { online: false, message: "Online payment isn't switched on yet. Place your order and pay at the front desk; your package is ready as soon as the studio confirms payment." },
+      payments: (() => {
+        if (price.due === 0) return { online: false, options: [], message: "Nothing to pay: your credit and discount cover it." };
+        const options = payOptions(org, price.due, { recurring: p.billing === "recurring" });
+        const online = options.some((o) => o.payWith !== "desk");
+        if (p.billing === "recurring") return { online, options, message: online ? "Your card is kept securely by Stripe for the renewals." : MEMBERSHIP_NOT_ONLINE };
+        return { online, options, message: online ? null : "Place your order and pay at the front desk; your package is ready as soon as the studio confirms payment." };
+      })(),
     };
   });
 
@@ -154,13 +153,14 @@ export async function checkoutRoutes(app: FastifyInstance) {
       const ok = org.rolloverMode === "clients" && (await rolloverOptions(db, org, req.auth.userId)).some((r) => r.packageId === input.rolloverFromPackageId);
       if (!ok) throw badRequest("no_rollover", "Those classes can't be rolled over.");
     }
+    const choice = choosePayment(org, input.payWith, { recurring: p.billing === "recurring" });
     const result = await inTx(app, async (tx) => {
       const price = await pricing(tx, org.id, req.auth.userId, p.priceCents, { voucherId: input.voucherId, useCredit: input.useCredit, allowCredit: true });
       const [o] = await tx
         .insert(orders)
         .values({
           orgId: org.id, clientId: req.auth.userId, planId: p.id, kind: "package", subtotalCents: price.subtotal, discountCents: price.discount, voucherId: price.voucher?.id ?? null,
-          amountCents: price.due, currency: org.currency, startDate: input.startDate ?? null, rolloverFromPackageId: input.rolloverFromPackageId ?? null, provider: price.due && provider ? provider.name : null,
+          amountCents: price.due, currency: org.currency, startDate: input.startDate ?? null, rolloverFromPackageId: input.rolloverFromPackageId ?? null,
         })
         .returning();
       if (price.voucher) {
@@ -176,13 +176,10 @@ export async function checkoutRoutes(app: FastifyInstance) {
       });
       return price.due === 0 ? completeOrder(tx, withCredit!, req.auth, "fully paid with credit or discount", "credit") : withCredit!;
     });
-    let payment: { online: boolean; redirectUrl?: string; message?: string } =
-      result.status === "paid" ? { online: false, message: "All done! It's been added to your packages." } : { online: false, message: "Order placed. Pay at the front desk and your package will be ready straight away." };
-    if (result.status === "pending" && provider) {
-      const r = await provider.createPayment({ id: result.id, amountCents: result.amountCents, currency: result.currency, description: p.name });
-      await db.update(orders).set({ providerRef: r.ref }).where(eq(orders.id, result.id));
-      payment = { online: true, redirectUrl: r.redirectUrl };
-    }
+    const payment =
+      result.status === "paid"
+        ? { online: false, message: "All done! It's been added to your packages." }
+        : await paymentFor(db, org, result, choice, { description: p.name, saveCard: p.billing === "recurring", deskMessage: "Order placed. Pay at the front desk and your package will be ready straight away." });
     reply.code(201);
     return { order: { id: result.id, status: result.status, total: money(result.amountCents, result.currency), packageName: p.name, clientPackageId: result.clientPackageId }, payment };
   });
@@ -211,6 +208,7 @@ export async function checkoutRoutes(app: FastifyInstance) {
       if (r.id === req.auth.userId) throw badRequest("own_card", "That's you! To buy credit for yourself, choose “Give it later” and then “Keep it for myself”.");
       recipientId = r.id;
     }
+    const choice = choosePayment(org, input.payWith, { recurring: false });
     const [me] = await db.select({ first: users.firstName }).from(users).where(eq(users.id, req.auth.userId));
     const out = await inTx(app, async (tx) => {
       const [card] = await tx
@@ -219,20 +217,16 @@ export async function checkoutRoutes(app: FastifyInstance) {
         .returning();
       const [o] = await tx
         .insert(orders)
-        .values({ orgId: org.id, clientId: req.auth.userId, kind: "gift_card", giftCardId: card!.id, subtotalCents: input.amountCents, amountCents: input.amountCents, currency: org.currency, provider: provider?.name ?? null })
+        .values({ orgId: org.id, clientId: req.auth.userId, kind: "gift_card", giftCardId: card!.id, subtotalCents: input.amountCents, amountCents: input.amountCents, currency: org.currency })
         .returning();
       await issueInvoice(tx, { orgId: org.id, clientId: req.auth.userId, source: "gift_card", orderId: o!.id, lines: [{ description: `Gift card (${money(input.amountCents, org.currency)})`, detail: input.give ? `For ${input.give.to}` : undefined, quantity: 1, unitCents: input.amountCents }] });
       return { card: card!, order: o! };
     });
-    let payment: { online: boolean; redirectUrl?: string; message?: string } = {
-      online: false,
-      message: recipientId ? "Order placed. Pay at the front desk and the gift card goes to them straight away." : "Order placed. Pay at the front desk and the gift card will be in your Gift cards tab, ready to give.",
-    };
-    if (provider) {
-      const r = await provider.createPayment({ id: out.order.id, amountCents: out.order.amountCents, currency: out.order.currency, description: `Gift card ${money(input.amountCents, org.currency)}` });
-      await db.update(orders).set({ providerRef: r.ref }).where(eq(orders.id, out.order.id));
-      payment = { online: true, redirectUrl: r.redirectUrl };
-    }
+    const payment = await paymentFor(db, org, out.order, choice, {
+      description: `Gift card ${money(input.amountCents, org.currency)}`,
+      saveCard: false,
+      deskMessage: recipientId ? "Order placed. Pay at the front desk and the gift card goes to them straight away." : "Order placed. Pay at the front desk and the gift card will be in your Gift cards tab, ready to give.",
+    });
     reply.code(201);
     return { order: { id: out.order.id, status: out.order.status, total: money(out.order.amountCents, org.currency) }, giftCard: { id: out.card.id, code: out.card.code, givingTo: recipientId ? input.give!.to : null }, payment };
   });
@@ -276,8 +270,9 @@ export async function checkoutRoutes(app: FastifyInstance) {
       if (o.voucherId) await tx.update(vouchers).set({ usedAt: null, orderId: null }).where(eq(vouchers.id, o.voucherId));
       if (o.giftCardId) await tx.update(giftCards).set({ status: "cancelled" }).where(and(eq(giftCards.id, o.giftCardId), eq(giftCards.status, "pending_payment")));
       if (o.kind === "product") for (const it of o.items ?? []) await restock(tx, it.productId, it.option, it.quantity);
-      const [u] = await tx.update(orders).set({ status: "cancelled" }).where(eq(orders.id, o.id)).returning();
+      const [u] = await tx.update(orders).set({ status: "cancelled", checkoutSessionId: null, surchargeCents: 0 }).where(eq(orders.id, o.id)).returning();
       await voidFor(tx, { orderId: o.id });
+      if (o.checkoutSessionId) await closeCheckout(await getOrg(tx, o.orgId), o);
       return u;
     });
   });
