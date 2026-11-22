@@ -181,6 +181,8 @@ export const PACKAGE_LEDGER_REASONS = [
   "activated",
   "extended",
   "expiry_changed",
+  /** One-time packages start on the day of the earliest class booked with them, so the start moves when an earlier class is booked (or the earliest is cancelled). */
+  "start_moved",
   "rolled_over",
   "renewed",
   "cancelled",

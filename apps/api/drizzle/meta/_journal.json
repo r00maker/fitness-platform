@@ -246,6 +246,13 @@
       "when": 1794898916071,
       "tag": "0034_booking_page",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795315999455,
+      "tag": "0035_package_start_follows_classes",
+      "breakpoints": true
     }
   ]
 }

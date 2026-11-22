@@ -145,6 +145,7 @@ export async function packageHistory(db: DbOrTx, auth: AuthContext, id: string, 
       const title = {
         purchase: p.kind === "credits" ? `Bought: ${plural(n, "class", "classes")}` : "Bought",
         activated: `Started${det.validUntil ? `: valid until ${nice(det.validUntil as string)}` : ""}`,
+        start_moved: det.to ? `Start moved to ${nice(det.to as string)}${det.validUntil ? `: valid until ${nice(det.validUntil as string)}` : ""}` : "Not started: no classes booked with it",
         adjusted: `${n > 0 ? "+" : "−"}${plural(Math.abs(n), "class", "classes")} ${n > 0 ? "added" : "removed"}`,
         expiry_changed: det.field === "firstBookingBy" ? `First-booking deadline changed to ${nice(det.to as string)}` : `Expiry changed from ${nice(det.from as string)} to ${nice(det.to as string)}`,
         extended: `Extended by ${plural(det.days as number, "day")}, to ${nice(det.to as string)}`,

@@ -128,13 +128,15 @@ describe("package history", () => {
     await s.owner.call("POST", `/client-packages/${p.id}/adjust`, { validUntil: dayOffset(120), reason: "Holiday" });
 
     const h = await history(s.c1, p.id);
+    // It started on the day of its first class; when a class was given back, the start followed the
+    // earliest class still used (the two that have happened, today).
     expect(h.activatedOn).toBe(dayOffset(0));
     expect(h.classes.map((c: { status: string; credit: string }) => `${c.status}: ${c.credit}`).sort()).toEqual(["Attended: 1 class used", "Cancelled: Class given back", "No-show: Class used (no-show)"]);
     expect(h.adjustmentsByStudio).toMatchObject([
       { title: "+1 class added", detail: "Sorry about the cancelled class", by: "The studio" },
       { title: expect.stringMatching(/^Expiry changed from .* to /), detail: "Holiday", by: "The studio" },
     ]);
-    expect(h.changes.map((c: { kind: string }) => c.kind)).toEqual(["purchase", "activated", "adjusted", "expiry_changed"]);
+    expect(h.changes.map((c: { kind: string }) => c.kind)).toEqual(["purchase", "activated", "start_moved", "adjusted", "expiry_changed"]);
     expect((await history(s.owner, p.id)).adjustmentsByStudio[0].by).toBe("You"); // the admin who made it
     expect((await s.c2.call("GET", `/client-packages/${p.id}`)).status).toBe(404);
   });

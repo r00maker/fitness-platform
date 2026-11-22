@@ -511,9 +511,17 @@ export const clientPackages = pgTable(
     startsOn: packageStartEnum("starts_on").notNull(),
     /** Countdown starts at the first booking: it expires if nothing is booked by then. */
     activateBy: ts("activate_by"),
+    /**
+     * One-time packages start on the day of the earliest class booked with them. For packages that
+     * start "when it's bought", this is the start set at sale (purchase or the chosen date): booking an
+     * earlier class moves the start back, and cancelling that class moves it forward again, never past this.
+     */
+    plannedStartAt: ts("planned_start_at"),
     startedAt: ts("started_at"),
     /** First moment it can no longer be used. Null = never expires (or not started yet). */
     expiresAt: ts("expires_at"),
+    /** Days added beyond the validity (extensions, admin changes), kept when the start moves. */
+    extraDays: integer("extra_days").notNull().default(0),
     maxUsers: integer("max_users").notNull().default(1),
     sharingMode: sharingModeEnum("sharing_mode"),
     weeklyLimit: integer("weekly_limit"),
