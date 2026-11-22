@@ -157,6 +157,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* Headlines: a band of light passes through once, then the text settles solid. */
 .js .sweep { background-image: linear-gradient(90deg, var(--fg) 0, var(--fg) 33.4%, #ffffff 41%, #d9c9ff 46%, var(--steel) 51%, #9fd8d0 56%, color-mix(in srgb, var(--fg) 30%, transparent) 64%, color-mix(in srgb, var(--fg) 30%, transparent) 100%); background-size: 300% 100%; background-position: 100% 0; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent }
+/* background-clip: text paints only inside the box, so tight headlines would lose their descenders (g, y, p). */
+.js .sweep { padding-bottom: .14em; margin-bottom: -.14em }
 .js .sweep.go { animation: sweep 1.15s var(--ease-io) var(--sweep-delay, 0s) forwards }
 @keyframes sweep { from { background-position: 100% 0; filter: blur(1.5px) } to { background-position: 0 0; filter: blur(0) } }
 
