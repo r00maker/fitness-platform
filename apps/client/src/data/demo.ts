@@ -6,6 +6,7 @@
  */
 import { APP_THEME_PRESETS, type AppTheme } from "@studio/shared";
 import { ART } from "./art";
+import { demoAccount } from "./demo-account";
 import { AppError, type Backend, type Badge, type ClassItem, type MyBooking, type Package, type PackageOptions, type Progress, type ScheduleDay, type Studio } from "./types";
 
 const TZ_OFFSET = "+08:00"; // all three studios are in Singapore
@@ -25,6 +26,8 @@ interface Slot { days: number[]; time: string; type: string; who: string; loc: s
 interface DemoStudio {
   studio: Omit<Studio, "theme"> & { theme: AppTheme };
   member: { firstName: string; email: string };
+  /** The instructor they go to most (the studio works this out). */
+  favourite: string;
   slots: Slot[];
   /** Classes done before today, and this month so far. */
   classes: number;
@@ -45,12 +48,13 @@ const types = (list: [string, string, string][]) => list.map(([id, name, color])
 const STUDIOS: Record<string, DemoStudio> = {
   linden: {
     studio: {
-      id: "linden", slug: "linden", name: "Linden Reformer Studio", logoUrl: null, timezone: "Asia/Singapore", theme: theme("linden"),
+      id: "linden", slug: "linden", name: "Linden Reformer Studio", logoUrl: null, timezone: "Asia/Singapore", currency: "SGD", theme: theme("linden"),
       locations: [{ id: "tp", name: "Tanjong Pagar", address: "12 Duxton Road" }, { id: "hv", name: "Holland Village", address: "3 Lorong Liput" }],
       classTypes: types([["found", "Reformer Foundations", "#7FA36B"], ["inter", "Reformer Intermediate", "#2F5D46"], ["flow", "Reformer Flow", "#A9BF6E"], ["mat", "Mat Pilates", "#8C9A86"], ["jump", "Jumpboard", "#4E7A63"]]),
       rules: { cancelling: "Cancel up to 12 hours before to get the class back.", needPackage: true },
     },
     member: { firstName: "Rachel", email: "rachel@example.com" },
+    favourite: "Ana L.",
     slots: [
       { days: [1, 3, 5], time: "07:00", type: "inter", who: "Ana L.", loc: "tp", room: "Studio 1", cap: 8 },
       { days: [1, 2, 3, 4, 5], time: "08:15", type: "found", who: "Ben T.", loc: "tp", room: "Studio 2", cap: 8 },
@@ -78,12 +82,13 @@ const STUDIOS: Record<string, DemoStudio> = {
   },
   tidal: {
     studio: {
-      id: "tidal", slug: "tidal", name: "Tidal Barre", logoUrl: null, timezone: "Asia/Singapore", theme: theme("tidal"),
+      id: "tidal", slug: "tidal", name: "Tidal Barre", logoUrl: null, timezone: "Asia/Singapore", currency: "SGD", theme: theme("tidal"),
       locations: [{ id: "jc", name: "Joo Chiat", address: "88 Joo Chiat Road" }],
       classTypes: types([["burn", "Barre Burn", "#2B3BE8"], ["sculpt", "Barre Sculpt", "#E2489A"], ["cardio", "Cardio Barre", "#7B5CFF"], ["stretch", "Barre Stretch", "#0E9F8E"]]),
       rules: { cancelling: "Cancel up to 8 hours before to get the class back.", needPackage: true },
     },
     member: { firstName: "Jasmine", email: "jasmine@example.com" },
+    favourite: "Nadia S.",
     slots: [
       { days: [1, 2, 3, 4, 5], time: "07:00", type: "burn", who: "Kai R.", loc: "jc", room: "Main room", cap: 16, mins: 45 },
       { days: [1, 3, 5], time: "12:30", type: "sculpt", who: "Nadia S.", loc: "jc", room: "Main room", cap: 16, mins: 40 },
@@ -110,12 +115,13 @@ const STUDIOS: Record<string, DemoStudio> = {
   },
   aizome: {
     studio: {
-      id: "aizome", slug: "aizome", name: "Aizome Yoga", logoUrl: null, timezone: "Asia/Singapore", theme: theme("aizome"),
+      id: "aizome", slug: "aizome", name: "Aizome Yoga", logoUrl: null, timezone: "Asia/Singapore", currency: "SGD", theme: theme("aizome"),
       locations: [{ id: "tb", name: "Tiong Bahru", address: "55 Eng Hoon Street" }],
       classTypes: types([["hatha", "Hatha", "#2E3D73"], ["yin", "Yin", "#6C7FB0"], ["vinyasa", "Vinyasa", "#C2412D"], ["breath", "Breathwork", "#7D8290"]]),
       rules: { cancelling: "Cancel up to 6 hours before to keep your place free for someone else.", needPackage: true },
     },
     member: { firstName: "Kenji", email: "kenji@example.com" },
+    favourite: "Sachiko M.",
     slots: [
       { days: [1, 2, 3, 4, 5, 6, 0], time: "06:45", type: "hatha", who: "Sachiko M.", loc: "tb", room: "Upstairs", cap: 18, mins: 60 },
       { days: [1, 3, 5], time: "12:00", type: "breath", who: "Arun K.", loc: "tb", room: "Upstairs", cap: 18, mins: 30 },
@@ -152,6 +158,8 @@ export function demoBackend(key: string): Backend {
   const seenKeys = new Set<string>();
   let goal = d.goal;
   const pkg: Package = structuredClone(d.pkg);
+  // Everything they own: the starting package, plus anything bought in the demo.
+  const owned: Package[] = [pkg];
 
   // The timetable for the next two weeks, from each studio's weekly slots.
   const classes = new Map<string, ClassItem>();
@@ -170,7 +178,7 @@ export function demoBackend(key: string): Backend {
       if (startsAt.getTime() <= Date.now()) continue;
       classes.set(id, {
         id, name: t.name, color: t.color, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString(), localDate: date, time: s.time, endTime: end, durationMinutes: mins,
-        location: { id: s.loc, name: studio.locations.find((l) => l.id === s.loc)!.name }, room: s.room, instructor: { name: s.who, photoUrl: null },
+        location: { id: s.loc, name: studio.locations.find((l) => l.id === s.loc)!.name }, room: s.room, instructor: { id: s.who, name: s.who, photoUrl: null },
         spotsLeft: left, availability: left === 0 ? (h % 3 ? "waitlist" : "full") : left <= 3 ? "few_left" : "open", label: "",
       });
     }
@@ -239,7 +247,7 @@ export function demoBackend(key: string): Backend {
   return {
     demo: true,
     studio: () => wait(studio, 40),
-    me: () => wait(signedIn.current ? { firstName: d.member.firstName, email: d.member.email } : null, 40),
+    me: () => wait(signedIn.current ? { firstName: d.member.firstName, email: d.member.email, favouriteInstructor: { id: d.favourite, firstName: d.favourite.split(" ")[0]!, name: d.favourite } } : null, 40),
     async signIn() { signedIn.current = true; return "signed_in"; },
     async signOut() { signedIn.current = false; },
     schedule: async (from, n) => {
@@ -251,7 +259,7 @@ export function demoBackend(key: string): Backend {
       return wait(out);
     },
     myBookings: () => wait([...mine.values()].sort((a, b) => a.session.startsAt.localeCompare(b.session.startsAt))),
-    packages: () => wait([structuredClone(pkg)]),
+    packages: () => wait(structuredClone(owned)),
     async packageOptions(id) {
       const c = classes.get(id);
       if (!c) throw new AppError("not_found", "That class isn't on the timetable any more.");
@@ -309,5 +317,6 @@ export function demoBackend(key: string): Backend {
     async setGoal(n) { goal = n; return wait(progress(), 120); },
     async seen(k) { seenKeys.add(k); },
     banners: () => wait({ rotateSeconds: 6, banners: d.banners.map((b) => ({ ...b, link: { type: "none", target: null } })) }),
+    ...demoAccount(key, { packages: owned, studioName: studio.name, member: d.member.firstName }),
   };
 }

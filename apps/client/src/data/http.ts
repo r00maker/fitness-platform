@@ -4,7 +4,12 @@
  * ?studio=<slug>, or VITE_STUDIO for a studio's own build of the app.
  */
 import { auth } from "./auth";
-import { AppError, type Backend, type Banner, type MyBooking, type Package, type PackageOptions, type Progress, type ScheduleDay, type Studio } from "./types";
+import { AppError, type Backend, type Banner, type GiftCardShop, type HealthNote, type Loyalty, type MyGiftCards, type MyBooking, type Notifications, type Package, type PackageDetail, type PackageOptions, type PaymentCard, type Placed, type Plan, type Product, type Progress, type Purchase, type Quote, type Referral, type ScheduleDay, type StopOptions, type Studio, type Waiver } from "./types";
+
+/** What the API says after an order: paid, pay online (redirect), or pay at the desk. */
+type Payment = { online: boolean; redirectUrl?: string; message?: string };
+const placed = (status: string, payment: Payment, done: string): Placed =>
+  status === "paid" ? { done: true, message: payment.message ?? done } : payment.online && payment.redirectUrl ? { done: false, message: "Taking you to the payment page…", redirectUrl: payment.redirectUrl } : { done: false, message: payment.message ?? "Order placed." };
 
 export const API_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
@@ -33,7 +38,7 @@ export function httpBackend(slug: string): Backend {
     const json = text ? JSON.parse(text) : {};
     if (!res.ok) {
       const e = json.error ?? {};
-      throw new AppError(e.code ?? "error", e.message ?? "Something went wrong. Try again.", e.flags ?? []);
+      throw new AppError(e.code ?? "error", e.message ?? "Something went wrong. Try again.", e.flags ?? [], e);
     }
     return json as T;
   }
@@ -49,7 +54,8 @@ export function httpBackend(slug: string): Backend {
       if (!(await auth.token())) return null;
       const mine = await call<{ firstName: string | null; studios: { id: string }[] }>("GET", "/me/studios");
       if (!mine.studios.some((x) => x.id === studioId)) throw new AppError("not_member", "You're signed in, but not with this studio yet.");
-      return { firstName: mine.firstName ?? "there", email: await auth.email() };
+      const me = await call<{ favouriteInstructor: { id: string; firstName: string; name: string } | null }>("GET", "/me");
+      return { firstName: mine.firstName ?? "there", email: await auth.email(), favouriteInstructor: me.favouriteInstructor };
     },
     async signIn(email, code) {
       if (!code) {
@@ -70,8 +76,8 @@ export function httpBackend(slug: string): Backend {
       return (await call<{ packages: Package[] }>("GET", "/me/packages")).packages;
     },
     packageOptions: (id) => call<PackageOptions>("GET", `/sessions/${id}/package-options`),
-    async book(sessionId, acknowledge) {
-      return call<{ id: string }>("POST", "/bookings", { sessionId, acknowledge });
+    async book(sessionId, acknowledge, waiver) {
+      return call<{ id: string }>("POST", "/bookings", { sessionId, acknowledge, ...(waiver ? { waiver: { agree: true, signedName: waiver.signedName } } : {}) });
     },
     async joinWaitlist(sessionId) {
       await call("POST", "/waitlist", { sessionId });
@@ -86,5 +92,77 @@ export function httpBackend(slug: string): Backend {
       await call("POST", `/me/celebrations/${encodeURIComponent(key)}/seen`);
     },
     banners: () => call<{ rotateSeconds: number; banners: Banner[] }>("GET", "/me/banners?placement=home"),
+
+    async plans() {
+      return (await call<{ packages: Plan[] }>("GET", `/public/studios/${encodeURIComponent(slug)}/packages`, undefined, false)).packages;
+    },
+    quote: (planId, useCredit) => call<Quote>("GET", `/checkout/quote?planId=${planId}&useCredit=${useCredit}`),
+    async checkout(planId, input) {
+      const r = await call<{ order: { status: string }; payment: Payment }>("POST", "/checkout", { planId, ...input });
+      return placed(r.order.status, r.payment, "It's in your packages.");
+    },
+    packageDetail: (id) => call<PackageDetail>("GET", `/client-packages/${id}`),
+    async extensionPolicy() {
+      return (await call<{ extensions: { allowed: boolean; maxDays: number; fee: string | null; summary: string } }>("GET", "/me/packages")).extensions;
+    },
+    async requestExtension(id, days, reason) {
+      const r = await call<{ approvedAutomatically: boolean }>("POST", `/client-packages/${id}/extension-requests`, { days, reason });
+      return { message: r.approvedAutomatically ? `Done: extended by ${days} ${days === 1 ? "day" : "days"}.` : "Sent to the studio. You'll hear back soon." };
+    },
+    async share(id, email) {
+      await call("POST", `/client-packages/${id}/members`, { email });
+    },
+    async unshare(id, userId) {
+      await call("DELETE", `/client-packages/${id}/members/${userId}`);
+    },
+    stopOptions: (id) => call<StopOptions>("GET", `/client-packages/${id}/stop-options`),
+    stopRenewing: (id, endEarly) => call<{ endsOn: string; fee: string | null }>("POST", `/client-packages/${id}/stop-renewing`, { endEarly }),
+    async resumeRenewing(id) {
+      await call("POST", `/client-packages/${id}/resume-renewing`);
+    },
+    healthNotes: () => call<{ active: HealthNote[]; resolved: HealthNote[] }>("GET", "/me/health-notes"),
+    async addHealthNote(description) {
+      await call("POST", "/me/health-notes", { description });
+    },
+    async resolveHealthNote(id) {
+      await call("POST", `/me/health-notes/${id}/resolve`);
+    },
+    async stillCurrent(id) {
+      await call("POST", `/me/health-notes/${id}/still-current`);
+    },
+    waiver: () => call<Waiver>("GET", "/me/waiver"),
+    async signWaiver(name) {
+      await call("POST", "/me/waiver", { agree: true, signedName: name });
+    },
+    shop: () => call<{ visible: boolean; giftCards: boolean; products: Product[] }>("GET", "/shop"),
+    async buyProducts(items, payWith) {
+      const r = await call<{ order: { status: string }; payment: Payment; message: string }>("POST", "/shop/checkout", { items, payWith });
+      return placed(r.order.status === "ready" ? "paid" : "pending", { ...r.payment, message: r.message }, "All paid. Collect it at the front desk.");
+    },
+    giftCardShop: () => call<GiftCardShop>("GET", "/gift-cards/shop"),
+    async buyGiftCard(input) {
+      const r = await call<{ order: { status: string }; payment: Payment }>("POST", "/gift-cards/checkout", input);
+      return placed(r.order.status, r.payment, "Your gift card is ready.");
+    },
+    myGiftCards: () => call<MyGiftCards>("GET", "/me/gift-cards"),
+    async giveGiftCard(id, to, message) {
+      await call("POST", `/gift-cards/${id}/give`, { to, message });
+    },
+    async keepGiftCard(id) {
+      await call("POST", `/gift-cards/${id}/keep`);
+    },
+    loyalty: () => call<Loyalty>("GET", "/me/loyalty"),
+    async redeem(rewardId) {
+      const r = await call<{ message?: string }>("POST", `/me/loyalty/rewards/${rewardId}/redeem`);
+      return { message: r.message ?? "Redeemed." };
+    },
+    referral: () => call<Referral>("GET", "/me/referral"),
+    async purchases() {
+      return (await call<{ purchases: Purchase[] }>("GET", "/me/purchases")).purchases;
+    },
+    paymentCard: () => call<PaymentCard>("GET", "/me/payment-card"),
+    addCard: () => call<{ redirectUrl?: string; message?: string }>("POST", "/me/payment-card"),
+    notifications: () => call<Notifications>("GET", "/me/marketing"),
+    setNotifications: (n) => call<Notifications>("PATCH", "/me/marketing", n),
   };
 }

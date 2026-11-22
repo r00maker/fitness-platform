@@ -41,7 +41,7 @@ try {
   };
   const owner = as(await token("owner@harbour.test"));
   // The studio: no waiver for this run, and the Linden look for its app.
-  await owner("PATCH", "/settings", { waiverRequired: false });
+  // The seeded studio needs its waiver signed: the member signs it while booking.
   ok("api: the studio sets its app look", (await owner("PATCH", "/app-theme", { preset: "linden", welcome: "Breathe out. You're here." })).preset === "linden");
   // A member who has joined and bought a pack.
   const memberToken = await token("mei@example.com");
@@ -65,11 +65,15 @@ try {
   await page.waitForSelector(".hello h1");
   ok("app: Home greets the member", (await page.locator(".hello h1").textContent()).includes("Mei"));
   ok("app: in the studio's look", (await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--display"))).includes("Young Serif") && (await page.locator(".hello p").textContent()) === "Breathe out. You're here.");
-  ok("app: progress from the API", (await page.locator(".track-count span").textContent()) === "0" && (await page.locator(".track-next").textContent()) === "10 more to your 10th");
+  ok("app: progress from the API", (await page.locator(".ms-count b").textContent()) === "0" && /10 to your 10th/.test(await page.locator(".ms-next").textContent()));
 
+  // The goal is set in Me (Home only shows it).
+  await page.getByRole("button", { name: "Set a monthly goal" }).click();
   await page.getByRole("button", { name: "8 a month" }).click();
-  await page.waitForSelector(".goal-edit output");
-  ok("app: goal set through the API", (await page.locator(".goal-edit output").textContent()) === "8");
+  await page.getByRole("button", { name: "Set my goal" }).click();
+  await page.waitForSelector(".praise");
+  ok("app: goal set through the API", (await member("GET", "/me/progress")).month.goal === 8);
+  await page.getByRole("button", { name: "Back" }).click();
 
   await page.getByRole("link", { name: "Book", exact: true }).click();
   await page.waitForSelector(".class-list:not(.is-loading) .class-row");
@@ -79,13 +83,21 @@ try {
   await row.locator(".confirm-box .btn-main").waitFor();
   ok("app: the confirmation names the pack", /Uses 1 class from your 5-class pack\. 4 left after this\./.test(await row.locator(".confirm-line").textContent()));
   await row.getByRole("button", { name: "Confirm booking" }).click();
+  // First booking: the studio's waiver, signed right there, then booked in the same step.
+  await row.locator(".waiver-inline").waitFor();
+  ok("app: the waiver comes up in the row", (await row.locator(".waiver-text").textContent()).length > 20);
+  await row.getByLabel("I've read it and agree").check();
+  await row.getByLabel("Your full name").fill("Mei Tan");
+  await row.getByRole("button", { name: "Sign and book" }).click();
   await page.waitForSelector(".toast:has-text('Booked:')");
   ok("app: booked through the API", (await row.locator(".booked-mark").count()) === 1);
   const bookings = await member("GET", "/me/bookings?show=classes");
   ok("api: the booking is there", bookings.classes.length === 1);
 
+  ok("api: the waiver is signed", (await member("GET", "/me/waiver")).done === true);
   await page.getByRole("link", { name: /My classes/ }).click();
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.locator(".booking-list .row").first().click();
+  await page.getByRole("button", { name: "Cancel booking" }).click();
   await page.getByRole("button", { name: "Cancel class" }).click();
   // Inside the late-cancellation window the API asks first, and the row says why.
   const late = page.getByRole("button", { name: "Cancel anyway" });
@@ -97,7 +109,26 @@ try {
   await page.waitForSelector(".toast:has-text('Cancelled:')");
   ok("app: cancelled through the API", (await member("GET", "/me/bookings?show=classes")).classes.length === 0);
   await page.getByRole("link", { name: "Me", exact: true }).click();
-  ok("app: the pack shows what's left", /of5left/.test((await page.locator(".pkg-left").textContent()).replace(/\s/g, "")));
+  ok("app: the pack in Me", /of 5 left/.test(await page.locator(".list .row", { hasText: "5-class pack" }).textContent()));
+
+  // Buying another, paid at the desk (this studio doesn't take payments online).
+  await page.getByRole("button", { name: /Buy another package/ }).click();
+  await page.getByRole("button", { name: /5-class pack/ }).click();
+  await page.waitForSelector(".bill-total");
+  ok("app: the checkout quote from the API", (await page.locator(".bill-total").textContent()).includes("150"));
+  await page.getByRole("button", { name: /Order and pay at the studio/ }).click();
+  await page.waitForSelector(".toast");
+  ok("api: the order waits at the desk", (await member("GET", "/me/purchases")).purchases.length === 1);
+
+  // A health note.
+  await page.getByRole("button", { name: /Injuries and health notes/ }).click();
+  await page.getByLabel("Add something").fill("Sore left wrist");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.waitForSelector(".note:has-text('Sore left wrist')");
+  ok("api: the health note saved", (await member("GET", "/me/health-notes")).active.some((n) => n.description === "Sore left wrist"));
+  await page.getByRole("button", { name: "Back" }).click();
+  await page.getByRole("button", { name: /^Waiver/ }).click();
+  ok("app: the waiver shows as signed", /You signed it/.test(await page.locator(".sub-head-sub").textContent()));
   ok("no errors in the page", errors.length === 0, errors.join(" | "));
   await page.screenshot({ path: path.join(root, "apps/client/e2e/shots/live-me.png") });
   await browser.close();

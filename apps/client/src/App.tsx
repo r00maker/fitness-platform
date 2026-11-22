@@ -12,6 +12,11 @@ import { Book } from "./screens/Book";
 import { Home } from "./screens/Home";
 import { Me } from "./screens/Me";
 import { MyClasses } from "./screens/MyClasses";
+import { ClassPage } from "./screens/ClassPage";
+import { Goal } from "./screens/me/Goal";
+import { Buy, Checkout, PackagePage } from "./screens/me/Packages";
+import { BuyGiftCard, GiftCards, Shop } from "./screens/me/Shop";
+import { AchievementsPage, Card, Health, NewsPrefs, Receipts, Refer, Rewards, WaiverPage } from "./screens/me/Account";
 import { SignIn } from "./screens/SignIn";
 import { StoreProvider, useStore, type Tab } from "./store";
 
@@ -62,8 +67,36 @@ const TABS: { key: Tab; label: string; icon: JSX.Element }[] = [
   { key: "me", label: "Me", icon: <><circle cx="12" cy="8.5" r="3.5" /><path d="M5 20c1.2-3.6 3.8-5.5 7-5.5s5.8 1.9 7 5.5" /></> },
 ];
 
+/** Which screen a path shows. Paths: <tab>[/class/<id>] and me/<screen>[/<id>]. */
+function Screen({ path }: { path: string[] }) {
+  const [tab, a, b, c] = path;
+  if (a === "class" && b) return <ClassPage id={b} />;
+  if (tab === "book") return <Book />;
+  if (tab === "classes") return <MyClasses />;
+  if (tab === "me") {
+    switch (a) {
+      case "goal": return <Goal />;
+      case "achievements": return <AchievementsPage />;
+      case "packages": return b ? <PackagePage id={b} /> : <Me />;
+      case "buy": return b ? <Checkout planId={b} /> : <Buy />;
+      case "shop": return b === "gift-card" ? <BuyGiftCard /> : <Shop />;
+      case "gift-cards": return <GiftCards />;
+      case "rewards": return <Rewards />;
+      case "refer": return <Refer />;
+      case "health": return <Health />;
+      case "waiver": return <WaiverPage />;
+      case "receipts": return <Receipts />;
+      case "card": return <Card />;
+      case "notifications": return <NewsPrefs />;
+      default: return <Me />;
+    }
+  }
+  void c;
+  return <Home />;
+}
+
 function Shell() {
-  const { studio, tab, go, progress, toasts, dismissToast, bookings } = useStore();
+  const { studio, tab, path, go, progress, toasts, dismissToast, bookings } = useStore();
   const [celebrating, setCelebrating] = useState(false);
   const [shownKey, setShownKey] = useState<string | null>(null);
   // The celebration opens once, a moment after Home has drawn.
@@ -100,11 +133,8 @@ function Shell() {
           ))}
         </ul>
       </nav>
-      <main id="main" className={`screen screen-${tab}`} key={tab}>
-        {tab === "home" && <Home />}
-        {tab === "book" && <Book />}
-        {tab === "classes" && <MyClasses />}
-        {tab === "me" && <Me />}
+      <main id="main" className={`screen screen-${tab}${path.length > 1 ? " is-sub" : ""}`} key={path.join("/")}>
+        <Screen path={path} />
       </main>
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => (

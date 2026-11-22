@@ -25,4 +25,6 @@ export function greeting(tz: string) {
   const h = Number(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", hourCycle: "h23", timeZone: tz }).slice(0, 2));
   return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 }
+/** "SGD 15.00", the way the API writes money. */
+export const money = (cents: number, currency: string) => new Intl.NumberFormat("en", { style: "currency", currency, currencyDisplay: "code" }).format(cents / 100).replace(/\u00a0/g, " ");
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

@@ -1,12 +1,12 @@
 /**
- * Home: never a blank page. The studio's banners, the next class, the tally to the next
- * milestone, this month against the client's goal, achievements, and a few classes to book
- * straight from here.
+ * Home: never a blank page. The studio's banners, the next class (tap for its screen), the bar to
+ * the next milestone, this month against the client's goal (set in Me), achievements, and a few
+ * classes to book straight from here.
  */
 import { useEffect, useMemo, useState } from "react";
 import { Banners } from "../components/Banners";
 import { ClassRow } from "../components/ClassRow";
-import { Achievements, GoalCard, MilestoneTrack } from "../components/Progress";
+import { AchievementsStrip, GoalSummary, MilestoneCard } from "../components/Progress";
 import type { ClassItem } from "../data/types";
 import { clock, dayLabel, greeting, isoToday } from "../lib/format";
 import { useStore } from "../store";
@@ -44,7 +44,7 @@ export function Home() {
       <section className="up-next" aria-labelledby="nextT">
         <h2 id="nextT">Your next class</h2>
         {nextUp ? (
-          <button type="button" className="next-card" onClick={() => go("classes")} style={{ "--type": nextUp.classType.color } as React.CSSProperties}>
+          <button type="button" className="next-card" onClick={() => go(`home/class/${nextUp.session.id}`)} style={{ "--type": nextUp.classType.color } as React.CSSProperties}>
             <span className="next-when">{dayLabel(nextUp.session.startsAt, tz)}, {clock(nextUp.session.startsAt, tz)}</span>
             <span className="next-name">{nextUp.classType.name}</span>
             <span className="next-where">{studio.locations.find((l) => l.id === nextUp.session.locationId)?.name ?? ""}{bookings.length > 1 ? `, and ${bookings.length - 1} more booked` : ""}</span>
@@ -59,8 +59,8 @@ export function Home() {
 
       {progress && (
         <div className="progress-grid">
-          <MilestoneTrack p={progress} />
-          <GoalCard p={progress} />
+          <MilestoneCard p={progress} />
+          <GoalSummary p={progress} />
         </div>
       )}
 
@@ -68,9 +68,9 @@ export function Home() {
         <section className="home-badges" aria-labelledby="badgesT">
           <div className="section-head">
             <h2 id="badgesT">Achievements</h2>
-            <button type="button" className="btn btn-text" onClick={() => go("me", "achievements")}>See all</button>
+            <button type="button" className="btn btn-text" onClick={() => go("me/achievements")}>See all</button>
           </div>
-          <Achievements p={progress} />
+          <AchievementsStrip p={progress} />
         </section>
       )}
 
@@ -81,7 +81,7 @@ export function Home() {
             <button type="button" className="btn btn-text" onClick={() => go("book")}>Full timetable</button>
           </div>
           <ul className="class-list">
-            {picks.map((c) => <ClassRow key={c.id} c={c} booked={bookedIds.get(c.id) ?? null} showDate />)}
+            {picks.map((c) => <ClassRow key={c.id} c={c} booked={bookedIds.get(c.id) ?? null} showDate from="home" />)}
           </ul>
         </section>
       )}

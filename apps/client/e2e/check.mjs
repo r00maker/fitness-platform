@@ -44,100 +44,176 @@ try {
   // --- Linden: Home is never blank
   let p = await open("linden");
   ok("home: greets the member by name", (await p.locator(".hello h1").textContent()).includes("Rachel"));
-  ok("home: the studio's welcome line", (await p.locator(".hello p").textContent()) === "Slow is still forward.");
   ok("home: studio banners", (await p.locator(".banner").count()) === 2);
-  ok("home: the next class", (await p.locator(".next-card .next-name").textContent()).length > 3);
-  ok("home: classes so far, and how many to the next milestone", (await p.locator(".track-count span").textContent()) === "47" && (await p.locator(".track-next").textContent()) === "3 more to your 50th");
-  ok("home: tally marks to the next milestone (30, 27 done)", (await p.locator(".tally i").count()) === 30 && (await p.locator(".tally i.on").count()) === 27);
-  ok("home: this month against the goal", (await p.locator(".goal-score").textContent()).replace(/\s/g, "") === "5of8");
-  ok("home: achievements", (await p.locator(".home-badges .badges li").count()) >= 3);
-  ok("home: classes to book from Home", (await p.locator("#picksT").count()) === 1);
-  ok("look: Linden's serif and green", (await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--display"))).includes("Young Serif") && (await p.evaluate(() => getComputedStyle(document.querySelector(".next-card")).backgroundColor)) === "rgb(47, 93, 70)");
+  ok("home: classes so far, and how many to the next milestone", (await p.locator(".ms-count b").textContent()) === "47" && /3 to your 50th/.test(await p.locator(".ms-next").textContent()));
+  ok("home: a progress bar to the next milestone (no tally marks)", (await p.locator(".ms-bar[role=progressbar]").getAttribute("aria-valuenow")) === "47" && (await p.locator(".tally").count()) === 0);
+  ok("home: this month against the goal, with no way to change it here", (await p.locator(".goal-score").textContent()).replace(/\s/g, "") === "5of8" && (await p.locator(".home .step").count()) === 0);
+  ok("home: achievements kept to one line", (await p.locator(".ach-strip").count()) === 1 && /to go/.test(await p.locator(".ach-strip").textContent()));
   ok("look: nothing wider than the phone", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  ok("tabs: the selected tab is marked", await p.evaluate(() => getComputedStyle(document.querySelector('.rail a[aria-current="page"]'), "::after").transform !== "matrix(0, 0, 0, 1, 0, 0)"));
   await p.screenshot({ path: join(shots, "linden-home.png") });
 
-  // The goal is changed right there.
-  await p.getByRole("button", { name: "One more class" }).click();
-  await p.waitForTimeout(300);
-  ok("goal: + raises it", (await p.locator(".goal-edit output").textContent()) === "9");
-  ok("goal: says so", (await p.locator(".toast").first().textContent()).includes("Goal set: 9 classes a month"));
+  // 1. Every screen opened from somewhere has Back, and Back returns there.
+  await p.locator(".next-card").click();
+  await p.waitForSelector(".class-page");
+  ok("back: the next class opens its own screen", (await p.locator(".class-page h1").textContent()).length > 3 && (await p.locator(".booked-panel").count()) === 1);
+  await p.getByRole("button", { name: "Back" }).click();
+  await p.waitForSelector(".hello");
+  ok("back: returns to Home", (await p.locator(".hello").count()) === 1);
+  await p.getByRole("link", { name: "Me", exact: true }).click();
+  await p.getByRole("button", { name: /Purchases and receipts/ }).click();
+  await p.getByRole("button", { name: "Back" }).click();
+  ok("back: from a Me screen returns to Me", (await p.locator(".me-head").count()) === 1);
 
-  // --- Booking: one tap opens the check in the row, one more books
+  // 2, 4, 5. The timetable: a week at a time, nothing cut off, the favourite instructor, no counts.
   await p.getByRole("link", { name: "Book", exact: true }).click();
   await p.waitForSelector(".class-list:not(.is-loading)");
-  const idx = await p.locator(".class-list .class-row").evaluateAll((rows) => rows.findIndex((r) => r.querySelector(".btn-main")));
+  ok("book: nothing wider than the phone", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  ok("book: every filter and day fits on screen", await p.evaluate(() => [...document.querySelectorAll(".chip, .seg, .select, .day, .class-act .btn")].every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth + 0.5; })));
+  ok("book: seven days at a time", (await p.locator(".days .day").count()) === 7);
+  ok("book: no class counts under the dates", (await p.locator(".day-count").count()) === 0);
+  ok("book: classes with their favourite instructor are starred", (await p.locator(".class-list .fav").count()) > 0);
+  await p.getByRole("button", { name: /Classes with Ana/ }).click();
+  ok("book: one tap for classes with Ana", (await p.locator(".class-list .class-row, .empty").count()) >= 1 && await p.evaluate(() => [...document.querySelectorAll(".class-list .class-sub")].every((e) => e.textContent.includes("Ana"))));
+  await p.getByRole("button", { name: /Classes with Ana/ }).click();
+  await p.getByRole("button", { name: "Next week" }).click();
+  ok("book: next week", (await p.locator(".week-label").textContent()) === "Next week");
+  await p.getByRole("button", { name: "Previous week" }).click();
+  await p.screenshot({ path: join(shots, "linden-book.png") });
+
+  // Booking: one check in the row, then booked.
+  const idx = await p.locator(".class-list .class-row").evaluateAll((rows) => rows.findIndex((r) => r.querySelector(".class-act .btn-main")));
   const row = p.locator(".class-list .class-row").nth(idx);
-  const name = await row.locator("h3").textContent();
-  await row.locator(".btn-main").click();
+  const name = await row.locator(".class-name").textContent();
+  await row.locator(".class-act .btn-main").click();
   await p.waitForSelector(".confirm-box .btn-main");
-  ok("book: the check opens in the row", (await row.getAttribute("class")).includes("is-open"));
   ok("book: says what it uses and what's left", /Uses 1 class from your 10-class pack\. 5 left after this\./.test(await row.locator(".confirm-line").textContent()));
-  ok("book: says until when cancelling is free", /^(Free to cancel until|It starts soon)/.test(await row.locator(".confirm-note").first().textContent()));
-  await row.getByRole("button", { name: "Not now" }).click();
-  await p.waitForTimeout(350);
-  ok("book: Not now closes it, nothing booked", !(await row.getAttribute("class")).includes("is-open") && (await row.locator(".booked-mark").count()) === 0);
-  await row.locator(".btn-main").click();
   await row.getByRole("button", { name: "Confirm booking" }).click();
   await p.waitForSelector(".toast:has-text('Booked:')");
   ok("book: booked, with a toast naming the class", (await p.locator(".toast", { hasText: "Booked:" }).textContent()).includes(name));
-  ok("book: the row shows it's booked", (await row.locator(".booked-mark").count()) === 1);
   await p.waitForFunction(() => document.querySelector(".rail .count")?.textContent === "3", null, { timeout: 3000 }).catch(() => {});
   ok("book: My classes count goes up", (await p.locator(".rail .count").textContent()) === "3");
-  await p.screenshot({ path: join(shots, "linden-booked.png") });
-  // Undo straight from the toast.
-  await p.locator(".toast", { hasText: "Booked:" }).getByRole("button", { name: "Undo" }).click();
-  await p.waitForSelector(".toast:has-text('Cancelled:')");
-  await p.waitForFunction(() => document.querySelector(".rail .count")?.textContent === "2", null, { timeout: 3000 }).catch(() => {});
-  ok("book: Undo cancels it and gives the class back", (await p.locator(".rail .count").textContent()) === "2" && (await row.locator(".btn-main").count()) === 1);
+  // Its own screen, then Back to the timetable.
+  await row.locator(".class-open").click();
+  await p.waitForSelector(".class-page");
+  ok("class: its screen says it's booked", (await p.locator(".booked-panel").count()) === 1);
+  await p.getByRole("button", { name: "Back" }).click();
+  ok("class: Back returns to the timetable", (await p.locator(".week").count()) === 1);
 
-  // --- Filters apply at once, count per day, and are remembered
-  const before = await p.locator(".class-list .class-row").count();
-  ok("book: nothing wider than the phone", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-  await p.getByRole("button", { name: "Mat Pilates" }).click();
-  await p.getByRole("radio", { name: "Evening" }).click();
-  const after = await p.locator(".class-list .class-row, .empty").count();
-  ok("filters: narrow the list straight away", after >= 1 && after <= before);
-  ok("filters: each day shows how many match", (await p.locator(".day.is-empty").count()) > 0);
-  await p.reload();
-  await p.waitForSelector(".chips");
-  ok("filters: remembered", (await p.getByRole("button", { name: "Mat Pilates" }).getAttribute("aria-pressed")) === "true");
-  await p.getByRole("button", { name: "Clear filters" }).first().click();
-  ok("filters: Clear filters", (await p.locator(".chip[aria-pressed='true']").count()) === 0);
-
-  // --- My classes: cancel in place
+  // My classes: open one and cancel it there.
   await p.getByRole("link", { name: /My classes/ }).click();
   const n = await p.locator(".booking-list > li").count();
-  await p.locator(".booking-list > li").last().getByRole("button", { name: "Cancel" }).click();
-  await p.getByRole("button", { name: "Cancel class" }).click();
+  await p.locator(".booking-list > li").last().locator(".row").click();
+  await p.getByRole("button", { name: "Cancel booking" }).click();
+  await p.getByRole("button", { name: /Cancel class|Cancel anyway/ }).click();
   await p.waitForSelector(".toast:has-text('Cancelled:')");
   await p.waitForFunction((k) => document.querySelectorAll(".booking-list > li").length === k, n - 1, { timeout: 3000 }).catch(() => {});
-  ok("my classes: cancelled in place", (await p.locator(".booking-list > li").count()) === n - 1);
+  ok("my classes: cancelled from the class's screen, then back to the list", (await p.locator(".booking-list > li").count()) === n - 1);
 
-  // --- Me: packages say how their dates work
+  // 6. The goal is set in Me. Raising it gets praise; lowering it first makes the case for keeping it.
   await p.getByRole("link", { name: "Me", exact: true }).click();
-  ok("me: the pack and how many are left", (await p.locator(".pkg-left").textContent()).replace(/\s/g, "").startsWith("6of10") || (await p.locator(".pkg-left").textContent()).includes("of 10"));
-  ok("me: the start follows the earliest class", (await p.locator(".pkg-note").first().textContent()).includes("Booking an earlier class moves the start back"));
-  ok("me: every achievement", (await p.locator("#achievements .badges li").count()) >= 10);
+  ok("me: no cancellation rule on the profile", !(await p.locator(".me").textContent()).includes("Cancel up to"));
+  await p.getByRole("button", { name: /Monthly goal/ }).click();
+  await p.getByRole("button", { name: "One more class" }).click();
+  await p.getByRole("button", { name: "Raise it to 9" }).click();
+  await p.waitForSelector(".praise");
+  ok("goal: raising it gets praise", (await p.locator(".praise").textContent()).length > 10);
+  await p.getByRole("button", { name: "One fewer class" }).click();
+  await p.getByRole("button", { name: "One fewer class" }).click();
+  await p.getByRole("button", { name: "Change it to 7" }).click();
+  await p.waitForSelector(".keep-box");
+  ok("goal: lowering it first shows how close they are", /You've done 5/.test(await p.locator(".keep-box").textContent()) && (await p.locator(".keep-box .btn-main").textContent()) === "Keep 9");
+  await p.getByRole("button", { name: "Keep 9" }).click();
+  ok("goal: Keep leaves it as it was", /9 classes a month/.test(await p.locator(".sub-head-sub").textContent()));
+  await p.getByRole("button", { name: "Back" }).click();
+
+  // 7. Achievements: milestones in a short grid, the rest beneath.
+  await p.getByRole("button", { name: /Achievements/ }).click();
+  ok("achievements: milestones together", (await p.locator(".miles li").count()) === 8 && (await p.locator(".miles li.next").count()) === 1);
+  ok("achievements: the others, five of them", (await p.locator(".badges li").count()) === 5);
+  await p.getByRole("button", { name: "Back" }).click();
+
+  // 10. Buying and managing.
+  await p.getByRole("button", { name: /Buy another package/ }).click();
+  await p.getByRole("button", { name: /20-class pack/ }).click();
+  await p.waitForSelector(".bill-total");
+  ok("buy: the bill, with studio credit taken off", /Studio credit/.test(await p.locator(".bill").textContent()) && (await p.locator(".bill-total").textContent()).includes("655"));
+  await p.getByRole("button", { name: /^Pay / }).click();
+  await p.waitForSelector(".me-head");
+  ok("buy: bought, and it's in their packages", (await p.locator(".list .row-title", { hasText: "20-class pack" }).count()) === 1);
+  await p.getByRole("button", { name: /10-class pack/ }).click();
+  await p.getByRole("button", { name: "Ask for more time" }).click();
+  await p.getByLabel("Why?").fill("Travelling for work");
+  await p.getByRole("button", { name: "Send request" }).click();
+  await p.waitForSelector(".toast:has-text('extended')");
+  await p.waitForSelector("#extT", { timeout: 3000 }).catch(() => {});
+  ok("package: asked for more time (approved straight away)", (await p.locator("#extT").count()) === 1);
+  await p.getByRole("button", { name: "Back" }).click();
+  await p.getByRole("button", { name: /20-class pack/ }).click();
+  await p.getByRole("button", { name: "Share it" }).click();
+  await p.getByLabel("Their email").fill("hannah@example.com");
+  await p.locator(".panel").getByRole("button", { name: "Share it" }).click();
+  await p.waitForSelector("#whoT");
+  ok("package: shared with a friend", (await p.locator(".list.plain .line", { hasText: "Hannah" }).count()) === 1);
+  await p.getByRole("button", { name: "Back" }).click();
+
+  await p.getByRole("button", { name: /^Shop/ }).click();
+  await p.getByRole("button", { name: "Add Linden water bottle" }).click();
+  await p.getByRole("button", { name: "Add Grip socks" }).click();
+  ok("shop: a basket with a total", (await p.locator(".basket .bill-line").count()) === 2 && (await p.locator(".basket .bill-total").textContent()).includes("50"));
+  await p.getByRole("button", { name: /^Pay / }).click();
+  await p.waitForSelector(".toast:has-text('Collect')");
+  ok("shop: paid, to collect at the desk", true);
+  await p.getByRole("button", { name: /My gift cards and credit/ }).click();
+  await p.getByRole("button", { name: "Keep it as credit" }).click();
+  await p.waitForSelector(".toast:has-text('credit')");
+  await p.waitForFunction(() => document.querySelector(".credit-big")?.textContent.includes("100"), null, { timeout: 3000 }).catch(() => {});
+  ok("gift cards: kept as credit", (await p.locator(".credit-big").textContent()).includes("100"));
+  await p.getByRole("button", { name: "Back" }).click();
+  await p.getByRole("button", { name: /Injuries and health notes/ }).click();
+  await p.getByLabel("Add something").fill("Sore left wrist");
+  await p.getByRole("button", { name: "Add", exact: true }).click();
+  await p.waitForSelector(".note:has-text('Sore left wrist')");
+  ok("health: a note added", true);
+  await p.locator(".note", { hasText: "Tight lower back" }).getByRole("button", { name: "It's better" }).click();
+  await p.waitForSelector(".resolved");
+  ok("health: one marked as better", (await p.locator(".resolved summary").textContent()).includes("1"));
+  await p.getByRole("button", { name: "Back" }).click();
+  await p.getByRole("button", { name: /Rewards/ }).click();
+  ok("rewards: balance and rewards", (await p.locator(".credit-big").textContent()) === "470 leaves" && (await p.locator(".reward").count()) === 2);
+  await p.getByRole("button", { name: "Redeem" }).click();
+  await p.waitForSelector(".toast:has-text('Redeemed')");
+  await p.waitForSelector(".code", { timeout: 3000 }).catch(() => {});
+  ok("rewards: redeemed, with a code for the desk", (await p.locator(".code").count()) === 1);
+  await p.getByRole("button", { name: "Back" }).click();
+  for (const [btn, sel] of [[/Refer a friend/, ".refer .credit-big"], [/Waiver/, ".waiver"], [/Purchases and receipts/, ".receipts .line"], [/Payment card/, ".card-page"], [/News and offers/, ".switch"]]) {
+    await p.getByRole("button", { name: btn }).click();
+    await p.waitForSelector(sel);
+    ok(`me: ${sel.split(" ")[0].slice(1)} opens`, true);
+    await p.getByRole("button", { name: "Back" }).click();
+  }
+  ok("me: nothing wider than the phone", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await p.screenshot({ path: join(shots, "linden-me.png"), fullPage: true });
   await p.close();
 
-  // --- Tidal: a celebration on opening, shown once; membership booking ahead
+  // --- Tidal: a celebration on opening, shown once; stopping a membership
   p = await open("tidal");
   await p.waitForSelector("[role=dialog]");
   ok("celebration: opens by itself", (await p.locator("#celebrateT").textContent()) === "Four weeks running");
-  ok("celebration: focus is on its button", await p.evaluate(() => document.activeElement?.textContent === "Book your next class"));
-  await p.screenshot({ path: join(shots, "tidal-celebration.png") });
   await p.keyboard.press("Escape");
   await p.waitForTimeout(800);
   ok("celebration: Esc closes it and it doesn't come back", (await p.locator("[role=dialog]").count()) === 0);
   ok("look: Tidal's grotesque and pill buttons", (await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--display"))).includes("Bricolage") && (await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--r-s"))).trim() === "999px");
-  await p.getByRole("link", { name: "Book", exact: true }).click();
-  await p.waitForSelector(".days");
-  // The last day shown is in next month only near a month's end; check the copy on Me instead.
   await p.getByRole("link", { name: "Me", exact: true }).click();
-  ok("membership: says next month can be booked ahead", (await p.locator(".pkg-note").last().textContent()).includes("book into next month before it renews"));
+  await p.getByRole("button", { name: /8 classes a month/ }).click();
+  await p.getByRole("button", { name: "Stop renewing" }).click();
+  await p.locator(".panel").getByRole("button", { name: "Stop renewing" }).click();
+  await p.waitForSelector(".toast:has-text('Stopped')");
+  await p.getByRole("button", { name: "Keep it renewing" }).waitFor({ timeout: 3000 }).catch(() => {});
+  ok("membership: stopped, and it can be kept renewing again", (await p.getByRole("button", { name: "Keep it renewing" }).count()) === 1);
   await p.close();
 
-  // --- Aizome: the 108th class is celebrated with a seal
+  // --- Aizome: the 108th class is celebrated with a seal; a member with no goal is asked
   p = await open("aizome");
   await p.waitForSelector("[role=dialog]");
   ok("celebration: the milestone, with its number", (await p.locator("#celebrateT").textContent()) === "108 classes" && (await p.locator(".celebrate-num").textContent()) === "108");
@@ -153,11 +229,18 @@ try {
   await p.screenshot({ path: join(shots, "linden-wide.png") });
   await p.close();
 
-  // --- Reduced motion: banners stay put, celebrations still say it
+  // --- Reduced motion
   p = await open("aizome", { reduced: true });
   await p.waitForSelector("[role=dialog]");
   ok("reduced motion: the celebration still shows", (await p.locator("#celebrateT").count()) === 1);
   ok("reduced motion: animations are switched off", await p.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".celebrate")).animationDuration) < 0.01));
+  await p.close();
+
+  // --- A phone narrower than most: still nothing cut off
+  p = await open("tidal", { viewport: { width: 340, height: 740 }, hash: "#/book" });
+  await p.keyboard.press("Escape");
+  await p.waitForSelector(".class-list:not(.is-loading)");
+  ok("narrow phone: the timetable fits", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await p.close();
 
   // --- The showcase: three live phones

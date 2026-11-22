@@ -65,6 +65,9 @@ img { display: block; max-width: 100% }
 .rail ul { list-style: none; margin: 0 auto; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); max-width: 560px }
 .rail a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; height: var(--tabbar); color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 500 }
 .rail a[aria-current="page"] { color: var(--accent) }
+/* The selected tab: a short bar in the brand colour above it (phones), beside it (the rail). */
+.rail a::after { content: ""; position: absolute; top: 0; left: 50%; width: 28px; height: 3px; margin-left: -14px; border-radius: 0 0 3px 3px; background: var(--accent); transform: scaleX(0); transition: transform .25s var(--ease) }
+.rail a[aria-current="page"]::after { transform: scaleX(1) }
 .rail svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round }
 .rail a[aria-current="page"] svg { stroke-width: 2.1 }
 .rail .count { position: absolute; top: 8px; left: calc(50% + 8px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--hi); color: var(--ink); font-size: 11px; font-weight: 700; display: grid; place-items: center }
@@ -105,20 +108,6 @@ img { display: block; max-width: 100% }
 .next-card.is-empty::after { display: none }
 
 /* The tally to the next milestone: the one big thing on Home. */
-.track-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px }
-.track-count { font-size: 22px; font-weight: 400; color: var(--muted); font-family: var(--body) }
-.track-count span { font-family: var(--display); font-size: clamp(76px, 24vw, 112px); line-height: .85; color: var(--ink); letter-spacing: -0.04em; margin-right: 4px }
-:root[data-display="sans"] .track-count span { font-weight: 700 }
-.track-next { font-size: 17px; font-weight: 500 }
-.tally { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 16px; margin-top: 18px }
-.tally-group { position: relative; display: inline-flex; gap: 6px; height: 34px; padding: 0 1px }
-.tally-group i { width: 4px; height: 100%; border-radius: 2px; background: var(--line) }
-.tally-group i:nth-child(5) { position: absolute; left: -5px; right: -5px; top: calc(50% - 2px); width: auto; height: 4px; transform: rotate(-24deg) }
-.tally-group i.on { background: var(--ink) }
-.tally-group i.now { background: var(--hi); animation: breathe 2.4s ease-in-out infinite }
-@keyframes breathe { 50% { opacity: .45 } }
-.tally-goal { display: inline-flex; align-items: center; gap: 6px; font-family: var(--display); font-size: 22px; color: var(--accent) }
-.track-unit { color: var(--muted); font-size: 13px; margin-top: 8px }
 .mark { width: 26px; height: 26px }
 .mark path, .mark rect, .celebrate-mark path, .celebrate-mark rect { display: none }
 :root[data-motif="leaf"] .m-leaf, :root[data-motif="wave"] .m-wave, :root[data-motif="stamp"] .m-stamp, :root[data-motif="spark"] .m-spark { display: block }
@@ -147,13 +136,6 @@ img { display: block; max-width: 100% }
 .goal-pick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px }
 
 /* Achievements. Their shape is the studio's motif: a leaf, a sticker, a red seal, a star. */
-.badges { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px }
-.badges > li { position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 12px; background: var(--surface); border-radius: var(--r-l); min-width: 190px; overflow: hidden }
-.badges h3 { font-family: var(--body); font-size: 15px; font-weight: 600 }
-.badges p { color: var(--muted); font-size: 13px }
-.badges.is-all { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); overflow: visible; margin-inline: 0; padding-inline: 0 }
-.badges.is-all .badge-detail { margin-top: 2px; color: var(--ink); font-size: 13px }
-.badges .to-earn { background: color-mix(in srgb, var(--surface) 60%, transparent); box-shadow: inset 0 0 0 1px var(--line) }
 .badge-bar { position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--p) * 100%); background: var(--hi) }
 .badge { position: relative; display: grid; place-items: center; width: 48px; height: 48px; flex: none }
 .badge-shape { position: absolute; inset: 0; border: 2px dashed var(--line); border-radius: 50% }
@@ -172,10 +154,10 @@ img { display: block; max-width: 100% }
 
 /* --- Timetable ---------------------------------------------------------------------------- */
 .filters { display: grid; gap: 10px }
-.chips, .filter-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; align-items: center }
+.chips, .filter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
 .chips::-webkit-scrollbar, .filter-row::-webkit-scrollbar, .days::-webkit-scrollbar { display: none }
-.days { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px; scroll-snap-type: x proximity }
-.day { flex: 0 0 52px; scroll-snap-align: start; display: grid; justify-items: center; gap: 0; padding: 8px 0 6px; border: 0; border-radius: var(--r-s); background: var(--surface); cursor: pointer }
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px }
+.day { min-width: 0; display: grid; justify-items: center; gap: 0; padding: 8px 0 9px; border: 0; border-radius: var(--r-s); background: var(--surface); cursor: pointer }
 :root[data-corners="round"] .day { border-radius: 26px }
 .day-name { font-size: 12px; color: var(--muted) }
 .day-num { font-family: var(--display); font-size: 22px; line-height: 1.2 }
@@ -188,7 +170,12 @@ img { display: block; max-width: 100% }
 .class-row { position: relative; border-bottom: 1px solid var(--line) }
 .class-row:last-child { border-bottom: 0 }
 .class-row::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; background: var(--type) }
-.class-main { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 14px 14px 18px }
+.class-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px 12px 12px 16px }
+.class-open { display: grid; grid-template-columns: 66px minmax(0, 1fr); gap: 10px; align-items: center; min-width: 0; padding: 2px 0; border: 0; background: none; text-align: left; cursor: pointer; color: inherit }
+.class-name { display: block; font-size: 16px; font-weight: 600; line-height: 1.25 }
+.class-sub, .class-what .class-spots { display: block; font-size: 14px; color: var(--muted) }
+.class-what { min-width: 0 }
+.fav, .fav-note { color: color-mix(in srgb, var(--hi) 70%, var(--ink)) }
 .class-time { display: grid; line-height: 1.15 }
 .class-day { font-size: 12px; color: var(--muted) }
 .class-clock { font-family: var(--display); font-size: 20px }
@@ -296,8 +283,7 @@ img { display: block; max-width: 100% }
   .home { row-gap: 32px }
   .home > .hello, .home > .progress-grid, .home > section:has(.class-list), .home > .home-badges, .home > .home-foot { grid-column: 1 / -1 }
   .banner img { aspect-ratio: 2.2 / 1 }
-  .chips, .filter-row, .days, .badges { margin-inline: 0; padding-inline: 0; flex-wrap: wrap }
-  .days { flex-wrap: nowrap }
+  .days { max-width: 560px }
   .toasts { bottom: 24px; left: 260px }
   .celebrate-scrim { align-items: center }
   .celebrate { border-radius: var(--r-l); padding-bottom: 24px }
@@ -305,4 +291,217 @@ img { display: block; max-width: 100% }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important }
+}
+
+/* --- Navigation: Back on every screen below a tab -------------------------------------------- */
+.sub-head { display: grid; gap: 4px }
+.back { justify-self: start; display: inline-flex; align-items: center; gap: 2px; height: 40px; margin-left: -10px; padding: 0 12px 0 6px; border: 0; border-radius: var(--r-s); background: none; color: var(--accent); font-weight: 600; font-size: 15px; cursor: pointer }
+.back:hover { background: var(--accent-soft) }
+.back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round }
+.sub-head h1 { font-size: clamp(26px, 7vw, 34px); margin-top: 2px }
+.sub-head-sub { color: var(--muted); font-size: 15px; max-width: 60ch }
+.screen.is-sub { animation-name: enter-sub }
+@keyframes enter-sub { from { opacity: 0; transform: translateX(10px) } }
+.loading, .muted { color: var(--muted); font-size: 15px }
+
+/* --- Lists of rows (Me and below) ----------------------------------------------------------- */
+.list { list-style: none; margin: 0; padding: 0; background: var(--surface); border-radius: var(--r-l); overflow: hidden }
+.list > li + li { border-top: 1px solid var(--line) }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 14px; border: 0; background: none; text-align: left; cursor: pointer; color: inherit }
+.row:hover { background: color-mix(in srgb, var(--accent) 4%, var(--surface)) }
+.row-icon { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: var(--r-s); background: var(--accent-soft); color: var(--accent) }
+:root[data-corners="round"] .row-icon { border-radius: 50% }
+.row-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+.row-text { display: grid; min-width: 0; flex: 1 }
+.row-title { font-weight: 600; font-size: 16px }
+.row-detail { color: var(--muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.row-badge { flex: none }
+.row-go { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
+.row-marks { display: flex }
+.row-marks .badge { width: 28px; height: 28px; margin-left: -6px; box-shadow: 0 0 0 2px var(--surface); border-radius: 50% }
+.row-marks .badge-text { font-size: 10px }
+.dot-alert { display: block; width: 10px; height: 10px; border-radius: 50%; background: var(--hi) }
+.list.plain > li { padding: 12px 16px }
+.line { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.line > span { display: grid; min-width: 0 }
+.line small, .reward small, .note small { display: block; color: var(--muted); font-size: 13px }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 600; white-space: nowrap }
+.screen > div > section > h2 { margin-bottom: 10px }
+.me-head { display: flex; align-items: center; gap: 14px }
+.avatar { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-family: var(--display); font-size: 26px; flex: none }
+:root[data-corners="square"] .avatar { border-radius: var(--r-l) }
+.booking-row { min-height: 68px }
+.booking-row { position: relative; padding-left: 18px }
+.booking-row::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; background: var(--type) }
+.booking-when { display: grid; width: 92px; flex: none; font-size: 13px; color: var(--muted); line-height: 1.25 }
+.booking-when b { font-family: var(--display); font-size: 19px; font-weight: 500; color: var(--ink) }
+
+/* --- Timetable: a week at a time, filters wrap ----------------------------------------------- */
+.chip-fav { justify-self: start; border-color: color-mix(in srgb, var(--hi) 60%, var(--line)) }
+.chip-fav span { color: color-mix(in srgb, var(--hi) 70%, var(--ink)) }
+.chip-fav[aria-pressed="true"] span { color: var(--hi) }
+.week { display: grid; gap: 8px }
+.week-head { display: flex; align-items: center; justify-content: space-between; max-width: 560px }
+.week-label { font-weight: 600; font-size: 15px }
+.week-nav { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--surface); color: var(--ink); cursor: pointer }
+.week-nav:disabled { opacity: .35; cursor: default }
+.week-nav svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
+.day[aria-selected="true"] { box-shadow: inset 0 -3px 0 var(--hi) }
+
+/* --- Progress: the bar to the next milestone ------------------------------------------------- */
+.ms { background: var(--surface); border-radius: var(--r-l); padding: 18px 20px 16px }
+.ms-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap }
+.ms-count { font-family: var(--body); font-size: 17px; font-weight: 500; color: var(--muted) }
+.ms-count b { font-family: var(--display); font-size: 56px; line-height: 1; font-weight: 500; color: var(--ink); letter-spacing: -0.03em; margin-right: 4px }
+:root[data-display="sans"] .ms-count b { font-weight: 700 }
+:root[data-motif="wave"] .ms-count b { font-weight: 800; font-stretch: 78% }
+.ms-next { font-size: 16px; color: var(--muted) }
+.ms-next b { color: var(--ink); font-family: var(--display); font-size: 22px; font-weight: 500 }
+.ms-bar { position: relative; height: 16px; margin: 16px 30px 0 0; border-radius: 999px; background: var(--ink-soft) }
+:root[data-corners="square"] .ms-bar { border-radius: 2px }
+.ms-fill { position: absolute; inset: 0 auto 0 0; width: calc(var(--p) * 100%); border-radius: inherit; background: var(--accent); animation: grow 1s var(--ease) .2s both }
+@keyframes grow { from { width: 0 } }
+.ms-end { position: absolute; right: -30px; top: 50%; display: grid; place-items: center; width: 40px; height: 40px; margin-top: -20px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--line); color: var(--accent) }
+:root[data-corners="square"] .ms-end { border-radius: 4px }
+.ms-end .mark { width: 22px; height: 22px }
+.ms-ends { display: flex; justify-content: space-between; margin: 10px 30px 0 0; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums }
+.goal.is-empty { display: grid; gap: 8px; justify-items: start }
+
+/* Achievements: a strip on Home, milestones on one line, the rest as a short grid. */
+.ach-strip { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 14px; border: 0; border-radius: var(--r-l); background: var(--surface); color: inherit; text-align: left; cursor: pointer }
+.ach-marks { display: flex }
+.ach-marks { gap: 6px }
+.ach-marks .badge { width: 36px; height: 36px }
+.ach-marks .badge-text { font-size: 12px }
+.ach-text { display: grid; flex: 1; min-width: 0 }
+.ach-text span { color: var(--muted); font-size: 14px }
+.badge { position: relative; display: grid; place-items: center; width: 44px; height: 44px; flex: none }
+.badge-shape { position: absolute; inset: 0; border: 2px dashed var(--line); border-radius: 50% }
+.badge-text { position: relative; font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--muted) }
+.miles { list-style: none; margin: 0; padding: 10px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 8px }
+.miles li { position: relative; display: grid; justify-items: center; gap: 6px; flex: 1; min-width: 0 }
+.miles .badge { background: var(--bg) }
+.miles-label { font-size: 12px; color: var(--muted); text-align: center }
+.miles li.next .badge-shape { border-style: solid; border-color: var(--hi) }
+.miles li.next .miles-label { color: var(--ink); font-weight: 600 }
+.miles-wrap { background: var(--surface); border-radius: var(--r-l); padding: 16px }
+.badges { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px }
+.badges > li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); border-radius: var(--r-l) }
+.badges > li > div { min-width: 0; flex: 1 }
+.badges h3 { font-family: var(--body); font-size: 15px; font-weight: 600 }
+.badges p { color: var(--muted); font-size: 13px }
+.badges .to-earn { background: color-mix(in srgb, var(--surface) 55%, transparent); box-shadow: inset 0 0 0 1px var(--line) }
+.mini-bar { display: block; height: 4px; margin-top: 6px; border-radius: 2px; background: linear-gradient(90deg, var(--hi) calc(var(--p) * 100%), var(--line) 0) }
+
+/* --- The goal screen --------------------------------------------------------------------------- */
+.goal-set { display: grid; gap: 14px; background: var(--surface); border-radius: var(--r-l); padding: 18px }
+.goal-set .goal-edit { border: 0; margin: 0; padding: 0; justify-content: center; gap: 18px }
+.goal-set .goal-edit output { font-family: var(--body); font-size: 16px; color: var(--muted); min-width: 10ch; text-align: center }
+.goal-set .goal-edit output b { display: block; font-family: var(--display); font-size: 44px; line-height: 1; color: var(--ink); font-weight: 500 }
+.goal-set .goal-pick { margin: 0; justify-content: center }
+.praise { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--r-l); background: var(--hi-soft); animation: toast .35s var(--ease) both }
+.praise svg { width: 26px; height: 26px; flex: none; fill: var(--hi) }
+.praise p { font-weight: 600 }
+.keep-box { display: grid; gap: 8px; padding: 18px; border-radius: var(--r-l); background: var(--accent-soft) }
+.keep-box h2 { font-size: 22px }
+.btn-wide { width: 100% }
+
+/* --- Forms, panels, checkout ------------------------------------------------------------------ */
+.panel { display: grid; gap: 12px; padding: 16px; border-radius: var(--r-l); background: var(--surface) }
+.field { display: grid; gap: 4px; font-size: 14px; font-weight: 500 }
+.field input, .field textarea { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-s); background: var(--bg); font-size: 16px; color: var(--ink) }
+:root[data-corners="round"] .field input { border-radius: 23px; padding-inline: 16px }
+.field textarea { resize: vertical }
+.check { display: flex; align-items: center; gap: 10px; font-size: 15px }
+.check input { width: 20px; height: 20px; accent-color: var(--accent) }
+.actions { display: flex; flex-wrap: wrap; gap: 8px }
+.facts { display: grid; gap: 0; margin: 0; background: var(--surface); border-radius: var(--r-l); overflow: hidden }
+.facts > div { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line) }
+.facts > div:first-child { border-top: 0 }
+.facts dt { color: var(--muted) }
+.facts dd { margin: 0; font-weight: 500 }
+.facts small { display: block; color: var(--muted); font-weight: 400 }
+.class-page .sub-head h1 { border-left: 4px solid var(--type); padding-left: 12px; margin-left: -16px }
+.class-desc { color: var(--ink); max-width: 60ch }
+.class-cta { display: grid; gap: 10px }
+.booked-panel { display: grid; gap: 10px; justify-items: start; padding: 16px; border-radius: var(--r-l); background: var(--surface) }
+.plans { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
+.plan { display: grid; gap: 4px; width: 100%; padding: 16px; border: 0; border-radius: var(--r-l); background: var(--surface); text-align: left; cursor: pointer; color: inherit; box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .15s }
+.plan:hover { box-shadow: inset 0 0 0 1.5px var(--accent) }
+.plan-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline }
+.plan-name { font-family: var(--display); font-size: 20px }
+.plan-price { font-weight: 700; white-space: nowrap }
+.plan-price small { font-weight: 400; color: var(--muted) }
+.plan-desc { color: var(--ink) }
+.plan-terms { color: var(--muted); font-size: 14px }
+.bill { display: grid; gap: 8px; padding: 16px; border-radius: var(--r-l); background: var(--surface) }
+.bill-line, .bill-total { display: flex; justify-content: space-between; gap: 12px; align-items: baseline }
+.bill-total { padding-top: 8px; border-top: 1px solid var(--line); font-weight: 700; font-size: 18px }
+.pay { display: grid; gap: 6px; margin: 0; padding: 0; border: 0 }
+.pay legend { font-weight: 600; margin-bottom: 6px }
+.pay-opt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-s); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); cursor: pointer }
+.pay-opt:has(input:checked) { box-shadow: inset 0 0 0 2px var(--accent) }
+.pay-opt input { accent-color: var(--accent); width: 18px; height: 18px }
+.pay-label { flex: 1; display: grid }
+.pay-label small, .pay-total small { color: var(--muted); font-size: 13px }
+.pay-total { text-align: right; font-weight: 600; display: grid }
+.pay-one { color: var(--muted) }
+.pkg-hero { display: grid; gap: 6px; padding: 18px; border-radius: var(--r-l); background: var(--surface) }
+.pkg-big { font-size: 17px; color: var(--muted) }
+.pkg-big b { font-family: var(--display); font-size: 40px; font-weight: 500; color: var(--ink); margin-right: 4px }
+.pkg-page .pkg-bar { margin: 4px 0 }
+
+/* --- Shop, gift cards, credit, rewards --------------------------------------------------------- */
+.gift-promo { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 18px; border: 0; border-radius: var(--r-l); background: var(--accent); color: var(--on-accent); text-align: left; cursor: pointer }
+.gift-promo span { display: grid }
+.gift-promo b { font-family: var(--display); font-size: 20px; font-weight: 500 }
+.gift-promo small { opacity: .85 }
+.gift-promo svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2 }
+.products { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
+.product { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: var(--r-l); background: var(--surface); flex-wrap: wrap }
+.product-text { min-width: 0; flex: 1 1 160px }
+.product h3 { font-family: var(--body); font-size: 16px; font-weight: 600 }
+.product p { color: var(--muted); font-size: 14px }
+.product .product-price { color: var(--ink); font-weight: 600 }
+.product-act { display: flex; gap: 8px; align-items: center }
+.product.is-out { opacity: .6 }
+.basket { display: grid; gap: 10px; padding: 16px; border-radius: var(--r-l); background: var(--surface); position: sticky; bottom: calc(var(--tabbar) + 8px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 30px color-mix(in srgb, var(--ink) 12%, transparent) }
+.designs, .amounts { margin: 0; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: 8px }
+.designs legend, .amounts legend { font-weight: 600; margin-bottom: 8px; width: 100% }
+.design { display: grid; gap: 4px; width: calc(50% - 4px); cursor: pointer; font-size: 14px; text-align: center }
+.design img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: var(--r-s); box-shadow: 0 0 0 1px var(--line) }
+.design.is-on img { box-shadow: 0 0 0 3px var(--accent) }
+.gift { display: grid; gap: 16px }
+.credit-card { display: grid; gap: 4px; padding: 18px; border-radius: var(--r-l); background: var(--surface) }
+.credit-big { font-family: var(--display); font-size: 34px; line-height: 1.1 }
+.link-text { font-size: 14px; word-break: break-all; color: var(--muted) }
+.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
+.gcard { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; padding: 12px; border-radius: var(--r-l); background: var(--surface) }
+.gcard img { width: 96px; aspect-ratio: 16 / 10; object-fit: cover; border-radius: var(--r-s) }
+.gcard-text { display: grid; gap: 6px }
+.inline-form { display: grid; gap: 8px }
+.reward { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.code { font-family: var(--display); letter-spacing: .05em }
+.steps { margin: 0; padding-left: 20px; display: grid; gap: 6px }
+.note { display: grid; gap: 8px }
+.note-act { display: flex; gap: 6px; flex-wrap: wrap }
+.warn-text { color: color-mix(in srgb, #b3261e 80%, var(--ink)) !important }
+.resolved summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 8px 0 }
+.waiver-text { max-height: 220px; overflow: auto; padding: 14px 16px; border-radius: var(--r-s); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: 14px; white-space: pre-wrap }
+.waiver-inline { display: grid; gap: 10px }
+.waiver-inline .waiver-text { max-height: 140px; background: var(--bg) }
+.saved-card { display: grid; padding: 16px; border-radius: var(--r-l); background: var(--surface) }
+.saved-card small { color: var(--muted) }
+.toggle-row { flex: 1; cursor: pointer }
+.toggle-row span { display: grid }
+.switch { appearance: none; width: 48px; height: 28px; flex: none; border-radius: 14px; background: var(--line); position: relative; cursor: pointer; transition: background .2s }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .2s var(--ease) }
+.switch:checked { background: var(--accent) }
+.switch:checked::after { transform: translateX(20px) }
+.studio-info p { display: none }
+
+@media (min-width: 960px) {
+  .rail a::after { top: 10px; bottom: 10px; left: 0; width: 3px; height: auto; margin-left: 0; border-radius: 0 3px 3px 0; transform: scaleY(0) }
+  .rail a[aria-current="page"]::after { transform: scaleY(1) }
+  .screen.is-sub > div { max-width: 720px }
 }

@@ -198,7 +198,8 @@ export async function bookingPageRoutes(app: FastifyInstance) {
         durationMinutes: Math.round((Date.parse(s.endsAt) - Date.parse(s.startsAt)) / 60_000),
         location: { id: s.location.id, name: s.location.name },
         room: s.roomName,
-        instructor: s.instructor ? { name: publicName(s.instructor.name), photoUrl: s.instructor.photoUrl } : null,
+        // The id lets a signed-in client's app filter to their favourite instructor.
+        instructor: s.instructor ? { id: s.instructor.id, name: publicName(s.instructor.name), photoUrl: s.instructor.photoUrl } : null,
         spotsLeft: spots,
         availability,
         label: { open: `${spots} spots left`, few_left: `${spots} ${spots === 1 ? "spot" : "spots"} left`, full: "Full", waitlist: "Full: join the waitlist", not_open_yet: `Booking opens ${DateTime.fromISO(s.bookingOpensAt).setZone(s.location.timezone).toFormat("ccc d LLL")}`, closed: "Booking closed" }[availability],

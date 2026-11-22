@@ -1,48 +1,11 @@
 /**
- * The Home progress pieces: the tally to the next milestone, this month against the client's
- * goal, and achievements. Each studio's motif shapes the marks (leaf, wave, seal, spark).
+ * Progress on Home and in Me: the bar to the next milestone, this month against the goal
+ * (read-only here; it's set in Me), and achievements kept short. The studio's motif shapes
+ * the marks (leaf, wave, seal, spark).
  */
-import { useState } from "react";
 import type { Badge, Progress } from "../data/types";
 import { ordinal, plural, shortDate } from "../lib/format";
 import { useStore } from "../store";
-
-/**
- * Classes since the last milestone as tally marks, grouped in fives like a rep count, with the
- * marks still to go drawn faintly. The count is the headline.
- */
-export function MilestoneTrack({ p }: { p: Progress }) {
-  const { previous, next, toGo } = p.milestone;
-  const span = next ? next - previous : 0;
-  const done = next ? p.classes - previous : 0;
-  // Very long stretches (say 500 to 1000) are drawn as tens.
-  const unit = span > 120 ? 10 : 1;
-  const marks = Math.ceil(span / unit);
-  const filled = Math.floor(done / unit);
-  const groups = Math.ceil(marks / 5);
-  return (
-    <section className="track" aria-labelledby="trackT">
-      <div className="track-head">
-        <h2 id="trackT" className="track-count"><span>{p.classes}</span> {p.classes === 1 ? "class" : "classes"}</h2>
-        {next ? <p className="track-next">{toGo === 1 ? "One more" : `${toGo} more`} to your {ordinal(next)}</p> : <p className="track-next">Every milestone reached</p>}
-      </div>
-      {next && (
-        <div className="tally" role="img" aria-label={`${done} of ${span} classes from your ${previous ? ordinal(previous) : "first"} to your ${ordinal(next)}`}>
-          {Array.from({ length: groups }, (_, g) => (
-            <span className="tally-group" key={g}>
-              {Array.from({ length: Math.min(5, marks - g * 5) }, (_, i) => {
-                const n = g * 5 + i;
-                return <i key={i} className={n < filled ? "on" : n === filled ? "now" : ""} />;
-              })}
-            </span>
-          ))}
-          <span className="tally-goal" aria-hidden="true"><Mark />{next}</span>
-        </div>
-      )}
-      {unit > 1 && <p className="track-unit">Each mark is 10 classes.</p>}
-    </section>
-  );
-}
 
 /** The studio's mark: a leaf, a wave crest, a seal or a spark. */
 export function Mark({ className = "mark" }: { className?: string }) {
@@ -56,31 +19,38 @@ export function Mark({ className = "mark" }: { className?: string }) {
   );
 }
 
-/** This month: a dot per class in the goal. Filled = done, ringed = booked. The goal is set right here. */
-export function GoalCard({ p }: { p: Progress }) {
-  const { api, refresh, toast } = useStore();
-  const [busy, setBusy] = useState(false);
+/** Classes so far, and a bar from the last milestone to the next one, with the studio's mark at the end. */
+export function MilestoneCard({ p }: { p: Progress }) {
+  const { previous, next, toGo, progress } = p.milestone;
+  return (
+    <section className="ms" aria-labelledby="msT">
+      <div className="ms-top">
+        <h2 id="msT" className="ms-count"><b>{p.classes}</b> {p.classes === 1 ? "class" : "classes"}</h2>
+        <p className="ms-next">{next ? <><b>{toGo}</b> to your {ordinal(next)}</> : "Every milestone reached"}</p>
+      </div>
+      {next && (
+        <>
+          <div className="ms-bar" role="progressbar" aria-label={`From ${previous} to ${next} classes`} aria-valuemin={previous} aria-valuemax={next} aria-valuenow={p.classes}>
+            <span className="ms-fill" style={{ "--p": Math.max(0.02, progress) } as React.CSSProperties} />
+            <span className="ms-end"><Mark /></span>
+          </div>
+          <div className="ms-ends" aria-hidden="true"><span>{previous || "Start"}</span><span>{next}</span></div>
+        </>
+      )}
+    </section>
+  );
+}
+
+/** This month against the goal: a dot per class (filled = done, ringed = booked). Set or changed in Me. */
+export function GoalSummary({ p }: { p: Progress }) {
+  const { go } = useStore();
   const { done, booked, goal, label, daysLeft } = p.month;
-  async function setGoal(n: number | null) {
-    setBusy(true);
-    try {
-      await api.setGoal(n);
-      await refresh();
-      if (n) toast(`Goal set: ${plural(n, "class", "classes")} a month.`);
-    } catch (e) {
-      toast((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
   if (!goal) {
     return (
-      <section className="goal" aria-labelledby="goalT">
+      <section className="goal is-empty" aria-labelledby="goalT">
         <h2 id="goalT">{label}</h2>
-        <p className="goal-line">{done ? `${plural(done, "class", "classes")} so far.` : "No classes yet this month."} How many would you like to do?</p>
-        <div className="goal-pick" role="group" aria-label="Set a monthly goal">
-          {[4, 8, 12, 16].map((n) => <button key={n} type="button" className="chip" disabled={busy} onClick={() => void setGoal(n)}>{n} a month</button>)}
-        </div>
+        <p className="goal-line">{done ? `${plural(done, "class", "classes")} so far this month.` : "A monthly goal helps you keep a rhythm."}</p>
+        <button type="button" className="btn btn-quiet" onClick={() => go("me/goal")}>Set a monthly goal</button>
       </section>
     );
   }
@@ -93,51 +63,80 @@ export function GoalCard({ p }: { p: Progress }) {
         <p className="goal-score"><b>{done}</b> of {goal}</p>
       </div>
       <ol className="goal-dots" aria-label={`${done} done and ${booked} booked, of a goal of ${goal}`}>
-        {Array.from({ length: count }, (_, i) => <li key={i} className={i < done ? "done" : i < done + booked ? "booked" : i >= goal ? "extra" : ""} />)}
+        {Array.from({ length: count }, (_, i) => <li key={i} className={i < done ? "done" : i < done + booked ? "booked" : ""} />)}
       </ol>
       <p className="goal-line">
-        {done >= goal ? "Goal met. Anything more is a bonus." : left === 0 ? `Booked up to your goal. ${plural(daysLeft, "day")} left in ${label}.` : `${booked ? `${booked} booked, ` : ""}${plural(left, "more class", "more classes")} to book. ${plural(daysLeft, "day")} left.`}
+        {done >= goal ? "Goal met. Anything more is a bonus." : left === 0 ? `Booked up to your goal, with ${plural(daysLeft, "day")} to go.` : `${booked ? `${booked} booked, ` : ""}${plural(left, "more to book", "more to book")}. ${plural(daysLeft, "day")} left.`}
       </p>
-      <div className="goal-edit" role="group" aria-label="Change your monthly goal">
-        <span>Goal</span>
-        <button type="button" className="step" aria-label="One fewer class" disabled={busy || goal <= 1} onClick={() => void setGoal(goal - 1)}>−</button>
-        <output aria-live="polite">{goal}</output>
-        <button type="button" className="step" aria-label="One more class" disabled={busy || goal >= 60} onClick={() => void setGoal(goal + 1)}>+</button>
-        <span>a month</span>
-      </div>
     </section>
   );
 }
 
-export function BadgeMark({ b, size = "md" }: { b: Badge; size?: "md" | "lg" }) {
+const GLYPH: Record<string, string> = { first: "1", goal: "✓", streak: "4w", early: "6am", explorer: "3" };
+export function BadgeMark({ b }: { b: Badge }) {
   const n = b.key.startsWith("classes_") ? b.key.slice(8) : null;
-  const glyph: Record<string, string> = { first: "1", goal: "✓", streak: "4w", early: "6am", explorer: "3" };
   return (
-    <span className={`badge badge-${size}${b.earned ? " is-earned" : ""}`} aria-hidden="true">
+    <span className={`badge${b.earned ? " is-earned" : ""}`} aria-hidden="true">
       <span className="badge-shape" />
-      <span className="badge-text">{n ?? glyph[b.key] ?? "★"}</span>
+      <span className="badge-text">{n ?? GLYPH[b.key] ?? "★"}</span>
     </span>
   );
 }
 
-/** Earned achievements, newest first, then the closest ones still to earn. */
-export function Achievements({ p, all = false }: { p: Progress; all?: boolean }) {
+const milestonesOf = (p: Progress) => p.achievements.filter((b) => b.key.startsWith("classes_"));
+const othersOf = (p: Progress) => p.achievements.filter((b) => !b.key.startsWith("classes_"));
+/** The achievement closest to being earned. */
+export const nextUp = (p: Progress) => p.achievements.filter((b) => !b.earned && b.progress).sort((a, b) => b.progress!.have / b.progress!.need - a.progress!.have / a.progress!.need)[0];
+
+/** Home: the last few earned (just their marks) and the one coming up. */
+export function AchievementsStrip({ p }: { p: Progress }) {
+  const { go } = useStore();
   const earned = p.achievements.filter((b) => b.earned).sort((a, b) => (b.earnedOn ?? "").localeCompare(a.earnedOn ?? ""));
-  const toEarn = p.achievements.filter((b) => !b.earned && b.progress).sort((a, b) => b.progress!.have / b.progress!.need - a.progress!.have / a.progress!.need);
-  const list = all ? [...earned, ...toEarn] : [...earned.slice(0, 3), ...toEarn.slice(0, 2)];
+  const up = nextUp(p);
   return (
-    <ul className={`badges${all ? " is-all" : ""}`}>
-      {list.map((b) => (
-        <li key={b.key} className={b.earned ? "earned" : "to-earn"}>
-          <BadgeMark b={b} />
-          <div>
-            <h3>{b.title}</h3>
-            <p>{b.earned ? (b.earnedOn ? `Earned ${shortDate(b.earnedOn)}` : "Earned") : `${b.progress!.have} of ${b.progress!.need}`}</p>
-            {all && <p className="badge-detail">{b.detail}</p>}
-          </div>
-          {!b.earned && b.progress && <span className="badge-bar" style={{ "--p": b.progress.have / b.progress.need } as React.CSSProperties} aria-hidden="true" />}
-        </li>
-      ))}
-    </ul>
+    <button type="button" className="ach-strip" onClick={() => go("me/achievements")} aria-label={`Achievements: ${earned.length} earned${up ? `. Next: ${up.title}, ${up.progress!.have} of ${up.progress!.need}` : ""}. See all`}>
+      <span className="ach-marks">{earned.slice(0, 4).map((b) => <BadgeMark key={b.key} b={b} />)}</span>
+      <span className="ach-text">
+        <b>{plural(earned.length, "achievement")}</b>
+        {up && <span>Next: {up.title}, {up.progress!.need - up.progress!.have} to go</span>}
+      </span>
+      <svg className="row-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+    </button>
+  );
+}
+
+/** The full set: milestones along one line, then the other achievements. */
+export function AchievementsFull({ p }: { p: Progress }) {
+  const ms = milestonesOf(p);
+  const nextIndex = ms.findIndex((b) => !b.earned);
+  return (
+    <>
+      <section aria-labelledby="milesT" className="miles-wrap">
+        <h2 id="milesT">Milestones</h2>
+        <ol className="miles">
+          {ms.map((b, i) => (
+            <li key={b.key} className={b.earned ? "earned" : i === nextIndex ? "next" : ""}>
+              <BadgeMark b={b} />
+              <span className="miles-label">{b.earned ? (b.earnedOn ? shortDate(b.earnedOn) : "Earned") : i === nextIndex ? `${b.progress!.need - b.progress!.have} to go` : ""}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section aria-labelledby="othersT">
+        <h2 id="othersT">Along the way</h2>
+        <ul className="badges">
+          {othersOf(p).map((b) => (
+            <li key={b.key} className={b.earned ? "earned" : "to-earn"}>
+              <BadgeMark b={b} />
+              <div>
+                <h3>{b.title}</h3>
+                <p>{b.earned ? (b.earnedOn ? `Earned ${shortDate(b.earnedOn)}` : "Earned") : b.detail}</p>
+                {!b.earned && b.progress && <span className="mini-bar" style={{ "--p": b.progress.have / b.progress.need } as React.CSSProperties} aria-label={`${b.progress.have} of ${b.progress.need}`} />}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
   );
 }
