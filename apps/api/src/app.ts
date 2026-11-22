@@ -82,7 +82,8 @@ export async function buildApp(opts: { config: Config; db: Db }) {
   await app.register(cors, {
     delegator: (req, cb) => {
       const open = /^\/v1\/public\/(studios\/|widget\.js)/.test(req.url ?? "");
-      cb(null, open ? { origin: "*", methods: ["GET", "HEAD"], credentials: false } : { origin: appOrigins, credentials: false });
+      // The apps change things with PUT, PATCH and DELETE too (the CORS default is only GET, HEAD and POST).
+      cb(null, open ? { origin: "*", methods: ["GET", "HEAD"], credentials: false } : { origin: appOrigins, methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"], credentials: false });
     },
   });
   // Per address. (Keying on the sign-in token would let anyone dodge the limit by sending made-up

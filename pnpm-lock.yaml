@@ -85,6 +85,43 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(jsdom@25.0.1)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15))
 
+  apps/client:
+    dependencies:
+      '@studio/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@supabase/supabase-js':
+        specifier: 2.119.0
+        version: 2.119.0(@opentelemetry/api@1.10.0)
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: 18.3.12
+        version: 18.3.12
+      '@types/react-dom':
+        specifier: 18.3.1
+        version: 18.3.1
+      '@vitejs/plugin-react':
+        specifier: 4.3.4
+        version: 4.3.4(vite@5.4.11(@types/node@22.20.5)(lightningcss@1.33.0))
+      jsdom:
+        specifier: 25.0.1
+        version: 25.0.1
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      vite:
+        specifier: 5.4.11
+        version: 5.4.11(@types/node@22.20.5)(lightningcss@1.33.0)
+      vitest:
+        specifier: 2.1.8
+        version: 2.1.8(@types/node@22.20.5)(jsdom@25.0.1)(lightningcss@1.33.0)
+
   apps/site: {}
 
   apps/web:

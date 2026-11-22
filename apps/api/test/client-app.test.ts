@@ -113,6 +113,15 @@ describe("the app's look", () => {
     expect((await s.c1.call("GET", "/me/progress")).body.milestone.next).toBe(5);
   });
 
+  it("lets the apps change things from their own address (PUT, PATCH and DELETE too)", async () => {
+    const pre = await app.inject({ method: "OPTIONS", url: "/v1/me/goal", headers: { origin: "http://localhost:5173", "access-control-request-method": "PUT" } });
+    expect(pre.headers["access-control-allow-origin"]).toBe("http://localhost:5173");
+    expect(String(pre.headers["access-control-allow-methods"])).toMatch(/PUT/);
+    expect(String(pre.headers["access-control-allow-methods"])).toMatch(/PATCH/);
+    const other = await app.inject({ method: "OPTIONS", url: "/v1/me/goal", headers: { origin: "https://evil.example", "access-control-request-method": "PUT" } });
+    expect(other.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+
   it("tells the app when free cancelling ends, for the booking confirmation", async () => {
     const { s, cls } = await setup();
     const id = await cls();

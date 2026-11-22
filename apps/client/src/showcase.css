@@ -1,0 +1,38 @@
+/* The showcase page around the three phones. Neutral, so the studios' looks carry it. */
+:root {
+  --bg: #eef0f2; --fg: #15181d; --mute: #5b6470; --line: #d7dbe0; --card: #fff;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #14171b; --fg: #e9ecef; --mute: #9aa3ad; --line: #2b3138; --card: #1b1f24; color-scheme: dark }
+}
+:root[data-theme="dark"] { --bg: #14171b; --fg: #e9ecef; --mute: #9aa3ad; --line: #2b3138; --card: #1b1f24; color-scheme: dark }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: Manrope, system-ui, sans-serif; line-height: 1.5 }
+main { max-width: 1320px; margin: 0 auto; padding: 40px 16px 64px }
+.sc-head { max-width: 760px }
+.sc-head h1 { margin: 0; font-size: clamp(30px, 5vw, 46px); line-height: 1.05; letter-spacing: -0.03em }
+.sc-head p { color: var(--mute); font-size: 17px; margin: 12px 0 0 }
+.sc-tabs { display: none; gap: 6px; margin-top: 24px; overflow-x: auto }
+.sc-tabs button { flex: none; height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid var(--line); background: var(--card); color: var(--fg); font: inherit; font-size: 14px; cursor: pointer }
+.sc-tabs button[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg) }
+.sc-phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-top: 36px; align-items: start }
+.sc-phone { margin: 0 }
+.sc-frame { width: 100%; max-width: 390px; margin: 0 auto; aspect-ratio: 390 / 820; border-radius: 34px; padding: 10px; background: #0d0f12; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .45) }
+.sc-frame iframe { width: 100%; height: 100%; border: 0; border-radius: 25px; background: #fff; display: block }
+figcaption { max-width: 390px; margin: 18px auto 0 }
+figcaption h2 { margin: 0; font-size: 20px; letter-spacing: -0.01em }
+figcaption p { margin: 6px 0 12px; color: var(--mute); font-size: 15px }
+dl { margin: 0; display: grid; gap: 6px; font-size: 14px }
+dl div { display: grid; grid-template-columns: 92px 1fr; gap: 10px }
+dt { color: var(--mute) }
+dd { margin: 0 }
+.sc-swatches { display: flex; gap: 4px }
+.sc-swatches span { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12) }
+figcaption a { display: inline-block; margin-top: 12px; color: var(--fg); font-weight: 600 }
+@media (max-width: 1080px) {
+  .sc-tabs { display: flex }
+  .sc-phones { grid-template-columns: minmax(0, 1fr) }
+  .sc-phone { display: none }
+  .sc-phone.is-on { display: block }
+}
