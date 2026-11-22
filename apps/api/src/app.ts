@@ -1,3 +1,4 @@
+import { clientAppRoutes } from "./modules/client-app/routes.js";
 import Fastify, { type FastifyError } from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -134,6 +135,7 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(dashboardRoutes);
       await v1.register(reviewRoutes);
       await v1.register(momentRoutes);
+      await v1.register(clientAppRoutes);
       await v1.register(bookingRoutes);
       await v1.register(waitlistRoutes);
       await v1.register(substituteRoutes);

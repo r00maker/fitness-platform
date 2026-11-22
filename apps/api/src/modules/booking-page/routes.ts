@@ -38,6 +38,7 @@ import { getCalendar } from "../sessions/calendar.js";
 import { getOrg } from "../sessions/context.js";
 import { onlineReady } from "../payments/service.js";
 import { WIDGET_JS } from "./widget.js";
+import { themeFor } from "../client-app/service.js";
 
 type Org = Awaited<ReturnType<typeof getOrg>>;
 const NOBODY = "00000000-0000-0000-0000-000000000000";
@@ -150,6 +151,8 @@ export async function bookingPageRoutes(app: FastifyInstance) {
       intro: org.bookingIntro,
       accent: await accentOf(org),
       logoUrl: s.logoFileId ? publicFileUrl(config.PUBLIC_API_URL, s.logoFileId) : null,
+      /** The client app's look (colours, typefaces, corners, celebrations, milestones). */
+      theme: await themeFor(db, org),
       currency: org.currency,
       timezone: org.timezone,
       locations: locs,

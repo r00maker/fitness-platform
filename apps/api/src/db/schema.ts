@@ -4,6 +4,7 @@
  * All timestamps are stored in UTC (`timestamptz`); local times are worked out
  * from each location's time zone.
  */
+import type { AppTheme } from "@studio/shared";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -276,6 +277,8 @@ export const organizations = pgTable("organizations", {
   plan: text("plan").$type<"essentials" | "growth" | "signature">().notNull().default("signature"),
   /** Growth only: the branded app add-on. Signature always includes the app. */
   brandedApp: boolean("branded_app").notNull().default(false),
+  /** The client app's look (colours, typefaces, corners, celebrations, milestones). Used with the branded app. */
+  appTheme: jsonb("app_theme").$type<Partial<AppTheme>>(),
   /** Where the studio is with us (HQ): onboarding, live, paused or cancelled. Studios from before HQ are live. */
   lifecycle: text("lifecycle").$type<"onboarding" | "live" | "paused" | "cancelled">().notNull().default("live"),
   referralQualify: text("referral_qualify").notNull().default("classes_attended"),
@@ -2304,3 +2307,31 @@ export const paymentEvents = pgTable("payment_events", {
   receivedAt: ts("received_at").notNull().defaultNow(),
 });
 
+
+/** A client's monthly class goal. A goal carries on into later months until they change it. */
+export const clientGoals = pgTable(
+  "client_goals",
+  {
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** "2026-11": the month it starts from. */
+    month: text("month").notNull(),
+    classes: integer("classes").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("client_goals_uq").on(t.orgId, t.userId, t.month), check("client_goals_range", sql`${t.classes} between 1 and 60`)],
+);
+
+/** Celebrations a client has seen in the app (milestones, goals met, achievements), so each shows once. */
+export const clientCelebrations = pgTable(
+  "client_celebrations",
+  {
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** e.g. "milestone:50", "goal:2026-11", "badge:explorer". */
+    key: text("key").notNull(),
+    seenAt: createdAt(),
+  },
+  (t) => [uniqueIndex("client_celebrations_uq").on(t.orgId, t.userId, t.key)],
+);

@@ -260,6 +260,13 @@
       "when": 1795316396132,
       "tag": "0036_members_book_ahead",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795316992253,
+      "tag": "0037_client_app",
+      "breakpoints": true
     }
   ]
 }
