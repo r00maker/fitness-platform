@@ -39,7 +39,6 @@ function Showcase() {
                   <div><dt>Milestones</dt><dd>{p.milestones.join(", ")}</dd></div>
                   <div><dt>Member</dt><dd>{l.member}</dd></div>
                 </dl>
-                <a href={`index.html?demo&studio=${l.key}`} target="_blank" rel="noopener">Open full screen</a>
               </figcaption>
             </figure>
           );

@@ -9,7 +9,7 @@
 :root[data-theme="dark"] { --bg: #14171b; --fg: #e9ecef; --mute: #9aa3ad; --line: #2b3138; --card: #1b1f24; color-scheme: dark }
 * { box-sizing: border-box }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: Manrope, system-ui, sans-serif; line-height: 1.5 }
-main { max-width: 1320px; margin: 0 auto; padding: 40px 16px 64px }
+main { max-width: 1320px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
 .sc-head { max-width: 760px }
 .sc-head h1 { margin: 0; font-size: clamp(30px, 5vw, 46px); line-height: 1.05; letter-spacing: -0.03em }
 .sc-head p { color: var(--mute); font-size: 17px; margin: 12px 0 0 }
