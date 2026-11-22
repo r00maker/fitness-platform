@@ -6,42 +6,49 @@ Built with Vite, React 18 and TypeScript. It talks to a `Backend` (`src/data/typ
 
 ## What members see
 
-- **Home is never blank.** It has:
-  - a greeting and the studio's welcome line;
-  - the studio's banners, which rotate at the studio's setting and pause while someone is reading;
-  - their next class;
-  - a tally of classes to the next milestone;
-  - this month against their own goal;
-  - achievements;
-  - three classes to book straight from Home (the kinds they book most).
-- **Milestones** are the studio's to choose: 10, 20, 50 and 100 by default. Aizome counts to 108, a number that means something in yoga. The tally draws a mark per class since the last milestone, in fives like a rep count, and the class they're on next breathes in the highlight colour.
-- **Monthly goal:** they set it with one tap (4, 8, 12 or 16 a month) and change it with − and +. There's a dot per class in the goal: filled when done, ringed when booked. The goal carries on into later months until they change it.
-- **Achievements:**
-  - First class;
-  - each milestone;
-  - Goal met;
-  - Four weeks running;
-  - Early riser (5 classes before 8am);
-  - Explorer (3 kinds of class).
+Four tabs: Home, Book, My classes and Me. The selected tab is marked with a short bar in the brand colour. Every screen opened from somewhere has **Back**, which returns to where it was opened from. For example, a class opened from Home goes back to Home, not My classes.
 
-  Ones not yet earned show progress ("10 of 20").
-- **Celebrations:** when the app opens, it shows the one most important thing that happened in the last 3 weeks and hasn't been shown yet. That's a milestone, then a goal met, then an achievement. It's the app's single animated moment, and the studio's mark draws itself: a leaf unfurls (Linden), a wave rolls (Tidal), a red seal is stamped (Aizome) or a spark opens (Studio). Each celebration shows once. Esc or Close dismisses it, and its button goes to booking.
-- **Booking with one check:**
-  - Filters are one row of taps: kinds of class, time of day, teacher and location. They apply at once and are remembered.
-  - The two-week day strip shows how many classes match on each day, so nobody taps through empty days.
-  - **Book** opens a short confirmation inside the row, saying:
-    - what it uses ("Uses 1 class from your 10-class pack. 5 left after this.");
-    - or, for memberships booked into next month: "Booked ahead into your membership for the month starting 1 Dec…";
-    - and whether cancelling later is free ("Free to cancel until 11:00pm today"), or a warning if it isn't.
-  - **Confirm booking** books it, and a toast offers **Undo**.
-  - That's two taps from the timetable, with one check against mis-taps.
-  - If the studio's rules want another check (for example a weekly limit), it appears in the same place with **Book anyway**.
-- **My classes:** upcoming classes, each cancelled in place. Inside the late window, the API's warning shows first, with **Cancel anyway**.
-- **Me:**
-  - packages, with how their dates work: "Started on 6 Nov, the day of your first class. Booking an earlier class moves the start back…";
-  - for memberships, what's booked ahead;
-  - the goal and every achievement;
-  - the studio's locations and cancellation rule.
+- **Home is never blank.** It shows:
+  - the studio's banners;
+  - their next class (tap for its screen);
+  - a bar to the next milestone, with the studio's mark at the end;
+  - this month against their goal;
+  - one line for achievements;
+  - three classes to book straight from Home.
+
+  Home shows the goal but doesn't change it. With no goal set, it offers **Set a monthly goal**.
+- **A class's screen:**
+  - when, where, the instructor (starred if they're the member's favourite), the length and what the class is like;
+  - **Book**, or **Cancel booking** with the studio's late-cancellation check.
+- **The timetable shows a week at a time**, with arrows for next week, so nothing is cut off at the screen's edge.
+  - Filters wrap onto the next line instead of scrolling sideways. They apply at once and are remembered.
+  - **Classes with Ana** is one tap. The studio works out each member's favourite instructor from the classes they've been to, and stars those classes in the list.
+  - There are no counts under the dates.
+  - **Book** opens one short check in the row: what it uses, and until when cancelling is free. **Confirm booking** books it, and the toast offers **Undo**.
+  - On a member's first booking, the studio's waiver appears in the same place: tick, type their name, **Sign and book**.
+- **Monthly goal (Me):**
+  - With no goal: "Would you like to set a goal?", with 4, 8, 12 or 16 a month, or any number.
+  - Raising it gets praise straight away.
+  - Lowering it (or removing it) first shows how close they are to the goal they have ("You've done 5 and booked 2, with 9 days left. 1 more class gets you there"), with **Keep 9** as the main button. They can still change it.
+- **Achievements:** one line on Home and in Me. The full screen has two parts:
+  - the milestones in a short grid, with the next one marked and "3 to go";
+  - five other achievements, with progress on the ones not earned yet.
+- **Celebrations:** when the app opens, it shows the one most important thing from the last 3 weeks, once: a milestone, then a goal met, then an achievement. The studio's mark draws itself.
+- **Me** is short groups of rows, each opening a screen:
+  - **Your practice:** monthly goal, achievements.
+  - **Packages:** each package, and **Buy a package**.
+    - Buying: class packs and memberships, then a checkout with the bill, studio credit taken off, and how to pay (online, or at the studio).
+    - A package's screen: classes left, dates and how they work (start dates follow the earliest class; booked-ahead classes on memberships), and the classes used. **Ask for more time** follows the studio's extension rules, including automatic approval. **Share it**, when the package allows. **Stop renewing**, or **Keep it renewing**, for memberships, with what happens to classes booked past the end.
+  - **Shop and rewards** (when the studio has them):
+    - Shop: products with sizes or colours, a basket, pay, collect at the desk.
+    - Gift cards: a design, an amount, give it now or later.
+    - My gift cards and credit: give a card, or keep it as credit.
+    - Rewards: the balance, redeeming, codes for the desk.
+    - Refer a friend.
+  - **Health and safety:**
+    - Injuries and health notes: add one, mark it better, or confirm it's still the case.
+    - Waiver: read it, or sign it if not yet signed.
+  - **Account:** purchases and receipts, the payment card, news and offers.
 
 ## What a studio can change (the look)
 
@@ -64,6 +71,15 @@ Presets (`packages/shared/src/app-theme.ts`). Each of the three examples was des
 - **Tidal** (barre): cobalt and candy pink, Bricolage Grotesque set heavy and narrow, pill shapes, a wave.
 - **Aizome** (yoga): stone and indigo, Shippori Mincho with Zen Kaku Gothic, square corners, a red seal for each achievement, and 108 as a milestone.
 
+## The studio's screen for its look
+
+**Setup, App look** in the studio app (the preview: `preview/src/mkt28.js`, checked by `alcheck.cjs`):
+- the four looks to start from;
+- the eight colours, with a warning (and a one-tap fix) when text on the brand colour would be hard to read;
+- the typefaces, corners, celebration style, welcome line and milestones (up to 12, kept in order, no duplicates).
+
+A phone beside it shows Home, the timetable or a celebration as the studio changes things. **Save look**, or **Undo changes**. Without the branded app it's locked, says how to get it, and shows the plain look members see meanwhile.
+
 ## The API it uses
 
 - `GET /v1/public/studios/:slug` (with `theme`) and `/schedule`.
@@ -71,7 +87,27 @@ Presets (`packages/shared/src/app-theme.ts`). Each of the three examples was des
 - `PUT /v1/me/goal` `{ classes }` (1 to 60, or null to clear).
 - `POST /v1/me/celebrations/:key/seen`.
 - `GET /v1/sessions/:id/package-options`, which now includes `freeCancelUntil`, `insideLateWindow` and, per package, `bookedAhead`.
-- `POST /v1/bookings`, `POST /v1/bookings/:id/cancel`, `POST /v1/waitlist`, `GET /v1/me/bookings`, `GET /v1/me/packages` and `GET /v1/me/banners`.
+- `POST /v1/bookings` (with `waiver` on a first booking), `POST /v1/bookings/:id/cancel`, `POST /v1/waitlist`, `GET /v1/me/bookings`, `GET /v1/me/packages` and `GET /v1/me/banners`.
+- `GET /v1/me` (the favourite instructor). The public timetable now includes each instructor's id, for the filter.
+- Buying:
+  - `GET /v1/public/studios/:slug/packages`;
+  - `GET /v1/checkout/quote` and `POST /v1/checkout`;
+  - `GET /v1/shop` and `POST /v1/shop/checkout`;
+  - `GET /v1/gift-cards/shop` and `POST /v1/gift-cards/checkout`.
+- Managing:
+  - `GET /v1/client-packages/:id`;
+  - `POST .../extension-requests`;
+  - `POST`/`DELETE .../members`;
+  - `GET .../stop-options`, `POST .../stop-renewing` and `.../resume-renewing`.
+- Account:
+  - `/v1/me/health-notes` (add, resolve, still current);
+  - `/v1/me/waiver`;
+  - `/v1/me/gift-cards` and `/v1/gift-cards/:id/give|keep`;
+  - `/v1/me/loyalty` (and redeem);
+  - `/v1/me/referral`;
+  - `/v1/me/purchases`;
+  - `/v1/me/payment-card`;
+  - `/v1/me/marketing`.
 
 The API's CORS now allows PUT, PATCH and DELETE from the apps' addresses. Before this, the default allowed only GET, HEAD and POST, so a browser app couldn't change a goal or a setting. The live check caught it.
 
@@ -87,31 +123,42 @@ To try it without a server, add `?demo&studio=linden` (or `tidal`, `aizome`). Th
 
 ## Checks
 
-- `node e2e/check.mjs` (44 checks) builds the demo and runs it in Chromium, covering:
-  - Home;
-  - the tally and goal;
-  - the booking confirmation, Not now, Confirm, Undo;
-  - filters (instant, counted per day, remembered);
-  - cancelling;
-  - packages;
-  - the two celebrations (focus, Esc, shown once);
-  - each look's typeface, corners and motif;
-  - no sideways scrolling at phone width;
+- `node e2e/check.mjs` runs 61 checks on the demo studios in Chromium. They cover:
+  - Home: the bar, the read-only goal, one line of achievements and the tab marker;
+  - Back returning to where a screen was opened from;
+  - the timetable fitting on the screen (a 340px phone too), with a week at a time, the favourite-instructor filter and no counts;
+  - booking and Undo;
+  - a class's screen, and cancelling from it;
+  - the goal: praise when raised, "Keep" when lowered;
+  - achievements;
+  - buying a package with credit;
+  - asking for more time;
+  - sharing;
+  - the shop basket;
+  - keeping a gift card as credit;
+  - health notes;
+  - redeeming a reward;
+  - every Me screen;
+  - stopping a membership;
+  - the celebrations;
+  - each look;
   - the wide layout;
   - reduced motion;
   - the showcase.
-- `node e2e/live.mjs` (13 checks) runs the app on the real API, against the seeded throwaway database `studio_e2e`:
+- `node e2e/live.mjs` runs 19 checks on the real API, against the seeded throwaway database `studio_e2e`:
   - the studio sets its look;
-  - a member signs in and sees it;
-  - progress comes from the API;
-  - they set a goal;
-  - they book with the confirmation and cancel through the late-window check.
-- API tests: `apps/api/test/client-app.test.ts` (progress, milestones, goals, achievements, celebrations, the look and plan gating, CORS) and `book-ahead.test.ts`.
+  - a member signs in and sets a goal in Me;
+  - they book, signing the waiver in the row;
+  - they cancel from the class's screen, through the late-cancellation check;
+  - they buy a package (paid at the desk);
+  - they add a health note;
+  - the waiver shows as signed.
+- API tests: `apps/api/test/client-app.test.ts` and `book-ahead.test.ts`.
 
 ## Not built yet
 
-- Buying packages inside the app. For now it's on the booking page (`apps/web`), and the confirmation links there when nothing covers a class.
-- The waiver at first booking. Studios that need one have members sign it on the booking page first.
+- Uploading a document with a request for more time (for studios that require one).
+- Rolling classes over at checkout, choosing a start date, and using a discount code.
 - Push notifications, and the app-store wrappers (Expo) for each studio's branded app.
-- The studio's screen for choosing the look (the API is ready, and the showcase shows the three examples).
+- Saving the look from the studio's screen to the API. The screen is in the preview; the API (`PATCH /v1/app-theme`) is ready for the real studio app.
 - Sharing an achievement.

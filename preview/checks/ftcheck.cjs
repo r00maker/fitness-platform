@@ -56,7 +56,7 @@ const file = "file://" + path.join(__dirname, "ft-test.html");
     ok(`${label}: the menu item goes back to the last tab used`, (await ev("state.page")) === "shop");
     ok(`${label}: Money keeps its place in the menu after using a tab`, (await nav()).indexOf("Money") < (await nav()).indexOf("Packages"));
     await go("closures");
-    ok(`${label}: Setup has nine tabs, Studio details, Payments and Booking page first, Features last`, (await tabs()).length === 9 && (await tabs())[0] === "studio-details" && (await tabs())[1] === "payments" && (await tabs())[2] === "booking-page" && (await tabs())[8] === "features");
+    ok(`${label}: Setup has ten tabs, Studio details, Payments, Booking page and App look first, Features last`, (await tabs()).length === 10 && (await tabs())[0] === "studio-details" && (await tabs())[1] === "payments" && (await tabs())[2] === "booking-page" && (await tabs())[3] === "app-look" && (await tabs())[9] === "features");
 
     // Features page
     await go("features");
