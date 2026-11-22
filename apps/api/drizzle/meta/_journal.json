@@ -253,6 +253,13 @@
       "when": 1795315999455,
       "tag": "0035_package_start_follows_classes",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795316396132,
+      "tag": "0036_members_book_ahead",
+      "breakpoints": true
     }
   ]
 }

@@ -38,7 +38,8 @@ import { notify } from "../notifications/outbox.js";
 import { issueInvoice } from "../sales/invoices.js";
 import { chargeRenewal } from "./payments.js";
 import { getOrg, staffIds, userName } from "../sessions/context.js";
-import { commitmentEnd, earlyCancelFee, expiryFrom, getPackage, lastDay, orgZone, packageState, periodsLeftInTerm, presentPackages, renewalEnd, type Pkg } from "./service.js";
+import { commitmentEnd, earlyCancelFee, expiryFrom, getPackage, heldFor, lastDay, orgZone, packageState, periodsLeftInTerm, presentPackages, renewalEnd, type Pkg } from "./service.js";
+import { fillOpenSpots } from "../waitlist/engine.js";
 import { assertFile } from "../files/routes.js";
 
 type Org = typeof organizations.$inferSelect;
@@ -83,6 +84,7 @@ export async function packageHistory(db: DbOrTx, auth: AuthContext, id: string, 
           clientId: bookings.clientId,
           status: bookings.status,
           attendance: bookings.attendance,
+          heldForPeriod: bookings.heldForPeriod,
           startsAt: classSessions.startsAt,
           className: classTypes.name,
           sessionStatus: classSessions.status,
@@ -104,7 +106,9 @@ export async function packageHistory(db: DbOrTx, auth: AuthContext, id: string, 
     const status =
       r.status === "late_cancelled" ? "Late cancellation" : r.status === "cancelled" ? "Cancelled" : upcoming ? "Booked" : r.attendance === "present" ? "Attended" : r.attendance === "no_show" ? "No-show" : "Not marked yet";
     const credit =
-      p.kind !== "credits"
+      r.heldForPeriod && !entries.includes("returned") && !entries.includes("refunded")
+        ? p.kind === "credits" ? "Booked ahead: taken when the next period starts" : "Booked ahead"
+        : p.kind !== "credits"
         ? "Unlimited"
         : entries.includes("refunded")
           ? "Class given back (refund)"
@@ -442,16 +446,26 @@ export async function renewDuePackages(db: Db, now = new Date()) {
         const carried = p.kind === "credits" ? Math.min(left, p.rolloverCap ?? 0) : 0;
         const fresh = p.kind === "credits" ? (p.creditsPerCycle ?? 0) + carried : null;
         const next = expiryFrom(p.expiresAt, p.validityValue!, p.validityUnit!, zone);
+        // Classes booked ahead into this period are taken from it now.
+        const held = await heldFor(tx, p.id, p.cycle + 1);
+        const taken = fresh === null ? 0 : Math.min(held.length, fresh);
         const [u] = await tx
           .update(clientPackages)
-          .set({ startedAt: p.expiresAt, expiresAt: next, cycle: p.cycle + 1, creditsLeft: fresh, creditsTotal: fresh })
+          .set({ startedAt: p.expiresAt, expiresAt: next, cycle: p.cycle + 1, creditsLeft: fresh === null ? null : fresh - taken, creditsTotal: fresh })
           .where(eq(clientPackages.id, p.id))
           .returning();
         await tx.insert(packageLedger).values({
           orgId, packageId: p.id, change: fresh === null ? 0 : fresh - left, reason: "renewed",
-          details: { period: p.cycle + 1, classes: fresh, carried, unusedExpired: left - carried, validUntil: lastDay(next, zone) },
+          details: { period: p.cycle + 1, classes: fresh, carried, unusedExpired: left - carried, validUntil: lastDay(next, zone), bookedAhead: held.length },
           createdAt: p.expiresAt,
         });
+        for (const [i, h] of held.entries()) {
+          if (fresh !== null && i < taken) {
+            await tx.insert(packageLedger).values({ orgId, packageId: p.id, bookingId: h.id, change: -1, reason: "booked", note: "Booked ahead: taken now the period has started", createdAt: new Date(p.expiresAt.getTime() + 1 + i) });
+          }
+        }
+        // Settled: these bookings now belong to the current period like any other.
+        await tx.update(bookings).set({ heldForPeriod: null }).where(and(eq(bookings.clientPackageId, p.id), eq(bookings.heldForPeriod, p.cycle + 1)));
         if (p.pricePaidCents > 0) {
           // Once payments are connected, the provider charges this; until then it's due at the studio.
           const [o] = await tx.insert(orders).values({ orgId, clientId: p.ownerId, planId: p.planId, amountCents: p.pricePaidCents, currency: p.currency, status: "pending", clientPackageId: p.id }).returning();
@@ -490,7 +504,10 @@ export async function stopOptions(db: DbOrTx, auth: AuthContext, id: string) {
   const p = await stoppable(db, auth, id);
   const inTerm = periodsLeftInTerm(p, zone) > 0;
   const fee = earlyCancelFee(p, zone);
+  const atEndOfTerm = renewalEnd({ ...p, stopsRenewingAt: new Date(), endsEarly: false }, zone);
   return {
+    /** Classes booked ahead after it would end: they're cancelled when it's stopped. */
+    bookedAheadAfterEnd: { atEndOfTerm: await bookedAfter(db, p.id, atEndOfTerm), endingEarly: inTerm ? await bookedAfter(db, p.id, p.expiresAt!) : 0 },
     inMinimumTerm: inTerm,
     minimumTermEndsOn: inTerm ? lastDay(commitmentEnd(p, zone), zone) : null,
     stopAtEndOfTerm: { endsOn: lastDay(renewalEnd({ ...p, stopsRenewingAt: new Date(), endsEarly: false }, zone), zone), fee: null },
@@ -499,6 +516,16 @@ export async function stopOptions(db: DbOrTx, auth: AuthContext, id: string) {
       : null,
   };
 }
+
+/** Upcoming bookings made with a package for classes on or after `end`. */
+async function upcomingAfter(db: DbOrTx, packageId: string, end: Date) {
+  return db
+    .select({ id: bookings.id, sessionId: bookings.sessionId })
+    .from(bookings)
+    .innerJoin(classSessions, eq(classSessions.id, bookings.sessionId))
+    .where(and(eq(bookings.clientPackageId, packageId), eq(bookings.status, "confirmed"), sql`${classSessions.startsAt} >= ${end}`));
+}
+const bookedAfter = async (db: DbOrTx, packageId: string, end: Date) => (await upcomingAfter(db, packageId, end)).length;
 
 /** Stop a membership renewing: at the end of the minimum term (or this period), or early with the fee. */
 export async function stopRenewing(tx: DbOrTx, auth: AuthContext, id: string, input: { reason?: string; endEarly?: boolean; feeCents?: number }, now = new Date()) {
@@ -517,8 +544,16 @@ export async function stopRenewing(tx: DbOrTx, auth: AuthContext, id: string, in
     }
     feeCents = input.feeCents ?? fee ?? 0;
   }
-  const endsOn = lastDay(renewalEnd({ ...p, stopsRenewingAt: now, endsEarly: early }, zone), zone)!;
+  const end = renewalEnd({ ...p, stopsRenewingAt: now, endsEarly: early }, zone);
+  const endsOn = lastDay(end, zone)!;
   await tx.update(clientPackages).set({ stopsRenewingAt: now, endsEarly: early }).where(eq(clientPackages.id, p.id));
+  // Classes booked ahead into periods that now won't come are cancelled (nothing was taken for them).
+  const after = await upcomingAfter(tx, p.id, end);
+  for (const b of after) {
+    await tx.update(bookings).set({ status: "cancelled", cancelledAt: now, cancelledBy: auth.userId, cancelledVia: "membership_ended", cancelReason: `The membership ends on ${nice(endsOn)}, before this class` }).where(eq(bookings.id, b.id));
+    await tx.insert(packageLedger).values({ orgId: org.id, packageId: p.id, bookingId: b.id, change: 0, reason: "returned", note: "The membership ends before this class, so the booking ahead was cancelled", createdBy: auth.userId });
+    await fillOpenSpots(tx, org.id, b.sessionId, now);
+  }
   if (feeCents > 0) {
     const [ef] = await tx.insert(fees).values({ orgId: org.id, clientId: p.ownerId, clientPackageId: p.id, type: "early_cancellation", amountCents: feeCents, currency: org.currency }).returning({ id: fees.id });
     await issueInvoice(tx, { orgId: org.id, clientId: p.ownerId, source: "fee", feeId: ef!.id, clientPackageId: p.id, lines: [{ description: "Early cancellation fee", detail: p.name, quantity: 1, unitCents: feeCents }] });
@@ -531,7 +566,7 @@ export async function stopRenewing(tx: DbOrTx, auth: AuthContext, id: string, in
     await notify(tx, { orgId: org.id, userIds: await staffIds(tx, org.id, ["owner", "admin"]), template: "package.stopped", data: { packageName: p.name, clientName: await userName(tx, auth.userId), endsOn: nice(endsOn), reason: input.reason ?? null, fee: feeCents ? money(feeCents, org.currency) : null } });
   }
   await clientEvent(tx, auth.orgId, p.ownerId, { type: "membership_stopped", ref: p.id }, now);
-  return { endsOn, commitmentApplies: !early && endsOn !== lastDay(p.expiresAt, zone), endedEarly: early, fee: feeCents ? money(feeCents, org.currency) : null };
+  return { endsOn, commitmentApplies: !early && endsOn !== lastDay(p.expiresAt, zone), endedEarly: early, fee: feeCents ? money(feeCents, org.currency) : null, cancelledBookings: after.length };
 }
 
 export async function resumeRenewing(tx: DbOrTx, auth: AuthContext, id: string, now = new Date()) {

@@ -220,6 +220,12 @@ export const organizations = pgTable("organizations", {
   clientsNeedPackage: boolean("clients_need_package").notNull().default(true),
   /** Staff may book someone without a package that covers it (as "pay at studio"). Off = a package (or complimentary) is always needed. */
   allowBookingWithoutPackage: boolean("allow_booking_without_package").notNull().default(true),
+  /**
+   * Members can book classes in their membership's next period before it renews. The class is held
+   * and taken from that period's classes when it renews, so members aren't stuck waiting while
+   * pack holders book ahead.
+   */
+  membersBookAhead: boolean("members_book_ahead").notNull().default(true),
   // Payroll
   payPeriod: payPeriodEnum("pay_period").notNull().default("monthly"),
   /** Fortnightly pay: any date a pay fortnight starts on. */
@@ -738,6 +744,11 @@ export const bookings = pgTable(
     /** How it's paid for, and the package used (if any). */
     payment: bookingPaymentEnum("payment").notNull().default("pay_later"),
     clientPackageId: uuid("client_package_id").references(() => clientPackages.id),
+    /**
+     * Memberships: booked ahead into this future period. The class is taken from that period's
+     * classes when the membership renews (then this is cleared).
+     */
+    heldForPeriod: integer("held_for_period"),
     bookedBy: uuid("booked_by").references(() => users.id),
     cancelledAt: ts("cancelled_at"),
     /** Who cancelled it (the client themselves, or a member of staff). */

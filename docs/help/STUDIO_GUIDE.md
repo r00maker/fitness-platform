@@ -181,6 +181,9 @@ Clients join a waitlist when a class is full. With **Book me in automatically**,
 
 Package types are set up under **Packages**: class packs or unlimited memberships, price, how long they last, which classes they cover, sharing and weekly limits. Selling one copies the terms, so editing a package type never changes packages already sold. Each booking uses the package that runs out soonest.
 
+- **When a pack starts:** on the day of the earliest class booked with it. If a client books the 19th and then the 16th, the pack simply starts on the 16th instead (and ends 3 days earlier); nobody is told they have no package. Cancelling the earliest class moves the start to the next one. A pack sold with a start date can start earlier for an earlier class, never later than that date. You'll only see it refused if starting earlier would end the pack before a class already booked with it.
+- **Members booking ahead:** with **Studio rules, Members can book into their next period** on (it is by default), members can book classes after their membership renews. The class is held and taken from the next period's classes when it renews. Turn it off and members book next period's classes once it has renewed.
+
 - **Extension requests** show at the top of **Packages**. If the client attached something (for example a doctor's note), tap it to open a **quick view** right there: PDFs show page by page, and photos as they are. Zoom with **+** and **−**, go back with **Fit width**, and close with **✕** or Esc. Nothing opens in a new window. **Download** saves a copy if you need one.
 
 ## Cover

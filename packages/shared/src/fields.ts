@@ -165,6 +165,7 @@ export const FIELDS = {
   extensionReason: { label: "Reason", help: "e.g. “Knee injury, physio says 3 weeks off” or “Travelling for work”." },
   extensionAttachmentField: { label: "Attachment", help: "A doctor's note or similar, if you have one. JPG, PNG, WebP or PDF, up to 5 MB." },
   clientsNeedPackage: { label: "Clients need a package to book", help: "Clients must have a package that covers the class to book it. Turn off if clients can book and pay at the studio." },
+  membersBookAhead: { label: "Members can book into their next period", help: "Members can book classes after their membership renews, before it does. The class is held and taken from the next period's classes when it renews, so members can plan ahead like anyone with a class pack. A held class cancelled in time is simply released." },
   allowBookingWithoutPackage: { label: "Allow bookings without a package", help: "Lets staff book someone who doesn't have a package that covers the class or appointment. It shows as “Pay at studio”, after a check. Turn off and a package is always needed (staff can still book someone in for free as complimentary)." },
   complimentary: { label: "Complimentary", help: "Book them in for free, without using a package. Shows as “Complimentary” on their history." },
   payWith: { label: "Pay with", help: "Which package this booking uses. We pick the one that runs out soonest so nothing goes to waste." },

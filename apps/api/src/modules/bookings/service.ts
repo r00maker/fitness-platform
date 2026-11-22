@@ -13,7 +13,7 @@ import { fillOpenSpots } from "../waitlist/engine.js";
 import { applyFee, bookingWindow, feeFor, waivePendingFees, weeklyBookings, windowMessage, windowStatus } from "./rules.js";
 import { pickSpot } from "./spots.js";
 import { requireWaiver } from "../clients/waivers.js";
-import { packageOptions, returnCredit, useCredit, whyNoPackage, type PackageOption } from "../packages/service.js";
+import { orgZone, packageOptions, returnCredit, useCredit, whyNoPackage, type PackageOption } from "../packages/service.js";
 import type { BookingPayment } from "@studio/shared";
 import { userName } from "../sessions/context.js";
 import { paidRunFor } from "../payroll/service.js";
@@ -236,11 +236,17 @@ export async function createBooking(
   await audit(tx, { orgId: auth.orgId, actorId: auth.userId, action: "booking.created", entityType: "booking", entityId: booking!.id, details: { payment: pay.payment, packageId: pay.option?.pkg.id } });
   // Booked in by staff: let the client know (moves send their own message).
   if (!isClient && !opts.silent && input.notifyClient !== false) {
-    const paymentNote = pay.payment === "package" ? `It uses your ${pay.option!.pkg.name}.` : pay.payment === "complimentary" ? "This one's on us." : pay.payment === "classpass" ? "Booked through ClassPass." : "Please pay at the studio.";
+    const ahead = pay.option?.holdForPeriod ? ` It's booked ahead into the period starting ${DateTime.fromJSDate(pay.option.periodStarts!, { zone: orgZone(org) }).toFormat("d LLL")}${pay.option.pkg.kind === "credits" ? ", and the class is taken from that period when it renews" : ""}.` : "";
+    const paymentNote = pay.payment === "package" ? `It uses your ${pay.option!.pkg.name}.${ahead}` : pay.payment === "complimentary" ? "This one's on us." : pay.payment === "classpass" ? "Booked through ClassPass." : "Please pay at the studio.";
     await notify(tx, { orgId: auth.orgId, userIds: [clientId], template: "booking.confirmed", data: { ...(await describeSession(tx, session)), bookingId: booking!.id, paymentNote } });
   }
   await bookedEvent(tx, auth.orgId, clientId, booking!.id, now);
-  return { ...booking!, packageName: pay.option?.pkg.name ?? null };
+  return {
+    ...booking!,
+    packageName: pay.option?.pkg.name ?? null,
+    /** Memberships: booked into a later period, taken from it when it renews. */
+    bookedAhead: pay.option?.holdForPeriod ? { period: pay.option.holdForPeriod, periodStarts: DateTime.fromJSDate(pay.option.periodStarts!, { zone: orgZone(org) }).toISODate() } : null,
+  };
 }
 
 async function recordRefund(
