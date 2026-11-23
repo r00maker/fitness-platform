@@ -1,3 +1,5 @@
+import { trialRoutes } from "./modules/trial/routes.js";
+import { trialGuard } from "./modules/trial/service.js";
 import { clientAppRoutes } from "./modules/client-app/routes.js";
 import Fastify, { type FastifyError } from "fastify";
 import cors from "@fastify/cors";
@@ -121,6 +123,8 @@ export async function buildApp(opts: { config: Config; db: Db }) {
     async (v1) => {
       await v1.register(auth, { config: opts.config, db: opts.db });
       await v1.register(featureGate);
+      // Once a free trial ends, the studio is read-only until it starts its plan.
+      v1.addHook("preHandler", async (req) => trialGuard(opts.db, req));
       await v1.register(settingsRoutes);
       await v1.register(featureRoutes);
       await v1.register(setupRoutes);
@@ -137,6 +141,7 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(reviewRoutes);
       await v1.register(momentRoutes);
       await v1.register(clientAppRoutes);
+      await v1.register(trialRoutes);
       await v1.register(bookingRoutes);
       await v1.register(waitlistRoutes);
       await v1.register(substituteRoutes);

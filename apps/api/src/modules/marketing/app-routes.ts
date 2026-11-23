@@ -3,6 +3,7 @@
  * preferences, unsubscribing, banners, announcements, gift cards, studio credit and referrals.
  * Plus the admin side of banners, announcements, gift cards, credit and referral settings.
  */
+import { assertClientRoom } from "../trial/service.js";
 import type { FastifyInstance } from "fastify";
 import { and, asc, count, desc, eq, gt, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { DateTime } from "luxon";
@@ -114,6 +115,7 @@ export async function marketingAppRoutes(app: FastifyInstance) {
     const out = await inTx(app, async (tx) => {
       const [org] = await tx.select().from(organizations).where(eq(organizations.id, req.auth.orgId));
       if (!org) throw notFound("studio");
+      await assertClientRoom(tx, org);
       let [u] = await tx.select().from(users).where(eq(users.id, req.auth.userId));
       if (!u) {
         if (!req.auth.email || !input.firstName || !input.lastName) throw badRequest("details_needed", "Add your first and last name to join.");

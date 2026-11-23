@@ -62,7 +62,7 @@
       const name = esc(STUDIO.name || "Demo Studio");
       const upcoming = SESSIONS.filter((s) => s.status === "scheduled" && !isAppt(s) && s.start > NOW).sort((a, b) => a.start - b.start).slice(0, 3);
       const nx = upcoming[0];
-      const tabs = `<div class="alp-tabs"><span class="on">Home</span><span>Book</span><span>My classes</span><span>Me</span></div>`;
+      const tabs = `<div class="alp-tabs"><span class="on">Home</span><span>Book</span><span>Shop</span><span>My classes</span><span>Me</span></div>`;
       const top = `<div class="alp-top"><i class="alp-logo">${name.slice(0, 1)}</i>${name}</div>`;
       let body = "";
       if (AV.view === "book") {

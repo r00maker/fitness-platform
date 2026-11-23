@@ -6,7 +6,7 @@ Built with Vite, React 18 and TypeScript. It talks to a `Backend` (`src/data/typ
 
 ## What members see
 
-Four tabs: Home, Book, My classes and Me. The selected tab is marked with a short bar in the brand colour. Every screen opened from somewhere has **Back**, which returns to where it was opened from. For example, a class opened from Home goes back to Home, not My classes.
+Five tabs: Home, Book, Shop, My classes and Me. The selected tab is marked with a short bar in the brand colour. Every screen opened from somewhere has **Back**, which returns to where it was opened from. For example, a class opened from Home goes back to Home, not My classes.
 
 - **Home is never blank.** It shows:
   - the studio's banners;
@@ -36,12 +36,9 @@ Four tabs: Home, Book, My classes and Me. The selected tab is marked with a shor
 - **Celebrations:** when the app opens, it shows the one most important thing from the last 3 weeks, once: a milestone, then a goal met, then an achievement. The studio's mark draws itself.
 - **Me** is short groups of rows, each opening a screen:
   - **Your practice:** monthly goal, achievements.
-  - **Packages:** each package, and **Buy a package**.
-    - Buying: class packs and memberships, then a checkout with the bill, studio credit taken off, and how to pay (online, or at the studio).
+  - **Packages:** each package, and **Buy a package**, which opens the Shop tab.
     - A package's screen: classes left, dates and how they work (start dates follow the earliest class; booked-ahead classes on memberships), and the classes used. **Ask for more time** follows the studio's extension rules, including automatic approval. **Share it**, when the package allows. **Stop renewing**, or **Keep it renewing**, for memberships, with what happens to classes booked past the end.
-  - **Shop and rewards** (when the studio has them):
-    - Shop: products with sizes or colours, a basket, pay, collect at the desk.
-    - Gift cards: a design, an amount, give it now or later.
+  - **Gift cards and rewards** (when the studio has them):
     - My gift cards and credit: give a card, or keep it as credit.
     - Rewards: the balance, redeeming, codes for the desk.
     - Refer a friend.
@@ -49,6 +46,46 @@ Four tabs: Home, Book, My classes and Me. The selected tab is marked with a shor
     - Injuries and health notes: add one, mark it better, or confirm it's still the case.
     - Waiver: read it, or sign it if not yet signed.
   - **Account:** purchases and receipts, the payment card, news and offers.
+
+## The Shop tab
+
+Everything to buy, in one place:
+- class packs and memberships;
+- gift cards (a design, an amount, give it now or later);
+- the studio's merchandise, with sizes or colours, a basket, and collect at the desk.
+
+**Checkout** is one screen:
+- the bill;
+- a start date, for packages that start when bought;
+- unused classes to bring across from another package, when the studio allows it;
+- a discount (from a referral, a reward or the studio);
+- studio credit;
+- how to pay: online, or at the studio.
+
+Paying online goes to Stripe's page. The demo studios show a stand-in for that page, which takes no card details.
+
+Asking for more time can include a photo or PDF, like a doctor's note. It's needed when the studio says so. The file is uploaded to the API first, and only the studio's admins can see it.
+
+## Phones: iOS and Android
+
+- **In the browser:** iOS 16.4 or later (Safari, and every iOS browser, since they all use Safari's engine), and Android 10 or later with a current Chrome. Every screen is checked on iPhone 13, iPhone SE, Pixel 7 and Galaxy S9+ sizes with touch. These run in Chromium with the phones' sizes and touch; Safari itself isn't available here, so check on a real iPhone before release.
+  - Nothing sits under the notch, the Dynamic Island or the home bar.
+  - Fields are 16px, so iOS doesn't zoom in when one is tapped.
+  - The five tabs fit down to an iPhone SE.
+  - The theme's derived colours are worked out in code, so older browsers get them too.
+  - There's a web app manifest and icons, for "Add to Home Screen".
+- **As apps:** Capacitor wraps the same app; the projects are `apps/client/ios` and `apps/client/android`.
+  - Android's back button goes Back in the app, and leaves it only from Home.
+  - The status bar takes the studio's colours.
+  - Each studio's build sets its own app id, name and colours (see `capacitor.config.ts`).
+
+To build one:
+
+```bash
+STUDIO_SLUG=linden APP_ID=sg.studioapp.linden APP_NAME="Linden Reformer" VITE_STUDIO=linden VITE_API_URL=https://api.studioapp.sg pnpm --filter @studio/client native:sync
+```
+
+Then open `ios/` in Xcode (on a Mac) or `android/` in Android Studio to sign and upload. Each studio needs its own App Store and Play listing, under our developer accounts or theirs. Push notifications come next.
 
 ## What a studio can change (the look)
 
@@ -157,8 +194,7 @@ To try it without a server, add `?demo&studio=linden` (or `tidal`, `aizome`). Th
 
 ## Not built yet
 
-- Uploading a document with a request for more time (for studios that require one).
-- Rolling classes over at checkout, choosing a start date, and using a discount code.
+- Push notifications, and signing and publishing each studio's app in the stores.
 - Push notifications, and the app-store wrappers (Expo) for each studio's branded app.
 - Saving the look from the studio's screen to the API. The screen is in the preview; the API (`PATCH /v1/app-theme`) is ready for the real studio app.
 - Sharing an achievement.

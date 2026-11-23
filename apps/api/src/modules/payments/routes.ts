@@ -10,6 +10,7 @@
  *  - POST /orders/:id/pay              clients: pay a waiting order online (a renewal, a desk order)
  *  - POST /public/payments/stripe/webhook  Stripe, signed with the endpoint's secret
  */
+import { assertNotTrial } from "../trial/service.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { PAY_WITH, STRIPE_COUNTRY, can, passedOnFee, payOrder, paymentSettings } from "@studio/shared";
@@ -69,9 +70,10 @@ export async function paymentRoutes(app: FastifyInstance) {
   /** Owners only: this creates the studio's Stripe account, in the studio's name. */
   app.post("/payments/connect", { config: { rateLimit: { max: 10, timeWindow: "1 hour" } } }, async (req) => {
     if (req.auth.role !== "owner") throw forbidden("Only the studio's owner can connect Stripe, as the account is in the business's name.");
+    let org = await getOrg(db, req.auth.orgId);
+    assertNotTrial(org, "payments");
     const api = stripe();
     if (!api) throw conflict("payments_unavailable", "Online payments aren't set up on this platform yet.");
-    let org = await getOrg(db, req.auth.orgId);
     const country = STRIPE_COUNTRY[org.currency];
     if (!country) throw conflict("currency_unsupported", `Online payments aren't available for ${org.currency} yet.`);
     try {

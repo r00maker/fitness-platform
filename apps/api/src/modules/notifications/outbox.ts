@@ -1,5 +1,6 @@
 import type { DbOrTx } from "../../db/client.js";
-import { notifications } from "../../db/schema.js";
+import { eq } from "drizzle-orm";
+import { notifications, organizations } from "../../db/schema.js";
 import { TEMPLATES } from "./templates.js";
 
 /**
@@ -13,6 +14,9 @@ export async function notify(
   if (!TEMPLATES[opts.template]) throw new Error(`Unknown notification template: ${opts.template}`);
   const ids = [...new Set(opts.userIds.filter((x): x is string => !!x))];
   if (ids.length === 0) return;
+  // A free trial's test studio is sample data: nothing is sent to anyone.
+  const [org] = await db.select({ trialKind: organizations.trialKind, trialConvertedAt: organizations.trialConvertedAt }).from(organizations).where(eq(organizations.id, opts.orgId));
+  if (org && org.trialKind === "existing" && !org.trialConvertedAt) return;
   await db.insert(notifications).values(
     ids.flatMap((userId) =>
       (opts.channels ?? (["email", "push"] as const)).map((channel) => ({

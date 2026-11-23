@@ -8,6 +8,7 @@ export default defineConfig({
   server: { port: 5174 },
   // iOS 16.4+ (Safari's engine, used by every iOS browser and the iOS app) and Android 10+ with a
   // current Chrome WebView. Newer syntax is rewritten for those.
-  build: { target: ["es2020", "safari16", "chrome100"], rollupOptions: { input: { app: resolve(__dirname, "index.html"), showcase: resolve(__dirname, "showcase.html") } } },
+  // No source maps in builds: the app's original code isn't published with it.
+  build: { target: ["es2020", "safari16", "chrome100"], sourcemap: false, rollupOptions: { input: { app: resolve(__dirname, "index.html"), showcase: resolve(__dirname, "showcase.html") } } },
   test: { environment: "jsdom" },
 } as Parameters<typeof defineConfig>[0]);

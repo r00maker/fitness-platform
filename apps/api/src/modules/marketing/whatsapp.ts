@@ -12,6 +12,8 @@
  *
  * Replies from clients (two-way chat) arrive on a webhook; that, and the inbox, come later.
  */
+import { getOrg } from "../sessions/context.js";
+import { assertNotTrial } from "../trial/service.js";
 import type { FastifyInstance } from "fastify";
 import { and, eq, inArray } from "drizzle-orm";
 import { whatsappSettings as whatsappSettingsInput, whatsappTemplateInput, whatsappVariableCount } from "@studio/shared";
@@ -149,6 +151,7 @@ export async function whatsappRoutes(app: FastifyInstance) {
 
     admin.patch("/whatsapp/settings", async (req) => {
       const input = parsePatch(whatsappSettingsInput, req.body);
+      assertNotTrial(await getOrg(db, req.auth.orgId), "whatsapp");
       await whatsappFor(db, req.auth.orgId);
       const set: Partial<Settings> = { ...input, lastError: null } as Partial<Settings>;
       if ("accessToken" in input) set.accessToken = input.accessToken ? encryptSecret(input.accessToken) : null;

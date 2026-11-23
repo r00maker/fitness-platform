@@ -1446,9 +1446,24 @@ body.bp-on { overflow: hidden }
 .alp-cel-art svg { width: 86px; height: 86px }
 .alp-cel-art span { position: absolute; font-family: var(--a-disp); font-size: 30px; color: var(--a-ink) }
 .alp[data-motif="stamp"] .alp-cel-art svg { transform: rotate(-6deg) } .alp[data-motif="stamp"] .alp-cel-art span { color: #fff }
-.alp-tabs { display: grid; grid-template-columns: repeat(4, 1fr); padding: 9px 4px 12px; border-top: 1px solid var(--a-ln); background: var(--a-sf); color: var(--a-mu); font-size: 9px; text-align: center }
+.alp-tabs { display: grid; grid-template-columns: repeat(5, 1fr); padding: 9px 4px 12px; border-top: 1px solid var(--a-ln); background: var(--a-sf); color: var(--a-mu); font-size: 9px; text-align: center }
 .alp-tabs .on { color: var(--a-ac); font-weight: 700; position: relative } .alp-tabs .on::before { content: ""; position: absolute; top: -10px; left: 50%; width: 20px; height: 2px; margin-left: -10px; background: var(--a-ac) }
 .algrid .fl { display: grid; gap: 6px; align-items: start; justify-items: start }
 .algrid .fl > select, .algrid .fl > input:not([type=color]) { width: 100%; max-width: 420px }
 .algrid .fl small { font-weight: 400 }
 .algrid .alcolours .fl { justify-items: stretch }
+
+/* --- The free trial: a bar across the top, and Start my plan ---------------------------------- */
+.trialbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: var(--info-soft, #e8eefb); color: var(--fg); font-size: 13px; border: 1px solid color-mix(in srgb, var(--info, #3b5bab) 30%, transparent) }
+.trialbar.ended { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 40%, transparent) }
+.trialbar .btn.sm { padding: 6px 12px; font-size: 13px }
+.trialdone { font-weight: 600 }
+.trial-locked { border-color: var(--warn); background: var(--warn-soft); margin-bottom: 12px }
+.trialask { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.4) }
+.trialask-in { width: min(480px, 100%); background: var(--surface); border-radius: 14px; padding: 20px; display: grid; gap: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.3) }
+.trialask h3 { margin: 0; font-family: var(--display); font-size: 18px }
+.trialplans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
+.trialplans button { display: grid; gap: 2px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); text-align: left; cursor: pointer }
+.trialplans button[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft) }
+.trialplans span { color: var(--muted); font-size: 12px }
+@media (max-width: 520px) { .trialplans { grid-template-columns: 1fr } }

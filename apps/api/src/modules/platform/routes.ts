@@ -27,6 +27,7 @@ import { sendStaffInvite } from "../staff/routes.js";
 import { studioHealth } from "./health.js";
 import { platformMigrationRoutes } from "../migration/routes.js";
 import { platformAssistantRoutes } from "./assistant.js";
+import { platformTrialRoutes } from "../trial/routes.js";
 
 export type PlatformRole = (typeof schemas.PLATFORM_ROLES)[number];
 declare module "fastify" {
@@ -84,6 +85,7 @@ export async function platformRoutes(app: FastifyInstance) {
   const hq = { config: { public: true } } as const;
   await platformMigrationRoutes(app);
   await platformAssistantRoutes(app);
+  await platformTrialRoutes(app);
 
   app.get("/platform/me", hq, async (req) => ({ ...req.platform, can: Object.fromEntries(Object.entries(CAN).map(([k, roles]) => [k, roles.includes(req.platform.role)])) }));
 

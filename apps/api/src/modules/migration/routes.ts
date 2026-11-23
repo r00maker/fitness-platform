@@ -14,6 +14,8 @@
  * Every step is in the studio's audit log. Raw rows are deleted 30 days after the move is verified;
  * a shared password is encrypted and deleted after the move (7 days at most).
  */
+import { getOrg } from "../sessions/context.js";
+import { assertNotTrial } from "../trial/service.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { schemas } from "@studio/shared";
@@ -158,6 +160,8 @@ export async function platformMigrationRoutes(app: FastifyInstance) {
   app.post("/platform/studios/:orgId/migrations", hq, async (req, reply) => {
     requirePlatform(req, "migrations");
     const { orgId } = parse(studioParam, req.params);
+    const trialOrg = await getOrg(db, orgId).catch(() => null);
+    if (trialOrg) assertNotTrial(trialOrg, "migration");
     const out = await inTx(app, async (tx) => {
       const [org] = await tx.select({ id: organizations.id }).from(organizations).where(eq(organizations.id, orgId));
       if (!org) throw notFound("studio");
@@ -298,6 +302,7 @@ export async function platformMigrationRoutes(app: FastifyInstance) {
   app.post("/platform/studios/:orgId/migrations/:jobId/import", hq, async (req) => {
     requirePlatform(req, "migrations");
     const { orgId, jobId } = job(req);
+    assertNotTrial(await getOrg(db, orgId), "migration");
     const { acknowledge } = parse(schemas.migrationImport, req.body ?? {});
     const j = await loadJob(db, orgId, jobId);
     if (j.status !== "checked") throw conflict(j.status === "imported" || j.status === "verified" ? "migration_done" : "not_checked", j.status === "imported" || j.status === "verified" ? "This move has already been imported." : "Run the check first (and again after any change).");

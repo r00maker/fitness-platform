@@ -6,6 +6,7 @@
  * Orders, invoices and packages work exactly as before: a payment completes the order the same
  * way a desk payment does.
  */
+import { inTrial } from "../trial/service.js";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { PAY_WITH, PLAN_INFO, STRIPE_COUNTRY, localMethodsFor, passedOnFee, type PayWith } from "@studio/shared";
@@ -33,7 +34,8 @@ const appUrl = () => cfg?.PUBLIC_APP_URL ?? "http://localhost:5173";
 // --- Who can pay online ---------------------------------------------------------------------
 
 /** The studio can take online payments right now. */
-export const onlineReady = (org: Org) => !!stripe() && !!org.stripeAccountId && org.stripeChargesEnabled && org.onlinePayments;
+/** Taking payments online: Stripe connected and switched on, and not on a free trial. */
+export const onlineReady = (org: Org) => !!stripe() && !!org.stripeAccountId && org.stripeChargesEnabled && org.onlinePayments && !inTrial(org);
 
 /** Where the studio is with Stripe, in plain words. */
 export function accountStatus(org: Org) {

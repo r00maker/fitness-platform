@@ -277,6 +277,18 @@ export const organizations = pgTable("organizations", {
   plan: text("plan").$type<"essentials" | "growth" | "signature">().notNull().default("signature"),
   /** Growth only: the branded app add-on. Signature always includes the app. */
   brandedApp: boolean("branded_app").notNull().default(false),
+  /**
+   * The free trial (see trial.ts in shared). `trialKind` is set while the studio is on a trial or
+   * was on one: "new" (a real studio, with limits) or "existing" (a test studio with sample data).
+   */
+  trialKind: text("trial_kind").$type<"new" | "existing">(),
+  trialStartedAt: ts("trial_started_at"),
+  trialEndsAt: ts("trial_ends_at"),
+  /** When they started paying (or our team converted it); the limits lift then. */
+  trialConvertedAt: ts("trial_converted_at"),
+  /** The owner asked to start their plan (our team follows up and turns payments on). */
+  trialPlanRequest: jsonb("trial_plan_request").$type<{ plan: string; brandedApp: boolean; note: string | null; at: string; by: string }>(),
+  trialTermsVersion: text("trial_terms_version"),
   /** The client app's look (colours, typefaces, corners, celebrations, milestones). Used with the branded app. */
   appTheme: jsonb("app_theme").$type<Partial<AppTheme>>(),
   /** Where the studio is with us (HQ): onboarding, live, paused or cancelled. Studios from before HQ are live. */

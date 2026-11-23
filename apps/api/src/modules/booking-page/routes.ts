@@ -17,6 +17,7 @@
  * public endpoints only show what a member would see on the timetable: no one's name or booking,
  * and appointments stay private.
  */
+import { isSandbox } from "../trial/service.js";
 import type { FastifyInstance } from "fastify";
 import { and, asc, eq, isNull, ne } from "drizzle-orm";
 import { bookingPageSettings, publicScheduleQuery, slugify, type BookingPageSettings } from "@studio/shared";
@@ -126,7 +127,8 @@ export async function bookingPageRoutes(app: FastifyInstance) {
     const [row] = await db.select({ id: organizations.id }).from(organizations).where(eq(organizations.slug, slug));
     if (!row) throw notFound("studio");
     const org = await getOrg(db, row.id);
-    if (!org.bookingPageEnabled || org.lifecycle !== "live") throw notFound("studio");
+    // A free trial's test studio (sample data) never has a public page.
+    if (!org.bookingPageEnabled || org.lifecycle !== "live" || isSandbox(org)) throw notFound("studio");
     return org;
   }
   // Public and cacheable, and other websites may load it (the widget): the security headers
