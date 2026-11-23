@@ -253,6 +253,7 @@ try {
   p = await open("aizome");
   await p.waitForSelector("[role=dialog]");
   ok("celebration: the milestone, with its number", (await p.locator("#celebrateT").textContent()) === "108 classes" && (await p.locator(".celebrate-num").textContent()) === "108");
+  ok("celebration: the number is on a solid badge, not over the seal", await p.evaluate(() => { const b = document.querySelector(".cel-badge"); return !!b && b.contains(document.querySelector(".celebrate-num")) && getComputedStyle(b).backgroundColor !== "rgba(0, 0, 0, 0)"; }));
   await p.getByRole("button", { name: "Book your next class" }).click();
   ok("celebration: its button goes to booking", (await p.locator(".screen-book").count()) === 1);
   ok("look: Aizome's square corners and red seal", (await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--r-l"))).trim() === "4px" && (await p.evaluate(() => document.documentElement.dataset.motif)) === "stamp");

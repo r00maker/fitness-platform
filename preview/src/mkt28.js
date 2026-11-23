@@ -58,7 +58,7 @@
     function phone(t) {
       const [rs, rl] = RADII[t.corners];
       const ms = [...t.milestones].sort((a, b) => a - b), done = 47, prev = [...ms].reverse().find((m) => m <= done) ?? 0, next = ms.find((m) => m > done);
-      const vars = `--a-bg:${t.background};--a-sf:${t.surface};--a-ink:${t.ink};--a-mu:${t.muted};--a-ln:${t.line};--a-ac:${t.accent};--a-on:${t.onAccent};--a-hi:${t.highlight};--a-rs:${rs}px;--a-rl:${rl}px;--a-disp:"${t.displayFont}",Georgia,serif;--a-body:"${t.bodyFont}",system-ui,sans-serif`;
+      const vars = `--a-bg:${t.background};--a-sf:${t.surface};--a-ink:${t.ink};--a-mu:${t.muted};--a-ln:${t.line};--a-ac:${t.accent};--a-on:${t.onAccent};--a-hi:${t.highlight};--a-onhi:${contrast(t.highlight, "#FFFFFF") >= contrast(t.highlight, t.ink) ? "#FFFFFF" : t.ink};--a-rs:${rs}px;--a-rl:${rl}px;--a-disp:"${t.displayFont}",Georgia,serif;--a-body:"${t.bodyFont}",system-ui,sans-serif`;
       const name = esc(STUDIO.name || "Demo Studio");
       const upcoming = SESSIONS.filter((s) => s.status === "scheduled" && !isAppt(s) && s.start > NOW).sort((a, b) => a.start - b.start).slice(0, 3);
       const nx = upcoming[0];
@@ -69,7 +69,7 @@
         body = `<h4 class="alp-h">Book a class</h4><div class="alp-chips"><span class="alp-chip on">★ Classes with Ana</span>${Object.values(TYPES).slice(0, 2).map((ty) => `<span class="alp-chip"><i style="background:${ty.color}"></i>${esc(ty.name)}</span>`).join("")}</div>
           <ul class="alp-list">${upcoming.map((s, i) => `<li style="--ty:${TYPES[s.type].color}"><b>${clock(s.start)}</b><span><em>${esc(TYPES[s.type].name)}</em><small>${esc(instrName(s.instr).split(" ")[0])}, ${esc(LOCS[s.loc])}</small></span><i class="alp-btn">${i === 0 ? "Booked" : "Book"}</i></li>`).join("")}</ul>`;
       } else if (AV.view === "celebrate") {
-        body = `<div class="alp-cel"><div class="alp-cel-art">${MARK}<span>${prev || 10}</span></div><h4>${prev || 10} classes</h4><p>That's your ${prev || 10}th class with ${name}.${next ? ` Next stop: ${next}.` : ""}</p><i class="alp-btn wide">Book your next class</i></div>`;
+        body = `<div class="alp-cel"><div class="alp-cel-art">${MARK}<b class="alp-cel-badge">${prev || 10}</b></div><h4>${prev || 10} classes</h4><p>That's your ${prev || 10}th class with ${name}.${next ? ` Next stop: ${next}.` : ""}</p><i class="alp-btn wide">Book your next class</i></div>`;
       } else {
         body = `<h4 class="alp-hello">Good morning, Rachel.</h4>${t.welcome ? `<p class="alp-wel">${esc(t.welcome)}</p>` : ""}
           ${nx ? `<div class="alp-next"><small>${fmtDay(nx.start)}, ${clock(nx.start)}</small><b>${esc(TYPES[nx.type].name)}</b><small>${esc(LOCS[nx.loc])}</small></div>` : ""}

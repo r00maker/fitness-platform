@@ -21,9 +21,11 @@ export function Celebration({ c, onClose }: { c: C; onClose(): void }) {
   return (
     <div className="celebrate-scrim" onClick={onClose}>
       <div className="celebrate" role="dialog" aria-modal="true" aria-labelledby="celebrateT" aria-describedby="celebrateD" onClick={(e) => e.stopPropagation()}>
-        <div className="celebrate-art" aria-hidden="true">
+        {/* A number sits on a solid badge in the brand colour, never over the drawn mark,
+            so it reads the same on every look; the mark is drawn beside or around the badge. */}
+        <div className={`celebrate-art${c.number !== null ? " has-num" : ""}`} aria-hidden="true">
           <Mark className="celebrate-mark" />
-          {c.number !== null && <span className="celebrate-num">{c.number}</span>}
+          {c.number !== null && <span className="cel-badge"><span className={`celebrate-num${String(c.number).length > 3 ? " is-long" : ""}`}>{c.number}</span></span>}
         </div>
         <h2 id="celebrateT">{c.title}</h2>
         <p id="celebrateD">{c.message}</p>

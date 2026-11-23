@@ -25,6 +25,8 @@ export function applyTheme(t: AppTheme, root: HTMLElement = document.documentEle
   vars["--accent-soft"] = mix(t.accent, t.surface, 0.11);
   vars["--hi-soft"] = mix(t.highlight, t.surface, 0.28);
   vars["--ink-soft"] = mix(t.ink, t.surface, 0.07);
+  // Text on the highlight (the seal): white or the studio's text colour, whichever reads better.
+  vars["--on-hi"] = contrast(t.highlight, "#FFFFFF") >= contrast(t.highlight, t.ink) ? "#FFFFFF" : t.ink;
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
   root.dataset.motif = t.motif;
   root.dataset.corners = t.corners;
@@ -38,6 +40,15 @@ function mix(a: string, b: string, amount: number) {
   const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const [x, y] = [rgb(a), rgb(b)];
   return `#${x.map((v, i) => Math.round(v * amount + y[i]! * (1 - amount)).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function luminance(hex: string) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+export function contrast(a: string, b: string) {
+  const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p);
+  return (x! + 0.05) / (y! + 0.05);
 }
 
 const loaded = new Set<string>();

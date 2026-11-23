@@ -33,7 +33,7 @@ Five tabs: Home, Book, Shop, My classes and Me. The selected tab is marked with 
 - **Achievements:** one line on Home and in Me. The full screen has two parts:
   - the milestones in a short grid, with the next one marked and "3 to go";
   - five other achievements, with progress on the ones not earned yet.
-- **Celebrations:** when the app opens, it shows the one most important thing from the last 3 weeks, once: a milestone, then a goal met, then an achievement. The studio's mark draws itself.
+- **Celebrations:** when the app opens, it shows the one most important thing from the last 3 weeks, once: a milestone, then a goal met, then an achievement. A number (like 108) sits on a solid badge in the brand colour, so it reads well in every look; the studio's mark is drawn around the badge, never behind the text. The leaf badge is leaf-shaped with a small leaf at its shoulder, the wave rolls underneath, the seal is the badge itself (its text colour is picked to read on the highlight), and the spark opens out behind it. Without a number, the mark is shown on its own.
 - **Me** is short groups of rows, each opening a screen:
   - **Your practice:** monthly goal, achievements.
   - **Packages:** each package, and **Buy a package**, which opens the Shop tab.
@@ -160,7 +160,7 @@ To try it without a server, add `?demo&studio=linden` (or `tidal`, `aizome`). Th
 
 ## Checks
 
-- `node e2e/check.mjs` runs 61 checks on the demo studios in Chromium. They cover:
+- `node e2e/check.mjs` runs 106 checks on the demo studios in Chromium. They cover:
   - Home: the bar, the read-only goal, one line of achievements and the tab marker;
   - Back returning to where a screen was opened from;
   - the timetable fitting on the screen (a 340px phone too), with a week at a time, the favourite-instructor filter and no counts;

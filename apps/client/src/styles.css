@@ -233,7 +233,8 @@ img { display: block; max-width: 100% }
 .celebrate-btns { display: grid; gap: 4px; margin-top: 22px }
 .celebrate-art { position: relative; height: 150px; display: grid; place-items: center; color: var(--accent) }
 .celebrate-mark { width: 150px; height: 150px; overflow: visible }
-.celebrate-num { position: absolute; font-family: var(--display); font-size: 64px; line-height: 1; color: var(--ink); animation: num .6s .55s var(--ease) both }
+.celebrate-num { font-family: var(--display); font-size: 44px; line-height: 1; color: inherit; font-variant-numeric: lining-nums tabular-nums; animation: num .5s .6s var(--ease) both }
+.celebrate-num.is-long { font-size: 34px }
 @keyframes num { from { opacity: 0; transform: translateY(8px) scale(.9) } }
 /* Leaf: it unfurls (draws, then fills). */
 :root[data-motif="leaf"] .celebrate-mark .m-leaf { stroke: var(--accent); stroke-width: 1.2; fill: var(--hi-soft); stroke-dasharray: 80; stroke-dashoffset: 80; transform-origin: 4px 18px; animation: draw 1.1s .3s var(--ease) forwards, unfurl 1.1s .3s var(--ease) both }
@@ -244,14 +245,11 @@ img { display: block; max-width: 100% }
 :root[data-motif="wave"] .celebrate-mark { transform: scaleX(1.5) }
 /* Seal: it's stamped onto the card. */
 :root[data-motif="stamp"] .celebrate-mark .m-stamp { transform-origin: center; transform-box: fill-box; animation: stamp .5s .35s cubic-bezier(.5, 0, .75, 0) both, settle .25s .85s ease-out both }
-:root[data-motif="stamp"] .celebrate-num { color: #fff; animation-delay: .8s }
 @keyframes stamp { from { transform: scale(2.4) rotate(-14deg); opacity: 0 } to { transform: scale(1) rotate(-6deg); opacity: 1 } }
 @keyframes settle { 50% { transform: scale(1.04) rotate(-6deg) } to { transform: scale(1) rotate(-6deg) } }
 /* Spark: it opens. */
 :root[data-motif="spark"] .celebrate-mark .m-spark { transform-origin: center; transform-box: fill-box; animation: spark .7s .3s var(--ease) both }
 @keyframes spark { from { transform: scale(0) rotate(-90deg) } }
-:root[data-motif="leaf"] .celebrate-num, :root[data-motif="wave"] .celebrate-num, :root[data-motif="spark"] .celebrate-num { font-size: 56px; transform: translateY(4px) }
-:root[data-motif="leaf"] .celebrate-art .celebrate-num { left: 50%; top: 50%; translate: -10% -30% }
 
 /* --- Sign-in and loading ------------------------------------------------------------------- */
 .boot { min-height: 100dvh; display: grid; place-items: center; padding: 24px; text-align: center }
@@ -532,3 +530,22 @@ select { color: var(--ink) }
 .shop-tab > * + * { margin-top: 28px }
 .checkout { display: grid; gap: 18px }
 .checkout > .sub-head { margin-bottom: 4px }
+
+/* Celebrations with a number: the number on a solid badge, the studio's mark around it. */
+.cel-badge { position: relative; z-index: 1; display: grid; place-items: center; width: 108px; height: 108px; border-radius: 50%; background: var(--accent); color: var(--on-accent); box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--ink) 45%, transparent); animation: pop .5s .25s var(--ease) both }
+@keyframes pop { from { transform: scale(.6); opacity: 0 } }
+.celebrate-art.has-num .celebrate-mark { position: absolute; overflow: visible }
+/* Leaf: a leaf-shaped badge, with a small leaf unfurling at its shoulder. */
+:root[data-motif="leaf"] .cel-badge { border-radius: 14px 58px }
+:root[data-motif="leaf"] .celebrate-art.has-num .celebrate-mark { width: 54px; height: 54px; top: 0; left: calc(50% + 30px) }
+/* Wave: a round badge, with the wave rolling underneath it. */
+:root[data-motif="wave"] .celebrate-art.has-num { margin-bottom: 14px }
+:root[data-motif="wave"] .celebrate-art.has-num .celebrate-mark { width: 120px; height: 120px; bottom: -42px; left: calc(50% - 60px); transform: scaleX(1.4) }
+:root[data-motif="wave"] .celebrate-art.has-num .m-wave { stroke-width: 1.5 }
+:root[data-motif="wave"] .cel-badge { margin-bottom: 18px }
+/* Seal: the badge is the seal, stamped on; no separate mark. */
+:root[data-motif="stamp"] .celebrate-art.has-num .celebrate-mark { display: none }
+:root[data-motif="stamp"] .cel-badge { border-radius: 4px; background: var(--hi); color: var(--on-hi, #fff); box-shadow: inset 0 0 0 4px var(--hi), inset 0 0 0 6px var(--on-hi, #fff); transform: rotate(-6deg); animation: stamp .5s .35s cubic-bezier(.5, 0, .75, 0) both, settle .25s .85s ease-out both }
+/* Spark: a round badge, the spark opening out behind it so only its points show. */
+:root[data-motif="spark"] .celebrate-art.has-num .celebrate-mark { width: 250px; height: 250px; z-index: 0 }
+:root[data-motif="spark"] .celebrate-mark .m-spark { fill: var(--hi) }

@@ -61,6 +61,18 @@ const file = "file://" + path.join(__dirname, "al-test.html");
     ok(`${label}: corners change the phone`, (await phoneVar("--a-rl")) === "4px");
     await press('[data-almotif="stamp"]');
     ok(`${label}: picking a celebration shows it`, (await p.locator(".alp-cel").count()) === 1 && (await p.locator(".alp").getAttribute("data-motif")) === "stamp");
+    // The number sits on a solid badge, never on top of the drawn mark.
+    for (const m of ["leaf", "wave", "stamp", "spark"]) {
+      await press(`[data-almotif="${m}"]`);
+      ok(`${label}: ${m}: the number is on a solid badge, easy to read`, await p.evaluate(() => { const b = document.querySelector(".alp-cel-badge"); if (!b || !/^\d+$/.test(b.textContent)) return false;
+        // Large text: at least 3 to 1 between the number and its badge.
+        const rgb = (c) => c.match(/[\d.]+/g).slice(0, 3).map((v) => +v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+        const lum = (c) => { const [r, g, bl] = rgb(c); return 0.2126 * r + 0.7152 * g + 0.0722 * bl; };
+        const cs = getComputedStyle(b), [x, y] = [lum(cs.color), lum(cs.backgroundColor)].sort((p, q) => q - p);
+        return (x + 0.05) / (y + 0.05) >= 3; }));
+      if (label === "desk") await p.locator(".alp-cel").screenshot({ path: path.join(outDir, `cel-${m}.png`) });
+    }
+    await press('[data-almotif="stamp"]');
     await press('[data-alview="book"]');
     ok(`${label}: the timetable on the phone`, (await p.locator(".alp-list li").count()) >= 1);
     await press('[data-alview="home"]');
