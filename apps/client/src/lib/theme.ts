@@ -21,12 +21,23 @@ export function applyTheme(t: AppTheme, root: HTMLElement = document.documentEle
     "--display": `"${t.displayFont}", Georgia, serif`,
     "--body": `"${t.bodyFont}", system-ui, sans-serif`,
   };
+  // Worked out here rather than with CSS color-mix(), so phones with older browsers get them too.
+  vars["--accent-soft"] = mix(t.accent, t.surface, 0.11);
+  vars["--hi-soft"] = mix(t.highlight, t.surface, 0.28);
+  vars["--ink-soft"] = mix(t.ink, t.surface, 0.07);
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
   root.dataset.motif = t.motif;
   root.dataset.corners = t.corners;
   root.dataset.display = APP_FONTS[t.displayFont].kind;
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t.background);
   loadFonts([t.displayFont, t.bodyFont]);
+}
+
+/** `amount` of colour a over colour b, as hex. */
+function mix(a: string, b: string, amount: number) {
+  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [rgb(a), rgb(b)];
+  return `#${x.map((v, i) => Math.round(v * amount + y[i]! * (1 - amount)).toString(16).padStart(2, "0")).join("")}`;
 }
 
 const loaded = new Set<string>();

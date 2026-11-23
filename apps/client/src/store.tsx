@@ -10,7 +10,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Backend, Me, MyBooking, Package, Progress, Studio } from "./data/types";
 import { applyTheme } from "./lib/theme";
 
-export type Tab = "home" | "book" | "classes" | "me";
+export type Tab = "home" | "book" | "shop" | "classes" | "me";
 interface Toast { id: number; text: string; action?: { label: string; run: () => void } }
 
 interface Store {
@@ -33,7 +33,7 @@ interface Store {
 const Ctx = createContext<Store | null>(null);
 export const useStore = () => useContext(Ctx)!;
 
-const TABS: Tab[] = ["home", "book", "classes", "me"];
+const TABS: Tab[] = ["home", "book", "shop", "classes", "me"];
 const read = (): string[] => {
   const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
   return parts.length && TABS.includes(parts[0] as Tab) ? parts : ["home"];

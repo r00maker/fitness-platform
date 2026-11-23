@@ -6,7 +6,7 @@
  */
 import { ART } from "./art";
 import { money as fmtMoney } from "../lib/format";
-import { AppError, type Backend, type GiftCard, type HealthNote, type Loyalty, type Notifications, type Package, type PackageDetail, type Plan, type Product, type Purchase, type Quote } from "./types";
+import { AppError, type Backend, type Placed, type GiftCard, type HealthNote, type Loyalty, type Notifications, type Package, type PackageDetail, type Plan, type Product, type Purchase, type Quote } from "./types";
 
 const money = (c: number) => fmtMoney(c, "SGD");
 const today = () => new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10);
@@ -16,12 +16,13 @@ const wait = <T,>(v: T, ms = 160) => new Promise<T>((r) => setTimeout(() => r(v)
 let seq = 100;
 const id = (p: string) => `${p}${seq++}`;
 
-type PlanDef = Plan & { validityDays: number | null; credits: number | null };
+type PlanDef = Plan & { validityDays: number | null; credits: number | null; startsOnPurchase?: boolean };
 const PLANS: Record<string, PlanDef[]> = {
   linden: [
     { id: "lp1", name: "Intro: 3 classes", description: "For your first two weeks with us.", kind: "credits", billing: "one_time", priceCents: 9900, credits: 3, validityDays: 14, price: "", terms: ["3 classes", "Valid for 14 days from the first class", "New members only"] },
     { id: "lp2", name: "10-class pack", description: null, kind: "credits", billing: "one_time", priceCents: 38000, credits: 10, validityDays: 90, price: "", terms: ["10 classes", "Valid for 3 months from the first class", "Every class"] },
     { id: "lp3", name: "20-class pack", description: "Our best value per class.", kind: "credits", billing: "one_time", priceCents: 68000, credits: 20, validityDays: 180, price: "", terms: ["20 classes", "Valid for 6 months from the first class", "Up to 2 people can share it"] },
+    { id: "lp5", name: "30-day unlimited pass", description: "Every class for 30 days. Pick the day it starts.", kind: "unlimited", billing: "one_time", priceCents: 39000, credits: null, validityDays: 30, startsOnPurchase: true, price: "", terms: ["Unlimited classes", "Valid for 30 days from the day you choose"] },
     { id: "lp4", name: "Unlimited monthly", description: null, kind: "unlimited", billing: "recurring", priceCents: 42000, credits: null, validityDays: 30, price: "", terms: ["Unlimited classes", "Up to 5 classes a week", "Renews every month until you stop it", "Minimum 3 months"] },
   ],
   tidal: [
@@ -55,6 +56,15 @@ export function demoAccount(key: string, ctx: { packages: Package[]; studioName:
   const plans = (PLANS[key] ?? PLANS.linden!).map((p) => ({ ...p, price: money(p.priceCents) }));
   const products = (PRODUCTS[key] ?? []).map((p) => ({ ...p, price: money(p.priceCents) }));
   let credit = key === "linden" ? 2500 : 0;
+  // A discount from a friend's referral, and classes that can move across from the current pack.
+  const vouchers: { id: string; label: string; note: string; percent?: number; cents?: number }[] = key === "linden" ? [{ id: "v1", label: "10% off", note: "From Hannah's referral", percent: 10 }] : key === "tidal" ? [{ id: "v2", label: "SGD 20 off", note: "Your birthday treat", cents: 2000 }] : [];
+  const rollovers = () => key === "linden" ? ctx.packages.filter((p) => p.kind === "credits" && p.billing === "one_time" && (p.creditsLeft ?? 0) > 0).slice(0, 1).map((p) => ({ packageId: p.id, name: p.name, classes: Math.min(5, p.creditsLeft ?? 0), validUntil: p.validUntil })) : [];
+  const priceOf = (p: PlanDef, c: { useCredit: boolean; voucherId?: string }) => {
+    const v = vouchers.find((x) => x.id === c.voucherId);
+    const discount = v ? (v.percent ? Math.round((p.priceCents * v.percent) / 100) : Math.min(p.priceCents, v.cents ?? 0)) : 0;
+    const using = c.useCredit ? Math.min(credit, p.priceCents - discount) : 0;
+    return { v, discount, using, due: p.priceCents - discount - using };
+  };
   const purchases: Purchase[] = [
     { id: "i1", number: "INV-0412", receiptNumber: "RC-0412", statusLabel: "Paid", description: ctx.packages[0]!.name, total: key === "linden" ? money(38000) : key === "tidal" ? money(26000) : money(26000), issuedAt: plusDays(today(), -16) },
   ];
@@ -104,44 +114,64 @@ export function demoAccount(key: string, ctx: { packages: Package[]; studioName:
 
   const methods: Omit<Backend, "demo" | "studio" | "me" | "signIn" | "signOut" | "schedule" | "myBookings" | "packages" | "packageOptions" | "book" | "joinWaitlist" | "cancel" | "progress" | "setGoal" | "seen" | "banners"> = {
     plans: () => wait(plans),
-    async quote(planId, useCredit) {
+    async quote(planId, c) {
       const p = plans.find((x) => x.id === planId)!;
-      const using = useCredit ? Math.min(credit, p.priceCents) : 0;
+      const { v, discount, using, due } = priceOf(p, c);
+      const roll = rollovers().find((r) => r.packageId === c.rolloverFromPackageId);
       const q: Quote = {
         package: { id: p.id, name: p.name, billing: p.billing, terms: p.terms },
-        lines: [{ label: p.name, amount: p.price }, ...(using ? [{ label: "Studio credit", amount: `−${money(using)}` }] : [])],
-        total: money(p.priceCents - using),
-        totalCents: p.priceCents - using,
+        lines: [
+          { label: p.name, amount: p.price },
+          ...(roll && p.kind === "credits" ? [{ label: `${roll.classes} unused ${roll.classes === 1 ? "class" : "classes"} from ${roll.name}`, amount: "Included" }] : []),
+          ...(discount ? [{ label: `Discount (${v!.label})`, amount: `−${money(discount)}` }] : []),
+          ...(using ? [{ label: "Studio credit", amount: `−${money(using)}` }] : []),
+        ],
+        total: money(due),
+        totalCents: due,
         studioCredit: { balance: money(credit), balanceCents: credit, using: money(using) },
-        recurringNote: p.billing === "recurring" ? `You'll be charged ${p.price} each month until you stop it.` : null,
-        startsNote: p.billing === "one_time" ? "It starts on the day of the first class you book with it." : null,
-        startDate: null,
+        recurringNote: p.billing === "recurring" ? `You'll be charged ${p.price} each month until you stop it.${discount || using ? " The discount and credit apply to this first payment only." : ""}` : null,
+        startsNote: p.billing === "one_time" && !p.startsOnPurchase ? "It starts on the day of the first class you book with it." : null,
+        startDate: p.startsOnPurchase ? { earliest: today(), latest: plusDays(today(), 60), default: today() } : null,
         payments: p.billing === "recurring"
-          ? { online: true, options: [{ payWith: "online", label: "Card, Apple Pay or Google Pay", fee: null, total: money(p.priceCents - using) }], message: "Your card is kept securely by Stripe for the renewals." }
-          : { online: true, options: [{ payWith: "online", label: "Pay online", fee: null, total: money(p.priceCents - using) }, { payWith: "desk", label: "Pay at the studio", fee: null, total: money(p.priceCents - using) }], message: null },
+          ? { online: true, options: [{ payWith: "online", label: "Card, Apple Pay or Google Pay", fee: null, total: money(due) }], message: "Your card is kept securely by Stripe for the renewals." }
+          : { online: true, options: [{ payWith: "online", label: "Pay online", fee: null, total: money(due) }, { payWith: "desk", label: "Pay at the studio", fee: null, total: money(due) }], message: null },
+        vouchers: vouchers.map(({ id: vid, label, note }) => ({ id: vid, label, note })),
+        rolloverOptions: p.kind === "credits" ? rollovers() : [],
       };
       return wait(q, 220);
     },
-    async checkout(planId, input) {
+    async checkout(planId, c) {
       const p = plans.find((x) => x.id === planId)!;
-      const using = input.useCredit ? Math.min(credit, p.priceCents) : 0;
-      credit -= using;
-      // The demo has no payment page: online orders are treated as paid, desk ones wait for the studio.
-      const paid = input.payWith !== "desk" || p.priceCents - using === 0;
-      addPurchase(p.name, p.priceCents - using, paid);
-      if (paid) {
+      const { v, using, due } = priceOf(p, c);
+      const roll = rollovers().find((r) => r.packageId === c.rolloverFromPackageId);
+      const finish = (paid: boolean): Placed => {
+        credit -= using;
+        if (v) vouchers.splice(vouchers.indexOf(v), 1);
+        addPurchase(p.name, due, paid);
+        if (!paid) return desk("your package will be ready straight away");
+        if (roll) { const from = find(roll.packageId); from.creditsLeft = (from.creditsLeft ?? 0) - roll.classes; }
+        const start = c.startDate ?? (p.startsOnPurchase ? today() : null);
+        const credits = p.credits === null ? null : p.credits + (roll && p.kind === "credits" ? roll.classes : 0);
         ctx.packages.push({
-          id: id("p"), name: p.name, kind: p.kind, state: "not_started", stateLabel: "Not started", creditsTotal: p.credits, creditsLeft: p.credits, billing: p.billing,
-          validUntil: null, startedOn: null, startNote: p.billing === "one_time" ? "Starts on the day of the first class you book with it." : null, terms: p.terms,
+          id: id("p"), name: p.name, kind: p.kind, state: start && start > today() ? "not_started" : start ? "active" : "not_started", stateLabel: start && start <= today() ? "Active" : "Not started", creditsTotal: credits, creditsLeft: credits, billing: p.billing,
+          validUntil: start && p.validityDays ? plusDays(start, p.validityDays - 1) : null, startedOn: start, startNote: p.billing === "one_time" && !start ? "Starts on the day of the first class you book with it." : null, terms: p.terms,
           ...(p.billing === "recurring" ? { renewal: { period: 1, renewsOn: plusDays(today(), 30), endsOn: null, bookedAhead: [] }, state: "active" as const, stateLabel: "Active" } : {}),
         });
-        return wait({ done: true, message: `Paid. ${p.name} is in your packages.` }, 400);
-      }
-      return wait(desk("your package will be ready straight away"), 300);
+        return { done: true, message: `Paid. ${p.name} is in your packages.` };
+      };
+      if (c.payWith === "desk" && due > 0) return wait(finish(false), 300);
+      if (due === 0) return wait(finish(true), 300);
+      // Online: the demo's stand-in for Stripe's page; paying there finishes the order.
+      return wait({ done: false, message: "", demoPay: { amount: money(due), description: p.name, confirm: async () => wait(finish(true), 500) } }, 250);
     },
     packageDetail: async (pid) => wait({ ...detail(find(pid)), ...(extras.get(pid) ?? {}) }),
-    extensionPolicy: () => wait({ allowed: true, maxDays: 30, fee: null, summary: "Ask for up to 30 days. Requests up to 7 days are approved straight away (once per package); longer ones are reviewed by the studio." }),
-    async requestExtension(pid, days, reason) {
+    async uploadAttachment(file) {
+      if (file.size > 10 * 1024 * 1024) throw new AppError("too_big", "That file is too big. The limit is 10 MB.");
+      if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(file.type)) throw new AppError("wrong_type", "Use a photo (JPEG, PNG or WebP) or a PDF.");
+      return wait({ id: id("f") }, 300);
+    },
+    extensionPolicy: () => wait({ allowed: true, maxDays: 30, fee: null, attachment: "optional" as const, summary: "Ask for up to 30 days. Requests up to 7 days are approved straight away (once per package); longer ones are reviewed by the studio." }),
+    async requestExtension(pid, days, reason, _attachment) {
       const p = find(pid);
       const auto = days <= 7 && !(extras.get(pid)?.extensionRequests?.length);
       if (auto && p.validUntil) p.validUntil = plusDays(p.validUntil, days);
@@ -204,10 +234,14 @@ export function demoAccount(key: string, ctx: { packages: Package[]; studioName:
     async buyProducts(items, payWith) {
       const total = items.reduce((a, i) => a + products.find((p) => p.id === i.productId)!.priceCents * i.quantity, 0);
       const using = Math.min(credit, total);
-      credit -= using;
-      const paid = payWith !== "desk" || total - using === 0;
-      addPurchase(items.map((i) => products.find((p) => p.id === i.productId)!.name).join(", "), total - using, paid);
-      return wait(paid ? { done: true, message: "Paid. Collect it at the front desk next time you're in." } : desk("collect it there"), 300);
+      const finish = (paid: boolean): Placed => {
+        credit -= using;
+        addPurchase(items.map((i) => products.find((p) => p.id === i.productId)!.name).join(", "), total - using, paid);
+        return paid ? { done: true, message: "Paid. Collect it at the front desk next time you're in." } : desk("collect it there");
+      };
+      if (payWith === "desk" && total - using > 0) return wait(finish(false), 300);
+      if (total - using === 0) return wait(finish(true), 300);
+      return wait({ done: false, message: "", demoPay: { amount: money(total - using), description: "Shop order", confirm: async () => wait(finish(true), 500) } }, 250);
     },
     giftCardShop: () => wait(key === "aizome" ? { enabled: false } : {
       enabled: true,
@@ -217,14 +251,17 @@ export function demoAccount(key: string, ctx: { packages: Package[]; studioName:
     }),
     async buyGiftCard(input) {
       const design = input.designId === "d2" ? (key === "tidal" ? ART.tidalSocks : ART.lindenHoliday) : key === "tidal" ? ART.tidalChallenge : ART.lindenFriend;
-      addPurchase(`Gift card (${money(input.amountCents)})`, input.amountCents, input.payWith !== "desk");
-      if (input.payWith === "desk") return wait(desk("the gift card will be ready to give"));
-      if (input.give) {
-        cards.unshift({ id: id("g"), code: `GIFT-${seq}`, amount: money(input.amountCents), status: "given", statusLabel: "Given", design: { name: "Card", imageUrl: design }, from: null, to: input.give.to, message: input.give.message ?? null, daysLeftToGive: null });
-        return wait({ done: true, message: `Paid. It's on its way to ${input.give.to}.` });
-      }
-      cards.unshift({ id: id("g"), code: `GIFT-${seq}`, amount: money(input.amountCents), status: "unsent", statusLabel: "Ready to give", design: { name: "Card", imageUrl: design }, from: null, to: null, message: null, daysLeftToGive: 60 });
-      return wait({ done: true, message: "Paid. It's under Gift cards, ready to give." });
+      if (input.payWith === "desk") { addPurchase(`Gift card (${money(input.amountCents)})`, input.amountCents, false); return wait(desk("the gift card will be ready to give")); }
+      const finish = (): Placed => {
+        addPurchase(`Gift card (${money(input.amountCents)})`, input.amountCents, true);
+        if (input.give) {
+          cards.unshift({ id: id("g"), code: `GIFT-${seq}`, amount: money(input.amountCents), status: "given", statusLabel: "Given", design: { name: "Card", imageUrl: design }, from: null, to: input.give.to, message: input.give.message ?? null, daysLeftToGive: null });
+          return { done: true, message: `Paid. It's on its way to ${input.give.to}.` };
+        }
+        cards.unshift({ id: id("g"), code: `GIFT-${seq}`, amount: money(input.amountCents), status: "unsent", statusLabel: "Ready to give", design: { name: "Card", imageUrl: design }, from: null, to: null, message: null, daysLeftToGive: 60 });
+        return { done: true, message: "Paid. It's under Gift cards, ready to give." };
+      };
+      return wait({ done: false, message: "", demoPay: { amount: money(input.amountCents), description: `Gift card (${money(input.amountCents)})`, confirm: async () => wait(finish(), 500) } }, 250);
     },
     myGiftCards: () => wait({ toGive: cards.filter((c) => c.status === "unsent"), received: [], given: cards.filter((c) => c.status === "given"), kept: cards.filter((c) => c.status === "kept"), credit: { balance: money(credit), balanceCents: credit } }),
     async giveGiftCard(gid, to, message) {

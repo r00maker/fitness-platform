@@ -64,15 +64,14 @@ export function Me() {
             <Row key={p.id} to={`me/packages/${p.id}`} icon={<svg viewBox="0 0 24 24">{I.pack}</svg>} title={p.name}
               detail={`${p.kind === "credits" ? `${p.creditsLeft} of ${p.creditsTotal} left` : "Unlimited"}${p.renewal?.renewsOn ? `, renews ${shortDate(p.renewal.renewsOn)}` : p.renewal?.endsOn ? `, ends ${shortDate(p.renewal.endsOn)}` : p.validUntil ? `, until ${shortDate(p.validUntil)}` : p.state === "not_started" ? ", not started yet" : ""}`} />
           ))}
-          <Row to="me/buy" icon={<svg viewBox="0 0 24 24">{I.buy}</svg>} title={live.length ? "Buy another package" : "Buy a package"} detail="Class packs and memberships" />
+          <Row to="shop" icon={<svg viewBox="0 0 24 24">{I.buy}</svg>} title={live.length ? "Buy another package" : "Buy a package"} detail="In the Shop" />
         </ul>
       </section>
 
       {(extras.shop || extras.loyalty || extras.referral) && (
         <section aria-labelledby="shopT">
-          <h2 id="shopT">Shop and rewards</h2>
+          <h2 id="shopT">Gift cards and rewards</h2>
           <ul className="list">
-            {extras.shop && <Row to="me/shop" icon={<svg viewBox="0 0 24 24">{I.shop}</svg>} title="Shop" detail="Merchandise and gift cards" />}
             {extras.shop && <Row to="me/gift-cards" icon={<svg viewBox="0 0 24 24">{I.gift}</svg>} title="My gift cards and credit" />}
             {extras.loyalty && <Row to="me/rewards" icon={<svg viewBox="0 0 24 24">{I.star}</svg>} title="Rewards" detail={extras.loyalty} />}
             {extras.referral && <Row to="me/refer" icon={<svg viewBox="0 0 24 24">{I.friend}</svg>} title="Refer a friend" />}

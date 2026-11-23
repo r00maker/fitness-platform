@@ -102,9 +102,20 @@ export interface Quote {
   startsNote: string | null;
   startDate: { earliest: string; latest: string; default: string } | null;
   payments: { online: boolean; options: PayOption[]; message: string | null };
+  /** Discounts they can use (from a referral, a reward or the studio). */
+  vouchers: { id: string; label: string; note: string | null }[];
+  /** Unused classes they can bring across from another package (if the studio allows it). */
+  rolloverOptions: { packageId: string; name: string; classes: number; validUntil: string | null }[];
 }
+export interface CheckoutChoices { useCredit: boolean; voucherId?: string; rolloverFromPackageId?: string; startDate?: string; payWith?: string }
 /** After placing an order: either it's done, or pay online (redirect), or pay at the desk. */
-export interface Placed { done: boolean; message: string; redirectUrl?: string }
+export interface Placed {
+  done: boolean;
+  message: string;
+  redirectUrl?: string;
+  /** Demo studios only: a stand-in for Stripe's payment page. Paying there finishes the order. */
+  demoPay?: { amount: string; description: string; confirm(): Promise<Placed> };
+}
 
 // --- Managing packages -----------------------------------------------------------------------
 export interface PackageDetail extends Package {
@@ -113,7 +124,7 @@ export interface PackageDetail extends Package {
   extensionRequests: { id: string; days: number; reason: string; statusLabel: string; status: string; requestedOn: string }[];
   sharing: { maxUsers: number; spacesLeft: number; members: { userId: string; name: string; isOwner: boolean }[] };
 }
-export interface ExtensionPolicy { allowed: boolean; maxDays: number; fee: string | null; summary: string }
+export interface ExtensionPolicy { allowed: boolean; maxDays: number; fee: string | null; summary: string; attachment: "off" | "optional" | "required" }
 export interface StopOptions {
   inMinimumTerm: boolean;
   minimumTermEndsOn: string | null;
@@ -179,12 +190,14 @@ export interface Backend {
 
   // Buying
   plans(): Promise<Plan[]>;
-  quote(planId: string, useCredit: boolean): Promise<Quote>;
-  checkout(planId: string, input: { payWith?: string; startDate?: string; useCredit: boolean }): Promise<Placed>;
+  quote(planId: string, choices: CheckoutChoices): Promise<Quote>;
+  checkout(planId: string, choices: CheckoutChoices): Promise<Placed>;
   // Managing packages
   packageDetail(id: string): Promise<PackageDetail>;
   extensionPolicy(): Promise<ExtensionPolicy>;
-  requestExtension(id: string, days: number, reason: string): Promise<{ message: string }>;
+  /** Upload a document (a doctor's note) for a request for more time: a photo or a PDF. */
+  uploadAttachment(file: File): Promise<{ id: string }>;
+  requestExtension(id: string, days: number, reason: string, attachmentFileId?: string): Promise<{ message: string }>;
   share(id: string, email: string): Promise<void>;
   unshare(id: string, userId: string): Promise<void>;
   stopOptions(id: string): Promise<StopOptions>;

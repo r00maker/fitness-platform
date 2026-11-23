@@ -60,9 +60,9 @@ img { display: block; max-width: 100% }
 :root[data-corners="round"] .brand-mark { border-radius: 50% }
 .brand-name { font-family: var(--display); font-size: 16px }
 .topbar img, .brand img { width: 32px; height: 32px; object-fit: contain }
-.rail { position: fixed; z-index: 20; inset: auto 0 0 0; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(12px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom) }
+.rail { position: fixed; z-index: 20; inset: auto 0 0 0; background: color-mix(in srgb, var(--surface) 94%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom) }
 .rail .brand { display: none }
-.rail ul { list-style: none; margin: 0 auto; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); max-width: 560px }
+.rail ul { list-style: none; margin: 0 auto; padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 600px }
 .rail a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; height: var(--tabbar); color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 500 }
 .rail a[aria-current="page"] { color: var(--accent) }
 /* The selected tab: a short bar in the brand colour above it (phones), beside it (the rail). */
@@ -505,3 +505,30 @@ img { display: block; max-width: 100% }
   .rail a[aria-current="page"]::after { transform: scaleY(1) }
   .screen.is-sub > div { max-width: 720px }
 }
+
+/* --- Phones: iOS and Android ------------------------------------------------------------------- */
+html { -webkit-tap-highlight-color: transparent }
+button, a, label, select, input[type=checkbox], input[type=radio] { touch-action: manipulation }
+.shell { min-height: 100vh; min-height: 100dvh }
+/* Clear of the notch, the Dynamic Island and the home bar, in the browser and in the apps. */
+.topbar { padding-top: max(14px, env(safe-area-inset-top, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.screen { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.rail a { font-size: 11px; min-width: 0 }
+.rail a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+/* iOS zooms into any field under 16px when it's tapped; keep every field at 16px on touch screens. */
+@media (pointer: coarse) { input, select, textarea { font-size: 16px !important } }
+input[type=date] { -webkit-appearance: none; appearance: none; min-height: 46px; display: block }
+input[type=file] { font-size: 14px; max-width: 100% }
+.file-field small { display: block; font-weight: 400 }
+select { color: var(--ink) }
+@media (max-width: 360px) { .rail a { font-size: 10px } .rail svg { width: 22px; height: 22px } }
+
+/* The demo's stand-in for Stripe's payment page. */
+.pay-sheet { background: var(--surface); border-radius: var(--r-l) var(--r-l) 0 0; padding: 24px 20px calc(20px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; text-align: center; max-width: 520px; width: 100%; margin: 0 auto; animation: sheet .4s var(--ease) both }
+.pay-sheet h2 { font-size: 36px }
+.pay-sheet-tag { justify-self: center; padding: 3px 10px; border-radius: 999px; background: var(--ink-soft); color: var(--muted); font-size: 12px; font-weight: 600 }
+.pay-sheet-note { color: var(--muted); font-size: 14px; margin: 6px auto 8px; max-width: 40ch }
+@media (min-width: 960px) { .pay-sheet { border-radius: var(--r-l) } }
+.shop-tab > * + * { margin-top: 28px }
+.checkout { display: grid; gap: 18px }
+.checkout > .sub-head { margin-bottom: 4px }

@@ -3,19 +3,22 @@
  * signed in, then shows four places: Home, Book, My classes and Me. On phones the places are a
  * tab bar at the bottom; on wider screens, a rail on the left.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Celebration } from "./components/Celebration";
 import { demoBackend } from "./data/demo";
 import { AppError, type Backend, type Me as MeT, type Studio } from "./data/types";
 import { applyTheme } from "./lib/theme";
+import { setUpNative } from "./lib/native";
 import { Book } from "./screens/Book";
 import { Home } from "./screens/Home";
 import { Me } from "./screens/Me";
 import { MyClasses } from "./screens/MyClasses";
 import { ClassPage } from "./screens/ClassPage";
 import { Goal } from "./screens/me/Goal";
-import { Buy, Checkout, PackagePage } from "./screens/me/Packages";
-import { BuyGiftCard, GiftCards, Shop } from "./screens/me/Shop";
+import { PackagePage } from "./screens/me/Packages";
+import { GiftCards } from "./screens/me/Shop";
+import { BuyGiftCard, Checkout, ShopTab } from "./screens/ShopTab";
+import { PaySheet } from "./components/PaySheet";
 import { AchievementsPage, Card, Health, NewsPrefs, Receipts, Refer, Rewards, WaiverPage } from "./screens/me/Account";
 import { SignIn } from "./screens/SignIn";
 import { StoreProvider, useStore, type Tab } from "./store";
@@ -63,6 +66,7 @@ export function App() {
 const TABS: { key: Tab; label: string; icon: JSX.Element }[] = [
   { key: "home", label: "Home", icon: <path d="M4 11.5 12 5l8 6.5V20h-5v-5H9v5H4z" /> },
   { key: "book", label: "Book", icon: <><rect x="4" y="5.5" width="16" height="14.5" rx="2" /><path d="M4 10h16M9 3.5v4M15 3.5v4" /></> },
+  { key: "shop", label: "Shop", icon: <><path d="M5 8h14l-1.2 12H6.2z" /><path d="M9 8V7a3 3 0 0 1 6 0v1" /></> },
   { key: "classes", label: "My classes", icon: <><path d="M8 7h11M8 12h11M8 17h11" /><circle cx="4.5" cy="7" r=".8" /><circle cx="4.5" cy="12" r=".8" /><circle cx="4.5" cy="17" r=".8" /></> },
   { key: "me", label: "Me", icon: <><circle cx="12" cy="8.5" r="3.5" /><path d="M5 20c1.2-3.6 3.8-5.5 7-5.5s5.8 1.9 7 5.5" /></> },
 ];
@@ -73,13 +77,12 @@ function Screen({ path }: { path: string[] }) {
   if (a === "class" && b) return <ClassPage id={b} />;
   if (tab === "book") return <Book />;
   if (tab === "classes") return <MyClasses />;
+  if (tab === "shop") return a === "package" && b ? <Checkout planId={b} /> : a === "gift-card" ? <BuyGiftCard /> : <ShopTab />;
   if (tab === "me") {
     switch (a) {
       case "goal": return <Goal />;
       case "achievements": return <AchievementsPage />;
       case "packages": return b ? <PackagePage id={b} /> : <Me />;
-      case "buy": return b ? <Checkout planId={b} /> : <Buy />;
-      case "shop": return b === "gift-card" ? <BuyGiftCard /> : <Shop />;
       case "gift-cards": return <GiftCards />;
       case "rewards": return <Rewards />;
       case "refer": return <Refer />;
@@ -96,7 +99,17 @@ function Screen({ path }: { path: string[] }) {
 }
 
 function Shell() {
-  const { studio, tab, path, go, progress, toasts, dismissToast, bookings } = useStore();
+  const { studio, tab, path, go, back, progress, toasts, dismissToast, bookings } = useStore();
+  // The phone apps: Android's back button goes Back in the app; leaving only from Home.
+  const where = useRef({ path, tab });
+  where.current = { path, tab };
+  useEffect(() => {
+    void setUpNative(studio.theme, () => {
+      if (where.current.path.length > 1) { back(); return true; }
+      if (where.current.tab !== "home") { go("home"); return true; }
+      return false;
+    }).catch(() => {});
+  }, [studio.theme, back, go]);
   const [celebrating, setCelebrating] = useState(false);
   const [shownKey, setShownKey] = useState<string | null>(null);
   // The celebration opens once, a moment after Home has drawn.
@@ -144,6 +157,7 @@ function Shell() {
           </div>
         ))}
       </div>
+      <PaySheet />
       {celebrating && progress?.celebration && <Celebration c={progress.celebration} onClose={close} />}
     </div>
   );

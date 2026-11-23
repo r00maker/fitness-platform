@@ -1,91 +1,13 @@
 /**
- * Packages: buy one (the list, then a checkout screen with the price, credit and how to pay),
- * and manage one (classes left, dates and how they work, its history, asking for more time,
- * sharing it, and stopping or restarting a membership).
+ * A package's own screen: classes left, dates and how they work, its history, asking for more
+ * time (with a document, like a doctor's note, when the studio asks for one), sharing it, and
+ * stopping or restarting a membership. Buying is in the Shop tab.
  */
 import { useEffect, useState } from "react";
-import { PayChoice, Problem, SubHead, useAction, Loading } from "../../components/ui";
-import type { ExtensionPolicy, PackageDetail, Placed, Plan, Quote, StopOptions } from "../../data/types";
+import { Problem, SubHead, useAction, Loading } from "../../components/ui";
+import type { ExtensionPolicy, PackageDetail, StopOptions } from "../../data/types";
 import { plural, shortDate } from "../../lib/format";
 import { useStore } from "../../store";
-
-/** After an order: done, off to the payment page, or pay at the desk. */
-export function usePlaced() {
-  const { toast, refresh, go } = useStore();
-  return async (r: Placed | undefined, then: string) => {
-    if (!r) return;
-    if (r.redirectUrl) { location.href = r.redirectUrl; return; }
-    toast(r.message);
-    await refresh();
-    go(then);
-  };
-}
-
-export function Buy() {
-  const { api, go } = useStore();
-  const [plans, setPlans] = useState<Plan[] | null>(null);
-  useEffect(() => void api.plans().then(setPlans), [api]);
-  const packs = plans?.filter((p) => p.billing === "one_time") ?? [];
-  const members = plans?.filter((p) => p.billing === "recurring") ?? [];
-  return (
-    <div className="buy">
-      <SubHead title="Buy a package" />
-      {!plans && <Loading />}
-      {[["Class packs", packs], ["Memberships", members]].map(([title, list]) =>
-        (list as Plan[]).length ? (
-          <section key={title as string} aria-label={title as string}>
-            <h2>{title as string}</h2>
-            <ul className="plans">
-              {(list as Plan[]).map((p) => (
-                <li key={p.id}>
-                  <button type="button" className="plan" onClick={() => go(`me/buy/${p.id}`)}>
-                    <span className="plan-top"><span className="plan-name">{p.name}</span><span className="plan-price">{p.price}{p.billing === "recurring" ? <small> a month</small> : null}</span></span>
-                    {p.description && <span className="plan-desc">{p.description}</span>}
-                    <span className="plan-terms">{p.terms.slice(0, 3).join(". ")}.</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null,
-      )}
-    </div>
-  );
-}
-
-export function Checkout({ planId }: { planId: string }) {
-  const { api } = useStore();
-  const [useCredit, setUseCredit] = useState(true);
-  const [q, setQ] = useState<Quote | null>(null);
-  const [payWith, setPayWith] = useState<string | undefined>();
-  const a = useAction();
-  const placed = usePlaced();
-  useEffect(() => {
-    void api.quote(planId, useCredit).then((x) => { setQ(x); setPayWith((p) => p ?? x.payments.options[0]?.payWith); }, (e: Error) => a.setError(e.message));
-  }, [api, planId, useCredit]);
-  if (!q) return <div><SubHead title="Checkout" /><Loading /><Problem text={a.error} /></div>;
-  const deskOnly = q.payments.options.length === 1 && q.payments.options[0]!.payWith === "desk";
-  return (
-    <div className="checkout">
-      <SubHead title={q.package.name} sub={q.package.terms.join(". ") + "."} />
-      <section className="bill" aria-label="What you'll pay">
-        {q.lines.map((l) => <p key={l.label} className="bill-line"><span>{l.label}</span><span>{l.amount}</span></p>)}
-        <p className="bill-total"><span>Total</span><span>{q.total}</span></p>
-        {q.studioCredit.balanceCents > 0 && (
-          <label className="check"><input type="checkbox" checked={useCredit} onChange={(e) => setUseCredit(e.target.checked)} /> Use my studio credit ({q.studioCredit.balance})</label>
-        )}
-        {q.recurringNote && <p className="muted">{q.recurringNote}</p>}
-        {q.startsNote && <p className="muted">{q.startsNote}</p>}
-      </section>
-      {q.totalCents > 0 && <PayChoice options={q.payments.options} value={payWith} onChange={setPayWith} />}
-      {q.payments.message && <p className="muted">{q.payments.message}</p>}
-      <Problem text={a.error} />
-      <button type="button" className="btn btn-main btn-wide" disabled={a.busy} onClick={() => void a.run(() => api.checkout(planId, { payWith, useCredit })).then((r) => placed(r, "me"))}>
-        {a.busy ? "One moment…" : q.totalCents === 0 ? "Get it" : payWith === "desk" || deskOnly ? `Order and pay at the studio` : `Pay ${q.total}`}
-      </button>
-    </div>
-  );
-}
 
 export function PackagePage({ id }: { id: string }) {
   const { api, refresh, toast } = useStore();
@@ -152,12 +74,26 @@ function Extend({ id, policy, onDone }: { id: string; policy: ExtensionPolicy; o
   const { api } = useStore();
   const [days, setDays] = useState(7);
   const [reason, setReason] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const a = useAction();
+  const need = policy.attachment === "required";
+  async function send() {
+    // The document goes up first, then the request points to it.
+    const att = file ? (await api.uploadAttachment(file)).id : undefined;
+    return api.requestExtension(id, days, reason, att);
+  }
   return (
-    <form className="panel" onSubmit={(e) => { e.preventDefault(); void a.run(() => api.requestExtension(id, days, reason)).then((r) => r && onDone(r.message)); }}>
+    <form className="panel" onSubmit={(e) => { e.preventDefault(); if (need && !file) { a.setError("The studio needs a document with this, like a doctor's note."); return; } void a.run(send).then((r) => r && onDone(r.message)); }}>
       <p className="muted">{policy.summary}{policy.fee ? ` Fee: ${policy.fee}.` : ""}</p>
-      <label className="field"><span>How many days?</span><input type="number" min={1} max={policy.maxDays} value={days} onChange={(e) => setDays(Number(e.target.value))} required /></label>
+      <label className="field"><span>How many days?</span><input type="number" inputMode="numeric" min={1} max={policy.maxDays} value={days} onChange={(e) => setDays(Number(e.target.value))} required /></label>
       <label className="field"><span>Why?</span><textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="For example: knee injury, physio says 3 weeks off" required minLength={3} /></label>
+      {policy.attachment !== "off" && (
+        <label className="field file-field">
+          <span>{need ? "A document (needed)" : "A document (optional)"}<small className="muted">A photo or PDF, like a doctor's note. Only the studio's admins see it.</small></span>
+          <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          {file && <small>{file.name} ({Math.max(1, Math.round(file.size / 1024))} KB)</small>}
+        </label>
+      )}
       <Problem text={a.error} />
       <button className="btn btn-main" disabled={a.busy}>{a.busy ? "Sending…" : "Send request"}</button>
     </form>

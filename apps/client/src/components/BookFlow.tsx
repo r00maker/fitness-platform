@@ -103,7 +103,7 @@ export function ConfirmBox({ c, b }: { c: ClassItem; b: ReturnType<typeof useBoo
         <>
           <p className="confirm-line">{s.options.message}</p>
           <div className="confirm-btns">
-            <button type="button" className="btn btn-main" onClick={() => go("me/buy")}>Buy a package</button>
+            <button type="button" className="btn btn-main" onClick={() => go("shop")}>Buy a package</button>
             <button type="button" className="btn btn-text" onClick={() => set({ at: "idle" })}>Not now</button>
           </div>
         </>

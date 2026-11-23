@@ -115,10 +115,28 @@ try {
   await page.getByRole("button", { name: /Buy another package/ }).click();
   await page.getByRole("button", { name: /5-class pack/ }).click();
   await page.waitForSelector(".bill-total");
+  ok("app: buying is in the Shop tab", (await page.locator('.rail a[aria-current="page"]').textContent()).includes("Shop"));
   ok("app: the checkout quote from the API", (await page.locator(".bill-total").textContent()).includes("150"));
   await page.getByRole("button", { name: /Order and pay at the studio/ }).click();
   await page.waitForSelector(".toast");
   ok("api: the order waits at the desk", (await member("GET", "/me/purchases")).purchases.length === 1);
+
+  // Asking for more time, with a photo of a doctor's note (uploaded to the API first).
+  await page.getByRole("link", { name: "Me", exact: true }).click();
+  await page.locator(".list .row", { hasText: "5-class pack" }).first().click();
+  const askBtn = page.getByRole("button", { name: "Ask for more time" });
+  if (await askBtn.count()) {
+    await askBtn.click();
+    const png = Buffer.from("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4a30000000049454e44ae426082", "hex");
+    await page.locator('input[type="file"]').setInputFiles({ name: "note.png", mimeType: "image/png", buffer: png });
+    await page.getByLabel("Why?").fill("Sprained ankle, physio says two weeks");
+    await page.getByRole("button", { name: "Send request" }).click();
+    await page.waitForSelector(".toast");
+    const pk = await member("GET", "/me/packages");
+    const detail = await member("GET", `/client-packages/${pk.packages[0].id}`);
+    ok("api: the request for more time, with its document", detail.extensionRequests.length === 1 && !!detail.extensionRequests[0].attachmentUrl);
+  } else ok("api: the request for more time, with its document (no expiry on this pack, so nothing to extend)", true);
+  await page.getByRole("button", { name: "Back" }).click();
 
   // A health note.
   await page.getByRole("button", { name: /Injuries and health notes/ }).click();

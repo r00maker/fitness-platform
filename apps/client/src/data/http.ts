@@ -4,7 +4,7 @@
  * ?studio=<slug>, or VITE_STUDIO for a studio's own build of the app.
  */
 import { auth } from "./auth";
-import { AppError, type Backend, type Banner, type GiftCardShop, type HealthNote, type Loyalty, type MyGiftCards, type MyBooking, type Notifications, type Package, type PackageDetail, type PackageOptions, type PaymentCard, type Placed, type Plan, type Product, type Progress, type Purchase, type Quote, type Referral, type ScheduleDay, type StopOptions, type Studio, type Waiver } from "./types";
+import { AppError, type Backend, type Banner, type ExtensionPolicy, type GiftCardShop, type HealthNote, type Loyalty, type MyGiftCards, type MyBooking, type Notifications, type Package, type PackageDetail, type PackageOptions, type PaymentCard, type Placed, type Plan, type Product, type Progress, type Purchase, type Quote, type Referral, type ScheduleDay, type StopOptions, type Studio, type Waiver } from "./types";
 
 /** What the API says after an order: paid, pay online (redirect), or pay at the desk. */
 type Payment = { online: boolean; redirectUrl?: string; message?: string };
@@ -96,17 +96,30 @@ export function httpBackend(slug: string): Backend {
     async plans() {
       return (await call<{ packages: Plan[] }>("GET", `/public/studios/${encodeURIComponent(slug)}/packages`, undefined, false)).packages;
     },
-    quote: (planId, useCredit) => call<Quote>("GET", `/checkout/quote?planId=${planId}&useCredit=${useCredit}`),
-    async checkout(planId, input) {
-      const r = await call<{ order: { status: string }; payment: Payment }>("POST", "/checkout", { planId, ...input });
+    quote: (planId, c) => call<Quote>("GET", `/checkout/quote?${new URLSearchParams({ planId, useCredit: String(c.useCredit), ...(c.voucherId ? { voucherId: c.voucherId } : {}), ...(c.rolloverFromPackageId ? { rolloverFromPackageId: c.rolloverFromPackageId } : {}) })}`),
+    async checkout(planId, c) {
+      const r = await call<{ order: { status: string }; payment: Payment }>("POST", "/checkout", { planId, ...c });
       return placed(r.order.status, r.payment, "It's in your packages.");
     },
     packageDetail: (id) => call<PackageDetail>("GET", `/client-packages/${id}`),
     async extensionPolicy() {
-      return (await call<{ extensions: { allowed: boolean; maxDays: number; fee: string | null; summary: string } }>("GET", "/me/packages")).extensions;
+      return (await call<{ extensions: ExtensionPolicy }>("GET", "/me/packages")).extensions;
     },
-    async requestExtension(id, days, reason) {
-      const r = await call<{ approvedAutomatically: boolean }>("POST", `/client-packages/${id}/extension-requests`, { days, reason });
+    async uploadAttachment(file) {
+      // The file goes as it is, with its own type; the API checks what's actually inside.
+      const t = await auth.token();
+      let res: Response;
+      try {
+        res = await fetch(`${API_URL}/v1/files?purpose=extension_attachment`, { method: "POST", headers: { "content-type": file.type || "application/octet-stream", ...(t ? { authorization: `Bearer ${t}` } : {}), ...(studioId ? { "x-studio-id": studioId } : {}) }, body: file });
+      } catch {
+        throw new AppError("offline", "We couldn't upload that. Check your connection and try again.");
+      }
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new AppError(j.error?.code ?? "error", j.error?.message ?? "That file couldn't be uploaded.");
+      return { id: j.id as string };
+    },
+    async requestExtension(id, days, reason, attachmentFileId) {
+      const r = await call<{ approvedAutomatically: boolean }>("POST", `/client-packages/${id}/extension-requests`, { days, reason, ...(attachmentFileId ? { attachmentFileId } : {}) });
       return { message: r.approvedAutomatically ? `Done: extended by ${days} ${days === 1 ? "day" : "days"}.` : "Sent to the studio. You'll hear back soon." };
     },
     async share(id, email) {

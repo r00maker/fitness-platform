@@ -10,7 +10,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { extname, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-const { chromium } = createRequire(import.meta.url)("playwright");
+const { chromium, devices } = createRequire(import.meta.url)("playwright");
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 const dist = join(root, "dist-demo");
@@ -31,7 +31,7 @@ const ok = (label, cond, extra = "") => { if (cond) passed++; else failed++; con
 const browser = await chromium.launch();
 const errors = [];
 async function open(studio, opts = {}) {
-  const page = await browser.newPage({ viewport: opts.viewport ?? { width: 390, height: 844 }, reducedMotion: opts.reduced ? "reduce" : "no-preference" });
+  const page = await browser.newPage(opts.device ? { ...opts.device } : { viewport: opts.viewport ?? { width: 390, height: 844 }, reducedMotion: opts.reduced ? "reduce" : "no-preference" });
   page.on("pageerror", (e) => errors.push(`${studio}: ${e.message}`));
   await page.goto(`${base}/index.html?demo&studio=${studio}${opts.hash ?? ""}`);
   await page.waitForSelector(".screen");
@@ -134,15 +134,41 @@ try {
   await p.getByRole("button", { name: "Back" }).click();
 
   // 10. Buying and managing.
+  // Buying is in its own Shop tab.
   await p.getByRole("button", { name: /Buy another package/ }).click();
+  await p.waitForSelector(".shop-tab");
+  ok("shop tab: Buy in Me opens the Shop tab", (await p.locator('.rail a[aria-current="page"]').textContent()).includes("Shop"));
+  await p.waitForSelector(".product");
+  ok("shop tab: packs, memberships, gift cards and merchandise in one place", (await p.locator("#packsT").count()) === 1 && (await p.locator("#memT").count()) === 1 && (await p.locator(".gift-promo").count()) === 1 && (await p.locator(".product").count()) === 3);
   await p.getByRole("button", { name: /20-class pack/ }).click();
   await p.waitForSelector(".bill-total");
   ok("buy: the bill, with studio credit taken off", /Studio credit/.test(await p.locator(".bill").textContent()) && (await p.locator(".bill-total").textContent()).includes("655"));
+  await p.getByLabel(/10% off/).check();
+  await p.waitForFunction(() => document.querySelector(".bill-total")?.textContent.includes("587"), null, { timeout: 3000 }).catch(() => {});
+  ok("buy: a discount from a referral", (await p.locator(".bill-total").textContent()).includes("587") && /Discount \(10% off\)/.test(await p.locator(".bill").textContent()));
+  await p.getByLabel(/5 classes from 10-class pack/).check();
+  await p.waitForFunction(() => /5 unused classes/.test(document.querySelector(".bill")?.textContent ?? ""), null, { timeout: 3000 }).catch(() => {});
+  ok("buy: unused classes brought across", /5 unused classes from 10-class pack/.test(await p.locator(".bill").textContent()));
   await p.getByRole("button", { name: /^Pay / }).click();
+  await p.waitForSelector(".pay-sheet");
+  ok("pay: a payment step, asking for no card details", (await p.locator(".pay-sheet input").count()) === 0 && /SGD 587/.test(await p.locator(".pay-sheet h2").textContent()));
+  await p.locator(".pay-sheet").getByRole("button", { name: /^Pay / }).click();
   await p.waitForSelector(".me-head");
-  ok("buy: bought, and it's in their packages", (await p.locator(".list .row-title", { hasText: "20-class pack" }).count()) === 1);
+  ok("buy: bought, with the classes added", /25 of 25 left/.test(await p.locator(".list .row", { hasText: "20-class pack" }).textContent()) && /1 of 10 left/.test(await p.locator(".list .row", { hasText: "10-class pack" }).textContent()));
+  // A package that starts on a chosen day, paid at the studio.
+  await p.getByRole("link", { name: "Shop", exact: true }).click();
+  await p.getByRole("button", { name: /30-day unlimited pass/ }).click();
+  await p.waitForSelector('input[type="date"]');
+  const later = await p.evaluate(() => new Date(Date.now() + 3 * 864e5 + 8 * 36e5).toISOString().slice(0, 10));
+  await p.fill('input[type="date"]', later);
+  await p.getByLabel(/Pay at the studio/).check();
+  await p.getByRole("button", { name: "Order and pay at the studio" }).click();
+  await p.waitForSelector(".toast:has-text('Order placed')");
+  ok("buy: a start date chosen, paid at the studio", true);
   await p.getByRole("button", { name: /10-class pack/ }).click();
   await p.getByRole("button", { name: "Ask for more time" }).click();
+  await p.locator('input[type="file"]').setInputFiles({ name: "doctors-note.png", mimeType: "image/png", buffer: Buffer.from("89504e470d0a1a0a", "hex") });
+  ok("package: a document can go with the request", /doctors-note\.png/.test(await p.locator(".file-field").textContent()));
   await p.getByLabel("Why?").fill("Travelling for work");
   await p.getByRole("button", { name: "Send request" }).click();
   await p.waitForSelector(".toast:has-text('extended')");
@@ -157,13 +183,23 @@ try {
   ok("package: shared with a friend", (await p.locator(".list.plain .line", { hasText: "Hannah" }).count()) === 1);
   await p.getByRole("button", { name: "Back" }).click();
 
-  await p.getByRole("button", { name: /^Shop/ }).click();
+  await p.getByRole("link", { name: "Shop", exact: true }).click();
   await p.getByRole("button", { name: "Add Linden water bottle" }).click();
   await p.getByRole("button", { name: "Add Grip socks" }).click();
   ok("shop: a basket with a total", (await p.locator(".basket .bill-line").count()) === 2 && (await p.locator(".basket .bill-total").textContent()).includes("50"));
-  await p.getByRole("button", { name: /^Pay / }).click();
+  await p.locator(".basket").getByRole("button", { name: /^Pay / }).click();
+  await p.locator(".pay-sheet").getByRole("button", { name: /^Pay / }).click();
   await p.waitForSelector(".toast:has-text('Collect')");
   ok("shop: paid, to collect at the desk", true);
+  // A gift card, given straight away.
+  await p.getByRole("link", { name: "Shop", exact: true }).click();
+  await p.locator(".gift-promo").click();
+  await p.getByLabel("Their email").fill("sam@example.com");
+  await p.getByRole("button", { name: /^Pay / }).click();
+  await p.locator(".pay-sheet").getByRole("button", { name: /^Pay / }).click();
+  await p.waitForSelector(".toast:has-text('on its way')");
+  ok("gift card: bought and sent", true);
+  await p.getByRole("link", { name: "Me", exact: true }).click();
   await p.getByRole("button", { name: /My gift cards and credit/ }).click();
   await p.getByRole("button", { name: "Keep it as credit" }).click();
   await p.waitForSelector(".toast:has-text('credit')");
@@ -242,6 +278,27 @@ try {
   await p.waitForSelector(".class-list:not(.is-loading)");
   ok("narrow phone: the timetable fits", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await p.close();
+
+  // --- Real phones: iPhone (iOS) and Pixel (Android) sizes, touch, and their browsers' quirks
+  for (const [name, device] of [["iPhone 13", devices["iPhone 13"]], ["iPhone SE", devices["iPhone SE"]], ["Pixel 7", devices["Pixel 7"]], ["Galaxy S9+", devices["Galaxy S9+"]]]) {
+    p = await open("linden", { device });
+    const fits = () => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+    const tabs = await p.locator(".rail a").evaluateAll((as) => as.map((a) => { const r = a.getBoundingClientRect(); return { l: r.left, r: r.right, h: r.height, cut: a.querySelector("span").scrollWidth > a.querySelector("span").clientWidth }; }));
+    ok(`${name}: five tabs, all on screen, none cut short`, tabs.length === 5 && tabs.every((t) => t.l >= 0 && t.r <= device.viewport.width + 0.5 && !t.cut));
+    ok(`${name}: tabs big enough to tap (44px)`, tabs.every((t) => t.h >= 44));
+    ok(`${name}: Home fits`, await fits());
+    for (const tab of ["Book", "Shop", "My classes", "Me"]) {
+      await p.getByRole("link", { name: tab === "My classes" ? /^My classes/ : tab, exact: tab !== "My classes" }).click();
+      await p.waitForTimeout(400);
+      ok(`${name}: ${tab} fits`, await fits());
+    }
+    await p.getByRole("link", { name: "Shop", exact: true }).click();
+    await p.getByRole("button", { name: /30-day unlimited pass/ }).click();
+    await p.waitForSelector('input[type="date"]');
+    ok(`${name}: fields are 16px, so the phone doesn't zoom in when they're tapped`, await p.evaluate(() => matchMedia("(pointer: coarse)").matches && [...document.querySelectorAll("input, select, textarea")].every((e) => parseFloat(getComputedStyle(e).fontSize) >= 16)));
+    ok(`${name}: checkout fits`, await fits());
+    await p.close();
+  }
 
   // --- The showcase: three live phones
   p = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
