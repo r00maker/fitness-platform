@@ -12,7 +12,7 @@ const js = read("./src/site.js");
 const header = read("./src/partials/header.html");
 const footer = read("./src/partials/footer.html");
 const close = read("./src/partials/close.html");
-const PAGES = ["index", "product", "pricing", "switching"];
+const PAGES = ["index", "product", "pricing", "switching", "trial"];
 const found = readdirSync(new URL("./src/pages/", import.meta.url)).map((f) => f.replace(/\.html$/, ""));
 for (const p of PAGES) if (!found.includes(p)) throw new Error(`src/pages/${p}.html is missing.`);
 

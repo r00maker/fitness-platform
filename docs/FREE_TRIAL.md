@@ -47,7 +47,16 @@ When the 14 days are up, the studio is **read-only**: it can be looked at, but n
   - **The test studio's sample data:** `trial/sandbox.ts`. Everyone in it has an example.com address.
 - **Tests:** `apps/api/test/trial.test.ts`.
 - **Preview:** the **Trial** control in the studio preview's header (`preview/src/mkt29.js`, checked by `tlcheck.cjs`). It shows the bar with the days left, payments locked, **Start my plan**, the test studio and the ended state.
-- **Still to build:** the sign-up page on the website. It signs the person in, then calls `POST /v1/trials`.
+- **Sign-up page:** `apps/site/src/pages/trial.html` (the website's **Start free trial**). Three steps on one card:
+  1. **Your studio:** which describes you (opening a new studio, or already running one), the plan to try (a plan card on Pricing preselects it with `?plan=`), the studio's name, their name and email, and the terms (from `GET /v1/public/trial`, with the same words built in if the API can't be reached).
+  2. **Confirm your email:** a 6-digit code. Supabase emails it (`/auth/v1/otp`, then `/auth/v1/verify`, with the publishable key only), and the page then calls `POST /v1/trials` with the sign-in token.
+  3. **Ready:** the studio's name, the plan and the date the trial ends, and three next steps (different for a test studio).
+
+  The page says plainly when it's refused: one trial per person, already a customer, a throwaway inbox (back to the email), or too many sign-ups.
+  - **To switch it on:** set `data-api`, `data-supabase-url` and `data-supabase-key` on `#trialCard` (and `data-studio-app` for the **Open the studio app** button). Add the site's address to the API's `CORS_ORIGINS`. Supabase's email templates need `{{ .Token }}` for the code (see `docs/WEB_APP.md`).
+  - **Locally:** with `data-api` alone, it uses the API's dev sign-in, and the code is 000000.
+  - **With neither:** it's a preview that says so, sends nothing and makes nothing.
+  - **Checked by** `apps/site/check.mjs`: the steps, the messages and that the terms match the API's, on desktop and phone. `node check.mjs --live` also runs it against a seeded local API: a new studio, a second try refused, the test studio, and a throwaway inbox.
 
 ## Is a free trial a good idea?
 
