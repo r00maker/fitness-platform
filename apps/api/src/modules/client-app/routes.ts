@@ -3,7 +3,7 @@
  */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { APP_FONTS, APP_THEME_PRESETS, appThemeUpdate, planHasApp, PLAN_INFO } from "@studio/shared";
+import { APP_FONTS, APP_THEME_PRESETS, appThemeUpdate, planHasApp, PLAN_INFO, presetKey } from "@studio/shared";
 import { organizations } from "../../db/schema.js";
 import { eq } from "drizzle-orm";
 import { audit } from "../../lib/audit.js";
@@ -56,7 +56,8 @@ export async function clientAppRoutes(app: FastifyInstance) {
     const org = await getOrg(db, req.auth.orgId);
     if (!planHasApp(org.plan, org.brandedApp)) throw conflict("needs_branded_app", "Your own app look comes with the branded app. Talk to us about adding it.");
     // Choosing a preset starts from it; other changes are kept on top of what's saved.
-    const next = input.preset && input.preset !== org.appTheme?.preset ? { ...input } : { ...(org.appTheme ?? {}), ...input };
+    if (input.preset) input.preset = presetKey(input.preset);
+    const next = input.preset && input.preset !== presetKey(org.appTheme?.preset) ? { ...input } : { ...(org.appTheme ?? {}), ...input };
     if (next.preset && !APP_THEME_PRESETS[next.preset]) throw conflict("unknown_preset", "Choose one of the looks offered.");
     await db.update(organizations).set({ appTheme: next }).where(eq(organizations.id, org.id));
     await audit(db, { orgId: org.id, actorId: req.auth.userId, action: "app_theme.updated", entityType: "organization", entityId: org.id, details: input });

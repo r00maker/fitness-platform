@@ -31,6 +31,8 @@ export function usePlaced() {
 /** The studio's ways to pay for a one-off order (online, or at the desk). */
 const PAY = [{ payWith: "online", label: "Pay online", fee: null, total: "" }, { payWith: "desk", label: "Pay at the studio", fee: null, total: "" }];
 
+const Chevron = () => <svg className="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>;
+
 export function ShopTab() {
   const { api, go, studio } = useStore();
   const [plans, setPlans] = useState<Plan[] | null>(null);
@@ -57,30 +59,52 @@ export function ShopTab() {
       {list.map((p) => (
         <li key={p.id}>
           <button type="button" className="plan" onClick={() => go(`shop/package/${p.id}`)}>
-            <span className="plan-top"><span className="plan-name">{p.name}</span><span className="plan-price">{p.price}{p.billing === "recurring" ? <small> a month</small> : null}</span></span>
+            <span className="plan-name">{p.name}</span>
             {p.description && <span className="plan-desc">{p.description}</span>}
-            <span className="plan-terms">{p.terms.slice(0, 3).join(". ")}.</span>
+            <span className="plan-terms">{p.terms.slice(0, 2).join(" · ")}</span>
+            <span className="plan-foot">
+              <span className="plan-price">{p.price}{p.billing === "recurring" ? <small> a month</small> : null}</span>
+              <Chevron />
+            </span>
           </button>
         </li>
       ))}
     </ul>
   );
 
+  // Shortcuts to each part of the shop, so nothing is a long scroll away.
+  const parts = [
+    packs.length > 0 && ["packsT", "Packs"],
+    members.length > 0 && ["memT", "Memberships"],
+    shop?.giftCards && ["giftT", "Gift cards"],
+    !!shop?.products.length && ["goodsT", "Studio shop"],
+  ].filter(Boolean) as [string, string][];
+  const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+
   return (
     <div className="shop-tab">
       <header className="screen-head"><h1>Shop</h1></header>
       {!plans && <Loading />}
+      {parts.length > 2 && (
+        <nav className="shop-jump" aria-label="Parts of the shop">
+          {parts.map(([id, label]) => <button key={id} type="button" className="chip" onClick={() => jump(id)}>{label}</button>)}
+        </nav>
+      )}
       {packs.length > 0 && <section aria-labelledby="packsT"><h2 id="packsT">Class packs</h2>{planList(packs)}</section>}
       {members.length > 0 && <section aria-labelledby="memT"><h2 id="memT">Memberships</h2>{planList(members)}</section>}
       {shop?.giftCards && (
-        <button type="button" className="gift-promo" onClick={() => go("shop/gift-card")}>
-          <span><b>Gift cards</b><small>For a friend, or to keep as credit</small></span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
-        </button>
+        <section aria-labelledby="giftT">
+          <h2 id="giftT">Gift cards</h2>
+          <button type="button" className="plan plan-row" onClick={() => go("shop/gift-card")}>
+            <span className="plan-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-1.5-3-5-3.5-5-1.2C7 7 9.5 7 12 7Zm0 0c1.5-3 5-3.5 5-1.2C17 7 14.5 7 12 7Z" /></svg></span>
+            <span className="plan-row-text"><span className="plan-name">Give a gift card</span><span className="plan-terms">For a friend, or to keep as credit</span></span>
+            <Chevron />
+          </button>
+        </section>
       )}
       {!!shop?.products.length && (
         <section aria-labelledby="goodsT">
-          <h2 id="goodsT">From the studio</h2>
+          <h2 id="goodsT">Studio shop</h2>
           <p className="muted section-sub">Pay here, then collect it at the front desk.</p>
           <ul className="products">
             {shop.products.map((p) => (

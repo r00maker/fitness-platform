@@ -38,6 +38,7 @@ const file = "file://" + path.join(__dirname, "bk-test.html");
     // --- Setup, Booking page ---
     await role("admin");
     await go("booking-page");
+    ok(`${label}: the form's labels sit above their fields`, await p.evaluate(() => { const t = document.querySelector("#bpIntro"), l = t.closest(".fl").querySelector(".flhead"); return l.getBoundingClientRect().bottom <= t.getBoundingClientRect().top + 1 && t.getBoundingClientRect().width >= Math.min(300, innerWidth - 120); }));
     ok(`${label}: Booking page is a Setup tab, after Payments`, (await p.locator('[data-hubtab="booking-page"]').count()) === 1 && (await p.evaluate(() => [...document.querySelectorAll("[data-hubtab]")].map((x) => x.dataset.hubtab))).join().includes("payments,booking-page"));
     ok(`${label}: it's live, with the link`, /Live/.test(await txt(".status")) && (await p.inputValue("#bpSlug")) === "demo-studio");
     ok(`${label}: the code to paste`, /data-studio-schedule="demo-studio"/.test(await txt("#bpCode")) && /widget\.js/.test(await txt("#bpCode")));

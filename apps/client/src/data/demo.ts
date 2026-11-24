@@ -48,7 +48,7 @@ const types = (list: [string, string, string][]) => list.map(([id, name, color])
 const STUDIOS: Record<string, DemoStudio> = {
   linden: {
     studio: {
-      id: "linden", slug: "linden", name: "Linden Reformer Studio", logoUrl: null, timezone: "Asia/Singapore", currency: "SGD", theme: theme("linden"),
+      id: "linden", slug: "linden", name: "Linden Reformer Studio", logoUrl: null, timezone: "Asia/Singapore", currency: "SGD", theme: theme("sage"),
       locations: [{ id: "tp", name: "Tanjong Pagar", address: "12 Duxton Road" }, { id: "hv", name: "Holland Village", address: "3 Lorong Liput" }],
       classTypes: types([["found", "Reformer Foundations", "#7FA36B"], ["inter", "Reformer Intermediate", "#2F5D46"], ["flow", "Reformer Flow", "#A9BF6E"], ["mat", "Mat Pilates", "#8C9A86"], ["jump", "Jumpboard", "#4E7A63"]]),
       rules: { cancelling: "Cancel up to 12 hours before to get the class back.", needPackage: true },
@@ -82,7 +82,7 @@ const STUDIOS: Record<string, DemoStudio> = {
   },
   tidal: {
     studio: {
-      id: "tidal", slug: "tidal", name: "Tidal Barre", logoUrl: null, timezone: "Asia/Singapore", currency: "SGD", theme: theme("tidal"),
+      id: "tidal", slug: "tidal", name: "Tidal Barre", logoUrl: null, timezone: "Asia/Singapore", currency: "SGD", theme: theme("cobalt"),
       locations: [{ id: "jc", name: "Joo Chiat", address: "88 Joo Chiat Road" }],
       classTypes: types([["burn", "Barre Burn", "#2B3BE8"], ["sculpt", "Barre Sculpt", "#E2489A"], ["cardio", "Cardio Barre", "#7B5CFF"], ["stretch", "Barre Stretch", "#0E9F8E"]]),
       rules: { cancelling: "Cancel up to 8 hours before to get the class back.", needPackage: true },
@@ -115,7 +115,7 @@ const STUDIOS: Record<string, DemoStudio> = {
   },
   aizome: {
     studio: {
-      id: "aizome", slug: "aizome", name: "Aizome Yoga", logoUrl: null, timezone: "Asia/Singapore", currency: "SGD", theme: theme("aizome"),
+      id: "aizome", slug: "aizome", name: "Aizome Yoga", logoUrl: null, timezone: "Asia/Singapore", currency: "SGD", theme: theme("indigo"),
       locations: [{ id: "tb", name: "Tiong Bahru", address: "55 Eng Hoon Street" }],
       classTypes: types([["hatha", "Hatha", "#2E3D73"], ["yin", "Yin", "#6C7FB0"], ["vinyasa", "Vinyasa", "#C2412D"], ["breath", "Breathwork", "#7D8290"]]),
       rules: { cancelling: "Cancel up to 6 hours before to keep your place free for someone else.", needPackage: true },

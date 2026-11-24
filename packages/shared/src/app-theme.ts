@@ -4,7 +4,7 @@
  * how celebrations look, a welcome line and the class milestones the app counts towards.
  *
  * Custom looks come with the branded app (Signature, or Growth with the app add-on). Without it,
- * the app uses the "Studio" preset in the studio's booking-page colour.
+ * the app uses the "Classic" preset in the studio's booking-page colour.
  */
 import { z } from "zod";
 
@@ -55,44 +55,48 @@ export const appThemeUpdate = appThemeSchema.partial().strict();
 
 export const DEFAULT_MILESTONES = [10, 20, 50, 100, 150, 200, 300, 500, 1000];
 
-/** Starting points. The three named ones are examples of what studios can do. */
+/** Starting points, named for their colours. Each is a complete look that studios then change. */
 export const APP_THEME_PRESETS: Record<string, AppTheme & { label: string; description: string }> = {
-  studio: {
-    preset: "studio", label: "Studio", description: "Clean and neutral, in your booking-page colour.",
+  classic: {
+    preset: "classic", label: "Classic", description: "Clean and neutral, in your booking-page colour.",
     background: "#F4F5F7", surface: "#FFFFFF", ink: "#171B21", muted: "#5D6673", line: "#E1E4E9",
     accent: "#0C6156", onAccent: "#FFFFFF", highlight: "#E9B949",
     displayFont: "Manrope", bodyFont: "Manrope", corners: "soft", motif: "spark", welcome: null, milestones: DEFAULT_MILESTONES,
   },
-  linden: {
-    preset: "linden", label: "Linden", description: "Reformer pilates, quiet and botanical: sage and deep linden green, a soft serif, a leaf that unfurls.",
+  sage: {
+    preset: "sage", label: "Sage", description: "Calm and botanical: sage and deep green, a soft serif and leaf-shaped badges.",
     background: "#EEF1EA", surface: "#FBFCF8", ink: "#1B2A21", muted: "#5B6B60", line: "#D9E0D2",
     accent: "#2F5D46", onAccent: "#F4F8EF", highlight: "#B9CF7A",
     displayFont: "Young Serif", bodyFont: "Figtree", corners: "soft", motif: "leaf", welcome: "Slow is still forward.", milestones: [10, 20, 50, 100, 150, 200, 300, 500],
   },
-  tidal: {
-    preset: "tidal", label: "Tidal", description: "Barre with a beat: cobalt and candy pink, a loud grotesque, pill shapes and a wave.",
+  cobalt: {
+    preset: "cobalt", label: "Cobalt", description: "Bright and bold: cobalt and pink, a heavy sans-serif, pill shapes and badges with a ripple.",
     background: "#F3F4FF", surface: "#FFFFFF", ink: "#0F1238", muted: "#545A86", line: "#DCDFFA",
     accent: "#2B3BE8", onAccent: "#FFFFFF", highlight: "#FF8FCB",
     displayFont: "Bricolage Grotesque", bodyFont: "Bricolage Grotesque", corners: "round", motif: "wave", welcome: "Tuck, pulse, repeat.", milestones: [5, 20, 50, 100, 200, 500],
   },
-  aizome: {
-    preset: "aizome", label: "Aizome", description: "Yoga, still and exact: stone and indigo, a fine Mincho serif, square corners and a red seal for each achievement.",
+  indigo: {
+    preset: "indigo", label: "Indigo", description: "Still and exact: stone and indigo, a fine serif, square corners and a red seal for each achievement.",
     background: "#ECEBE7", surface: "#F8F7F4", ink: "#1E2030", muted: "#626473", line: "#D8D6D0",
     accent: "#2E3D73", onAccent: "#F3F1EA", highlight: "#C2412D",
     displayFont: "Shippori Mincho", bodyFont: "Zen Kaku Gothic New", corners: "square", motif: "stamp", welcome: "Arrive. Breathe. Begin.", milestones: [10, 25, 50, 108, 200, 500],
   },
 };
 
+/** The looks' earlier names (they were named after the example studios), for looks saved before. */
+export const LEGACY_PRESET_KEYS: Record<string, string> = { studio: "classic", linden: "sage", tidal: "cobalt", aizome: "indigo" };
+export const presetKey = (key: string | null | undefined) => (key ? LEGACY_PRESET_KEYS[key] ?? key : "classic");
+
 /** The theme a studio's app uses: its saved look on top of its preset, or the plain preset in its colour. */
 export function resolveAppTheme(saved: Partial<AppTheme> | null | undefined, opts: { hasApp: boolean; accent?: string | null }): AppTheme {
-  const base = APP_THEME_PRESETS.studio!;
+  const base = APP_THEME_PRESETS.classic!;
   if (!opts.hasApp || !saved) {
     const { label: _l, description: _d, ...t } = base;
     return { ...t, accent: opts.accent ?? t.accent };
   }
-  const preset = APP_THEME_PRESETS[saved.preset ?? "studio"] ?? base;
+  const preset = APP_THEME_PRESETS[presetKey(saved.preset)] ?? base;
   const { label: _l, description: _d, ...t } = preset;
-  const merged = { ...t, ...saved };
+  const merged = { ...t, ...saved, preset: preset.preset };
   return { ...merged, milestones: [...new Set(merged.milestones)].sort((a, b) => a - b) };
 }
 

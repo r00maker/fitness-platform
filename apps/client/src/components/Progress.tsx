@@ -14,7 +14,7 @@ export function Mark({ className = "mark" }: { className?: string }) {
       <path className="m-leaf" d="M4 18 C 6 8 14 4 20 4 C 20 11 15 19 4 18 Z M5 17 L 15 9" />
       <path className="m-wave" d="M2 15 C 5 9 9 9 12 13 S 19 17 22 9" />
       <rect className="m-stamp" x="4" y="4" width="16" height="16" />
-      <path className="m-spark" d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z" />
+      <path className="m-spark" d="M12.00 2.00 L14.29 4.96 L17.88 3.91 L17.99 7.65 L21.51 8.91 L19.40 12.00 L21.51 15.09 L17.99 16.35 L17.88 20.09 L14.29 19.04 L12.00 22.00 L9.71 19.04 L6.12 20.09 L6.01 16.35 L2.49 15.09 L4.60 12.00 L2.49 8.91 L6.01 7.65 L6.12 3.91 L9.71 4.96 Z" />
     </svg>
   );
 }

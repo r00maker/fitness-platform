@@ -8,9 +8,9 @@ import { APP_THEME_PRESETS } from "@studio/shared";
 import "./showcase.css";
 
 const LOOKS = [
-  { key: "linden", studio: "Linden Reformer Studio", member: "Rachel, 47 classes, 3 to her 50th" },
-  { key: "tidal", studio: "Tidal Barre", member: "Jasmine, 4 weeks in a row (opens with a celebration)" },
-  { key: "aizome", studio: "Aizome Yoga", member: "Kenji, who just reached 108 classes (opens with a celebration)" },
+  { key: "linden", look: "sage", studio: "Linden Reformer Studio", member: "Rachel, 47 classes, 3 to her 50th" },
+  { key: "tidal", look: "cobalt", studio: "Tidal Barre", member: "Jasmine, 4 weeks in a row (opens with a celebration)" },
+  { key: "aizome", look: "indigo", studio: "Aizome Yoga", member: "Kenji, who just reached 108 classes (opens with a celebration)" },
 ];
 
 function Showcase() {
@@ -26,13 +26,13 @@ function Showcase() {
       </div>
       <div className="sc-phones">
         {LOOKS.map((l, i) => {
-          const p = APP_THEME_PRESETS[l.key]!;
+          const p = APP_THEME_PRESETS[l.look]!;
           return (
             <figure key={l.key} className={`sc-phone${one === i ? " is-on" : ""}`}>
               <div className="sc-frame"><iframe title={`${l.studio} client app`} src={`index.html?demo&studio=${l.key}`} loading={i ? "lazy" : "eager"} /></div>
               <figcaption>
                 <h2>{l.studio}</h2>
-                <p>{p.description}</p>
+                <p><b>Started from {p.label}.</b> {p.description}</p>
                 <dl>
                   <div><dt>Typefaces</dt><dd>{p.displayFont}{p.bodyFont !== p.displayFont ? ` and ${p.bodyFont}` : ""}</dd></div>
                   <div><dt>Colours</dt><dd className="sc-swatches">{[p.background, p.surface, p.accent, p.highlight, p.ink].map((c) => <span key={c} style={{ background: c }} title={c} />)}</dd></div>

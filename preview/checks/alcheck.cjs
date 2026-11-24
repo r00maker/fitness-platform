@@ -37,7 +37,7 @@ const file = "file://" + path.join(__dirname, "al-test.html");
     ok(`${label}: the phone shows the app`, (await p.locator(".alp .alp-hello").count()) === 1 && (await p.locator(".alp-bar").count()) === 1);
     ok(`${label}: nothing to save yet`, await p.locator("#alSave").isDisabled());
 
-    await press('[data-alpreset="linden"]');
+    await press('[data-alpreset="sage"]');
     ok(`${label}: picking Linden changes the phone`, (await phoneVar("--a-ac")).toUpperCase() === "#2F5D46" && (await phoneVar("--a-disp")).includes("Young Serif"));
     ok(`${label}: and its welcome line`, (await p.locator(".alp-wel").textContent()) === "Slow is still forward.");
     ok(`${label}: there's something to save`, !(await p.locator("#alSave").isDisabled()));
@@ -92,7 +92,7 @@ const file = "file://" + path.join(__dirname, "al-test.html");
     await shot("edited");
 
     await press("#alSave");
-    ok(`${label}: saved`, (await ev("STUDIO.appLook.saved.preset")) === "linden" && (await ev("STUDIO.appLook.saved.welcome")) === "Breathe out. You're here." && (await p.locator("#alSave").isDisabled()));
+    ok(`${label}: saved`, (await ev("STUDIO.appLook.saved.preset")) === "sage" && (await ev("STUDIO.appLook.saved.welcome")) === "Breathe out. You're here." && (await p.locator("#alSave").isDisabled()));
     await press('[data-alcorner="round"]');
     await press("#alReset");
     ok(`${label}: Undo changes goes back to the saved look`, (await phoneVar("--a-rl")) === "4px");

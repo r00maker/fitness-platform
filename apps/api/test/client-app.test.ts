@@ -95,22 +95,26 @@ describe("the app's look", () => {
 
     await db.update(organizations).set({ plan: "essentials" }).where(eq(organizations.id, s.orgId));
     const without = (await s.owner.call("GET", "/app-theme")).body;
-    expect(without).toMatchObject({ hasApp: false, theme: { preset: "studio" } });
-    expect(without.presets.map((p: { key: string }) => p.key)).toEqual(["studio", "linden", "tidal", "aizome"]);
-    expect((await s.owner.call("PATCH", "/app-theme", { preset: "linden" })).body.error.code).toBe("needs_branded_app");
+    expect(without).toMatchObject({ hasApp: false, theme: { preset: "classic" } });
+    expect(without.presets.map((p: { key: string }) => p.key)).toEqual(["classic", "sage", "cobalt", "indigo"]);
+    expect((await s.owner.call("PATCH", "/app-theme", { preset: "sage" })).body.error.code).toBe("needs_branded_app");
 
     await db.update(organizations).set({ plan: "signature" }).where(eq(organizations.id, s.orgId));
-    expect((await s.owner.call("PATCH", "/app-theme", { preset: "linden" })).body).toMatchObject({ preset: "linden", displayFont: "Young Serif", motif: "leaf" });
+    expect((await s.owner.call("PATCH", "/app-theme", { preset: "sage" })).body).toMatchObject({ preset: "sage", displayFont: "Young Serif", motif: "leaf" });
     // Changes sit on top of the preset.
     const t = (await s.owner.call("PATCH", "/app-theme", { accent: "#1F4F3A", milestones: [100, 5, 50] })).body;
-    expect(t).toMatchObject({ preset: "linden", accent: "#1F4F3A", displayFont: "Young Serif", milestones: [5, 50, 100] });
+    expect(t).toMatchObject({ preset: "sage", accent: "#1F4F3A", displayFont: "Young Serif", milestones: [5, 50, 100] });
     expect((await s.owner.call("PATCH", "/app-theme", { accent: "green" })).status).toBe(400);
-    expect((await s.c1.call("PATCH", "/app-theme", { preset: "tidal" })).status).toBe(403);
+    expect((await s.c1.call("PATCH", "/app-theme", { preset: "cobalt" })).status).toBe(403);
 
     const pub = (await app.inject({ method: "GET", url: "/v1/public/studios/linden" })).json();
-    expect(pub.theme).toMatchObject({ preset: "linden", accent: "#1F4F3A" });
+    expect(pub.theme).toMatchObject({ preset: "sage", accent: "#1F4F3A" });
     // The client's milestones follow the studio's.
     expect((await s.c1.call("GET", "/me/progress")).body.milestone.next).toBe(5);
+    // Looks saved under their earlier names (named after the example studios) still work.
+    await db.update(organizations).set({ appTheme: { preset: "tidal" } as never }).where(eq(organizations.id, s.orgId));
+    expect((await app.inject({ method: "GET", url: "/v1/public/studios/linden" })).json().theme).toMatchObject({ preset: "cobalt", motif: "wave" });
+    expect((await s.owner.call("PATCH", "/app-theme", { preset: "aizome" })).body).toMatchObject({ preset: "indigo", motif: "stamp" });
   });
 
   it("lets the apps change things from their own address (PUT, PATCH and DELETE too)", async () => {

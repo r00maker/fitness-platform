@@ -1297,6 +1297,16 @@ body.wc-on { overflow: hidden }
 .bplink .muted { white-space: nowrap; font-size: 13.5px }
 .bplink input { border: 0 !important; box-shadow: none !important; flex: 1; min-width: 80px; padding: 9px 10px 9px 2px; background: transparent; font: inherit; font-weight: 600 }
 .bplink:focus-within { outline: 2px solid var(--accent); outline-offset: 1px }
+/* Setup, Booking page: labels above their fields, like every other setup form. */
+.bpsetup .fl { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; max-width: 560px }
+.bpsetup .fl textarea, .bpsetup .fl select { width: 100%; font-weight: 400 }
+.bpsetup .fl textarea { resize: vertical; min-height: 72px }
+.bpsetup .flhead { display: flex; justify-content: space-between; gap: 12px }
+.bpsetup .count { font-weight: 400; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums }
+.bpsetup .payrow { max-width: 560px }
+.bpsetup .bpbtns { padding-top: 4px; border-top: 1px solid var(--line-soft); margin-top: 4px; padding-top: 14px }
+.bpopts { display: grid; grid-template-columns: repeat(2, minmax(0, 240px)); gap: 12px 16px }
+@media (max-width: 560px) { .bpopts { grid-template-columns: minmax(0, 1fr) } }
 .bpcode { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap }
 .bpcode pre { flex: 1; min-width: 0; margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--sunk); border: 1px solid var(--line); font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-all }
 .bpwhost { padding: 20px; border-radius: 12px; background: repeating-linear-gradient(45deg, var(--sunk), var(--sunk) 10px, var(--bg) 10px, var(--bg) 20px); }
@@ -1424,10 +1434,6 @@ body.bp-on { overflow: hidden }
 .alp-badges { display: flex; align-items: center; gap: 5px; padding: 8px 10px; border-radius: var(--a-rl); background: var(--a-sf) }
 .alp-badges small { margin-left: 4px; font-weight: 600 }
 .alp-badge { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--a-ac); color: var(--a-on); font-family: var(--a-disp); font-size: 9px; font-weight: 600 }
-.alp[data-motif="leaf"] .alp-badge { border-radius: 3px 50% 3px 50% }
-.alp[data-motif="wave"] .alp-badge { background: var(--a-hi); color: var(--a-ink); border-radius: 40% 60% 55% 45% / 55% 45% 60% 40% }
-.alp[data-motif="stamp"] .alp-badge { background: var(--a-hi); color: #fff; border-radius: 2px; transform: rotate(-5deg) }
-.alp[data-motif="spark"] .alp-badge { background: var(--a-hi); color: var(--a-ink) }
 .alp-chips { display: flex; flex-wrap: wrap; gap: 4px }
 .alp-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px solid var(--a-ln); border-radius: var(--a-rs); background: var(--a-sf); font-size: 10px }
 .alp-chip i { width: 6px; height: 6px; border-radius: 50% } .alp-chip.on { border-color: color-mix(in srgb, var(--a-hi) 60%, var(--a-ln)) }
@@ -1439,20 +1445,20 @@ body.bp-on { overflow: hidden }
 .alp-list span { display: grid; min-width: 0 } .alp-list em { font-style: normal; font-weight: 600; font-size: 11px } .alp-list small { color: var(--a-mu); font-size: 10px }
 .alp-btn { padding: 6px 10px; border-radius: var(--a-rs); background: var(--a-ac); color: var(--a-on); font-style: normal; font-weight: 600; font-size: 10px; text-align: center }
 .alp-btn.wide { display: block; margin-top: 8px }
+/* Achievement badges and the celebration: one shape per look (as in the app). */
+.alp[data-motif="leaf"] .alp-badge { border-radius: 12% 50% }
+.alp[data-motif="wave"] .alp-badge { box-shadow: 0 0 0 1.5px var(--a-sf), 0 0 0 2.5px var(--a-hi) }
+.alp[data-motif="stamp"] .alp-badge { background: var(--a-hi); color: var(--a-onhi); border-radius: 2px; rotate: -4deg }
+.alp[data-motif="spark"] .alp-badge { border-radius: 0; clip-path: polygon(50.0% 0.0%, 58.8% 5.9%, 69.1% 3.8%, 75.0% 12.6%, 85.4% 14.6%, 87.4% 25.0%, 96.2% 30.9%, 94.1% 41.2%, 100.0% 50.0%, 94.1% 58.8%, 96.2% 69.1%, 87.4% 75.0%, 85.4% 85.4%, 75.0% 87.4%, 69.1% 96.2%, 58.8% 94.1%, 50.0% 100.0%, 41.2% 94.1%, 30.9% 96.2%, 25.0% 87.4%, 14.6% 85.4%, 12.6% 75.0%, 3.8% 69.1%, 5.9% 58.8%, 0.0% 50.0%, 5.9% 41.2%, 3.8% 30.9%, 12.6% 25.0%, 14.6% 14.6%, 25.0% 12.6%, 30.9% 3.8%, 41.2% 5.9%) }
+.alp-cel-art { height: 90px; display: grid; place-items: center }
+.alp-cel-badge { position: relative; display: grid; place-items: center; width: 68px; height: 68px; border-radius: 50%; background: var(--a-ac); color: var(--a-on); font-family: var(--a-disp); font-size: 26px; font-weight: 500; line-height: 1 }
+.alp[data-motif="leaf"] .alp-cel-badge { border-radius: 12% 50% }
+.alp[data-motif="wave"] .alp-cel-badge { box-shadow: 0 0 0 4px var(--a-sf), 0 0 0 5.5px var(--a-hi) }
+.alp[data-motif="stamp"] .alp-cel-badge { border-radius: 3px; background: var(--a-hi); color: var(--a-onhi); box-shadow: inset 0 0 0 3px var(--a-hi), inset 0 0 0 4px var(--a-onhi); rotate: -4deg }
+.alp[data-motif="spark"] .alp-cel-badge { width: 78px; height: 78px; border-radius: 0; clip-path: polygon(50.0% 0.0%, 58.8% 5.9%, 69.1% 3.8%, 75.0% 12.6%, 85.4% 14.6%, 87.4% 25.0%, 96.2% 30.9%, 94.1% 41.2%, 100.0% 50.0%, 94.1% 58.8%, 96.2% 69.1%, 87.4% 75.0%, 85.4% 85.4%, 75.0% 87.4%, 69.1% 96.2%, 58.8% 94.1%, 50.0% 100.0%, 41.2% 94.1%, 30.9% 96.2%, 25.0% 87.4%, 14.6% 85.4%, 12.6% 75.0%, 3.8% 69.1%, 5.9% 58.8%, 0.0% 50.0%, 5.9% 41.2%, 3.8% 30.9%, 12.6% 25.0%, 14.6% 14.6%, 25.0% 12.6%, 30.9% 3.8%, 41.2% 5.9%) }
 .alp-cel { margin-top: 30px; padding: 18px 14px; border-radius: var(--a-rl); background: var(--a-sf); text-align: center; display: grid; gap: 6px }
 .alp-cel h4 { margin: 0; font-family: var(--a-disp); font-size: 22px; font-weight: 500 }
 .alp-cel p { margin: 0; color: var(--a-mu) }
-/* The number sits on a solid badge in the brand colour; the mark is drawn around it, never behind the text (as in the app). */
-.alp-cel-art { position: relative; height: 90px; display: grid; place-items: center; color: var(--a-ac) }
-.alp-cel-art svg { position: absolute; width: 34px; height: 34px; overflow: visible }
-.alp-cel-badge { position: relative; z-index: 1; display: grid; place-items: center; width: 66px; height: 66px; border-radius: 50%; background: var(--a-ac); color: var(--a-on); font-family: var(--a-disp); font-size: 26px; font-weight: 500; line-height: 1 }
-.alp[data-motif="leaf"] .alp-cel-badge { border-radius: 8px 36px }
-.alp[data-motif="leaf"] .alp-cel-art svg { top: 4px; left: calc(50% + 18px) }
-.alp[data-motif="wave"] .alp-cel-badge { margin-bottom: 12px }
-.alp[data-motif="wave"] .alp-cel-art svg { width: 70px; height: 70px; bottom: -28px; left: calc(50% - 35px); transform: scaleX(1.4) } .alp[data-motif="wave"] .alp-cel-art .m-wave { stroke-width: 1.6 }
-.alp[data-motif="stamp"] .alp-cel-art svg { display: none }
-.alp[data-motif="stamp"] .alp-cel-badge { border-radius: 3px; background: var(--a-hi); color: var(--a-onhi); box-shadow: inset 0 0 0 3px var(--a-hi), inset 0 0 0 4px var(--a-onhi); transform: rotate(-6deg) }
-.alp[data-motif="spark"] .alp-cel-art svg { width: 150px; height: 150px }
 .alp-tabs { display: grid; grid-template-columns: repeat(5, 1fr); padding: 9px 4px 12px; border-top: 1px solid var(--a-ln); background: var(--a-sf); color: var(--a-mu); font-size: 9px; text-align: center }
 .alp-tabs .on { color: var(--a-ac); font-weight: 700; position: relative } .alp-tabs .on::before { content: ""; position: absolute; top: -10px; left: 50%; width: 20px; height: 2px; margin-left: -10px; background: var(--a-ac) }
 .algrid .fl { display: grid; gap: 6px; align-items: start; justify-items: start }

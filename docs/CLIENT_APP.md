@@ -33,7 +33,7 @@ Five tabs: Home, Book, Shop, My classes and Me. The selected tab is marked with 
 - **Achievements:** one line on Home and in Me. The full screen has two parts:
   - the milestones in a short grid, with the next one marked and "3 to go";
   - five other achievements, with progress on the ones not earned yet.
-- **Celebrations:** when the app opens, it shows the one most important thing from the last 3 weeks, once: a milestone, then a goal met, then an achievement. A number (like 108) sits on a solid badge in the brand colour, so it reads well in every look; the studio's mark is drawn around the badge, never behind the text. The leaf badge is leaf-shaped with a small leaf at its shoulder, the wave rolls underneath, the seal is the badge itself (its text colour is picked to read on the highlight), and the spark opens out behind it. Without a number, the mark is shown on its own.
+- **Celebrations:** when the app opens, it shows the one most important thing from the last 3 weeks, once: a milestone, then a goal met, then an achievement. It's one badge in the look's shape, with the number on it (or a tick for an achievement), then the words. The shapes are the same as the achievement badges: a leaf, a circle with a ripple, a stamped seal (its text colour picked to read on the highlight), or a rosette. Each arrives with one short movement, none with reduced motion.
 - **Me** is short groups of rows, each opening a screen:
   - **Your practice:** monthly goal, achievements.
   - **Packages:** each package, and **Buy a package**, which opens the Shop tab.
@@ -49,7 +49,9 @@ Five tabs: Home, Book, Shop, My classes and Me. The selected tab is marked with 
 
 ## The Shop tab
 
-Everything to buy, in one place:
+Everything to buy, in one place. Shortcuts at the top (Packs, Memberships, Gift cards, Studio shop) jump to each part. Each package is a card with its name, one line on what it includes, and the price at the foot; gift cards are a row like the others; and in the studio shop the size or colour and **Add** sit in the same place on every item.
+
+What's in it:
 - class packs and memberships;
 - gift cards (a design, an amount, give it now or later);
 - the studio's merchandise, with sizes or colours, a basket, and collect at the desk.
@@ -96,17 +98,19 @@ This is `GET/PATCH /v1/app-theme` (owners and admins, with the branded app). The
 | Colours | Background, cards, text, quieter text, lines, the brand colour and the text on it, a highlight |
 | Typefaces | A display face and a body face from a short list that reads well on phones (`APP_FONTS`): Young Serif, Shippori Mincho, Bricolage Grotesque, Figtree, Zen Kaku Gothic New, Manrope |
 | Corners | Square, soft or round (pill buttons) |
-| Celebrations | Leaf, wave, seal or spark: also the shape of achievement badges and the milestone marker |
+| Celebrations | Leaf, ripple (wave), seal or rosette (spark): the shape of the celebration badge, the achievement badges and the milestone marker |
 | Welcome line | Under the greeting on Home, e.g. "Slow is still forward." |
 | Milestones | Up to 12 class counts |
 | Logo and banners | From the booking page and Marketing, Banners (as before) |
 
-Presets (`packages/shared/src/app-theme.ts`). Each of the three examples was designed for its kind of studio:
+Presets (`packages/shared/src/app-theme.ts`), named for their colours so they suit any studio. The demo studios each started from one:
 
-- **Studio:** neutral, in the booking-page colour. It's the default, and what studios without the branded app get.
-- **Linden** (reformer pilates): sage and deep linden green, Young Serif with Figtree, soft corners, a leaf.
-- **Tidal** (barre): cobalt and candy pink, Bricolage Grotesque set heavy and narrow, pill shapes, a wave.
-- **Aizome** (yoga): stone and indigo, Shippori Mincho with Zen Kaku Gothic, square corners, a red seal for each achievement, and 108 as a milestone.
+- **Classic:** neutral, in the booking-page colour. It's the default, and what studios without the branded app get.
+- **Sage:** sage and deep green, Young Serif with Figtree, soft corners, leaf-shaped badges. (The demo's Linden Reformer Studio.)
+- **Cobalt:** cobalt and pink, Bricolage Grotesque set heavy and narrow, pill shapes, badges with a ripple. (Tidal Barre.)
+- **Indigo:** stone and indigo, Shippori Mincho with Zen Kaku Gothic, square corners, a red seal for each achievement, and 108 as a milestone. (Aizome Yoga.)
+
+Looks saved under the earlier names (Studio, Linden, Tidal, Aizome) are renamed by migration `0039_app_look_names`, and the API still accepts the old names.
 
 ## The studio's screen for its look
 
@@ -160,7 +164,7 @@ To try it without a server, add `?demo&studio=linden` (or `tidal`, `aizome`). Th
 
 ## Checks
 
-- `node e2e/check.mjs` runs 106 checks on the demo studios in Chromium. They cover:
+- `node e2e/check.mjs` runs 109 checks on the demo studios in Chromium. They cover:
   - Home: the bar, the read-only goal, one line of achievements and the tab marker;
   - Back returning to where a screen was opened from;
   - the timetable fitting on the screen (a 340px phone too), with a week at a time, the favourite-instructor filter and no counts;

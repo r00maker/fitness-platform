@@ -57,19 +57,19 @@
     PAGES["booking-page"] = function () {
       const st = live() ? ["Live", "done"] : !BP.enabled ? ["Off", "off"] : STUDIO.lifecycle === "onboarding" ? ["Opens with the studio", "wait"] : ["Not saved", "open"];
       return head("Booking page", "Your public booking page, and the timetable for your own website. Visitors see classes and packages without signing in; they sign in to book.", `<button type="button" class="btn primary" id="bpOpen">Open booking page</button>`) +
-        `<div class="stack" style="gap:16px;max-width:900px">
+        `<div class="stack bpsetup" style="gap:16px;max-width:900px">
         <div class="card stack" style="gap:12px"><div class="row" style="justify-content:space-between"><h3>Your link</h3><span class="status ${st[1]}">${st[0]}</span></div>
           <label class="fl bpslug" for="bpSlug">Link<span class="bplink"><span class="muted">${esc(APP.replace("https://", ""))}/s/</span><input id="bpSlug" value="${esc(BP.slug)}" autocomplete="off" spellcheck="false" aria-describedby="bpErr"></span></label>
           <span class="hint" id="bpErr" role="alert"></span>
           <div class="payrow" style="border:0;padding:0"><div><b>Booking page on</b><span>Off hides the page and the widget (people with the link see "not found").</span></div>${toggle("bpOn", BP.enabled, "Booking page on")}</div>
-          <label class="fl" for="bpIntro">A line at the top <span class="count">${BP.intro.length}/300</span><textarea id="bpIntro" rows="2" maxlength="300">${esc(BP.intro)}</textarea></label>
+          <label class="fl" for="bpIntro"><span class="flhead">A line at the top<span class="count">${BP.intro.length}/300</span></span><textarea id="bpIntro" rows="3" maxlength="300">${esc(BP.intro)}</textarea></label>
           <label class="fl" for="bpAccent">Button colour<span class="inline2"><input id="bpAccent" type="color" value="${accent()}" aria-label="Button colour"><span class="muted" style="font-weight:400">${BP.accent ? esc(BP.accent) : "Your invoice colour"}</span></span></label>
-          <div class="inline2"><button type="button" class="btn primary" id="bpSave">Save</button><button type="button" class="btn" id="bpCopyLink">Copy link</button></div>
+          <div class="inline2 bpbtns"><button type="button" class="btn primary" id="bpSave">Save</button><button type="button" class="btn" id="bpCopyLink">Copy link</button></div>
         </div>
         <div class="card stack" style="gap:12px"><h3>On your website</h3>
           <span class="hint">Paste this where the timetable should appear. Most website builders (Wix, Squarespace, WordPress, Webflow) have an "Embed" or "Custom code" block. The Book buttons open your booking page.</span>
           <div class="bpcode"><pre id="bpCode">${esc(code())}</pre><button type="button" class="btn" id="bpCopy">Copy code</button></div>
-          <div class="inline2" style="gap:12px;flex-wrap:wrap"><label class="fl">Location<select id="bpWLoc"><option value="">All locations</option>${Object.entries(LOCS).map(([k, v]) => `<option value="${k}" ${V.wLoc === k ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></label>
+          <div class="bpopts"><label class="fl">Location<select id="bpWLoc"><option value="">All locations</option>${Object.entries(LOCS).map(([k, v]) => `<option value="${k}" ${V.wLoc === k ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></label>
             <label class="fl">Look<select id="bpWTheme">${[["light", "Light"], ["dark", "Dark"], ["auto", "Follow the visitor's device"]].map(([k, l]) => `<option value="${k}" ${V.wTheme === k ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
           <span class="lbl" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Preview</span>
           <div class="bpwhost">${widgetHTML({ loc: V.wLoc, theme: V.wTheme === "dark" ? "dark" : "light", sel: V.wSel })}</div>

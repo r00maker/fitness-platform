@@ -139,7 +139,12 @@ try {
   await p.waitForSelector(".shop-tab");
   ok("shop tab: Buy in Me opens the Shop tab", (await p.locator('.rail a[aria-current="page"]').textContent()).includes("Shop"));
   await p.waitForSelector(".product");
-  ok("shop tab: packs, memberships, gift cards and merchandise in one place", (await p.locator("#packsT").count()) === 1 && (await p.locator("#memT").count()) === 1 && (await p.locator(".gift-promo").count()) === 1 && (await p.locator(".product").count()) === 3);
+  ok("shop tab: packs, memberships, gift cards and merchandise in one place", (await p.locator("#packsT").count()) === 1 && (await p.locator("#memT").count()) === 1 && (await p.locator("#giftT").count()) === 1 && (await p.locator(".product").count()) === 3);
+  ok("shop tab: shortcuts to each part, on one line", (await p.locator(".shop-jump .chip").count()) === 4 && await p.evaluate(() => new Set([...document.querySelectorAll(".shop-jump .chip")].map((c) => Math.round(c.getBoundingClientRect().top))).size === 1));
+  ok("shop tab: every Add button lines up", await p.evaluate(() => new Set([...document.querySelectorAll(".product-act .btn")].map((b) => Math.round(b.getBoundingClientRect().left))).size === 1));
+  await p.locator(".shop-jump .chip", { hasText: "Studio shop" }).click(); await p.waitForTimeout(700);
+  ok("shop tab: a shortcut goes to its part", await p.evaluate(() => { const r = document.getElementById("goodsT").getBoundingClientRect(); return r.top >= -2 && r.top < innerHeight / 2; }));
+  await p.evaluate(() => scrollTo(0, 0));
   await p.getByRole("button", { name: /20-class pack/ }).click();
   await p.waitForSelector(".bill-total");
   ok("buy: the bill, with studio credit taken off", /Studio credit/.test(await p.locator(".bill").textContent()) && (await p.locator(".bill-total").textContent()).includes("655"));
@@ -193,7 +198,7 @@ try {
   ok("shop: paid, to collect at the desk", true);
   // A gift card, given straight away.
   await p.getByRole("link", { name: "Shop", exact: true }).click();
-  await p.locator(".gift-promo").click();
+  await p.getByRole("button", { name: /Give a gift card/ }).click();
   await p.getByLabel("Their email").fill("sam@example.com");
   await p.getByRole("button", { name: /^Pay / }).click();
   await p.locator(".pay-sheet").getByRole("button", { name: /^Pay / }).click();

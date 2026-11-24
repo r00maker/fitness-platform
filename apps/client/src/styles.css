@@ -109,7 +109,7 @@ img { display: block; max-width: 100% }
 
 /* The tally to the next milestone: the one big thing on Home. */
 .mark { width: 26px; height: 26px }
-.mark path, .mark rect, .celebrate-mark path, .celebrate-mark rect { display: none }
+.mark path, .mark rect { display: none }
 :root[data-motif="leaf"] .m-leaf, :root[data-motif="wave"] .m-wave, :root[data-motif="stamp"] .m-stamp, :root[data-motif="spark"] .m-spark { display: block }
 .m-leaf, .m-wave { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
 .m-leaf { fill: color-mix(in srgb, var(--hi) 55%, transparent) }
@@ -142,14 +142,12 @@ img { display: block; max-width: 100% }
 .badge-text { position: relative; font-family: var(--display); font-size: 15px; font-weight: 600; color: var(--muted) }
 .badge.is-earned .badge-shape { border: 0; background: var(--accent) }
 .badge.is-earned .badge-text { color: var(--on-accent) }
-:root[data-motif="leaf"] .badge-shape { border-radius: 4px 50% 4px 50% }
-:root[data-motif="wave"] .badge.is-earned .badge-shape { background: var(--hi); border-radius: 40% 60% 55% 45% / 55% 45% 60% 40% }
-:root[data-motif="wave"] .badge.is-earned .badge-text { color: var(--ink); font-weight: 800 }
+:root[data-motif="leaf"] .badge-shape { border-radius: 12% 50% }
+:root[data-motif="wave"] .badge.is-earned .badge-shape { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--hi) }
 :root[data-motif="stamp"] .badge-shape { border-radius: 2px }
-:root[data-motif="stamp"] .badge.is-earned .badge-shape { background: var(--hi); transform: rotate(-5deg); box-shadow: inset 0 0 0 3px var(--hi), inset 0 0 0 5px var(--surface) }
-:root[data-motif="stamp"] .badge.is-earned .badge-text { color: #fff; transform: rotate(-5deg) }
-:root[data-motif="spark"] .badge.is-earned .badge-shape { background: var(--hi) }
-:root[data-motif="spark"] .badge.is-earned .badge-text { color: var(--ink) }
+:root[data-motif="stamp"] .badge.is-earned .badge-shape { background: var(--hi); rotate: -4deg; box-shadow: inset 0 0 0 3px var(--hi), inset 0 0 0 4px var(--on-hi, #fff) }
+:root[data-motif="stamp"] .badge.is-earned .badge-text { color: var(--on-hi, #fff) }
+:root[data-motif="spark"] .badge.is-earned .badge-shape { inset: -3px; clip-path: polygon(50.0% 0.0%, 58.8% 5.9%, 69.1% 3.8%, 75.0% 12.6%, 85.4% 14.6%, 87.4% 25.0%, 96.2% 30.9%, 94.1% 41.2%, 100.0% 50.0%, 94.1% 58.8%, 96.2% 69.1%, 87.4% 75.0%, 85.4% 85.4%, 75.0% 87.4%, 69.1% 96.2%, 58.8% 94.1%, 50.0% 100.0%, 41.2% 94.1%, 30.9% 96.2%, 25.0% 87.4%, 14.6% 85.4%, 12.6% 75.0%, 3.8% 69.1%, 5.9% 58.8%, 0.0% 50.0%, 5.9% 41.2%, 3.8% 30.9%, 12.6% 25.0%, 14.6% 14.6%, 25.0% 12.6%, 30.9% 3.8%, 41.2% 5.9%) }
 .home-foot { color: var(--muted); font-size: 14px; text-align: center }
 
 /* --- Timetable ---------------------------------------------------------------------------- */
@@ -231,25 +229,10 @@ img { display: block; max-width: 100% }
 .celebrate h2 { font-size: 32px; margin-top: 4px }
 .celebrate p { color: var(--muted); font-size: 17px; margin: 8px auto 0; max-width: 34ch }
 .celebrate-btns { display: grid; gap: 4px; margin-top: 22px }
-.celebrate-art { position: relative; height: 150px; display: grid; place-items: center; color: var(--accent) }
-.celebrate-mark { width: 150px; height: 150px; overflow: visible }
-.celebrate-num { font-family: var(--display); font-size: 44px; line-height: 1; color: inherit; font-variant-numeric: lining-nums tabular-nums; animation: num .5s .6s var(--ease) both }
-.celebrate-num.is-long { font-size: 34px }
-@keyframes num { from { opacity: 0; transform: translateY(8px) scale(.9) } }
 /* Leaf: it unfurls (draws, then fills). */
-:root[data-motif="leaf"] .celebrate-mark .m-leaf { stroke: var(--accent); stroke-width: 1.2; fill: var(--hi-soft); stroke-dasharray: 80; stroke-dashoffset: 80; transform-origin: 4px 18px; animation: draw 1.1s .3s var(--ease) forwards, unfurl 1.1s .3s var(--ease) both }
-@keyframes draw { to { stroke-dashoffset: 0 } }
-@keyframes unfurl { from { transform: rotate(-35deg) scale(.6) } }
 /* Wave: it rolls across. */
-:root[data-motif="wave"] .celebrate-mark .m-wave { stroke-width: 2.6; stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .9s .3s var(--ease) forwards }
-:root[data-motif="wave"] .celebrate-mark { transform: scaleX(1.5) }
 /* Seal: it's stamped onto the card. */
-:root[data-motif="stamp"] .celebrate-mark .m-stamp { transform-origin: center; transform-box: fill-box; animation: stamp .5s .35s cubic-bezier(.5, 0, .75, 0) both, settle .25s .85s ease-out both }
-@keyframes stamp { from { transform: scale(2.4) rotate(-14deg); opacity: 0 } to { transform: scale(1) rotate(-6deg); opacity: 1 } }
-@keyframes settle { 50% { transform: scale(1.04) rotate(-6deg) } to { transform: scale(1) rotate(-6deg) } }
 /* Spark: it opens. */
-:root[data-motif="spark"] .celebrate-mark .m-spark { transform-origin: center; transform-box: fill-box; animation: spark .7s .3s var(--ease) both }
-@keyframes spark { from { transform: scale(0) rotate(-90deg) } }
 
 /* --- Sign-in and loading ------------------------------------------------------------------- */
 .boot { min-height: 100dvh; display: grid; place-items: center; padding: 24px; text-align: center }
@@ -424,14 +407,29 @@ img { display: block; max-width: 100% }
 .class-cta { display: grid; gap: 10px }
 .booked-panel { display: grid; gap: 10px; justify-items: start; padding: 16px; border-radius: var(--r-l); background: var(--surface) }
 .plans { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
-.plan { display: grid; gap: 4px; width: 100%; padding: 16px; border: 0; border-radius: var(--r-l); background: var(--surface); text-align: left; cursor: pointer; color: inherit; box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .15s }
-.plan:hover { box-shadow: inset 0 0 0 1.5px var(--accent) }
-.plan-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline }
-.plan-name { font-family: var(--display); font-size: 20px }
-.plan-price { font-weight: 700; white-space: nowrap }
-.plan-price small { font-weight: 400; color: var(--muted) }
+.plan { display: grid; gap: 4px; width: 100%; padding: 16px; border: 0; border-radius: var(--r-l); background: var(--surface); text-align: left; cursor: pointer; color: inherit; font: inherit; box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .15s }
+.plan-name { font-family: var(--display); font-size: 20px; line-height: 1.2 }
 .plan-desc { color: var(--ink) }
 .plan-terms { color: var(--muted); font-size: 14px }
+.plan-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line) }
+.plan-price { font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; white-space: nowrap }
+.plan-price small { font-weight: 400; font-size: 14px; color: var(--muted) }
+.chev { width: 20px; height: 20px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
+.plan-row { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px }
+.plan-row-text { display: grid; gap: 2px; min-width: 0 }
+.plan-row .plan-name { font-size: 18px }
+.plan-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-s); background: var(--accent-soft); color: var(--accent) }
+.plan-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round }
+.shop-jump { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line) }
+.shop-jump .chip { font: inherit; font-size: 15px; font-weight: 600; padding: 6px 0; border: 0; background: none; color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px }
+.shop-jump .chip:hover { text-decoration-color: currentColor }
+.shop-tab section h2 { scroll-margin-top: 16px }
+/* Things to collect at the desk: words on the left, the choice and Add always in the same place on the right. */
+.product { display: grid; grid-template-columns: minmax(0, 1fr) 116px; align-items: center; gap: 14px; padding: 14px 16px; border-radius: var(--r-l); background: var(--surface) }
+.product-text { min-width: 0 }
+.product-act { display: grid; gap: 6px }
+.product-act .select, .product-act select, .product-act .btn { width: 100% }
+.plan:hover { box-shadow: inset 0 0 0 1.5px var(--accent) }
 .bill { display: grid; gap: 8px; padding: 16px; border-radius: var(--r-l); background: var(--surface) }
 .bill-line, .bill-total { display: flex; justify-content: space-between; gap: 12px; align-items: baseline }
 .bill-total { padding-top: 8px; border-top: 1px solid var(--line); font-weight: 700; font-size: 18px }
@@ -450,18 +448,10 @@ img { display: block; max-width: 100% }
 .pkg-page .pkg-bar { margin: 4px 0 }
 
 /* --- Shop, gift cards, credit, rewards --------------------------------------------------------- */
-.gift-promo { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 18px; border: 0; border-radius: var(--r-l); background: var(--accent); color: var(--on-accent); text-align: left; cursor: pointer }
-.gift-promo span { display: grid }
-.gift-promo b { font-family: var(--display); font-size: 20px; font-weight: 500 }
-.gift-promo small { opacity: .85 }
-.gift-promo svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2 }
 .products { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
-.product { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: var(--r-l); background: var(--surface); flex-wrap: wrap }
-.product-text { min-width: 0; flex: 1 1 160px }
 .product h3 { font-family: var(--body); font-size: 16px; font-weight: 600 }
 .product p { color: var(--muted); font-size: 14px }
 .product .product-price { color: var(--ink); font-weight: 600 }
-.product-act { display: flex; gap: 8px; align-items: center }
 .product.is-out { opacity: .6 }
 .basket { display: grid; gap: 10px; padding: 16px; border-radius: var(--r-l); background: var(--surface); position: sticky; bottom: calc(var(--tabbar) + 8px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 30px color-mix(in srgb, var(--ink) 12%, transparent) }
 .designs, .amounts { margin: 0; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: 8px }
@@ -531,21 +521,20 @@ select { color: var(--ink) }
 .checkout { display: grid; gap: 18px }
 .checkout > .sub-head { margin-bottom: 4px }
 
-/* Celebrations with a number: the number on a solid badge, the studio's mark around it. */
-.cel-badge { position: relative; z-index: 1; display: grid; place-items: center; width: 108px; height: 108px; border-radius: 50%; background: var(--accent); color: var(--on-accent); box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--ink) 45%, transparent); animation: pop .5s .25s var(--ease) both }
-@keyframes pop { from { transform: scale(.6); opacity: 0 } }
-.celebrate-art.has-num .celebrate-mark { position: absolute; overflow: visible }
-/* Leaf: a leaf-shaped badge, with a small leaf unfurling at its shoulder. */
-:root[data-motif="leaf"] .cel-badge { border-radius: 14px 58px }
-:root[data-motif="leaf"] .celebrate-art.has-num .celebrate-mark { width: 54px; height: 54px; top: 0; left: calc(50% + 30px) }
-/* Wave: a round badge, with the wave rolling underneath it. */
-:root[data-motif="wave"] .celebrate-art.has-num { margin-bottom: 14px }
-:root[data-motif="wave"] .celebrate-art.has-num .celebrate-mark { width: 120px; height: 120px; bottom: -42px; left: calc(50% - 60px); transform: scaleX(1.4) }
-:root[data-motif="wave"] .celebrate-art.has-num .m-wave { stroke-width: 1.5 }
-:root[data-motif="wave"] .cel-badge { margin-bottom: 18px }
-/* Seal: the badge is the seal, stamped on; no separate mark. */
-:root[data-motif="stamp"] .celebrate-art.has-num .celebrate-mark { display: none }
-:root[data-motif="stamp"] .cel-badge { border-radius: 4px; background: var(--hi); color: var(--on-hi, #fff); box-shadow: inset 0 0 0 4px var(--hi), inset 0 0 0 6px var(--on-hi, #fff); transform: rotate(-6deg); animation: stamp .5s .35s cubic-bezier(.5, 0, .75, 0) both, settle .25s .85s ease-out both }
-/* Spark: a round badge, the spark opening out behind it so only its points show. */
-:root[data-motif="spark"] .celebrate-art.has-num .celebrate-mark { width: 250px; height: 250px; z-index: 0 }
-:root[data-motif="spark"] .celebrate-mark .m-spark { fill: var(--hi) }
+/* The celebration: one badge in the studio's shape, with the number (or a tick) on it. The
+   same four shapes as the achievement badges: a leaf, a circle with a ripple, a seal, a rosette. */
+.celebrate-art { height: 150px; display: grid; place-items: center }
+.cel-badge { position: relative; display: grid; place-items: center; width: 112px; height: 112px; border-radius: 50%; background: var(--accent); color: var(--on-accent); animation: pop .55s .2s var(--ease) both }
+.cel-badge svg { width: 46px; height: 46px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round }
+.celebrate-num { font-family: var(--display); font-size: 44px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; animation: num .45s .55s var(--ease) both }
+.celebrate-num.is-long { font-size: 34px }
+@keyframes pop { from { transform: scale(.5); opacity: 0 } }
+@keyframes num { from { opacity: 0; transform: translateY(6px) } }
+:root[data-motif="leaf"] .cel-badge { border-radius: 12% 50% }
+:root[data-motif="wave"] .cel-badge { box-shadow: 0 0 0 7px var(--surface), 0 0 0 9px var(--hi) }
+:root[data-motif="wave"] .cel-badge::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; border: 2px solid var(--hi); opacity: 0; animation: ripple 1.6s .6s var(--ease) both }
+@keyframes ripple { from { transform: scale(1); opacity: .9 } to { transform: scale(1.4); opacity: 0 } }
+:root[data-motif="stamp"] .cel-badge { border-radius: 4px; background: var(--hi); color: var(--on-hi, #fff); rotate: -4deg; box-shadow: inset 0 0 0 5px var(--hi), inset 0 0 0 6.5px var(--on-hi, #fff); animation: stamp .45s .3s cubic-bezier(.5, 0, .75, 0) both }
+@keyframes stamp { from { transform: scale(2); opacity: 0 } }
+:root[data-motif="spark"] .cel-badge { width: 128px; height: 128px; border-radius: 0; clip-path: polygon(50.0% 0.0%, 58.8% 5.9%, 69.1% 3.8%, 75.0% 12.6%, 85.4% 14.6%, 87.4% 25.0%, 96.2% 30.9%, 94.1% 41.2%, 100.0% 50.0%, 94.1% 58.8%, 96.2% 69.1%, 87.4% 75.0%, 85.4% 85.4%, 75.0% 87.4%, 69.1% 96.2%, 58.8% 94.1%, 50.0% 100.0%, 41.2% 94.1%, 30.9% 96.2%, 25.0% 87.4%, 14.6% 85.4%, 12.6% 75.0%, 3.8% 69.1%, 5.9% 58.8%, 0.0% 50.0%, 5.9% 41.2%, 3.8% 30.9%, 12.6% 25.0%, 14.6% 14.6%, 25.0% 12.6%, 30.9% 3.8%, 41.2% 5.9%); animation: pop .55s .2s var(--ease) both, turn .9s .2s var(--ease) both }
+@keyframes turn { from { rotate: -40deg } }

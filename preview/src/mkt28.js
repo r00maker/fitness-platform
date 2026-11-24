@@ -1,6 +1,6 @@
   // ===========================================================================
   // Setup, App look (the same rules as /app-theme in the API and app-theme.ts in shared): how the
-  // studio's own client app looks. Start from a look (Studio, Linden, Tidal, Aizome), then change
+  // studio's own client app looks. Start from a look (Classic, Sage, Cobalt, Indigo), then change
   // any part: colours, the two typefaces, corners, how celebrations look, the welcome line on
   // Home and the class milestones the app celebrates. A phone beside it shows the result live
   // (Home, the timetable, a celebration). Custom looks come with the branded app (Signature, or
@@ -16,10 +16,10 @@
       "Manrope": { css: "Manrope:wght@400;500;600;700;800", kind: "sans", note: "Neat, modern sans" },
     };
     const PRESETS = {
-      studio: { label: "Studio", description: "Clean and neutral, in your booking-page colour.", background: "#F4F5F7", surface: "#FFFFFF", ink: "#171B21", muted: "#5D6673", line: "#E1E4E9", accent: "#0C6156", onAccent: "#FFFFFF", highlight: "#E9B949", displayFont: "Manrope", bodyFont: "Manrope", corners: "soft", motif: "spark", welcome: "", milestones: [10, 20, 50, 100, 150, 200, 300, 500, 1000] },
-      linden: { label: "Linden", description: "Calm and botanical: sage and deep green, a soft serif, a leaf that unfurls.", background: "#EEF1EA", surface: "#FBFCF8", ink: "#1B2A21", muted: "#5B6B60", line: "#D9E0D2", accent: "#2F5D46", onAccent: "#F4F8EF", highlight: "#B9CF7A", displayFont: "Young Serif", bodyFont: "Figtree", corners: "soft", motif: "leaf", welcome: "Slow is still forward.", milestones: [10, 20, 50, 100, 150, 200, 300, 500] },
-      tidal: { label: "Tidal", description: "Loud and bright: cobalt and candy pink, a heavy grotesque, pill shapes and a wave.", background: "#F3F4FF", surface: "#FFFFFF", ink: "#0F1238", muted: "#545A86", line: "#DCDFFA", accent: "#2B3BE8", onAccent: "#FFFFFF", highlight: "#FF8FCB", displayFont: "Bricolage Grotesque", bodyFont: "Bricolage Grotesque", corners: "round", motif: "wave", welcome: "Tuck, pulse, repeat.", milestones: [5, 20, 50, 100, 200, 500] },
-      aizome: { label: "Aizome", description: "Still and exact: stone and indigo, a fine Mincho serif, square corners and a red seal.", background: "#ECEBE7", surface: "#F8F7F4", ink: "#1E2030", muted: "#626473", line: "#D8D6D0", accent: "#2E3D73", onAccent: "#F3F1EA", highlight: "#C2412D", displayFont: "Shippori Mincho", bodyFont: "Zen Kaku Gothic New", corners: "square", motif: "stamp", welcome: "Arrive. Breathe. Begin.", milestones: [10, 25, 50, 108, 200, 500] },
+      classic: { label: "Classic", description: "Clean and neutral, in your booking-page colour.", background: "#F4F5F7", surface: "#FFFFFF", ink: "#171B21", muted: "#5D6673", line: "#E1E4E9", accent: "#0C6156", onAccent: "#FFFFFF", highlight: "#E9B949", displayFont: "Manrope", bodyFont: "Manrope", corners: "soft", motif: "spark", welcome: "", milestones: [10, 20, 50, 100, 150, 200, 300, 500, 1000] },
+      sage: { label: "Sage", description: "Calm and botanical: sage and deep green, a soft serif and leaf-shaped badges.", background: "#EEF1EA", surface: "#FBFCF8", ink: "#1B2A21", muted: "#5B6B60", line: "#D9E0D2", accent: "#2F5D46", onAccent: "#F4F8EF", highlight: "#B9CF7A", displayFont: "Young Serif", bodyFont: "Figtree", corners: "soft", motif: "leaf", welcome: "Slow is still forward.", milestones: [10, 20, 50, 100, 150, 200, 300, 500] },
+      cobalt: { label: "Cobalt", description: "Bright and bold: cobalt and pink, a heavy sans-serif, pill shapes and badges with a ripple.", background: "#F3F4FF", surface: "#FFFFFF", ink: "#0F1238", muted: "#545A86", line: "#DCDFFA", accent: "#2B3BE8", onAccent: "#FFFFFF", highlight: "#FF8FCB", displayFont: "Bricolage Grotesque", bodyFont: "Bricolage Grotesque", corners: "round", motif: "wave", welcome: "Tuck, pulse, repeat.", milestones: [5, 20, 50, 100, 200, 500] },
+      indigo: { label: "Indigo", description: "Still and exact: stone and indigo, a fine serif, square corners and a red seal for each achievement.", background: "#ECEBE7", surface: "#F8F7F4", ink: "#1E2030", muted: "#626473", line: "#D8D6D0", accent: "#2E3D73", onAccent: "#F3F1EA", highlight: "#C2412D", displayFont: "Shippori Mincho", bodyFont: "Zen Kaku Gothic New", corners: "square", motif: "stamp", welcome: "Arrive. Breathe. Begin.", milestones: [10, 25, 50, 108, 200, 500] },
     };
     const RADII = { square: [2, 4], soft: [10, 18], round: [999, 26] };
     const MOTIFS = [["leaf", "Leaf"], ["wave", "Wave"], ["stamp", "Seal"], ["spark", "Spark"]];
@@ -27,7 +27,7 @@
     const LOOK = (STUDIO.appLook ||= { saved: null });
     const AV = (state.alv ||= { view: "home", draft: null, milestoneInput: "" });
     const strip = ({ label, description, ...t }) => t; // eslint-disable-line no-unused-vars
-    const basic = () => ({ ...strip(PRESETS.studio), preset: "studio", accent: (STUDIO.bp && STUDIO.bp.accent) || PRESETS.studio.accent });
+    const basic = () => ({ ...strip(PRESETS.classic), preset: "classic", accent: (STUDIO.bp && STUDIO.bp.accent) || PRESETS.classic.accent });
     /** What members see now: the saved look with the branded app, otherwise the plain Studio look. */
     const inUse = () => (planHasApp() && LOOK.saved ? LOOK.saved : basic());
     const draft = () => (AV.draft ||= structuredClone(inUse()));
@@ -52,7 +52,7 @@
     { const t = HUBS.find((h) => h.id === "setup")?.tabs; if (t) t.splice(t.findIndex((x) => x[0] === "booking-page") + 1, 0, ["app-look", "App look"]); }
     ICONS["app-look"] = '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.5 18.5h3"/><circle cx="12" cy="10" r="2.5"/>';
 
-    const MARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="m-leaf" d="M4 18 C 6 8 14 4 20 4 C 20 11 15 19 4 18 Z M5 17 L 15 9"/><path class="m-wave" d="M2 15 C 5 9 9 9 12 13 S 19 17 22 9"/><rect class="m-stamp" x="4" y="4" width="16" height="16"/><path class="m-spark" d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/></svg>';
+    const MARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="m-leaf" d="M4 18 C 6 8 14 4 20 4 C 20 11 15 19 4 18 Z M5 17 L 15 9"/><path class="m-wave" d="M2 15 C 5 9 9 9 12 13 S 19 17 22 9"/><rect class="m-stamp" x="4" y="4" width="16" height="16"/><path class="m-spark" d="M12.00 2.00 L14.29 4.96 L17.88 3.91 L17.99 7.65 L21.51 8.91 L19.40 12.00 L21.51 15.09 L17.99 16.35 L17.88 20.09 L14.29 19.04 L12.00 22.00 L9.71 19.04 L6.12 20.09 L6.01 16.35 L2.49 15.09 L4.60 12.00 L2.49 8.91 L6.01 7.65 L6.12 3.91 L9.71 4.96 Z"/></svg>';
 
     /** The phone: the studio's app with this look, from the sample studio's own classes. */
     function phone(t) {
@@ -69,7 +69,7 @@
         body = `<h4 class="alp-h">Book a class</h4><div class="alp-chips"><span class="alp-chip on">★ Classes with Ana</span>${Object.values(TYPES).slice(0, 2).map((ty) => `<span class="alp-chip"><i style="background:${ty.color}"></i>${esc(ty.name)}</span>`).join("")}</div>
           <ul class="alp-list">${upcoming.map((s, i) => `<li style="--ty:${TYPES[s.type].color}"><b>${clock(s.start)}</b><span><em>${esc(TYPES[s.type].name)}</em><small>${esc(instrName(s.instr).split(" ")[0])}, ${esc(LOCS[s.loc])}</small></span><i class="alp-btn">${i === 0 ? "Booked" : "Book"}</i></li>`).join("")}</ul>`;
       } else if (AV.view === "celebrate") {
-        body = `<div class="alp-cel"><div class="alp-cel-art">${MARK}<b class="alp-cel-badge">${prev || 10}</b></div><h4>${prev || 10} classes</h4><p>That's your ${prev || 10}th class with ${name}.${next ? ` Next stop: ${next}.` : ""}</p><i class="alp-btn wide">Book your next class</i></div>`;
+        body = `<div class="alp-cel"><div class="alp-cel-art"><b class="alp-cel-badge">${prev || 10}</b></div><h4>${prev || 10} classes</h4><p>That's your ${prev || 10}th class with ${name}.${next ? ` Next stop: ${next}.` : ""}</p><i class="alp-btn wide">Book your next class</i></div>`;
       } else {
         body = `<h4 class="alp-hello">Good morning, Rachel.</h4>${t.welcome ? `<p class="alp-wel">${esc(t.welcome)}</p>` : ""}
           ${nx ? `<div class="alp-next"><small>${fmtDay(nx.start)}, ${clock(nx.start)}</small><b>${esc(TYPES[nx.type].name)}</b><small>${esc(LOCS[nx.loc])}</small></div>` : ""}
@@ -81,7 +81,7 @@
     }
 
     PAGES["app-look"] = function () {
-      const has = planHasApp(), t = draft(), p = PRESETS[t.preset] || PRESETS.studio;
+      const has = planHasApp(), t = draft(), p = PRESETS[t.preset] || PRESETS.classic;
       loadFonts([t.displayFont, t.bodyFont, ...Object.values(PRESETS).map((x) => x.displayFont)]);
       const warn = [];
       if (contrast(t.accent, t.onAccent) < 4.5) warn.push(["onAccent", `Text on the brand colour is hard to read (contrast ${contrast(t.accent, t.onAccent).toFixed(1)} to 1; aim for 4.5).`]);

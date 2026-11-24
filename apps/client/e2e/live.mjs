@@ -42,7 +42,7 @@ try {
   const owner = as(await token("owner@harbour.test"));
   // The studio: no waiver for this run, and the Linden look for its app.
   // The seeded studio needs its waiver signed: the member signs it while booking.
-  ok("api: the studio sets its app look", (await owner("PATCH", "/app-theme", { preset: "linden", welcome: "Breathe out. You're here." })).preset === "linden");
+  ok("api: the studio sets its app look", (await owner("PATCH", "/app-theme", { preset: "sage", welcome: "Breathe out. You're here." })).preset === "sage");
   // A member who has joined and bought a pack.
   const memberToken = await token("mei@example.com");
   const member = as(memberToken);
