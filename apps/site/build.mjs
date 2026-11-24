@@ -74,20 +74,21 @@ ${body}
 </html>
 `;
 
-mkdirSync(new URL("./dist/artifact/", import.meta.url), { recursive: true });
+mkdirSync(new URL(process.env.RENDER ? "./dist/" : "./dist/artifact/", import.meta.url), { recursive: true });
 console.log(`free trial: ${trialConf.api && trialConf.supabaseKey ? `live (API ${trialConf.api}, Supabase ${trialConf.supabaseUrl})` : trialConf.api ? `local (API ${trialConf.api}, dev sign-in)` : "preview (set SITE_API_URL and the Supabase settings to switch it on)"}`);
 for (const name of PAGES) {
   const p = parts(name);
   const html = full(p);
   writeFileSync(new URL(`./dist/${name}.html`, import.meta.url), html);
-  writeFileSync(new URL(`./dist/artifact/${name}.html`, import.meta.url), name === "index" ? `${p.head}\n${p.body}\n` : html);
+  // The artifact copy is for the claude.ai preview; a real host (Render sets RENDER) doesn't need it.
+  if (!process.env.RENDER) writeFileSync(new URL(`./dist/artifact/${name}.html`, import.meta.url), name === "index" ? `${p.head}\n${p.body}\n` : html);
   console.log(`dist/${name}.html (${(html.length / 1024).toFixed(1)} KB)`);
 }
 
 // The product films, their posters and the stills (media/film/render.mjs, media/stills.mjs), next to the pages.
 const media = new URL("./media/out/", import.meta.url);
 if (existsSync(media)) {
-  const dirs = ["./dist/media/", "./dist/artifact/media/"];
+  const dirs = process.env.RENDER ? ["./dist/media/"] : ["./dist/media/", "./dist/artifact/media/"];
   for (const dir of dirs) mkdirSync(new URL(dir, import.meta.url), { recursive: true });
   const files = readdirSync(media).filter((f) => /^(film|still)-.*\.(mp4|webm|jpg)$/.test(f));
   for (const f of files) for (const dir of dirs) copyFileSync(new URL(f, media), new URL(dir + f, import.meta.url));
