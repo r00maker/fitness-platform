@@ -53,10 +53,13 @@ When the 14 days are up, the studio is **read-only**: it can be looked at, but n
   3. **Ready:** the studio's name, the plan and the date the trial ends, and three next steps (different for a test studio).
 
   The page says plainly when it's refused: one trial per person, already a customer, a throwaway inbox (back to the email), or too many sign-ups.
-  - **To switch it on:** set `data-api`, `data-supabase-url` and `data-supabase-key` on `#trialCard` (and `data-studio-app` for the **Open the studio app** button). Add the site's address to the API's `CORS_ORIGINS`. Supabase's email templates need `{{ .Token }}` for the code (see `docs/WEB_APP.md`).
-  - **Locally:** with `data-api` alone, it uses the API's dev sign-in, and the code is 000000.
+  - **Connecting it:** the site's build reads `SITE_API_URL`, `SITE_SUPABASE_URL`, `SITE_SUPABASE_KEY` and `SITE_STUDIO_APP_URL` (from the hosting provider's build settings, or `apps/site/.env`; see `apps/site/.env.example`) and fills them into the page. The build refuses a Supabase secret or service-role key, so only the publishable key can reach the page.
+    - **Supabase (`lezcugmdxretpofadjio`), checked:** email sign-in is on, new people can sign up, and it accepts sign-in requests from web pages. The publishable key works.
+    - **The API:** deploy it with `AUTH_JWKS_URL`, `AUTH_ISSUER` and `AUTH_AUDIENCE` for the same project (see `docs/WEB_APP.md`), and add the site's address to its `CORS_ORIGINS`. Then set `SITE_API_URL` and rebuild the site. Until the API is deployed, the page stays a preview.
+    - **Still to do in Supabase's dashboard:** our own email sender, and `{{ .Token }}` in the **Magic Link** and **Confirm signup** templates, so the email carries the 6-digit code (see `docs/WEB_APP.md`). Without the token, Supabase's standard email has only a link, which the trial page doesn't use.
+  - **Locally:** with `SITE_API_URL` alone (e.g. `http://localhost:3000`), it uses the API's dev sign-in, and the code is 000000.
   - **With neither:** it's a preview that says so, sends nothing and makes nothing.
-  - **Checked by** `apps/site/check.mjs`: the steps, the messages and that the terms match the API's, on desktop and phone. `node check.mjs --live` also runs it against a seeded local API: a new studio, a second try refused, the test studio, and a throwaway inbox.
+  - **Checked by** `apps/site/check.mjs`: the steps, the messages and that the terms match the API's, on desktop and phone. `node check.mjs --live` also runs it against a seeded local API: with dev sign-in (a new studio, a second try refused, the test studio, a throwaway inbox), and with Supabase sign-in, using a stand-in for Supabase's email-code endpoints whose tokens the API checks against published keys, as it does the real project's (so no real email is sent).
 
 ## Is a free trial a good idea?
 

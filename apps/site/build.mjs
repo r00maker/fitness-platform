@@ -7,6 +7,29 @@
 // No framework, no bundler.
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
+
+// Where the free trial signs up (see .env.example). Read from the environment, or from apps/site/.env.
+// Left empty, the trial page is a preview that says so.
+const fileEnv = existsSync(new URL("./.env", import.meta.url))
+  ? Object.fromEntries(read("./.env").split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim().replace(/^["']|["']$/g, "")]))
+  : {};
+const env = (k) => (process.env[k] ?? fileEnv[k] ?? "").trim();
+const trialConf = { api: env("SITE_API_URL"), supabaseUrl: env("SITE_SUPABASE_URL"), supabaseKey: env("SITE_SUPABASE_KEY"), studioApp: env("SITE_STUDIO_APP_URL") };
+// The page is public, so only the publishable key may go in it: never the secret or service-role key.
+{
+  const k = trialConf.supabaseKey;
+  let role = null;
+  if (k.split(".").length === 3) { try { role = JSON.parse(Buffer.from(k.split(".")[1], "base64url").toString()).role; } catch {} }
+  if (/^sb_secret_/.test(k) || role === "service_role") throw new Error("SITE_SUPABASE_KEY is a secret key. Use the project's publishable key (sb_publishable_...), which is made for web pages.");
+  if (k && !/^sb_publishable_/.test(k) && role !== "anon") throw new Error("SITE_SUPABASE_KEY should be the project's publishable key (sb_publishable_...).");
+  for (const [name, v] of [["SITE_API_URL", trialConf.api], ["SITE_SUPABASE_URL", trialConf.supabaseUrl], ["SITE_STUDIO_APP_URL", trialConf.studioApp]]) {
+    if (v && !/^https:\/\/[^\s"<>]+$/.test(v) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/[^\s"<>]*)?$/.test(v)) throw new Error(`${name} should be an https:// address.`);
+  }
+  if (trialConf.supabaseUrl && !trialConf.supabaseKey) throw new Error("SITE_SUPABASE_URL is set without SITE_SUPABASE_KEY.");
+}
+const attr = (v) => v.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+const fillTrial = (body) => body.replace('data-api="" data-supabase-url="" data-supabase-key="" data-studio-app=""',
+  `data-api="${attr(trialConf.api.replace(/\/$/, ""))}" data-supabase-url="${attr(trialConf.supabaseUrl.replace(/\/$/, ""))}" data-supabase-key="${attr(trialConf.supabaseKey)}" data-studio-app="${attr(trialConf.studioApp)}"`);
 const css = read("./src/site.css");
 const js = read("./src/site.js");
 const header = read("./src/partials/header.html");
@@ -30,7 +53,7 @@ function parts(name) {
   if (!body) throw new Error(`src/pages/${name}.html needs a <!-- BODY --> marker between its head part and its content.`);
   if (!/<title>[^<]+<\/title>/.test(head)) throw new Error(`src/pages/${name}.html needs a <title>.`);
   const nav = header.replace(`data-page="${name}"`, `data-page="${name}" aria-current="page"`);
-  const content = body.trim().replace("{{close}}", close.trim());
+  const content = fillTrial(body.trim().replace("{{close}}", close.trim()));
   // Title first: the artifact host reads the title from the top of the file.
   const title = head.match(/<title>[^<]+<\/title>/)[0];
   return {
@@ -52,6 +75,7 @@ ${body}
 `;
 
 mkdirSync(new URL("./dist/artifact/", import.meta.url), { recursive: true });
+console.log(`free trial: ${trialConf.api && trialConf.supabaseKey ? `live (API ${trialConf.api}, Supabase ${trialConf.supabaseUrl})` : trialConf.api ? `local (API ${trialConf.api}, dev sign-in)` : "preview (set SITE_API_URL and the Supabase settings to switch it on)"}`);
 for (const name of PAGES) {
   const p = parts(name);
   const html = full(p);

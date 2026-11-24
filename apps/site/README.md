@@ -28,7 +28,7 @@ All names, numbers and messages in the product windows are sample data.
 
 - **Brand name and logo:** every `<span class="bn">Brand</span>` and the `logo-ph` box (in `src/partials/header.html` and `footer.html`), and each page's `<title>`.
 - **Where the form sends:** set `data-endpoint` on `<form id="join">` (home page) to an API route when the site is hosted. Without it, the form checks what's filled in and says it's a preview.
-- **The free trial:** set `data-api`, `data-supabase-url`, `data-supabase-key` (the publishable key, never the service-role key) and `data-studio-app` on `#trialCard` in `src/pages/trial.html`, and add the site's address to the API's `CORS_ORIGINS`. Until then it's a preview that says so (the code is 000000). `node check.mjs --live` runs it against a seeded local API (needs Postgres; wipes the `studio_e2e` database).
+- **The free trial:** set `SITE_API_URL`, `SITE_SUPABASE_URL`, `SITE_SUPABASE_KEY` (the publishable key; the build refuses a secret one) and `SITE_STUDIO_APP_URL` when building (see `.env.example`), and add the site's address to the API's `CORS_ORIGINS`. Until then it's a preview that says so (the code is 000000). `node check.mjs --live` runs it against a seeded local API, with dev sign-in and with a stand-in for Supabase (needs Postgres; wipes the `studio_e2e` database).
 - **Photos and video:** none yet; the pages stand without them. Planned slots, when generated:
   - a slow, dim video behind the home timetable: a reformer studio at dusk, lamps on, no people in focus;
   - on Product, beside "Run the studio": three real-looking moments (an instructor with a client on a reformer, the front desk with a phone, a client checking in), natural light, no faces in sharp focus.

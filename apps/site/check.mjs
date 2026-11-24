@@ -9,6 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { generateKeyPairSync, randomUUID, sign } from "node:crypto";
 import { createServer } from "node:http";
 const { chromium, devices } = createRequire(import.meta.url)("playwright");
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -219,6 +220,77 @@ if (process.argv.includes("--live")) {
     try { process.kill(-api.pid); } catch {}
     try { unlinkSync(path.join(dist, "trial-live-test.html")); } catch {}
     site.close();
+  }
+}
+// --- The same page with Supabase sign-in: a stand-in for Supabase's email-code endpoints (so no
+// real email is sent), whose ES256 tokens the local API checks against its published keys, the way
+// it checks the real project's.
+if (process.argv.includes("--live")) {
+  const DB = process.env.E2E_DATABASE_URL ?? "postgres://studio:studio@localhost:5432/studio_e2e";
+  const dist = path.join(here, "dist");
+  const KEY = "sb_publishable_standin";
+  const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+  const jwk = { ...publicKey.export({ format: "jwk" }), kid: "standin", alg: "ES256", use: "sig" };
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const sent = [];
+  const sbServer = createServer(async (req, res) => {
+    const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "apikey, content-type, authorization", "access-control-allow-methods": "GET, POST, OPTIONS" };
+    if (req.method === "OPTIONS") return res.writeHead(204, cors).end();
+    const json = (code, o) => res.writeHead(code, { ...cors, "content-type": "application/json" }).end(JSON.stringify(o));
+    const url = new URL(req.url, "http://x").pathname;
+    if (url === "/auth/v1/.well-known/jwks.json") return json(200, { keys: [jwk] });
+    let body = ""; for await (const c of req) body += c;
+    const data = body ? JSON.parse(body) : {};
+    if (req.headers.apikey !== KEY) return json(401, { msg: "Invalid API key" });
+    if (url === "/auth/v1/otp") { sent.push(data.email); return json(200, {}); }
+    if (url === "/auth/v1/verify") {
+      if (data.type !== "email" || data.token !== "424242" || !sent.includes(data.email)) return json(403, { code: 403, error_code: "otp_expired", msg: "Token has expired or is invalid" });
+      const now = Math.floor(Date.now() / 1000);
+      const head = b64({ alg: "ES256", typ: "JWT", kid: "standin" });
+      const claims = b64({ sub: randomUUID(), email: data.email, aud: "authenticated", iss: `${sbBase}/auth/v1`, role: "authenticated", iat: now, exp: now + 3600, user_metadata: { email_verified: true } });
+      const sig = sign("sha256", Buffer.from(`${head}.${claims}`), { key: privateKey, dsaEncoding: "ieee-p1363" }).toString("base64url");
+      return json(200, { access_token: `${head}.${claims}.${sig}`, token_type: "bearer", expires_in: 3600 });
+    }
+    json(404, {});
+  }).listen(0, "127.0.0.1");
+  await new Promise((r) => sbServer.once("listening", r));
+  const sbBase = `http://127.0.0.1:${sbServer.address().port}`;
+  const site = createServer((req, res) => {
+    const f = path.join(dist, decodeURIComponent(new URL(req.url, "http://x").pathname));
+    if (!f.startsWith(dist) || !existsSync(f)) return res.writeHead(404).end();
+    res.writeHead(200, { "content-type": f.endsWith(".html") ? "text/html" : "application/octet-stream" }).end(readFileSync(f));
+  }).listen(0, "127.0.0.1");
+  await new Promise((r) => site.once("listening", r));
+  const origin = `http://127.0.0.1:${site.address().port}`;
+  const api = spawn("npx", ["tsx", "src/scripts/e2e-server.ts"], { cwd: path.join(here, "../api"), env: { ...process.env, E2E_DATABASE_URL: DB, PORT: "3995", WEB_ORIGIN: origin, AUTH_JWKS_URL: `${sbBase}/auth/v1/.well-known/jwks.json`, AUTH_ISSUER: `${sbBase}/auth/v1`, AUTH_AUDIENCE: "authenticated" }, stdio: ["ignore", "pipe", "pipe"], detached: true });
+  let log = "";
+  await new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("The API didn't start: " + log)), 90000);
+    const on = (d) => { log += d; if (/E2E_API_READY/.test(log)) { clearTimeout(t); resolve(); } };
+    api.stdout.on("data", on); api.stderr.on("data", on);
+    api.on("exit", () => reject(new Error("The API stopped: " + log)));
+  });
+  writeFileSync(path.join(dist, "trial-sb-test.html"), readFileSync(path.join(dist, "trial.html"), "utf8").replace('data-api="" data-supabase-url="" data-supabase-key=""', `data-api="http://127.0.0.1:3995" data-supabase-url="${sbBase}" data-supabase-key="${KEY}"`));
+  try {
+    const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
+    const errors = []; p.on("pageerror", (e) => errors.push(e.message));
+    await p.goto(`${origin}/trial-sb-test.html?plan=essentials`); await p.waitForTimeout(500);
+    ok("supabase trial: no preview note", await p.locator("#trialMode").isHidden());
+    await p.fill("#tStudio", "Kiln Pilates"); await p.fill("#tFirst", "Priya"); await p.fill("#tLast", "Nair"); await p.fill("#tEmail", "Priya@Kiln.sg"); await p.check("#tAgree");
+    await p.locator('#stepAbout button[type="submit"]').click(); await p.waitForTimeout(600);
+    ok("supabase trial: Supabase is asked to email a code, with the publishable key", sent.at(-1) === "priya@kiln.sg" && await p.locator("#stepCode").isVisible());
+    await p.fill("#tCode", "111111"); await p.waitForTimeout(800);
+    ok("supabase trial: a wrong code is refused by Supabase", /didn't work/.test(await p.locator("#codeMsg").innerText()));
+    await p.fill("#tCode", "424242");
+    await p.waitForFunction(() => !document.querySelector("#stepReady").hidden || /\S/.test(document.querySelector("#codeMsg").textContent), null, { timeout: 15000 }).catch(() => {});
+    ok("supabase trial: the API checks Supabase's token and makes the studio", (await p.locator("#readyT").innerText().catch(() => "")) === "Kiln Pilates is ready." && /Essentials/.test(await p.locator("#readySub").innerText()), await p.locator("#codeMsg").innerText());
+    ok("supabase trial: nothing says it's a preview", !(await p.locator("#readyMsg").innerText()));
+    ok("supabase trial: no page errors", !errors.length, errors.join(" | "));
+    await p.close();
+  } finally {
+    try { process.kill(-api.pid); } catch {}
+    try { unlinkSync(path.join(dist, "trial-sb-test.html")); } catch {}
+    site.close(); sbServer.close();
   }
 }
 await b.close();
