@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { bookings, classSessions, clientPackages, fees, organizations, orders, packageLedger } from "../src/db/schema.js";
@@ -120,7 +121,8 @@ describe("package history", () => {
     const cancelled = await s.c1.call("POST", "/bookings", { sessionId: await mk() });
     const noShow = await s.c1.call("POST", "/bookings", { sessionId: await mk() });
     // Those two classes have now happened.
-    for (const b of [attended, noShow]) await db.update(classSessions).set({ startsAt: new Date(Date.now() - 3 * 3_600_000), endsAt: new Date(Date.now() - 2 * 3_600_000) }).where(eq(classSessions.id, b.body.sessionId));
+    const happened = new Date(Date.now() - 3 * 3_600_000);
+    for (const b of [attended, noShow]) await db.update(classSessions).set({ startsAt: happened, endsAt: new Date(Date.now() - 2 * 3_600_000) }).where(eq(classSessions.id, b.body.sessionId));
     await db.update(bookings).set({ attendance: "present" }).where(eq(bookings.id, attended.body.id));
     await db.update(bookings).set({ attendance: "no_show" }).where(eq(bookings.id, noShow.body.id));
     await s.c1.call("POST", `/bookings/${cancelled.body.id}/cancel`, {});
@@ -129,8 +131,8 @@ describe("package history", () => {
 
     const h = await history(s.c1, p.id);
     // It started on the day of its first class; when a class was given back, the start followed the
-    // earliest class still used (the two that have happened, today).
-    expect(h.activatedOn).toBe(dayOffset(0));
+    // earliest class still used (the two that have happened), on the studio's calendar.
+    expect(h.activatedOn).toBe(DateTime.fromJSDate(happened).setZone("Asia/Singapore").toISODate());
     expect(h.classes.map((c: { status: string; credit: string }) => `${c.status}: ${c.credit}`).sort()).toEqual(["Attended: 1 class used", "Cancelled: Class given back", "No-show: Class used (no-show)"]);
     expect(h.adjustmentsByStudio).toMatchObject([
       { title: "+1 class added", detail: "Sorry about the cancelled class", by: "The studio" },

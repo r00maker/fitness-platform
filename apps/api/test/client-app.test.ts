@@ -17,12 +17,18 @@ async function setup() {
   const cls = async (classTypeId = s.classTypeId) =>
     (await s.owner.call("POST", "/sessions", { classTypeId, locationId: s.locationId, instructorId: s.ana.id, capacity: 8, durationMinutes: 50, date: dayOffset(2), startTime: `${String(hour++ % 24).padStart(2, "0")}:00`, acknowledge: ["unusual_start_time", "possible_duplicate"] })).body.id as string;
   /** `n` classes the client came to, all finished earlier today (so they're in this month). */
-  const attend = async (who: typeof s.c1, n: number, opts: { classTypeId?: string; early?: boolean } = {}) => {
+  // Class times that don't depend on when the tests run: "early" is 6am on the latest morning that
+  // has passed; "afternoon" is 2pm yesterday (never before 8am, so never early). Otherwise, an hour ago.
+  const sg = () => DateTime.now().setZone("Asia/Singapore");
+  const lastMorning = () => (sg().hour >= 7 ? sg() : sg().minus({ days: 1 })).startOf("day").plus({ hours: 6 });
+  const attend = async (who: typeof s.c1, n: number, opts: { classTypeId?: string; early?: boolean; afternoon?: boolean } = {}) => {
     const ids: string[] = [];
     for (let i = 0; i < n; i++) ids.push((await who.call("POST", "/bookings", { sessionId: await cls(opts.classTypeId) })).body.id);
     const rows = await db.select({ id: bookings.id, sessionId: bookings.sessionId }).from(bookings).where(inArray(bookings.id, ids));
     for (const [i, r] of rows.entries()) {
-      const start = opts.early ? DateTime.now().setZone("Asia/Singapore").startOf("day").plus({ hours: 6, minutes: i }).toJSDate() : new Date(Date.now() - (70 + i) * 60_000);
+      const start = opts.early ? lastMorning().plus({ minutes: i }).toJSDate()
+        : opts.afternoon ? sg().minus({ days: 1 }).startOf("day").plus({ hours: 14, minutes: i }).toJSDate()
+        : new Date(Date.now() - (70 + i) * 60_000);
       await db.update(classSessions).set({ startsAt: start, endsAt: new Date(start.getTime() + 50 * 60_000) }).where(eq(classSessions.id, r.sessionId));
     }
     return ids;
@@ -36,18 +42,18 @@ describe("client progress", () => {
     const { s, attend, progress } = await setup();
     expect(await progress()).toMatchObject({ classes: 0, milestone: { previous: 0, next: 10, toGo: 10, progress: 0 }, celebration: null, nudge: "10 classes to your 10th." });
 
-    const ids = await attend(s.c1, 11);
+    const ids = await attend(s.c1, 11, { afternoon: true });
     // A no-show and a cancelled class don't count.
     await db.update(bookings).set({ attendance: "no_show" }).where(eq(bookings.id, ids[0]!));
     await db.update(bookings).set({ status: "cancelled" }).where(eq(bookings.id, ids[1]!));
     const p = await progress();
     expect(p).toMatchObject({ classes: 9, milestone: { previous: 0, next: 10, toGo: 1 }, nudge: "1 class to your 10th." });
 
-    await attend(s.c1, 1);
+    await attend(s.c1, 1, { afternoon: true });
     const q = await progress();
     expect(q).toMatchObject({ classes: 10, milestone: { previous: 10, next: 20, toGo: 10, progress: 0 } });
     expect(q.celebration).toMatchObject({ key: "milestone:10", kind: "milestone", title: "10 classes", message: "That's your 10th class with Test Studio. Next stop: 20." });
-    expect(q.achievements.find((a: { key: string }) => a.key === "classes_10")).toMatchObject({ earned: true, earnedOn: dayOffset(0) });
+    expect(q.achievements.find((a: { key: string }) => a.key === "classes_10")).toMatchObject({ earned: true, earnedOn: dayOffset(-1) }); // the 10th class was yesterday afternoon
     expect(q.achievements.find((a: { key: string }) => a.key === "classes_20")).toMatchObject({ earned: false, progress: { have: 10, need: 20 } });
 
     expect((await s.c1.call("POST", "/me/celebrations/milestone:10/seen")).status).toBe(204);
