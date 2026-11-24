@@ -95,6 +95,7 @@ export const updateOrgSettings = z.object({
   spotBookingEnabled: z.boolean().optional(),
   clientsNeedPackage: z.boolean().optional(),
   allowBookingWithoutPackage: z.boolean().optional(),
+  membersBookAhead: z.boolean().optional(),
   payPeriod: z.enum(PAY_PERIODS).optional(),
   /** Fortnightly pay: the first day of any one pay fortnight. */
   payPeriodAnchor: localDate.optional(),

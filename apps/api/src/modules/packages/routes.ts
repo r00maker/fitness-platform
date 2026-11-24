@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import type { FastifyInstance } from "fastify";
 import { and, asc, eq, inArray, isNull, isNotNull } from "drizzle-orm";
 import { EXTENSION_STATUSES, can, describePackage, schemas } from "@studio/shared";
@@ -293,10 +294,21 @@ export async function packageRoutes(app: FastifyInstance) {
     const s = await getSession(db, req.auth.orgId, id);
     const options = await svc.packageOptions(db, org, who, s);
     const shown = await svc.presentPackages(db, org, options.map((o) => o.pkg), who);
+    const zone = svc.orgZone(org);
+    const cancelBy = new Date(s.startsAt.getTime() - org.lateCancelWindowHours * 3_600_000);
     return {
       packageNeeded: org.clientsNeedPackage,
       suggested: options.find((o) => o.ok)?.pkg.id ?? null,
-      options: options.map((o, i) => ({ ...shown[i], usable: o.ok, reason: o.reason ?? null })),
+      /** Cancel before this to get the class back. Booking after it means it can't be cancelled for free. */
+      freeCancelUntil: cancelBy.toISOString(),
+      insideLateWindow: new Date() >= cancelBy,
+      options: options.map((o, i) => ({
+        ...shown[i],
+        usable: o.ok,
+        reason: o.reason ?? null,
+        /** Memberships: booked ahead into a later period (taken from it when it renews). */
+        bookedAhead: o.holdForPeriod ? { period: o.holdForPeriod, periodStarts: DateTime.fromJSDate(o.periodStarts!, { zone }).toISODate() } : null,
+      })),
       ...(options.some((o) => o.ok) ? {} : { message: svc.whyNoPackage(options, isClient) }),
     };
   });

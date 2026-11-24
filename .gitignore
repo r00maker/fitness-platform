@@ -9,3 +9,5 @@ preview/.rec-*.html
 apps/site/media/.frames/
 apps/site/media/stills/
 apps/site/media/.preview/
+apps/client/dist-demo/
+apps/client/e2e/shots/

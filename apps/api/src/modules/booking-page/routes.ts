@@ -17,6 +17,7 @@
  * public endpoints only show what a member would see on the timetable: no one's name or booking,
  * and appointments stay private.
  */
+import { isSandbox } from "../trial/service.js";
 import type { FastifyInstance } from "fastify";
 import { and, asc, eq, isNull, ne } from "drizzle-orm";
 import { bookingPageSettings, publicScheduleQuery, slugify, type BookingPageSettings } from "@studio/shared";
@@ -38,6 +39,7 @@ import { getCalendar } from "../sessions/calendar.js";
 import { getOrg } from "../sessions/context.js";
 import { onlineReady } from "../payments/service.js";
 import { WIDGET_JS } from "./widget.js";
+import { themeFor } from "../client-app/service.js";
 
 type Org = Awaited<ReturnType<typeof getOrg>>;
 const NOBODY = "00000000-0000-0000-0000-000000000000";
@@ -125,7 +127,8 @@ export async function bookingPageRoutes(app: FastifyInstance) {
     const [row] = await db.select({ id: organizations.id }).from(organizations).where(eq(organizations.slug, slug));
     if (!row) throw notFound("studio");
     const org = await getOrg(db, row.id);
-    if (!org.bookingPageEnabled || org.lifecycle !== "live") throw notFound("studio");
+    // A free trial's test studio (sample data) never has a public page.
+    if (!org.bookingPageEnabled || org.lifecycle !== "live" || isSandbox(org)) throw notFound("studio");
     return org;
   }
   // Public and cacheable, and other websites may load it (the widget): the security headers
@@ -150,6 +153,8 @@ export async function bookingPageRoutes(app: FastifyInstance) {
       intro: org.bookingIntro,
       accent: await accentOf(org),
       logoUrl: s.logoFileId ? publicFileUrl(config.PUBLIC_API_URL, s.logoFileId) : null,
+      /** The client app's look (colours, typefaces, corners, celebrations, milestones). */
+      theme: await themeFor(db, org),
       currency: org.currency,
       timezone: org.timezone,
       locations: locs,
@@ -195,7 +200,8 @@ export async function bookingPageRoutes(app: FastifyInstance) {
         durationMinutes: Math.round((Date.parse(s.endsAt) - Date.parse(s.startsAt)) / 60_000),
         location: { id: s.location.id, name: s.location.name },
         room: s.roomName,
-        instructor: s.instructor ? { name: publicName(s.instructor.name), photoUrl: s.instructor.photoUrl } : null,
+        // The id lets a signed-in client's app filter to their favourite instructor.
+        instructor: s.instructor ? { id: s.instructor.id, name: publicName(s.instructor.name), photoUrl: s.instructor.photoUrl } : null,
         spotsLeft: spots,
         availability,
         label: { open: `${spots} spots left`, few_left: `${spots} ${spots === 1 ? "spot" : "spots"} left`, full: "Full", waitlist: "Full: join the waitlist", not_open_yet: `Booking opens ${DateTime.fromISO(s.bookingOpensAt).setZone(s.location.timezone).toFormat("ccc d LLL")}`, closed: "Booking closed" }[availability],

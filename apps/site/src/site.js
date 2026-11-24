@@ -90,7 +90,9 @@
     // The dock shows once the page's opening has scrolled away, and hides where the page asks for
     // the walkthrough itself (the form, the closing band) and at the very bottom.
     const dock = $("#dock");
-    if (dock) {
+    // The trial page is where the dock leads, so it has none.
+    if (dock && $("#trial")) dock.remove();
+    else if (dock) {
       const seen = new Set();
       const update = () => {
         const show = scrollY > innerHeight * 0.7 && !seen.size && innerHeight + scrollY < document.documentElement.scrollHeight - 40;

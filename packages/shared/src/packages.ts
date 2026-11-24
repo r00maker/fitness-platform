@@ -33,7 +33,7 @@ export const validityText = (value: number, unit: ValidityUnit) => plural(value,
 /**
  * One short line per term, e.g.
  *   10 classes
- *   Valid for 3 months from the first booking
+ *   Valid for 3 months from the first class
  *   Book the first class within 30 days of buying, or it expires
  *   Up to 3 people can share it, using one pool of credits
  *   Reformer Pilates and Barre only
@@ -62,7 +62,7 @@ export function describePackage(t: PackageTerms, classTypeNames: string[] = [], 
   if (recurring) {
     // Covered above.
   } else if (t.validityValue && t.validityUnit) {
-    lines.push(`Valid for ${validityText(t.validityValue, t.validityUnit)} from ${t.startsOn === "purchase" ? "the day it's bought" : "the first booking"}`);
+    lines.push(`Valid for ${validityText(t.validityValue, t.validityUnit)} from ${t.startsOn === "purchase" ? "the day it's bought" : "the first class"}`);
   } else {
     lines.push("Never expires");
   }

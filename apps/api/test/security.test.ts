@@ -41,4 +41,10 @@ describe("security", () => {
     expect(() => loadConfig(base)).toThrow(/AUTH_ISSUER and AUTH_AUDIENCE are required/);
     expect(() => loadConfig({ ...base, AUTH_ISSUER: "https://auth.example.com", AUTH_AUDIENCE: "studio-app" })).not.toThrow();
   });
+
+  it("on Render, uses the service's own address until PUBLIC_API_URL is set", () => {
+    const base = { NODE_ENV: "production", DATABASE_URL: "postgres://x@localhost/db", AUTH_JWKS_URL: "https://auth.example.com/.well-known/jwks.json", AUTH_ISSUER: "https://auth.example.com", AUTH_AUDIENCE: "studio-app", RENDER_EXTERNAL_URL: "https://studio-api.onrender.com" };
+    expect(loadConfig(base).PUBLIC_API_URL).toBe("https://studio-api.onrender.com");
+    expect(loadConfig({ ...base, PUBLIC_API_URL: "https://api.studio.example" }).PUBLIC_API_URL).toBe("https://api.studio.example");
+  });
 });

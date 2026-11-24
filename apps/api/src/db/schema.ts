@@ -4,6 +4,7 @@
  * All timestamps are stored in UTC (`timestamptz`); local times are worked out
  * from each location's time zone.
  */
+import type { AppTheme } from "@studio/shared";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -220,6 +221,12 @@ export const organizations = pgTable("organizations", {
   clientsNeedPackage: boolean("clients_need_package").notNull().default(true),
   /** Staff may book someone without a package that covers it (as "pay at studio"). Off = a package (or complimentary) is always needed. */
   allowBookingWithoutPackage: boolean("allow_booking_without_package").notNull().default(true),
+  /**
+   * Members can book classes in their membership's next period before it renews. The class is held
+   * and taken from that period's classes when it renews, so members aren't stuck waiting while
+   * pack holders book ahead.
+   */
+  membersBookAhead: boolean("members_book_ahead").notNull().default(true),
   // Payroll
   payPeriod: payPeriodEnum("pay_period").notNull().default("monthly"),
   /** Fortnightly pay: any date a pay fortnight starts on. */
@@ -270,6 +277,20 @@ export const organizations = pgTable("organizations", {
   plan: text("plan").$type<"essentials" | "growth" | "signature">().notNull().default("signature"),
   /** Growth only: the branded app add-on. Signature always includes the app. */
   brandedApp: boolean("branded_app").notNull().default(false),
+  /**
+   * The free trial (see trial.ts in shared). `trialKind` is set while the studio is on a trial or
+   * was on one: "new" (a real studio, with limits) or "existing" (a test studio with sample data).
+   */
+  trialKind: text("trial_kind").$type<"new" | "existing">(),
+  trialStartedAt: ts("trial_started_at"),
+  trialEndsAt: ts("trial_ends_at"),
+  /** When they started paying (or our team converted it); the limits lift then. */
+  trialConvertedAt: ts("trial_converted_at"),
+  /** The owner asked to start their plan (our team follows up and turns payments on). */
+  trialPlanRequest: jsonb("trial_plan_request").$type<{ plan: string; brandedApp: boolean; note: string | null; at: string; by: string }>(),
+  trialTermsVersion: text("trial_terms_version"),
+  /** The client app's look (colours, typefaces, corners, celebrations, milestones). Used with the branded app. */
+  appTheme: jsonb("app_theme").$type<Partial<AppTheme>>(),
   /** Where the studio is with us (HQ): onboarding, live, paused or cancelled. Studios from before HQ are live. */
   lifecycle: text("lifecycle").$type<"onboarding" | "live" | "paused" | "cancelled">().notNull().default("live"),
   referralQualify: text("referral_qualify").notNull().default("classes_attended"),
@@ -511,9 +532,17 @@ export const clientPackages = pgTable(
     startsOn: packageStartEnum("starts_on").notNull(),
     /** Countdown starts at the first booking: it expires if nothing is booked by then. */
     activateBy: ts("activate_by"),
+    /**
+     * One-time packages start on the day of the earliest class booked with them. For packages that
+     * start "when it's bought", this is the start set at sale (purchase or the chosen date): booking an
+     * earlier class moves the start back, and cancelling that class moves it forward again, never past this.
+     */
+    plannedStartAt: ts("planned_start_at"),
     startedAt: ts("started_at"),
     /** First moment it can no longer be used. Null = never expires (or not started yet). */
     expiresAt: ts("expires_at"),
+    /** Days added beyond the validity (extensions, admin changes), kept when the start moves. */
+    extraDays: integer("extra_days").notNull().default(0),
     maxUsers: integer("max_users").notNull().default(1),
     sharingMode: sharingModeEnum("sharing_mode"),
     weeklyLimit: integer("weekly_limit"),
@@ -730,6 +759,11 @@ export const bookings = pgTable(
     /** How it's paid for, and the package used (if any). */
     payment: bookingPaymentEnum("payment").notNull().default("pay_later"),
     clientPackageId: uuid("client_package_id").references(() => clientPackages.id),
+    /**
+     * Memberships: booked ahead into this future period. The class is taken from that period's
+     * classes when the membership renews (then this is cleared).
+     */
+    heldForPeriod: integer("held_for_period"),
     bookedBy: uuid("booked_by").references(() => users.id),
     cancelledAt: ts("cancelled_at"),
     /** Who cancelled it (the client themselves, or a member of staff). */
@@ -2285,3 +2319,31 @@ export const paymentEvents = pgTable("payment_events", {
   receivedAt: ts("received_at").notNull().defaultNow(),
 });
 
+
+/** A client's monthly class goal. A goal carries on into later months until they change it. */
+export const clientGoals = pgTable(
+  "client_goals",
+  {
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** "2026-11": the month it starts from. */
+    month: text("month").notNull(),
+    classes: integer("classes").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("client_goals_uq").on(t.orgId, t.userId, t.month), check("client_goals_range", sql`${t.classes} between 1 and 60`)],
+);
+
+/** Celebrations a client has seen in the app (milestones, goals met, achievements), so each shows once. */
+export const clientCelebrations = pgTable(
+  "client_celebrations",
+  {
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** e.g. "milestone:50", "goal:2026-11", "badge:explorer". */
+    key: text("key").notNull(),
+    seenAt: createdAt(),
+  },
+  (t) => [uniqueIndex("client_celebrations_uq").on(t.orgId, t.userId, t.key)],
+);

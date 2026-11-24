@@ -1,11 +1,16 @@
 // Screenshots and checks of the built site, every page at desktop and phone sizes: no page errors,
 // no sideways scroll, links between pages work, the product videos load and play while on screen
 // (and wait for a tap with reduced motion), and the interactive parts respond.
-// Usage: node check.mjs (after node build.mjs)
+// The free trial sign-up runs as a preview here; with --live it also runs against a seeded local API
+// (Postgres needed, a database named studio_e2e, which is wiped).
+// Usage: node check.mjs [--live] (after node build.mjs)
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { generateKeyPairSync, randomUUID, sign } from "node:crypto";
+import { createServer } from "node:http";
 const { chromium, devices } = createRequire(import.meta.url)("playwright");
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(here, "shots"); mkdirSync(out, { recursive: true });
@@ -121,8 +126,40 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   await p.screenshot({ path: path.join(out, `${label}-switching-full.png`), fullPage: true });
 
   // Back home from the call to action
-  await p.locator(".close .btn").click(); await p.waitForLoadState("load");
+  await p.locator(".close .btn-line").click(); await p.waitForLoadState("load");
   ok(`${label} nav: walkthrough link goes home`, /index\.html#walkthrough$/.test(p.url()));
+  await p.waitForTimeout(400);
+  ok(`${label} home: the hero's main button starts a free trial`, (await p.locator(".hero .btn-main").getAttribute("href")) === "trial.html");
+
+  // Free trial: from a plan card on Pricing, through the code, to ready (a preview: nothing sent)
+  await open("pricing");
+  ok(`${label} pricing: each plan offers a free trial`, (await p.locator('#plans a[href^="trial.html?plan="]').count()) === 3);
+  await p.locator('#plans a[href="trial.html?plan=signature"]').click(); await p.waitForLoadState("load"); await p.waitForTimeout(500);
+  ok(`${label} trial: the plan from the card is chosen`, await p.locator('input[name=plan][value=signature]').isChecked());
+  ok(`${label} trial: no sideways scroll`, await noHScroll());
+  ok(`${label} trial: marked as the current page, and its button still readable`, await p.evaluate(() => { const a = document.querySelector('#nav a[data-page="trial"]'); if (!a) return false; const cs = getComputedStyle(a); return a.getAttribute("aria-current") === "page" && cs.color !== cs.backgroundColor; }));
+  ok(`${label} trial: says it's a preview`, /preview of the site/.test(await text("#trialMode")));
+  ok(`${label} trial: no dock on the trial page`, (await p.locator("#dock").count()) === 0);
+  const shared = readFileSync(path.join(here, "../../packages/shared/src/trial.ts"), "utf8").match(/TRIAL_TERMS = \[([\s\S]*?)\];/)[1].match(/"([^"]+)"/g).map((s) => s.slice(1, -1));
+  ok(`${label} trial: the terms match the API's`, JSON.stringify(await p.locator("#tTerms li").allTextContents()) === JSON.stringify(shared));
+  await p.screenshot({ path: path.join(out, `${label}-trial-full.png`), fullPage: true });
+  await p.locator('#stepAbout button[type="submit"]').click();
+  ok(`${label} trial: says what's missing`, /Add your studio's name/.test(await text("#aboutMsg")) && (await p.locator("#tStudio").getAttribute("aria-invalid")) === "true");
+  await p.fill("#tStudio", "Breathe Pilates"); await p.fill("#tFirst", "Olivia"); await p.fill("#tLast", "Tan"); await p.fill("#tEmail", "olivia@breathe.sg");
+  await p.locator('#stepAbout button[type="submit"]').click();
+  ok(`${label} trial: asks for the terms`, /accept the trial's terms/.test(await text("#aboutMsg")));
+  await p.check("#tAgree");
+  await p.locator('#stepAbout button[type="submit"]').click(); await p.waitForTimeout(300);
+  ok(`${label} trial: the code step, with the email`, await p.locator("#stepCode").isVisible() && (await text("#codeTo")) === "olivia@breathe.sg" && await p.evaluate(() => document.activeElement?.id === "tCode"));
+  await p.fill("#tCode", "123456"); await p.waitForTimeout(300);
+  ok(`${label} trial: a wrong code is refused`, /didn't work/.test(await text("#codeMsg")));
+  await p.locator("#changeEmail").click();
+  ok(`${label} trial: back to change the email, details kept`, await p.locator("#stepAbout").isVisible() && (await p.inputValue("#tStudio")) === "Breathe Pilates");
+  await p.locator('#stepAbout button[type="submit"]').click(); await p.waitForTimeout(300);
+  await p.fill("#tCode", "000000"); await p.waitForTimeout(500);
+  ok(`${label} trial: ready, on the plan chosen`, (await text("#readyT")) === "Breathe Pilates is ready." && /free trial of Signature runs until/.test(await text("#readySub")) && (await p.locator("#readyNext li").count()) === 3);
+  ok(`${label} trial: says nothing was made`, /no studio was made/.test(await text("#readyMsg")));
+  await p.screenshot({ path: path.join(out, `${label}-trial-ready.png`) });
 
   ok(`${label}: no page errors`, !errors.length, errors.join(" | "));
   await p.close();
@@ -136,6 +173,125 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   await p.locator(".hero .vid-play").click(); await p.waitForTimeout(1000);
   ok("reduced motion: Play starts it, with controls", await p.locator(".hero video").evaluate((v) => !v.paused && v.controls));
   await p.close();
+}
+// --- The trial against a real (local) API: dev sign-in, then POST /v1/trials ---------------------
+if (process.argv.includes("--live")) {
+  const DB = process.env.E2E_DATABASE_URL ?? "postgres://studio:studio@localhost:5432/studio_e2e";
+  const dist = path.join(here, "dist");
+  const site = createServer((req, res) => {
+    const f = path.join(dist, decodeURIComponent(new URL(req.url, "http://x").pathname));
+    if (!f.startsWith(dist) || !existsSync(f)) return res.writeHead(404).end();
+    res.writeHead(200, { "content-type": f.endsWith(".html") ? "text/html" : "application/octet-stream" }).end(readFileSync(f));
+  }).listen(0, "127.0.0.1");
+  await new Promise((r) => site.once("listening", r));
+  const origin = `http://127.0.0.1:${site.address().port}`;
+  const api = spawn("npx", ["tsx", "src/scripts/e2e-server.ts"], { cwd: path.join(here, "../api"), env: { ...process.env, E2E_DATABASE_URL: DB, PORT: "3996", WEB_ORIGIN: origin }, stdio: ["ignore", "pipe", "pipe"], detached: true });
+  let log = "";
+  await new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("The API didn't start: " + log)), 90000);
+    const on = (d) => { log += d; if (/E2E_API_READY/.test(log)) { clearTimeout(t); resolve(); } };
+    api.stdout.on("data", on); api.stderr.on("data", on);
+    api.on("exit", () => reject(new Error("The API stopped: " + log)));
+  });
+  // A copy of the page pointed at the local API (dev sign-in, code 000000).
+  writeFileSync(path.join(dist, "trial-live-test.html"), readFileSync(path.join(dist, "trial.html"), "utf8").replace('data-api=""', 'data-api="http://127.0.0.1:3996"'));
+  try {
+    const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
+    const errors = []; p.on("pageerror", (e) => errors.push(e.message));
+    const signUp = async ({ kind = "new", studio, email, plan = "growth" }) => {
+      await p.goto(`${origin}/trial-live-test.html?plan=${plan}${kind === "existing" ? "&kind=existing" : ""}`); await p.waitForTimeout(400);
+      await p.fill("#tStudio", studio); await p.fill("#tFirst", "Olivia"); await p.fill("#tLast", "Tan"); await p.fill("#tEmail", email); await p.check("#tAgree");
+      await p.locator('#stepAbout button[type="submit"]').click(); await p.waitForTimeout(300);
+      await p.fill("#tCode", "000000");
+      await p.waitForFunction(() => !document.querySelector("#stepReady").hidden || document.querySelector("#codeMsg").textContent || document.querySelector("#aboutMsg").textContent, null, { timeout: 15000 });
+    };
+    ok("live trial: says it's running locally", /Running locally/.test(await (async () => { await p.goto(`${origin}/trial-live-test.html`); await p.waitForTimeout(500); return p.locator("#trialMode").innerText(); })()));
+    await signUp({ studio: "Breathe Pilates", email: "olivia@breathe.sg" });
+    ok("live trial: a new studio is made, on Growth, for 14 days", (await p.locator("#readyT").innerText()) === "Breathe Pilates is ready." && /free trial of Growth runs until/.test(await p.locator("#readySub").innerText()) && !(await p.locator("#readyMsg").innerText()));
+    await signUp({ studio: "Second Studio", email: "olivia@breathe.sg" });
+    ok("live trial: one trial per person", /already had a free trial/.test(await p.locator("#codeMsg").innerText()));
+    await signUp({ kind: "existing", studio: "Harbour Yoga", email: "mei@harbour-yoga.sg", plan: "signature" });
+    ok("live trial: the test studio for studios already on another system", (await p.locator("#readyT").innerText()) === "Your test studio is ready." && /Signature/.test(await p.locator("#readySub").innerText()));
+    await signUp({ studio: "Throwaway", email: "someone@mailinator.com" });
+    ok("live trial: a throwaway inbox goes back to the email", await p.locator("#stepAbout").isVisible() && /email address/.test(await p.locator("#aboutMsg").innerText()) && (await p.locator("#tEmail").getAttribute("aria-invalid")) === "true");
+    ok("live trial: no page errors", !errors.length, errors.join(" | "));
+    await p.close();
+  } finally {
+    try { process.kill(-api.pid); } catch {}
+    try { unlinkSync(path.join(dist, "trial-live-test.html")); } catch {}
+    site.close();
+  }
+}
+// --- The same page with Supabase sign-in: a stand-in for Supabase's email-code endpoints (so no
+// real email is sent), whose ES256 tokens the local API checks against its published keys, the way
+// it checks the real project's.
+if (process.argv.includes("--live")) {
+  const DB = process.env.E2E_DATABASE_URL ?? "postgres://studio:studio@localhost:5432/studio_e2e";
+  const dist = path.join(here, "dist");
+  const KEY = "sb_publishable_standin";
+  const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+  const jwk = { ...publicKey.export({ format: "jwk" }), kid: "standin", alg: "ES256", use: "sig" };
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const sent = [];
+  const sbServer = createServer(async (req, res) => {
+    const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "apikey, content-type, authorization", "access-control-allow-methods": "GET, POST, OPTIONS" };
+    if (req.method === "OPTIONS") return res.writeHead(204, cors).end();
+    const json = (code, o) => res.writeHead(code, { ...cors, "content-type": "application/json" }).end(JSON.stringify(o));
+    const url = new URL(req.url, "http://x").pathname;
+    if (url === "/auth/v1/.well-known/jwks.json") return json(200, { keys: [jwk] });
+    let body = ""; for await (const c of req) body += c;
+    const data = body ? JSON.parse(body) : {};
+    if (req.headers.apikey !== KEY) return json(401, { msg: "Invalid API key" });
+    if (url === "/auth/v1/otp") { sent.push(data.email); return json(200, {}); }
+    if (url === "/auth/v1/verify") {
+      if (data.type !== "email" || data.token !== "424242" || !sent.includes(data.email)) return json(403, { code: 403, error_code: "otp_expired", msg: "Token has expired or is invalid" });
+      const now = Math.floor(Date.now() / 1000);
+      const head = b64({ alg: "ES256", typ: "JWT", kid: "standin" });
+      const claims = b64({ sub: randomUUID(), email: data.email, aud: "authenticated", iss: `${sbBase}/auth/v1`, role: "authenticated", iat: now, exp: now + 3600, user_metadata: { email_verified: true } });
+      const sig = sign("sha256", Buffer.from(`${head}.${claims}`), { key: privateKey, dsaEncoding: "ieee-p1363" }).toString("base64url");
+      return json(200, { access_token: `${head}.${claims}.${sig}`, token_type: "bearer", expires_in: 3600 });
+    }
+    json(404, {});
+  }).listen(0, "127.0.0.1");
+  await new Promise((r) => sbServer.once("listening", r));
+  const sbBase = `http://127.0.0.1:${sbServer.address().port}`;
+  const site = createServer((req, res) => {
+    const f = path.join(dist, decodeURIComponent(new URL(req.url, "http://x").pathname));
+    if (!f.startsWith(dist) || !existsSync(f)) return res.writeHead(404).end();
+    res.writeHead(200, { "content-type": f.endsWith(".html") ? "text/html" : "application/octet-stream" }).end(readFileSync(f));
+  }).listen(0, "127.0.0.1");
+  await new Promise((r) => site.once("listening", r));
+  const origin = `http://127.0.0.1:${site.address().port}`;
+  const api = spawn("npx", ["tsx", "src/scripts/e2e-server.ts"], { cwd: path.join(here, "../api"), env: { ...process.env, E2E_DATABASE_URL: DB, PORT: "3995", WEB_ORIGIN: origin, AUTH_JWKS_URL: `${sbBase}/auth/v1/.well-known/jwks.json`, AUTH_ISSUER: `${sbBase}/auth/v1`, AUTH_AUDIENCE: "authenticated" }, stdio: ["ignore", "pipe", "pipe"], detached: true });
+  let log = "";
+  await new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("The API didn't start: " + log)), 90000);
+    const on = (d) => { log += d; if (/E2E_API_READY/.test(log)) { clearTimeout(t); resolve(); } };
+    api.stdout.on("data", on); api.stderr.on("data", on);
+    api.on("exit", () => reject(new Error("The API stopped: " + log)));
+  });
+  writeFileSync(path.join(dist, "trial-sb-test.html"), readFileSync(path.join(dist, "trial.html"), "utf8").replace('data-api="" data-supabase-url="" data-supabase-key=""', `data-api="http://127.0.0.1:3995" data-supabase-url="${sbBase}" data-supabase-key="${KEY}"`));
+  try {
+    const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
+    const errors = []; p.on("pageerror", (e) => errors.push(e.message));
+    await p.goto(`${origin}/trial-sb-test.html?plan=essentials`); await p.waitForTimeout(500);
+    ok("supabase trial: no preview note", await p.locator("#trialMode").isHidden());
+    await p.fill("#tStudio", "Kiln Pilates"); await p.fill("#tFirst", "Priya"); await p.fill("#tLast", "Nair"); await p.fill("#tEmail", "Priya@Kiln.sg"); await p.check("#tAgree");
+    await p.locator('#stepAbout button[type="submit"]').click(); await p.waitForTimeout(600);
+    ok("supabase trial: Supabase is asked to email a code, with the publishable key", sent.at(-1) === "priya@kiln.sg" && await p.locator("#stepCode").isVisible());
+    await p.fill("#tCode", "111111"); await p.waitForTimeout(800);
+    ok("supabase trial: a wrong code is refused by Supabase", /didn't work/.test(await p.locator("#codeMsg").innerText()));
+    await p.fill("#tCode", "424242");
+    await p.waitForFunction(() => !document.querySelector("#stepReady").hidden || /\S/.test(document.querySelector("#codeMsg").textContent), null, { timeout: 15000 }).catch(() => {});
+    ok("supabase trial: the API checks Supabase's token and makes the studio", (await p.locator("#readyT").innerText().catch(() => "")) === "Kiln Pilates is ready." && /Essentials/.test(await p.locator("#readySub").innerText()), await p.locator("#codeMsg").innerText());
+    ok("supabase trial: nothing says it's a preview", !(await p.locator("#readyMsg").innerText()));
+    ok("supabase trial: no page errors", !errors.length, errors.join(" | "));
+    await p.close();
+  } finally {
+    try { process.kill(-api.pid); } catch {}
+    try { unlinkSync(path.join(dist, "trial-sb-test.html")); } catch {}
+    site.close(); sbServer.close();
+  }
 }
 await b.close();
 for (const [r, n] of results) console.log(r, n);

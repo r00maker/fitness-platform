@@ -1,3 +1,6 @@
+import { trialRoutes } from "./modules/trial/routes.js";
+import { trialGuard } from "./modules/trial/service.js";
+import { clientAppRoutes } from "./modules/client-app/routes.js";
 import Fastify, { type FastifyError } from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -81,7 +84,8 @@ export async function buildApp(opts: { config: Config; db: Db }) {
   await app.register(cors, {
     delegator: (req, cb) => {
       const open = /^\/v1\/public\/(studios\/|widget\.js)/.test(req.url ?? "");
-      cb(null, open ? { origin: "*", methods: ["GET", "HEAD"], credentials: false } : { origin: appOrigins, credentials: false });
+      // The apps change things with PUT, PATCH and DELETE too (the CORS default is only GET, HEAD and POST).
+      cb(null, open ? { origin: "*", methods: ["GET", "HEAD"], credentials: false } : { origin: appOrigins, methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"], credentials: false });
     },
   });
   // Per address. (Keying on the sign-in token would let anyone dodge the limit by sending made-up
@@ -119,6 +123,8 @@ export async function buildApp(opts: { config: Config; db: Db }) {
     async (v1) => {
       await v1.register(auth, { config: opts.config, db: opts.db });
       await v1.register(featureGate);
+      // Once a free trial ends, the studio is read-only until it starts its plan.
+      v1.addHook("preHandler", async (req) => trialGuard(opts.db, req));
       await v1.register(settingsRoutes);
       await v1.register(featureRoutes);
       await v1.register(setupRoutes);
@@ -134,6 +140,8 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(dashboardRoutes);
       await v1.register(reviewRoutes);
       await v1.register(momentRoutes);
+      await v1.register(clientAppRoutes);
+      await v1.register(trialRoutes);
       await v1.register(bookingRoutes);
       await v1.register(waitlistRoutes);
       await v1.register(substituteRoutes);

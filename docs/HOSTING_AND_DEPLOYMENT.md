@@ -28,6 +28,8 @@ Both the API and the worker are the same Docker image (`apps/api/Dockerfile`) st
 | Pilot (first studios) | Render, Railway or Fly.io containers | Their managed Postgres, or Neon / Supabase | Vercel or Cloudflare Pages | No servers to patch, deploys from GitHub, low monthly cost. |
 | Growth | AWS ECS Fargate (or App Runner) | AWS RDS / Aurora PostgreSQL, Multi-AZ | CloudFront + S3, or keep Vercel | Fine-grained network isolation, compliance reports (SOC 2, ISO 27001), regional choice. |
 
+**Chosen for the pilot: Render**, in Singapore. `render.yaml` sets up the API, the worker, the database and the marketing site; see `DEPLOY_RENDER.md`.
+
 The app only depends on containers and standard PostgreSQL, so moving from stage 1 to stage 2 is a migration of infrastructure, not a rewrite.
 
 **For the launch in Singapore, host in Singapore** (for example AWS ap-southeast-1, or a Singapore region on the managed platforms). The launch checklist (payments, data protection, pilots) is in `MARKET_AND_LAUNCH.md`.

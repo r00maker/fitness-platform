@@ -212,6 +212,7 @@ table.cmp { width: 100%; min-width: 620px; border-collapse: collapse; font-size:
         el("p", { class: "amount-note", text: p.extra ?? "" }),
         el("ul", { html: p.items.map((i) => `<li>${tick()}<span>${i}</span></li>`).join("") }),
         el("p", { class: "fitnote", text: fit ? "The one for you" : "" }),
+        el("a", { class: `btn ${fit ? "btn-main" : "btn-line"}`, href: `trial.html?plan=${p.key}`, text: `Try ${p.name} free for 14 days` }),
       );
       plansEl.append(card);
     });

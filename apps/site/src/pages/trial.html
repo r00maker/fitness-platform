@@ -1,0 +1,344 @@
+<title>Start a free trial</title>
+<meta name="description" content="Try the studio platform free for 14 days. No card, nothing to cancel. Set up your new studio, or try a test studio full of sample classes.">
+<style>
+.trial { padding-block: clamp(40px, 6vw, 88px) clamp(64px, 8vw, 112px) }
+/* Wide: the words on the left, the form on the right. Phones: the headline, then the form, then the details. */
+.trial-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); grid-template-areas: "intro card" "more card"; grid-template-rows: auto 1fr; gap: 28px clamp(32px, 6vw, 88px); align-items: start }
+.trial-grid > .trial-copy:first-child { grid-area: intro } .trial-grid > .tcard { grid-area: card } .trial-grid > .trial-more { grid-area: more }
+.trial-grid > .trial-more { margin-top: -6px }
+@media (max-width: 920px) { .trial-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intro" "card" "more"; row-gap: 32px } .trial-grid > .trial-more { margin-top: 0 } }
+.trial-copy { display: flex; flex-direction: column; gap: 22px; min-width: 0 }
+.tcard { scroll-margin-top: 84px }
+.trial-copy h1 { font-size: clamp(2.4rem, 5vw, 4rem); max-width: 12ch }
+.trial-copy h2 { font-size: var(--step-1); letter-spacing: -0.01em; margin-top: 8px }
+.waits { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; color: var(--mute) }
+.waits li { display: flex; gap: 12px } .waits li::before { content: ""; flex: none; width: 14px; height: 2px; margin-top: .75em; background: var(--line-2); border-radius: 2px }
+.trial-alt { color: var(--mute); font-size: .95rem; padding-top: 18px; border-top: 1px solid var(--line) }
+
+/* The form: one card, three steps. */
+.tcard { border: 1px solid var(--line); border-radius: 20px; background: var(--ink-2); padding: clamp(20px, 3.4vw, 34px); display: flex; flex-direction: column; gap: 24px; min-width: 0 }
+.tsteps { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; counter-reset: s; font-size: .88rem; color: var(--mute); flex-wrap: wrap }
+.tsteps li { counter-increment: s; display: flex; align-items: center; gap: 8px; padding-right: 10px }
+.tsteps li::before { content: counter(s); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line-2); font-weight: 600; font-size: .8rem; font-variant-numeric: tabular-nums }
+.tsteps li[aria-current="step"] { color: var(--fg); font-weight: 600 }
+.tsteps li[aria-current="step"]::before { background: var(--fg); color: var(--ink); border-color: var(--fg) }
+.tsteps li.done::before { content: "\2713"; background: color-mix(in srgb, var(--steel) 18%, transparent); color: var(--steel); border-color: transparent }
+.tstep { display: flex; flex-direction: column; gap: 22px; min-width: 0 }
+.tstep h2 { font-size: var(--step-2) }
+.tstep .sub { color: var(--mute); margin-top: -12px }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px }
+legend { padding: 0; font-weight: 600; font-size: .92rem; margin-bottom: 10px }
+.kinds { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px }
+@media (max-width: 560px) { .kinds { grid-template-columns: minmax(0, 1fr) } }
+.pick { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 16px 16px 16px 46px; border: 1px solid var(--line-2); border-radius: 14px; cursor: pointer; transition: border-color .15s, background .15s }
+.pick:hover { border-color: var(--mute) }
+.pick input { position: absolute; left: 16px; top: 18px; width: 18px; height: 18px; margin: 0; accent-color: var(--steel) }
+.pick b { font-weight: 600 }
+.pick span { color: var(--mute); font-size: .9rem; line-height: 1.45 }
+.pick:has(input:checked) { border-color: var(--steel); background: color-mix(in srgb, var(--steel) 7%, transparent) }
+.pick:has(input:focus-visible) { outline: 2px solid var(--steel); outline-offset: 2px }
+.plans3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
+/* Phones: one short row per plan, its name on the left and what it covers on the right. */
+@media (max-width: 560px) {
+  .plans3 { grid-template-columns: minmax(0, 1fr) }
+  .plans3 .pick { flex-direction: row; justify-content: space-between; align-items: baseline; gap: 12px; padding: 13px 14px 13px 44px }
+  .plans3 .pick input { left: 14px; top: 50%; transform: translateY(-50%) }
+}
+.plans3 .pick { padding: 14px 12px 14px 40px }
+.plans3 .pick input { left: 12px; top: 16px }
+.fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px }
+.fields .full { grid-column: 1 / -1 }
+@media (max-width: 520px) { .fields { grid-template-columns: minmax(0, 1fr) } }
+.f { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: .92rem; min-width: 0 }
+.f input { font: 400 1rem/1.3 var(--text); color: var(--fg); background: var(--ink); border: 1px solid var(--line-2); border-radius: 10px; padding: 13px 14px; min-height: 48px; width: 100% }
+.f input:focus-visible { outline: 2px solid var(--steel); outline-offset: 1px }
+.f input[aria-invalid="true"] { border-color: var(--bad) }
+.f small { color: var(--mute); font-weight: 400; font-size: .85rem }
+input.code { font: 600 1.6rem/1 var(--display); letter-spacing: .4em; text-align: center; padding: 14px; font-variant-numeric: tabular-nums }
+.terms { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px }
+.terms summary { cursor: pointer; font-weight: 600; font-size: .92rem; color: var(--steel) }
+.terms ul { margin: 6px 0 0; padding-left: 18px; color: var(--mute); font-size: .92rem; display: flex; flex-direction: column; gap: 6px }
+.agree { display: flex; gap: 12px; align-items: flex-start; font-size: .95rem; cursor: pointer }
+.agree input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--steel) }
+.agree input[aria-invalid="true"] { outline: 2px solid var(--bad); outline-offset: 2px }
+.tbtns { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center }
+.tbtns .btn-main { min-width: 220px }
+.btn[disabled] { opacity: .6; cursor: progress }
+.linkbtn { background: none; border: 0; padding: 4px 0; color: var(--steel); font: 600 .95rem/1.2 var(--text); cursor: pointer; text-decoration: underline; text-underline-offset: 3px }
+.linkbtn:disabled { color: var(--mute); cursor: default; text-decoration: none }
+.msg { font-size: .95rem; color: var(--mute); min-height: 1.4em }
+.msg.bad { color: #ffb4b4 }
+.msg a { color: var(--steel) }
+.mode { font-size: .88rem; color: var(--mute); padding: 10px 14px; border-radius: 10px; border: 1px dashed var(--line-2) }
+.ready-mark { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--steel) 16%, transparent); color: var(--steel) }
+.nexts { list-style: none; counter-reset: n; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0 }
+.nexts li { counter-increment: n; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 4px 12px; padding: 14px 0; border-top: 1px solid var(--line) }
+.nexts li::before { content: counter(n); grid-row: span 2; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line-2); font-size: .82rem; font-weight: 600; color: var(--mute) }
+.nexts b { font-weight: 600 } .nexts span { color: var(--mute); font-size: .95rem }
+.tstep:focus { outline: none }
+</style>
+<!-- BODY -->
+<main id="main">
+  <section class="trial" id="trial" aria-labelledby="trialT">
+    <div class="wrap trial-grid">
+      <div class="trial-copy">
+        <h1 id="trialT">Try it free for 14 days.</h1>
+        <p class="lede">No card, and nothing to cancel. Set up your studio and click around your own timetable before you talk to anyone.</p>
+      </div>
+      <!-- Where it signs up: set data-api to the API's address (e.g. https://api.example.com), and
+           data-supabase-url / data-supabase-key (the publishable key only) for the emailed code.
+           With data-api alone (local development), the API's dev sign-in is used and the code is 000000.
+           With neither, it's a preview: nothing is sent and no studio is made.
+           data-studio-app: the studio app's address, for the "Open the studio app" button at the end. -->
+      <div class="tcard" id="trialCard" data-api="" data-supabase-url="" data-supabase-key="" data-studio-app="">
+        <ol class="tsteps" aria-label="Steps">
+          <li aria-current="step">Your studio</li>
+          <li>Confirm your email</li>
+          <li>Ready</li>
+        </ol>
+        <p class="mode" id="trialMode" hidden></p>
+
+        <form class="tstep" id="stepAbout" novalidate>
+          <fieldset>
+            <legend>Which describes you?</legend>
+            <div class="kinds">
+              <label class="pick"><input type="radio" name="kind" value="new" checked><b>Opening a new studio</b><span>Set up your real studio: classes, packages, your team. Payments switch on when you start your plan.</span></label>
+              <label class="pick"><input type="radio" name="kind" value="existing"><b>Already running a studio</b><span>Try a test studio filled with sample classes and clients. When you switch, we move your data for you.</span></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Plan to try <a class="textlink" href="pricing.html" style="font-weight:500;font-size:.88rem;margin-left:8px">Compare plans</a></legend>
+            <div class="plans3">
+              <label class="pick"><input type="radio" name="plan" value="essentials"><b>Essentials</b><span>One studio</span></label>
+              <label class="pick"><input type="radio" name="plan" value="growth" checked><b>Growth</b><span>Up to 3 locations</span></label>
+              <label class="pick"><input type="radio" name="plan" value="signature"><b>Signature</b><span>Brands, up to 5</span></label>
+            </div>
+          </fieldset>
+          <div class="fields">
+            <label class="f full" for="tStudio"><span id="tStudioL">Studio name</span><input id="tStudio" name="studioName" autocomplete="organization" maxlength="80" required></label>
+            <label class="f" for="tFirst">First name<input id="tFirst" name="firstName" autocomplete="given-name" maxlength="60" required></label>
+            <label class="f" for="tLast">Last name<input id="tLast" name="lastName" autocomplete="family-name" maxlength="60" required></label>
+            <label class="f full" for="tEmail">Email<input id="tEmail" name="email" type="email" autocomplete="email" inputmode="email" maxlength="200" required><small>We'll send a 6-digit code to confirm it. Use one you check every day.</small></label>
+          </div>
+          <div class="terms">
+            <details><summary>The trial's terms</summary><ul id="tTerms"></ul></details>
+            <label class="agree"><input type="checkbox" id="tAgree" name="acceptTerms"> I accept the trial's terms. It's for trying the app, not for running my studio.</label>
+          </div>
+          <div class="tbtns"><button class="btn btn-main" type="submit">Email me a code</button></div>
+          <p class="msg" id="aboutMsg" role="status" aria-live="polite"></p>
+        </form>
+
+        <form class="tstep" id="stepCode" novalidate hidden tabindex="-1">
+          <h2>Check your email</h2>
+          <p class="sub">We sent a 6-digit code to <b id="codeTo"></b>. It lasts an hour.</p>
+          <label class="f" for="tCode">Code<input class="code" id="tCode" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required></label>
+          <div class="tbtns">
+            <button class="btn btn-main" type="submit">Start my free trial</button>
+            <button class="linkbtn" type="button" id="resend">Send a new code</button>
+            <button class="linkbtn" type="button" id="changeEmail">Use a different email</button>
+          </div>
+          <p class="msg" id="codeMsg" role="status" aria-live="polite"></p>
+        </form>
+
+        <div class="tstep" id="stepReady" hidden tabindex="-1" role="region" aria-labelledby="readyT">
+          <div class="ready-mark" aria-hidden="true"></div>
+          <h2 id="readyT"></h2>
+          <p class="sub" id="readySub"></p>
+          <ol class="nexts" id="readyNext"></ol>
+          <div class="tbtns">
+            <a class="btn btn-main" id="openApp" href="#" hidden>Open the studio app</a>
+            <a class="textlink" href="index.html#walkthrough">Book a walkthrough with us</a>
+          </div>
+          <p class="msg" id="readyMsg"></p>
+        </div>
+      </div>
+      <div class="trial-copy trial-more">
+        <ul class="ticks">
+          <li data-tick>Everything on the plan you choose: classes, packages, your team, the booking page and the client app</li>
+          <li data-tick>Already on another system? Try a test studio filled with a busy week of sample classes and clients</li>
+          <li data-tick>Help from the people who build it, by email or WhatsApp</li>
+        </ul>
+        <h2>What waits until you start your plan</h2>
+        <ul class="waits">
+          <li>Taking payments: clients can't pay online during the trial</li>
+          <li>Connecting WhatsApp</li>
+          <li>More than 25 clients</li>
+          <li>Moving your data across: we do that for you when you switch</li>
+        </ul>
+        <p class="small">After 14 days your studio becomes read-only and is kept for 30 days, so you can start your plan without losing anything you set up.</p>
+        <p class="trial-alt">Rather see it with us first? <a class="textlink" href="index.html#walkthrough">Book a 30-minute walkthrough</a></p>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const { $, $$, tick } = window.S;
+  $$("[data-tick]").forEach((n) => n.insertAdjacentHTML("afterbegin", tick(16)));
+  $(".ready-mark").innerHTML = tick(24);
+
+  const card = $("#trialCard");
+  const API = card.dataset.api.replace(/\/$/, "");
+  const SB = card.dataset.supabaseUrl.replace(/\/$/, ""), SBKEY = card.dataset.supabaseKey;
+  // Three ways to run: the real sign-in (Supabase emails the code), local development (the API's
+  // dev sign-in, code 000000), or a preview with nothing sent.
+  const MODE = API && SB && SBKEY ? "live" : API ? "dev" : "preview";
+  const PLAN_NAMES = { essentials: "Essentials", growth: "Growth", signature: "Signature" };
+  // The same as TRIAL_TERMS in packages/shared/src/trial.ts (the check compares them); the API's copy is used when there is one.
+  let terms = [
+    "The trial is for trying the app, free for 14 days, with no card and nothing to cancel.",
+    "It isn't for running your studio: payments can't be taken, WhatsApp can't be connected and there's a limit of 25 clients.",
+    "You may not use the trial to copy the app or build or help build a competing product.",
+    "When it ends, your account stays read-only for 30 days so you can start your plan without losing anything, then it's deleted.",
+  ];
+  const showTerms = () => { const ul = $("#tTerms"); ul.innerHTML = ""; terms.forEach((t) => { const li = document.createElement("li"); li.textContent = t; ul.append(li); }); };
+  showTerms();
+  if (API) fetch(`${API}/v1/public/trial`).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.terms?.length) { terms = d.terms; showTerms(); } }).catch(() => {});
+  if (MODE !== "live") {
+    const m = $("#trialMode"); m.hidden = false;
+    m.textContent = MODE === "dev" ? "Running locally: no email is sent, and the code is 000000." : "This is a preview of the site: no email is sent and no studio is made. The code is 000000.";
+  }
+
+  // From a plan card (?plan=growth) or a link for studios on another system (?kind=existing).
+  const q = new URLSearchParams(location.search);
+  if (PLAN_NAMES[q.get("plan")]) $(`input[name=plan][value=${q.get("plan")}]`).checked = true;
+  if (q.get("kind") === "existing") $("input[name=kind][value=existing]").checked = true;
+  const kind = () => $("input[name=kind]:checked").value;
+  const plan = () => $("input[name=plan]:checked").value;
+  const syncKind = () => { $("#tStudioL").textContent = kind() === "existing" ? "Your studio's name" : "Studio name"; };
+  $$("input[name=kind]").forEach((r) => r.addEventListener("change", syncKind));
+  syncKind();
+
+  const steps = $$(".tsteps li");
+  function show(n) {
+    [$("#stepAbout"), $("#stepCode"), $("#stepReady")].forEach((s, i) => (s.hidden = i !== n));
+    if (n === 2) $("#trialMode").hidden = true;
+    steps.forEach((li, i) => { li.toggleAttribute("aria-current", i === n); if (i === n) li.setAttribute("aria-current", "step"); li.classList.toggle("done", i < n); });
+    const shown = [$("#stepAbout"), $("#stepCode"), $("#stepReady")][n];
+    if (n === 1) $("#tCode").focus(); else if (n === 2) shown.focus();
+    if (card.getBoundingClientRect().top < 0) card.scrollIntoView({ behavior: window.S.reduce ? "auto" : "smooth", block: "start" });
+  }
+  const say = (el, text, bad = false) => { el.textContent = text; el.classList.toggle("bad", bad); };
+  const busy = (form, on, label) => { const b = $("button[type=submit]", form); b.disabled = on; if (label) b.textContent = label; };
+  const post = async (url, body, headers = {}) => {
+    const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
+    let data = null; try { data = await r.json(); } catch {}
+    return { status: r.status, ok: r.ok, data };
+  };
+  const email = () => $("#tEmail").value.trim().toLowerCase();
+
+  // --- Step 1: about the studio, then send the code ---------------------------------------------
+  async function sendCode() {
+    if (MODE !== "live") return true;
+    const r = await post(`${SB}/auth/v1/otp`, { email: email(), create_user: true }, { apikey: SBKEY });
+    if (r.ok) return true;
+    if (r.status === 429) throw new Error("Too many codes asked for. Wait a minute, then try again.");
+    throw new Error("We couldn't send the code. Check your email address and try again.");
+  }
+  $("#stepAbout").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = $("#aboutMsg");
+    const fields = [$("#tStudio"), $("#tFirst"), $("#tLast"), $("#tEmail")];
+    let firstBad = null;
+    fields.forEach((f) => { const v = f.value.trim(); const bad = !v || (f.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)); f.setAttribute("aria-invalid", String(bad)); if (bad && !firstBad) firstBad = f; });
+    const agree = $("#tAgree");
+    agree.setAttribute("aria-invalid", String(!agree.checked));
+    if (firstBad) { say(msg, firstBad.id === "tEmail" && firstBad.value ? "Check your email address: it should look like name@studio.com." : "Add your studio's name, your name and your email.", true); firstBad.focus(); return; }
+    if (!agree.checked) { say(msg, "Please accept the trial's terms to carry on.", true); agree.focus(); return; }
+    busy(e.target, true, "Sending the code…"); say(msg, "");
+    try {
+      await sendCode();
+      $("#codeTo").textContent = email();
+      $("#tCode").value = ""; say($("#codeMsg"), "");
+      show(1);
+      cooldown();
+    } catch (err) { say(msg, err.message, true); }
+    finally { busy(e.target, false, "Email me a code"); }
+  });
+
+  // --- Step 2: the code, then start the trial ---------------------------------------------------
+  let wait = null;
+  function cooldown(s = 30) {
+    const b = $("#resend"); clearInterval(wait); b.disabled = true;
+    const tickDown = () => { b.textContent = s > 0 ? `Send a new code (${s}s)` : "Send a new code"; if (s-- <= 0) { clearInterval(wait); b.disabled = false; } };
+    tickDown(); wait = setInterval(tickDown, 1000);
+  }
+  $("#resend").addEventListener("click", async () => {
+    try { await sendCode(); say($("#codeMsg"), "A new code is on its way."); cooldown(); } catch (err) { say($("#codeMsg"), err.message, true); }
+  });
+  $("#changeEmail").addEventListener("click", () => { show(0); $("#tEmail").focus(); $("#tEmail").select(); });
+  $("#tCode").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 6); if (e.target.value.length === 6) $("#stepCode").requestSubmit(); });
+
+  async function signIn(code) {
+    if (MODE === "live") {
+      const r = await post(`${SB}/auth/v1/verify`, { type: "email", email: email(), token: code }, { apikey: SBKEY });
+      if (r.ok && r.data?.access_token) return r.data.access_token;
+      throw Object.assign(new Error("That code didn't work. Check it, or send a new one."), { field: true });
+    }
+    if (code !== "000000") throw Object.assign(new Error("That code didn't work. Here it's 000000."), { field: true });
+    if (MODE === "preview") return null;
+    const r = await post(`${API}/v1/dev/sign-in`, { email: email() });
+    if (!r.ok) throw new Error("The API's dev sign-in isn't available. Is the API running locally?");
+    return r.data.token;
+  }
+  const ERRORS = {
+    trial_used: "You've already had a free trial. Book a walkthrough and we'll get you set up.",
+    already_customer: "You already have a studio with us, so there's no need for a trial. Talk to us to add another.",
+    email_disposable: "Please use your studio's email address, or one you check every day.",
+  };
+  $("#stepCode").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = $("#codeMsg"), code = $("#tCode").value;
+    if (!/^\d{6}$/.test(code)) { $("#tCode").setAttribute("aria-invalid", "true"); say(msg, "Enter the 6-digit code from the email.", true); $("#tCode").focus(); return; }
+    $("#tCode").setAttribute("aria-invalid", "false");
+    busy(e.target, true, "Setting up your studio…"); say(msg, "");
+    const body = {
+      kind: kind(), plan: plan(), studioName: $("#tStudio").value.trim(), firstName: $("#tFirst").value.trim(), lastName: $("#tLast").value.trim(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Singapore", acceptTerms: true,
+    };
+    try {
+      const token = await signIn(code);
+      let trial = { kind: body.kind, plan: body.plan, daysLeft: 14 };
+      if (token) {
+        const r = await post(`${API}/v1/trials`, body, { authorization: `Bearer ${token}` });
+        if (!r.ok) {
+          const c = r.data?.error?.code;
+          if (c === "email_disposable") { show(0); $("#tEmail").setAttribute("aria-invalid", "true"); $("#tEmail").focus(); say($("#aboutMsg"), ERRORS[c], true); return; }
+          if (r.status === 429) throw new Error("Too many sign-ups from here in the last hour. Please try again later.");
+          throw new Error(ERRORS[c] || r.data?.error?.message || "That didn't go through. Please try again.");
+        }
+        trial = r.data.trial;
+      }
+      ready(body, trial, !token);
+    } catch (err) {
+      say(msg, err.message, true);
+      if (err.field) { $("#tCode").setAttribute("aria-invalid", "true"); $("#tCode").select(); }
+    } finally { busy(e.target, false, "Start my free trial"); }
+  });
+
+  // --- Step 3: ready, and what to do next -------------------------------------------------------
+  function ready(body, trial, preview) {
+    const ends = new Date(Date.now() + (trial.daysLeft ?? 14) * 864e5).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    const planName = PLAN_NAMES[trial.plan] || PLAN_NAMES[body.plan];
+    const test = trial.kind === "existing";
+    $("#readyT").textContent = test ? "Your test studio is ready." : `${body.studioName} is ready.`;
+    $("#readySub").textContent = `Your free trial of ${planName} runs until ${ends}.`;
+    const steps = test
+      ? [["Sign in to the studio app", `With ${email()}. You'll find a busy week of sample classes, instructors and clients.`],
+         ["Try a normal day", "Book someone in, cover a class, pay the team. It's sample data, so nothing reaches anyone."],
+         ["When you're ready, start your plan", "We set up your real studio and move your data across for you, every row checked."]]
+      : [["Sign in to the studio app", `With ${email()}.`],
+         ["Add your classes and packages", "Pick your kind of studio and we fill in sensible starting points to change."],
+         ["When you're ready, start your plan", "Payments and WhatsApp switch on, and everything you set up carries on."]];
+    const ol = $("#readyNext"); ol.innerHTML = "";
+    steps.forEach(([t, d]) => { const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = t; const s = document.createElement("span"); s.textContent = d; li.append(b, s); ol.append(li); });
+    const app = card.dataset.studioApp;
+    if (app) { $("#openApp").href = app; $("#openApp").hidden = false; }
+    $("#readyMsg").textContent = preview ? "This is a preview of the site, so no studio was made." : "";
+    show(2);
+  }
+})();
+</script>

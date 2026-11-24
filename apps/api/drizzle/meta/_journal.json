@@ -246,6 +246,41 @@
       "when": 1794898916071,
       "tag": "0034_booking_page",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795315999455,
+      "tag": "0035_package_start_follows_classes",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795316396132,
+      "tag": "0036_members_book_ahead",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795316992253,
+      "tag": "0037_client_app",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795442478634,
+      "tag": "0038_free_trial",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795497104394,
+      "tag": "0039_app_look_names",
+      "breakpoints": true
     }
   ]
 }

@@ -11,6 +11,7 @@
 .hero-side { display: flex; flex-direction: column; gap: 0 }
 @media (max-width: 900px) { .hero-grid { grid-template-columns: minmax(0, 1fr); align-items: start } }
 .hero .lede { margin-top: 0 }
+.hero-sub { margin: 18px 0 0; font-family: var(--display); font-size: var(--step-2); line-height: 1.25; letter-spacing: -0.02em; color: var(--fg); max-width: 22ch; text-wrap: balance }
 .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px }
 .promises { list-style: none; padding: 0; margin: 26px 0 0; display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--mute); font-size: .95rem }
 .promises li { display: flex; align-items: center; gap: 8px }
@@ -51,7 +52,7 @@
   .js .day.scrolly .day-card.past { transform: translateY(calc(var(--back) * -26px)) scale(calc(1 - var(--back) * .05)); opacity: calc(1 - var(--back) * .45); filter: brightness(.55); pointer-events: none }
 }
 
-/* Simpler, by design: three points. */
+/* What simpler looks like: three points. */
 .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 36px }
 .three > div { padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; min-width: 0 }
 .three h3 { font-size: var(--step-1) }
@@ -118,12 +119,15 @@ form.join .full { grid-column: 1 / -1 }
 <main id="main">
   <section class="hero" aria-labelledby="heroT">
     <div class="wrap hero-grid">
-      <h1 id="heroT">Studio software your front desk learns in an afternoon.</h1>
+      <div class="hero-main">
+        <h1 id="heroT">Simpler, by design.</h1>
+        <p class="hero-sub">Studio software your front desk learns in an afternoon.</p>
+      </div>
       <div class="hero-side">
         <p class="lede">Classes, packs, payments, instructor pay and WhatsApp in one place, with the admin done as the day happens. For pilates, yoga and barre studios, from one room to a dozen locations.</p>
         <div class="cta-row">
-          <a class="btn btn-main" href="#walkthrough">Book a walkthrough</a>
-          <a class="btn btn-line" href="product.html">See the product</a>
+          <a class="btn btn-main" href="trial.html">Start a free trial</a>
+          <a class="btn btn-line" href="#walkthrough">Book a walkthrough</a>
         </div>
         <ul class="promises" aria-label="Our promises">
           <li data-tick>No cut of your sales</li>
@@ -133,7 +137,7 @@ form.join .full { grid-column: 1 / -1 }
       </div>
       
     </div>
-    <figure class="vid film"><video muted playsinline loop preload="none" poster="media/film-hero.jpg" aria-label="The studio's day in a few verbs: plan the week, check them in, answer every message, pay the team, fill the next class"><source data-src="media/film-hero.mp4" type="video/mp4"><source data-src="media/film-hero.webm" type="video/webm"></video></figure>
+    <figure class="vid film"><video muted playsinline loop preload="none" poster="media/film-hero.jpg" aria-label="The studio's day: plan the week, cover sorted, one inbox for every message, pay the team, turn trials into regulars"><source data-src="media/film-hero.mp4" type="video/mp4"><source data-src="media/film-hero.webm" type="video/webm"></video></figure>
   </section>
 
   <section class="day" id="day" aria-labelledby="dayT" style="--n:4">
@@ -162,7 +166,7 @@ form.join .full { grid-column: 1 / -1 }
   <section class="band" aria-labelledby="simplerT">
     <div class="wrap">
       <div class="head">
-        <h2 id="simplerT">Simpler, by design.</h2>
+        <h2 id="simplerT">What simpler looks like.</h2>
         <p class="lede">Most studio software grows a menu item for every feature and leaves you to work it out. Ours shows only what you use, checks your work, and tells you what needs doing.</p>
       </div>
       <div class="three">

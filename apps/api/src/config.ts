@@ -107,6 +107,8 @@ const envSchema = z
 export type Config = z.infer<typeof envSchema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  // On Render, a web service knows its own address; use it until PUBLIC_API_URL is set.
+  if (!env.PUBLIC_API_URL && env.RENDER_EXTERNAL_URL) env = { ...env, PUBLIC_API_URL: env.RENDER_EXTERNAL_URL };
   const parsed = envSchema.safeParse(env);
   if (!parsed.success) {
     throw new Error(`Invalid configuration:\n${parsed.error.issues.map((i) => `- ${i.path.join(".")}: ${i.message}`).join("\n")}`);

@@ -1297,6 +1297,16 @@ body.wc-on { overflow: hidden }
 .bplink .muted { white-space: nowrap; font-size: 13.5px }
 .bplink input { border: 0 !important; box-shadow: none !important; flex: 1; min-width: 80px; padding: 9px 10px 9px 2px; background: transparent; font: inherit; font-weight: 600 }
 .bplink:focus-within { outline: 2px solid var(--accent); outline-offset: 1px }
+/* Setup, Booking page: labels above their fields, like every other setup form. */
+.bpsetup .fl { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; max-width: 560px }
+.bpsetup .fl textarea, .bpsetup .fl select { width: 100%; font-weight: 400 }
+.bpsetup .fl textarea { resize: vertical; min-height: 72px }
+.bpsetup .flhead { display: flex; justify-content: space-between; gap: 12px }
+.bpsetup .count { font-weight: 400; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums }
+.bpsetup .payrow { max-width: 560px }
+.bpsetup .bpbtns { padding-top: 4px; border-top: 1px solid var(--line-soft); margin-top: 4px; padding-top: 14px }
+.bpopts { display: grid; grid-template-columns: repeat(2, minmax(0, 240px)); gap: 12px 16px }
+@media (max-width: 560px) { .bpopts { grid-template-columns: minmax(0, 1fr) } }
 .bpcode { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap }
 .bpcode pre { flex: 1; min-width: 0; margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--sunk); border: 1px solid var(--line); font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-all }
 .bpwhost { padding: 20px; border-radius: 12px; background: repeating-linear-gradient(45deg, var(--sunk), var(--sunk) 10px, var(--bg) 10px, var(--bg) 20px); }
@@ -1366,3 +1376,107 @@ body.bp-on { overflow: hidden }
 .bp-or { display: flex; align-items: center; gap: 10px; color: var(--bpmute); font-size: 12.5px } .bp-or::before, .bp-or::after { content: ""; flex: 1; border-top: 1px solid var(--bpline) }
 .bp-social { display: flex; flex-direction: column; gap: 8px }
 .bp-off { text-align: center; padding: 80px 0 } .bp-off p { color: var(--bpmute) }
+
+/* --- Setup, App look: controls on the left, the studio's app on a phone on the right --------------- */
+.algrid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; max-width: 1180px }
+@media (max-width: 1100px) { .algrid { grid-template-columns: minmax(0, 1fr) } .alside { position: static !important; order: -1 } }
+.alside { position: sticky; top: 16px; display: grid; gap: 10px; justify-items: center }
+.alpresets { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px }
+.alpresets button { display: grid; gap: 4px; text-align: left; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); cursor: pointer }
+.alpresets button[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft) }
+.alpresets button:disabled { cursor: default; opacity: .6 }
+.alpresets b { font-size: 17px; font-weight: 500 }
+.alpresets small { color: var(--muted); font-size: 12px; line-height: 1.35 }
+.alsw { display: flex; gap: 3px }
+.alsw i { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12) }
+.alcolours { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px }
+.alcolours small { display: block; font-weight: 400; font-size: 12px }
+.alcolours input[type=color] { width: 40px; height: 34px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface) }
+.alhex { width: 96px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase }
+.alwarn { margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--fg); font-size: 13px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.alwarn .btn { padding: 4px 10px; font-size: 12px }
+.almotifs button { display: inline-flex; align-items: center; gap: 6px }
+.alpm svg { width: 16px; height: 16px; display: block }
+.alpm svg path, .alpm svg rect, .alp svg path, .alp svg rect { display: none }
+.alpm[data-motif="leaf"] .m-leaf, .alpm[data-motif="wave"] .m-wave, .alpm[data-motif="stamp"] .m-stamp, .alpm[data-motif="spark"] .m-spark,
+.alp[data-motif="leaf"] .m-leaf, .alp[data-motif="wave"] .m-wave, .alp[data-motif="stamp"] .m-stamp, .alp[data-motif="spark"] .m-spark { display: block }
+.alpm .m-leaf, .alpm .m-wave { fill: none; stroke: currentColor; stroke-width: 2 } .alpm .m-stamp, .alpm .m-spark { fill: currentColor }
+.almil button { display: inline-flex; gap: 6px; align-items: center }
+.alerr { margin: 0; color: var(--danger, #b3261e); font-size: 12px; min-height: 1em }
+.al-lock { border-color: var(--accent); background: var(--accent-soft) }
+
+/* The phone: everything inside reads the look's own variables, never the staff app's. */
+.alphone { width: 320px; max-width: 100%; aspect-ratio: 320 / 640; border-radius: 34px; padding: 9px; background: #0d0f12; box-shadow: 0 24px 50px -24px rgba(0,0,0,.45) }
+.alp { position: relative; height: 100%; border-radius: 26px; overflow: hidden; background: var(--a-bg); color: var(--a-ink); font-family: var(--a-body); font-size: 12px; display: flex; flex-direction: column }
+.alp-screen { flex: 1; overflow: hidden; padding: 14px 14px 0; display: grid; align-content: start; gap: 10px }
+.alp-top { display: flex; align-items: center; gap: 7px; font-family: var(--a-disp); font-size: 12px }
+.alp-logo { display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--a-rs); background: var(--a-ac); color: var(--a-on); font-style: normal; font-size: 12px }
+.alp[data-corners="round"] .alp-logo { border-radius: 50% }
+.alp-hello, .alp-h { margin: 4px 0 0; font-family: var(--a-disp); font-size: 25px; line-height: 1.05; font-weight: 500 }
+.alp[data-kind="sans"] .alp-hello, .alp[data-kind="sans"] .alp-h { font-weight: 700; letter-spacing: -.02em }
+.alp[data-motif="wave"] .alp-hello, .alp[data-motif="wave"] .alp-h, .alp[data-motif="wave"] .alp-ms b { font-weight: 800; font-stretch: 78% }
+.alp-wel { margin: -4px 0 0; color: var(--a-mu); font-size: 12px }
+.alp-next { display: grid; padding: 11px 13px; border-radius: var(--a-rl); background: var(--a-ac); color: var(--a-on) }
+.alp-next small { opacity: .85; font-size: 10px }
+.alp-next b { font-family: var(--a-disp); font-size: 17px; font-weight: 500 }
+.alp-card { padding: 11px 13px; border-radius: var(--a-rl); background: var(--a-sf); display: grid; gap: 8px }
+.alp-ms { display: flex; align-items: baseline; gap: 4px; color: var(--a-mu) }
+.alp-ms b { font-family: var(--a-disp); font-size: 30px; line-height: 1; color: var(--a-ink); font-weight: 500 }
+.alp-ms b.sm { font-size: 15px }
+.alp-ms span { margin-left: auto; font-size: 11px }
+.alp-bar { position: relative; height: 9px; margin-right: 16px; border-radius: 999px; background: color-mix(in srgb, var(--a-ink) 8%, var(--a-sf)) }
+.alp[data-corners="square"] .alp-bar { border-radius: 1px }
+.alp-bar i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: var(--a-ac) }
+.alp-bar em { position: absolute; right: -16px; top: 50%; width: 24px; height: 24px; margin-top: -12px; display: grid; place-items: center; border-radius: 50%; background: var(--a-sf); box-shadow: 0 0 0 1.5px var(--a-ln); color: var(--a-ac) }
+.alp svg { width: 14px; height: 14px } .alp .m-leaf, .alp .m-wave { fill: none; stroke: currentColor; stroke-width: 2 } .alp .m-leaf { fill: color-mix(in srgb, var(--a-hi) 55%, transparent) } .alp .m-stamp, .alp .m-spark { fill: var(--a-hi) } .alp .m-wave { stroke: var(--a-hi); stroke-width: 3 }
+.alp-dots { display: flex; gap: 5px } .alp-dots i { width: 11px; height: 11px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--a-ln) } .alp[data-corners="square"] .alp-dots i { border-radius: 1px }
+.alp-dots i.d { background: var(--a-ac); box-shadow: none } .alp-dots i.b { box-shadow: inset 0 0 0 2px var(--a-ac) }
+.alp-badges { display: flex; align-items: center; gap: 5px; padding: 8px 10px; border-radius: var(--a-rl); background: var(--a-sf) }
+.alp-badges small { margin-left: 4px; font-weight: 600 }
+.alp-badge { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--a-ac); color: var(--a-on); font-family: var(--a-disp); font-size: 9px; font-weight: 600 }
+.alp-chips { display: flex; flex-wrap: wrap; gap: 4px }
+.alp-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px solid var(--a-ln); border-radius: var(--a-rs); background: var(--a-sf); font-size: 10px }
+.alp-chip i { width: 6px; height: 6px; border-radius: 50% } .alp-chip.on { border-color: color-mix(in srgb, var(--a-hi) 60%, var(--a-ln)) }
+.alp-list { list-style: none; margin: 0; padding: 0; border-radius: var(--a-rl); background: var(--a-sf); overflow: hidden }
+.alp-list li { position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 9px 9px 9px 12px; border-top: 1px solid var(--a-ln) }
+.alp-list li:first-child { border-top: 0 }
+.alp-list li::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; background: var(--ty) }
+.alp-list b { font-family: var(--a-disp); font-size: 13px; font-weight: 500 }
+.alp-list span { display: grid; min-width: 0 } .alp-list em { font-style: normal; font-weight: 600; font-size: 11px } .alp-list small { color: var(--a-mu); font-size: 10px }
+.alp-btn { padding: 6px 10px; border-radius: var(--a-rs); background: var(--a-ac); color: var(--a-on); font-style: normal; font-weight: 600; font-size: 10px; text-align: center }
+.alp-btn.wide { display: block; margin-top: 8px }
+/* Achievement badges and the celebration: one shape per look (as in the app). */
+.alp[data-motif="leaf"] .alp-badge { border-radius: 12% 50% }
+.alp[data-motif="wave"] .alp-badge { box-shadow: 0 0 0 1.5px var(--a-sf), 0 0 0 2.5px var(--a-hi) }
+.alp[data-motif="stamp"] .alp-badge { background: var(--a-hi); color: var(--a-onhi); border-radius: 2px; rotate: -4deg }
+.alp[data-motif="spark"] .alp-badge { border-radius: 0; clip-path: polygon(50.0% 0.0%, 58.8% 5.9%, 69.1% 3.8%, 75.0% 12.6%, 85.4% 14.6%, 87.4% 25.0%, 96.2% 30.9%, 94.1% 41.2%, 100.0% 50.0%, 94.1% 58.8%, 96.2% 69.1%, 87.4% 75.0%, 85.4% 85.4%, 75.0% 87.4%, 69.1% 96.2%, 58.8% 94.1%, 50.0% 100.0%, 41.2% 94.1%, 30.9% 96.2%, 25.0% 87.4%, 14.6% 85.4%, 12.6% 75.0%, 3.8% 69.1%, 5.9% 58.8%, 0.0% 50.0%, 5.9% 41.2%, 3.8% 30.9%, 12.6% 25.0%, 14.6% 14.6%, 25.0% 12.6%, 30.9% 3.8%, 41.2% 5.9%) }
+.alp-cel-art { height: 90px; display: grid; place-items: center }
+.alp-cel-badge { position: relative; display: grid; place-items: center; width: 68px; height: 68px; border-radius: 50%; background: var(--a-ac); color: var(--a-on); font-family: var(--a-disp); font-size: 26px; font-weight: 500; line-height: 1 }
+.alp[data-motif="leaf"] .alp-cel-badge { border-radius: 12% 50% }
+.alp[data-motif="wave"] .alp-cel-badge { box-shadow: 0 0 0 4px var(--a-sf), 0 0 0 5.5px var(--a-hi) }
+.alp[data-motif="stamp"] .alp-cel-badge { border-radius: 3px; background: var(--a-hi); color: var(--a-onhi); box-shadow: inset 0 0 0 3px var(--a-hi), inset 0 0 0 4px var(--a-onhi); rotate: -4deg }
+.alp[data-motif="spark"] .alp-cel-badge { width: 78px; height: 78px; border-radius: 0; clip-path: polygon(50.0% 0.0%, 58.8% 5.9%, 69.1% 3.8%, 75.0% 12.6%, 85.4% 14.6%, 87.4% 25.0%, 96.2% 30.9%, 94.1% 41.2%, 100.0% 50.0%, 94.1% 58.8%, 96.2% 69.1%, 87.4% 75.0%, 85.4% 85.4%, 75.0% 87.4%, 69.1% 96.2%, 58.8% 94.1%, 50.0% 100.0%, 41.2% 94.1%, 30.9% 96.2%, 25.0% 87.4%, 14.6% 85.4%, 12.6% 75.0%, 3.8% 69.1%, 5.9% 58.8%, 0.0% 50.0%, 5.9% 41.2%, 3.8% 30.9%, 12.6% 25.0%, 14.6% 14.6%, 25.0% 12.6%, 30.9% 3.8%, 41.2% 5.9%) }
+.alp-cel { margin-top: 30px; padding: 18px 14px; border-radius: var(--a-rl); background: var(--a-sf); text-align: center; display: grid; gap: 6px }
+.alp-cel h4 { margin: 0; font-family: var(--a-disp); font-size: 22px; font-weight: 500 }
+.alp-cel p { margin: 0; color: var(--a-mu) }
+.alp-tabs { display: grid; grid-template-columns: repeat(5, 1fr); padding: 9px 4px 12px; border-top: 1px solid var(--a-ln); background: var(--a-sf); color: var(--a-mu); font-size: 9px; text-align: center }
+.alp-tabs .on { color: var(--a-ac); font-weight: 700; position: relative } .alp-tabs .on::before { content: ""; position: absolute; top: -10px; left: 50%; width: 20px; height: 2px; margin-left: -10px; background: var(--a-ac) }
+.algrid .fl { display: grid; gap: 6px; align-items: start; justify-items: start }
+.algrid .fl > select, .algrid .fl > input:not([type=color]) { width: 100%; max-width: 420px }
+.algrid .fl small { font-weight: 400 }
+.algrid .alcolours .fl { justify-items: stretch }
+
+/* --- The free trial: a bar across the top, and Start my plan ---------------------------------- */
+.trialbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: var(--info-soft, #e8eefb); color: var(--fg); font-size: 13px; border: 1px solid color-mix(in srgb, var(--info, #3b5bab) 30%, transparent) }
+.trialbar.ended { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 40%, transparent) }
+.trialbar .btn.sm { padding: 6px 12px; font-size: 13px }
+.trialdone { font-weight: 600 }
+.trial-locked { border-color: var(--warn); background: var(--warn-soft); margin-bottom: 12px }
+.trialask { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.4) }
+.trialask-in { width: min(480px, 100%); background: var(--surface); border-radius: 14px; padding: 20px; display: grid; gap: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.3) }
+.trialask h3 { margin: 0; font-family: var(--display); font-size: 18px }
+.trialplans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
+.trialplans button { display: grid; gap: 2px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); text-align: left; cursor: pointer }
+.trialplans button[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft) }
+.trialplans span { color: var(--muted); font-size: 12px }
+@media (max-width: 520px) { .trialplans { grid-template-columns: 1fr } }

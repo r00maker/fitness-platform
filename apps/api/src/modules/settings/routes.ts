@@ -76,6 +76,7 @@ export async function settingsRoutes(app: FastifyInstance) {
       spotBookingEnabled: org.spotBookingEnabled,
       clientsNeedPackage: org.clientsNeedPackage,
       allowBookingWithoutPackage: org.allowBookingWithoutPackage,
+      membersBookAhead: org.membersBookAhead,
     };
   });
 

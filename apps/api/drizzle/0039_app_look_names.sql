@@ -1,0 +1,2 @@
+-- The app looks are now named for their colours (Classic, Sage, Cobalt, Indigo), not the example studios.
+UPDATE "organizations" SET "app_theme" = jsonb_set("app_theme", '{preset}', to_jsonb(CASE "app_theme"->>'preset' WHEN 'studio' THEN 'classic' WHEN 'linden' THEN 'sage' WHEN 'tidal' THEN 'cobalt' WHEN 'aizome' THEN 'indigo' END)) WHERE "app_theme"->>'preset' IN ('studio', 'linden', 'tidal', 'aizome');

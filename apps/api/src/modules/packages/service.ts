@@ -11,7 +11,7 @@
  *    "allocated" sharing each member has their own share, and the buyer holds whatever
  *    hasn't been given to anyone else, so the shares always add up to the classes left.
  */
-import { and, asc, count, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, ne, sql } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { clientEvent } from "../marketing/events.js";
 import { loyaltyForSpend } from "../marketing/loyalty.js";
@@ -48,6 +48,9 @@ export function expiryFrom(start: Date, value: number, unit: "days" | "weeks" | 
 export const lastDay = (end: Date | null, zone: TZ) => (end ? DateTime.fromJSDate(end, { zone }).minus({ days: 1 }).toISODate()! : null);
 const startOfDayAfter = (date: string, zone: TZ) => DateTime.fromISO(date, { zone }).plus({ days: 1 }).startOf("day").toJSDate();
 const friendly = (d: Date, zone: TZ) => DateTime.fromJSDate(d, { zone }).toFormat("d LLL yyyy");
+const dayOf = (d: Date, zone: TZ) => DateTime.fromJSDate(d, { zone }).startOf("day").toJSDate();
+const plusDays = (d: Date, days: number, zone: TZ) => (days ? DateTime.fromJSDate(d, { zone }).plus({ days }).toJSDate() : d);
+const daysBetween = (a: Date, b: Date, zone: TZ) => Math.round(DateTime.fromJSDate(b, { zone }).diff(DateTime.fromJSDate(a, { zone }), "days").days);
 
 /** Recurring: the classes each period gives (stored on the package when sold). */
 export const planCredits = (p: Pkg) => p.creditsPerCycle ?? p.creditsTotal;
@@ -81,6 +84,87 @@ export function earlyCancelFee(p: Pkg, zone: TZ): number | null {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// When a one-time package starts: the day of the earliest class booked with it
+// ---------------------------------------------------------------------------
+/**
+ * One-time packages start on the day of the earliest class booked with them, so booking a class
+ * earlier than the current start moves the start back instead of refusing the booking (a common
+ * annoyance elsewhere: book the 19th, then the 16th says "no package"). The validity keeps its
+ * length (plus any days the studio added), so the end moves with the start.
+ *  - "At the first class": not started until something is booked; cancelling the earliest class
+ *    (with the class given back) moves the start forward to the next one, or back to not started.
+ *  - "When it's bought": starts on the purchase day or the chosen date; an earlier class moves the
+ *    start back, and the start never moves later than the date it was sold with.
+ * Memberships (recurring) keep their billing dates, so their start never moves.
+ */
+export const startFollowsClasses = (p: Pkg) => p.billing === "one_time";
+
+/** The date the studio set when selling it ("when it's bought"), which the start can't go past. */
+const plannedStart = (p: Pkg) => p.plannedStartAt ?? (p.startsOn === "purchase" ? p.startedAt : null);
+/** Days beyond the validity (extensions, admin changes), read from the current dates when it has started. */
+function extraDaysOf(p: Pkg, zone: TZ) {
+  if (!p.startedAt || !p.expiresAt || !p.validityValue || !p.validityUnit) return p.extraDays;
+  return daysBetween(expiryFrom(p.startedAt, p.validityValue, p.validityUnit, zone), p.expiresAt, zone);
+}
+/** When it would stop working if it started on `start`. */
+function endIfStarting(p: Pkg, start: Date, zone: TZ): Date | null {
+  if (!p.validityValue || !p.validityUnit) return p.expiresAt; // never expires (or a fixed date the studio set)
+  return plusDays(expiryFrom(start, p.validityValue, p.validityUnit, zone), extraDaysOf(p, zone), zone);
+}
+
+/** Bookings that used this package and kept their class: booked, attended, or late-cancelled without the class back. */
+const usedBookings = (packageId: string) =>
+  and(
+    eq(bookings.clientPackageId, packageId),
+    eq(bookings.payment, "package"),
+    inArray(bookings.status, ["confirmed", "late_cancelled"]),
+    sql`not exists (select 1 from ${packageLedger} l where l.booking_id = ${bookings.id} and l.change > 0)`,
+  );
+async function classSpan(db: DbOrTx, packageId: string): Promise<{ first: Date | null; last: Date | null }> {
+  const [r] = await db
+    .select({ first: sql<Date | null>`min(${classSessions.startsAt})`, last: sql<Date | null>`max(${classSessions.startsAt})` })
+    .from(bookings)
+    .innerJoin(classSessions, eq(classSessions.id, bookings.sessionId))
+    .where(usedBookings(packageId));
+  const d = (x: Date | string | null | undefined) => (x ? new Date(x) : null);
+  return { first: d(r?.first), last: d(r?.last) };
+}
+
+/**
+ * Move a one-time package's start (and end) to follow the classes booked with it. Called after a
+ * class is booked with it or given back to it. Writes the change to its history.
+ */
+export async function followClasses(tx: DbOrTx, org: Org, packageId: string, actorId: string | null, now = new Date()) {
+  const p = await getPackage(tx, org.id, packageId, true);
+  if (!startFollowsClasses(p) || p.cancelledAt) return;
+  const zone = orgZone(org);
+  const { first } = await classSpan(tx, p.id);
+  const day = first ? dayOf(first, zone) : null;
+  const planned = plannedStart(p);
+  const target = planned && day ? (day < planned ? day : planned) : planned ?? day;
+  if ((target?.getTime() ?? null) === (p.startedAt?.getTime() ?? null)) return;
+
+  const extraDays = extraDaysOf(p, zone);
+  const expiresAt = target ? endIfStarting({ ...p, extraDays }, target, zone) : null;
+  // Booking the first class meets the "book within N days" deadline for good, even if it's cancelled later.
+  const set: Partial<Pkg> = { startedAt: target, expiresAt, extraDays, plannedStartAt: planned, ...(target || p.startedAt ? { activateBy: null } : {}) };
+  await tx.update(clientPackages).set(set).where(eq(clientPackages.id, p.id));
+
+  const validUntil = lastDay(expiresAt, zone);
+  const on = (d: Date) => DateTime.fromJSDate(d, { zone }).toISODate()!;
+  if (!p.startedAt && target) {
+    await tx.insert(packageLedger).values({ orgId: org.id, packageId: p.id, change: 0, reason: "activated", note: `Starts on ${friendly(target, zone)}, the day of the first class booked with it`, details: { startedOn: on(target), validUntil }, createdBy: actorId, createdAt: now });
+  } else {
+    const note = !target
+      ? "No classes are booked with it any more, so it hasn't started"
+      : target < p.startedAt!
+        ? `Now starts on ${friendly(target, zone)}: an earlier class was booked with it`
+        : `Now starts on ${friendly(target, zone)}: the earliest class booked with it was cancelled`;
+    await tx.insert(packageLedger).values({ orgId: org.id, packageId: p.id, change: 0, reason: "start_moved", note, details: { from: p.startedAt ? on(p.startedAt) : null, to: target ? on(target) : null, validUntil }, createdBy: actorId, createdAt: now });
+  }
+}
+
 export function packageState(p: Pkg, now = new Date()): PackageState {
   if (p.cancelledAt) return "cancelled";
   if (p.expiresAt && now >= p.expiresAt) return "expired";
@@ -112,12 +196,27 @@ async function membersOf(db: DbOrTx, packageIds: string[]) {
   return out;
 }
 
+function startNote(p: Pkg, zone: TZ) {
+  if (!p.validityValue) return null;
+  if (!p.startedAt) return "Starts on the day of the first class you book with it.";
+  const when = friendly(p.startedAt, zone);
+  return `Started on ${when}${p.startsOn === "first_booking" ? ", the day of your first class" : ""}. Booking an earlier class moves the start back to that day, and the end with it.`;
+}
+
 /** What the apps show for a package: state, balance, dates, terms in plain English, and who shares it. */
 export async function presentPackages(db: DbOrTx, org: Org, pkgs: Pkg[], viewerId?: string, now = new Date()) {
   const zone = orgZone(org);
   const members = await membersOf(db, pkgs.map((p) => p.id));
   const names = await classTypeNames(db, [...new Set(pkgs.flatMap((p) => p.classTypeIds))]);
   const planIds = [...new Set(pkgs.map((p) => p.planId).filter((x): x is string => !!x))];
+  const ahead = new Map<string, Map<number, number>>();
+  for (const p of pkgs.filter((x) => x.billing === "recurring")) {
+    for (const h of await heldFor(db, p.id)) {
+      const m = ahead.get(p.id) ?? new Map<number, number>();
+      m.set(h.period!, (m.get(h.period!) ?? 0) + 1);
+      ahead.set(p.id, m);
+    }
+  }
   const plans = new Map(
     (planIds.length ? await db.select({ id: packagePlans.id, description: packagePlans.description, photoFileId: packagePlans.photoFileId }).from(packagePlans).where(inArray(packagePlans.id, planIds)) : []).map((p) => [p.id, p]),
   );
@@ -141,6 +240,8 @@ export async function presentPackages(db: DbOrTx, org: Org, pkgs: Pkg[], viewerI
       ...(mine ? { yourCreditsLeft: p.kind === "unlimited" ? null : p.sharingMode === "allocated" ? mine.allocatedCredits : p.creditsLeft } : {}),
       validUntil: lastDay(p.expiresAt, zone),
       startedOn: p.startedAt ? DateTime.fromJSDate(p.startedAt, { zone }).toISODate() : null,
+      /** How the start works, in plain English, for one-time packages. */
+      startNote: startFollowsClasses(p) ? startNote(p, zone) : null,
       firstBookingBy: !p.startedAt && p.activateBy ? lastDay(p.activateBy, zone) : null,
       purchasedOn: DateTime.fromJSDate(p.purchasedAt, { zone }).toISODate(),
       pricePaid: money(p.pricePaidCents, p.currency),
@@ -156,6 +257,18 @@ export async function presentPackages(db: DbOrTx, org: Org, pkgs: Pkg[], viewerI
               stopped: !!p.stopsRenewingAt,
               commitmentUntil: p.commitmentCycles && p.cycle < p.commitmentCycles ? lastDay(commitmentEnd(p, zone), zone) : null,
               endsEarly: p.endsEarly,
+              /** Classes booked ahead into later periods: taken from each period when it renews. */
+              bookedAhead: [...(ahead.get(p.id) ?? new Map<number, number>()).entries()]
+                .sort((a, b) => a[0] - b[0])
+                .map(([period, classes]) => {
+                  const starts = periodStartFor(p, period, zone);
+                  return {
+                    period,
+                    classes,
+                    periodStarts: DateTime.fromJSDate(starts, { zone }).toISODate(),
+                    note: `${classes === 1 ? "1 class" : `${classes} classes`} booked ahead, ${p.kind === "credits" ? "taken from" : "in"} the period starting ${friendly(starts, zone)}${p.kind === "credits" ? " when it renews" : ""}`,
+                  };
+                }),
             },
           }
         : {}),
@@ -209,6 +322,45 @@ export interface PackageOption {
   reason?: string;
   /** When it would stop working if used now (for "use the one that runs out soonest"). */
   runsOutAt: Date | null;
+  /** Memberships: the class is in a later period, so it's held and taken from that period when it renews. */
+  holdForPeriod?: number;
+  /** When that period starts. */
+  periodStarts?: Date;
+}
+
+// ---------------------------------------------------------------------------
+// Memberships: booking ahead into the next period
+// ---------------------------------------------------------------------------
+/** Bookings held for a later period that still count: booked or late-cancelled, and not given back. */
+const heldBookings = (packageId: string, period?: number) =>
+  and(
+    eq(bookings.clientPackageId, packageId),
+    period === undefined ? sql`${bookings.heldForPeriod} is not null` : eq(bookings.heldForPeriod, period),
+    inArray(bookings.status, ["confirmed", "late_cancelled"]),
+    sql`not exists (select 1 from ${packageLedger} l where l.booking_id = ${bookings.id} and l.reason in ('returned', 'refunded'))`,
+  );
+export async function heldFor(db: DbOrTx, packageId: string, period?: number, ignoreSessionId?: string) {
+  return db
+    .select({ id: bookings.id, period: bookings.heldForPeriod, sessionId: bookings.sessionId })
+    .from(bookings)
+    .where(and(heldBookings(packageId, period), ignoreSessionId ? ne(bookings.sessionId, ignoreSessionId) : undefined));
+}
+
+/** When a later period of a membership starts. */
+export function periodStartFor(p: Pkg, period: number, zone: TZ): Date {
+  let starts = p.expiresAt!;
+  for (let k = p.cycle + 1; k < period; k++) starts = expiryFrom(starts, p.validityValue!, p.validityUnit!, zone);
+  return starts;
+}
+/** Which period of a membership a moment falls in, and when that period starts and ends. */
+export function periodAt(p: Pkg, at: Date, zone: TZ): { period: number; starts: Date; ends: Date } {
+  let period = p.cycle, starts = p.startedAt!, ends = p.expiresAt!;
+  while (at >= ends && period < p.cycle + 60) {
+    starts = ends;
+    ends = expiryFrom(ends, p.validityValue!, p.validityUnit!, zone);
+    period++;
+  }
+  return { period, starts, ends };
 }
 
 /** Bookings this person holds with this package in the class's week (for the package's weekly limit). */
@@ -245,7 +397,10 @@ export async function packageOptions(db: DbOrTx, org: Org, clientId: string, ses
   const out: PackageOption[] = [];
   for (const { p, m } of rows) {
     const state = packageState(p, now);
-    const runsOutAt = p.startedAt ? p.expiresAt : p.validityValue && p.validityUnit ? expiryFrom(now, p.validityValue, p.validityUnit, zone) : null;
+    // One-time packages: a class before the start (or the first class) moves the start to that class's day.
+    const classDay = dayOf(session.startsAt, zone);
+    const moves = startFollowsClasses(p) && (!p.startedAt || classDay < p.startedAt);
+    const runsOutAt = moves ? endIfStarting(p, classDay, zone) : p.startedAt ? p.expiresAt : p.validityValue && p.validityUnit ? expiryFrom(now, p.validityValue, p.validityUnit, zone) : null;
     const no = (reason: string) => out.push({ pkg: p, member: m, ok: false, reason, runsOutAt });
     if (state === "cancelled") { no(p.forfeitedAt ? "It ended because its payment failed" : "It's been cancelled"); continue; }
     const held = holdReason(p, (d) => friendly(d, zone));
@@ -257,7 +412,36 @@ export async function packageOptions(db: DbOrTx, org: Org, clientId: string, ses
     if (p.classTypeIds.length && !p.classTypeIds.includes(session.classTypeId)) { no(`It doesn't cover ${type?.name ?? "this class"}`); continue; }
     // Appointments need a package made for them: an "every class" pack covers group classes only.
     if (type?.kind === "appointment" && !p.classTypeIds.length) { no(`It covers group classes, not ${type.name} appointments`); continue; }
-    if (p.startedAt && session.startsAt < p.startedAt) { no(`It starts on ${friendly(p.startedAt, zone)}, after this class`); continue; }
+    if (!moves && p.startedAt && session.startsAt < p.startedAt) { no(`It starts on ${friendly(p.startedAt, zone)}, after this class`); continue; }
+    // Memberships: a class in a later period is booked ahead and held for that period.
+    if (p.billing === "recurring" && p.startedAt && p.expiresAt && session.startsAt >= p.expiresAt && p.validityValue && p.validityUnit) {
+      const renewsOn = friendly(p.expiresAt, zone);
+      const ends = p.stopsRenewingAt ? renewalEnd(p, zone) : null;
+      if (ends && session.startsAt >= ends) { no(`It ends on ${friendly(new Date(ends.getTime() - 1), zone)}, before this class`); continue; }
+      if (!org.membersBookAhead) { no(`This class is in its next period, which starts when it renews on ${renewsOn}`); continue; }
+      if (p.sharingMode === "allocated") { no(`Classes in its next period can be booked once it renews on ${renewsOn}`); continue; }
+      const at = periodAt(p, session.startsAt, zone);
+      if (p.kind === "credits") {
+        const per = planCredits(p) ?? 0;
+        const held = (await heldFor(db, p.id, at.period, ignoreSessionId)).length;
+        if (held >= per) { no(`All ${per} classes in its period from ${friendly(at.starts, zone)} are already booked ahead`); continue; }
+      }
+      if (p.weeklyLimit && (await weeklyUses(db, p.id, clientId, session.startsAt, zone, ignoreSessionId)) >= p.weeklyLimit) {
+        no(`It allows ${p.weeklyLimit} ${p.weeklyLimit === 1 ? "class" : "classes"} a week, and that week is full`);
+        continue;
+      }
+      out.push({ pkg: p, member: m, ok: true, runsOutAt: at.ends, holdForPeriod: at.period, periodStarts: at.starts });
+      continue;
+    }
+    if (moves && runsOutAt) {
+      // Starting earlier ends it earlier: every class already booked with it must still fit.
+      const { last } = await classSpan(db, p.id);
+      if (last && last >= runsOutAt) {
+        no(`Using it for this class would start it on ${friendly(classDay, zone)} and end it on ${friendly(new Date(runsOutAt.getTime() - 1), zone)}, before the class already booked with it on ${friendly(last, zone)}`);
+        continue;
+      }
+      if (runsOutAt <= now) { no(`Starting on ${friendly(classDay, zone)}, it would have expired on ${friendly(new Date(runsOutAt.getTime() - 1), zone)}`); continue; }
+    }
     if (runsOutAt && session.startsAt >= runsOutAt) { no(`It ${p.startedAt ? "expires" : "would expire"} on ${friendly(new Date(runsOutAt.getTime() - 1), zone)}, before this class`); continue; }
     if (p.kind === "credits") {
       if ((p.creditsLeft ?? 0) <= 0) { no("There are no classes left on it"); continue; }
@@ -280,17 +464,24 @@ export function whyNoPackage(options: PackageOption[], forClient: boolean, name 
   return `${forClient ? "None of your packages" : `None of ${name}'s packages`} can be used for this class: ${list}.`;
 }
 
-/** Take one class from a package for a booking, starting its countdown if this is the first booking. */
+/** Take one class from a package for a booking. A one-time package's start then follows its classes. */
 export async function useCredit(tx: DbOrTx, org: Org, opt: PackageOption, bookingId: string, clientId: string, actorId: string | null, now = new Date()) {
   const p = opt.pkg;
-  if (!p.startedAt && p.startsOn === "first_booking") {
-    const expiresAt = p.validityValue && p.validityUnit ? expiryFrom(now, p.validityValue, p.validityUnit, orgZone(org)) : null;
-    const [started] = await tx.update(clientPackages).set({ startedAt: now, expiresAt }).where(and(eq(clientPackages.id, p.id), isNull(clientPackages.startedAt))).returning({ id: clientPackages.id });
-    if (started) {
-      await tx.insert(packageLedger).values({ orgId: org.id, packageId: p.id, userId: clientId, bookingId, change: 0, reason: "activated", note: "Countdown started with the first booking", details: { validUntil: lastDay(expiresAt, orgZone(org)) }, createdBy: actorId });
-    }
+  if (opt.holdForPeriod) {
+    // Booked ahead: nothing is taken now. The class comes out of that period when it renews.
+    await tx.update(bookings).set({ heldForPeriod: opt.holdForPeriod }).where(eq(bookings.id, bookingId));
+    const starts = friendly(opt.periodStarts!, orgZone(org));
+    await tx.insert(packageLedger).values({
+      orgId: org.id, packageId: p.id, userId: clientId, bookingId, change: 0, reason: "booked", createdBy: actorId,
+      note: p.kind === "credits" ? `Booked ahead: taken from the period starting ${starts} when it renews` : `Booked ahead into the period starting ${starts}`,
+      details: { heldForPeriod: opt.holdForPeriod },
+    });
+    return;
   }
-  if (p.kind !== "credits") return;
+  if (p.kind !== "credits") {
+    await followClasses(tx, org, p.id, actorId, now);
+    return;
+  }
   // Done as a guarded update so two bookings at once can't take the last class twice.
   const [taken] = await tx
     .update(clientPackages)
@@ -307,6 +498,7 @@ export async function useCredit(tx: DbOrTx, org: Org, opt: PackageOption, bookin
     if (!share) throw conflict("package_used_up", "There are no classes left in your share of this package.");
   }
   await tx.insert(packageLedger).values({ orgId: org.id, packageId: p.id, userId: clientId, bookingId, change: -1, reason: "booked", createdBy: actorId });
+  await followClasses(tx, org, p.id, actorId, now);
   if ((p.creditsLeft ?? 0) - 1 <= 0) await clientEvent(tx, org.id, p.ownerId, { type: "package_used_up", ref: p.id }, now);
 }
 
@@ -317,7 +509,7 @@ export async function useCredit(tx: DbOrTx, org: Org, opt: PackageOption, bookin
 export async function returnCredit(
   tx: DbOrTx,
   org: Org,
-  booking: { id: string; clientId: string; clientPackageId: string | null; payment: string },
+  booking: { id: string; clientId: string; clientPackageId: string | null; payment: string; heldForPeriod?: number | null },
   reason: "returned" | "refunded",
   actorId: string | null,
   note?: string,
@@ -326,7 +518,15 @@ export async function returnCredit(
 ): Promise<{ returned: boolean; packageName?: string }> {
   if (booking.payment !== "package" || !booking.clientPackageId) return { returned: false };
   const p = await getPackage(tx, org.id, booking.clientPackageId, true);
-  if (p.kind !== "credits") return { returned: false, packageName: p.name };
+  if (booking.heldForPeriod) {
+    // Booked ahead and not taken yet: the hold is simply released.
+    await tx.insert(packageLedger).values({ orgId: org.id, packageId: p.id, userId: booking.clientId, bookingId: booking.id, change: 0, reason, note: note ? `${note}: the hold on the next period is released` : "The hold on the next period is released", createdBy: actorId });
+    return { returned: true, packageName: p.name };
+  }
+  if (p.kind !== "credits") {
+    await followClasses(tx, org, p.id, actorId, now);
+    return { returned: false, packageName: p.name };
+  }
   await tx.update(clientPackages).set({ creditsLeft: sql`${clientPackages.creditsLeft} + 1` }).where(eq(clientPackages.id, p.id));
   if (p.sharingMode === "allocated") {
     // Back to whoever used it, or to the buyer if that person no longer shares the package.
@@ -338,6 +538,7 @@ export async function returnCredit(
     if (!back) await tx.update(clientPackageMembers).set({ allocatedCredits: sql`coalesce(${clientPackageMembers.allocatedCredits}, 0) + 1` }).where(and(eq(clientPackageMembers.packageId, p.id), eq(clientPackageMembers.userId, p.ownerId)));
   }
   await tx.insert(packageLedger).values({ orgId: org.id, packageId: p.id, userId: booking.clientId, bookingId: booking.id, change: 1, reason, note: note ?? null, createdBy: actorId });
+  await followClasses(tx, org, p.id, actorId, now);
   const state = packageState({ ...p, creditsLeft: (p.creditsLeft ?? 0) + 1 }, now);
   if (state === "expired" || state === "cancelled") {
     flags?.info({
@@ -398,6 +599,7 @@ export async function sellPackage(
       validityUnit: plan.validityUnit,
       startsOn: plan.startsOn,
       activateBy,
+      plannedStartAt: plan.billing === "one_time" ? startedAt : null,
       startedAt,
       expiresAt,
       maxUsers: plan.maxUsers,

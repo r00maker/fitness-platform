@@ -1,0 +1,40 @@
+{
+  "name": "@studio/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "demo": "VITE_DEMO=1 vite",
+    "build": "tsc --noEmit && vite build",
+    "build:demo": "tsc --noEmit && VITE_DEMO=1 vite build --outDir dist-demo --base ./",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "check": "node e2e/check.mjs",
+    "native:sync": "tsc --noEmit && vite build && cap sync",
+    "native:ios": "cap open ios",
+    "native:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/app": "7.0.2",
+    "@capacitor/core": "7.4.2",
+    "@capacitor/keyboard": "7.0.2",
+    "@capacitor/status-bar": "7.0.2",
+    "@studio/shared": "workspace:*",
+    "@supabase/supabase-js": "2.119.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/android": "7.4.2",
+    "@capacitor/cli": "7.4.2",
+    "@capacitor/ios": "7.4.2",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "4.3.4",
+    "jsdom": "25.0.1",
+    "typescript": "5.6.3",
+    "vite": "5.4.11",
+    "vitest": "2.1.8"
+  }
+}

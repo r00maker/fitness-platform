@@ -44,7 +44,7 @@ describe("package types", () => {
       describePackage({ kind: "credits", credits: 5, validityValue: 60, validityUnit: "days", startsOn: "first_booking", activateWithinDays: 30, maxUsers: 3, sharingMode: "pool" }, ["Reformer Pilates", "Barre"]),
     ).toEqual([
       "5 classes",
-      "Valid for 60 days from the first booking",
+      "Valid for 60 days from the first class",
       "Book the first class within 30 days of buying, or it expires",
       "Up to 3 people can share it, using one pool of credits",
       "Reformer Pilates and Barre only",
@@ -134,13 +134,14 @@ describe("booking with packages", () => {
     expect((await s.c3.call("POST", "/bookings", { sessionId: c, complimentary: true })).status).toBe(403);
   });
 
-  it("counts down from the first booking, and expires if nothing is booked in time", async () => {
+  it("counts down from the first class, and expires if nothing is booked in time", async () => {
     const { s, mk, plan, sell, mine } = await setup();
     const p = await plan({ startsOn: "first_booking", validityValue: 30, validityUnit: "days", activateWithinDays: 14 });
     const sold = await sell(s.c1.id, p.id);
-    expect(sold).toMatchObject({ state: "not_started", validUntil: null, firstBookingBy: dayOffset(14) });
+    expect(sold).toMatchObject({ state: "not_started", validUntil: null, firstBookingBy: dayOffset(14), startNote: "Starts on the day of the first class you book with it." });
+    // It starts on the day of the class, not the day it was booked, so booking ahead wastes nothing.
     await s.c1.call("POST", "/bookings", { sessionId: await mk() });
-    expect((await mine(s.c1))[0]).toMatchObject({ state: "active", validUntil: dayOffset(29), startedOn: dayOffset(0) });
+    expect((await mine(s.c1))[0]).toMatchObject({ validUntil: dayOffset(32), startedOn: dayOffset(3), firstBookingBy: null });
 
     // Dev bought one but never booked: once the deadline passes it can't be used.
     const devs = await sell(s.c2.id, p.id);
@@ -155,9 +156,78 @@ describe("booking with packages", () => {
     expect((await s.c1.call("POST", "/bookings", { sessionId: await mk() })).body.error.message).toMatch(/it expires on .* before this class/);
 
     const later = await sell(s.c2.id, (await plan({ name: "Monthly", kind: "unlimited", credits: null, validityValue: 1, validityUnit: "months" })).id, { startDate: dayOffset(5) });
-    expect(later.state).toBe("not_started");
-    expect((await s.c2.call("POST", "/bookings", { sessionId: await mk() })).body.error.message).toMatch(/it starts on .* after this class/);
+    expect(later).toMatchObject({ state: "not_started", startedOn: dayOffset(5) });
     expect((await s.c2.call("POST", "/bookings", { sessionId: await mk({ date: dayOffset(6) }) })).body.payment).toBe("package");
+  });
+});
+
+describe("a one-time package's start follows the classes booked with it", () => {
+  const ids = (r: { body: { id: string } }) => r.body.id;
+
+  it("an earlier class moves the start back instead of saying there's no package, and cancelling moves it forward", async () => {
+    const { s, mk, plan, sell, mine } = await setup();
+    const p = await sell(s.c1.id, (await plan({ startsOn: "first_booking", validityValue: 30, validityUnit: "days" })).id);
+    const later = await s.c1.call("POST", "/bookings", { sessionId: await mk({ date: dayOffset(6) }) });
+    expect(later.status).toBe(201);
+    expect((await mine(s.c1))[0]).toMatchObject({ startedOn: dayOffset(6), validUntil: dayOffset(35) });
+
+    // The common complaint elsewhere: book the 19th, then the 16th says "no package". Here it just books.
+    const earlier = await s.c1.call("POST", "/bookings", { sessionId: await mk({ date: dayOffset(3) }) });
+    expect(earlier.status, JSON.stringify(earlier.body)).toBe(201);
+    expect(earlier.body.payment).toBe("package");
+    expect((await mine(s.c1))[0]).toMatchObject({ startedOn: dayOffset(3), validUntil: dayOffset(32), creditsLeft: 8 });
+
+    // Cancelling the earliest (in time, class back) moves the start forward to the next one...
+    await s.c1.call("POST", `/bookings/${ids(earlier)}/cancel`, {});
+    expect((await mine(s.c1))[0]).toMatchObject({ startedOn: dayOffset(6), validUntil: dayOffset(35), creditsLeft: 9 });
+    // ...and cancelling the last one means it hasn't started.
+    await s.c1.call("POST", `/bookings/${ids(later)}/cancel`, {});
+    expect((await mine(s.c1))[0]).toMatchObject({ state: "not_started", startedOn: null, validUntil: null, creditsLeft: 10 });
+
+    const h = (await s.c1.call("GET", `/client-packages/${p.id}`)).body;
+    expect(h.changes.map((c: { kind: string; title: string }) => c.kind)).toEqual(["purchase", "activated", "start_moved", "start_moved", "start_moved"]);
+    expect(h.changes[2].title).toMatch(/^Start moved to \d+ \w+ \d{4}: valid until \d+ \w+ \d{4}$/);
+    expect(h.changes[4].title).toBe("Not started: no classes booked with it");
+  });
+
+  it("a package sold with a start date moves back for an earlier class, but never later than that date", async () => {
+    const { s, mk, plan, sell, mine } = await setup();
+    await sell(s.c1.id, (await plan({ validityValue: 30, validityUnit: "days" })).id, { startDate: dayOffset(5) });
+    const b = await s.c1.call("POST", "/bookings", { sessionId: await mk({ date: dayOffset(2) }) });
+    expect(b.status, JSON.stringify(b.body)).toBe(201);
+    expect((await mine(s.c1))[0]).toMatchObject({ startedOn: dayOffset(2), validUntil: dayOffset(31) });
+    await s.c1.call("POST", `/bookings/${ids(b)}/cancel`, {});
+    expect((await mine(s.c1))[0]).toMatchObject({ startedOn: dayOffset(5), validUntil: dayOffset(34) });
+  });
+
+  it("keeps days the studio added when the start moves", async () => {
+    const { s, mk, plan, sell, mine } = await setup();
+    const p = await sell(s.c1.id, (await plan({ startsOn: "first_booking", validityValue: 30, validityUnit: "days" })).id);
+    await s.c1.call("POST", "/bookings", { sessionId: await mk({ date: dayOffset(6) }) });
+    await s.owner.call("POST", `/client-packages/${p.id}/adjust`, { validUntil: dayOffset(45), reason: "Travelling" });
+    await s.c1.call("POST", "/bookings", { sessionId: await mk({ date: dayOffset(3) }) });
+    expect((await mine(s.c1))[0]).toMatchObject({ startedOn: dayOffset(3), validUntil: dayOffset(42) });
+  });
+
+  it("refuses only when starting earlier would end it before a class already booked, and says why", async () => {
+    const { s, mk, plan, sell } = await setup();
+    await sell(s.c1.id, (await plan({ startsOn: "first_booking", validityValue: 30, validityUnit: "days" })).id);
+    // The studio books it (clients can't book that far ahead).
+    const far = await s.owner.call("POST", "/bookings", { sessionId: await mk({ date: dayOffset(40) }), clientId: s.c1.id, acknowledge: ["outside_booking_window"] });
+    expect(far.status, JSON.stringify(far.body)).toBe(201);
+    const r = await s.c1.call("POST", "/bookings", { sessionId: await mk({ date: dayOffset(3) }) });
+    expect(r.body.error.message).toMatch(/would start it on .* and end it on .*, before the class already booked with it on/);
+  });
+
+  it("moving a booking keeps the package working", async () => {
+    const { s, mk, plan, sell, mine } = await setup();
+    await sell(s.c1.id, (await plan({ startsOn: "first_booking", validityValue: 30, validityUnit: "days", activateWithinDays: 1 })).id);
+    const b = await s.c1.call("POST", "/bookings", { sessionId: await mk({ date: dayOffset(6) }) });
+    // The first-booking deadline was met, even though moving briefly leaves nothing booked.
+    await db.update(clientPackages).set({ activateBy: new Date(Date.now() - 1000) });
+    const moved = await s.c1.call("POST", `/bookings/${ids(b)}/move`, { targetSessionId: await mk({ date: dayOffset(4) }) });
+    expect(moved.status, JSON.stringify(moved.body)).toBe(200);
+    expect((await mine(s.c1))[0]).toMatchObject({ startedOn: dayOffset(4), creditsLeft: 9 });
   });
 
   it("enforces a package's weekly limit", async () => {

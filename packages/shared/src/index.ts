@@ -13,3 +13,5 @@ export * from "./sales.js";
 export * from "./features.js";
 export * from "./payments.js";
 export * from "./booking.js";
+export * from "./app-theme.js";
+export * from "./trial.js";
