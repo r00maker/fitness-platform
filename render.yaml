@@ -85,6 +85,10 @@ services:
     staticPublishPath: apps/site/dist
     autoDeploy: true
     envVars:
+      # "preview" while we're testing: the trial page sends no email and makes no studio, and
+      # says so. Change to "live" once email sign-in is set up (docs/DEPLOY_RENDER.md).
+      - key: SITE_TRIAL
+        value: preview
       - key: SITE_API_URL
         value: https://api.skedoo.io
       - key: SITE_SUPABASE_URL
