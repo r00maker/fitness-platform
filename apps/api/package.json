@@ -18,18 +18,18 @@
     "platform:staff": "tsx --env-file=.env src/scripts/platform-staff.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.8.0",
-    "@fastify/cors": "^11.4.1",
+    "@anthropic-ai/sdk": "^1.12.0",
+    "@fastify/cors": "^11.4.3",
     "@fastify/helmet": "^13.2.0",
-    "@fastify/rate-limit": "^11.2.2",
+    "@fastify/rate-limit": "^11.3.0",
     "@studio/shared": "workspace:*",
     "csv-parse": "7.0.3",
     "drizzle-orm": "^0.45.4",
     "exceljs": "4.4.0",
     "fastify": "^5.12.8",
     "fastify-plugin": "^6.0.1",
-    "jose": "^6.2.17",
-    "libphonenumber-js": "1.12.9",
+    "jose": "^6.2.18",
+    "libphonenumber-js": "1.13.17",
     "luxon": "^3.7.2",
     "pg": "^8.23.1",
     "zod": "^4.6.7"

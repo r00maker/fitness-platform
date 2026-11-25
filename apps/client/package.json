@@ -21,7 +21,7 @@
     "@capacitor/keyboard": "7.0.2",
     "@capacitor/status-bar": "7.0.2",
     "@studio/shared": "workspace:*",
-    "@supabase/supabase-js": "2.119.0",
+    "@supabase/supabase-js": "2.119.2",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
