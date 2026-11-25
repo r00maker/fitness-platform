@@ -13,7 +13,7 @@ The product's depth matches or beats the market for an MVP. What stands between 
 These answer the most common complaints about the incumbents: a confusing back end (Mindbody), fees and patchy support (Momence), surprise costs and contracts (Glofox).
 
 - **Home with a to-do list.** "Needs attention" is sorted urgent / soon / when you can, with one button each. Most competitors open on a calendar or a wall of charts.
-- **Plain English and soft warnings.** Mistakes are flagged and confirmed, never silently blocked, and every consequence is spelled out ("Attendance locks at midnight tonight; until then, no-show fees follow it").
+- **Soft warnings, clearly worded.** Mistakes are flagged and confirmed, never silently blocked, and every consequence is spelled out ("Attendance locks at midnight tonight; until then, no-show fees follow it").
 - **The instructor phone flow.** Waiver gaps in red, health notes, "Mark everyone present", full class names.
 - **Fit for Southeast Asia:**
   - the WhatsApp inbox;

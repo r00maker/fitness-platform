@@ -11,3 +11,5 @@ apps/site/media/stills/
 apps/site/media/.preview/
 apps/client/dist-demo/
 apps/client/e2e/shots/
+apps/help/.shots/
+apps/help/shots/

@@ -29,7 +29,7 @@ const file = "file://" + path.join(__dirname, "ft-test.html");
     const go = async (id) => { await p.evaluate((x) => (location.hash = x), id); await p.waitForTimeout(150); };
     const shot = (n, full = true) => p.screenshot({ path: path.join(outDir, `${label}-${n}.png`), fullPage: full });
     const role = async (r) => { await p.evaluate((x) => document.querySelector(`#roles [data-role="${x}"]`).click(), r); await p.waitForTimeout(150); };
-    const nav = () => p.evaluate(() => [...document.querySelectorAll("#side .navitem span:not(.count)")].map((x) => x.textContent));
+    const nav = () => p.evaluate(() => [...document.querySelectorAll("#side .navitem:not(.helplink) span:not(.count)")].map((x) => x.textContent));
     const tabs = () => p.evaluate(() => [...document.querySelectorAll(".hubtabs [data-hubtab]")].map((b) => b.dataset.hubtab));
     const toast = () => p.locator(".toast").last().textContent().catch(() => "");
     const noHScroll = () => p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);

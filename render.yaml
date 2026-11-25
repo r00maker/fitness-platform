@@ -38,6 +38,9 @@ envVarGroups:
         value: Skedoo <hello@skedoo.io>
       - key: PUBLIC_API_URL
         value: https://api.skedoo.io
+      # Signs the help centre's links (staff only, 12 hours). Render makes one up once.
+      - key: HELP_LINK_SECRET
+        generateValue: true
       # The websites allowed to call the API from a browser (comma-separated).
       - key: CORS_ORIGINS
         value: https://skedoo.io,https://www.skedoo.io,https://studio-site-tkib.onrender.com

@@ -1480,3 +1480,7 @@ body.bp-on { overflow: hidden }
 .trialplans button[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft) }
 .trialplans span { color: var(--muted); font-size: 12px }
 @media (max-width: 520px) { .trialplans { grid-template-columns: 1fr } }
+/* The help centre link at the bottom of the menu: an ordinary menu item that opens a new tab. */
+.navitem.helplink { text-decoration: none }
+.navitem.helplink .helpout { width: 13px; height: 13px; margin-left: auto; opacity: .6 }
+

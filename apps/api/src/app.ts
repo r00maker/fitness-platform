@@ -23,6 +23,7 @@ import { salesRoutes } from "./modules/sales/routes.js";
 import { shopRoutes } from "./modules/shop/routes.js";
 import { writerRoutes } from "./modules/assistant/writer.js";
 import { emailRoutes } from "./modules/comms/email.js";
+import { helpLinkRoutes, helpSiteRoutes } from "./modules/help/routes.js";
 import { bookingRoutes } from "./modules/bookings/routes.js";
 import { catalogRoutes } from "./modules/catalog/routes.js";
 import { clientRoutes } from "./modules/clients/routes.js";
@@ -118,6 +119,8 @@ export async function buildApp(opts: { config: Config; db: Db }) {
   });
 
   app.get("/health", { config: { public: true } }, async () => ({ ok: true }));
+  // The help centre's pages, for staff with a link from the app (see modules/help).
+  await app.register(helpSiteRoutes);
 
   await app.register(
     async (v1) => {
@@ -170,6 +173,7 @@ export async function buildApp(opts: { config: Config; db: Db }) {
       await v1.register(shopRoutes);
       await v1.register(writerRoutes);
       await v1.register(emailRoutes);
+      await v1.register(helpLinkRoutes);
     },
     { prefix: "/v1" },
   );

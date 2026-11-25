@@ -60,6 +60,10 @@ const envSchema = z
     HQ_ASSISTANT_EFFORT: z.enum(["medium", "high", "xhigh", "max"]).default("high"),
     /** Where the help guide lives (the assistant reads it). Defaults to ./docs next to the app. */
     HELP_DOCS_DIR: z.string().optional(),
+    /** The built help centre (apps/help/dist); found by itself in the container and locally. */
+    HELP_SITE_DIR: z.string().optional(),
+    /** Signs the help centre's links (staff only, 12 hours). Required in production for the help centre. */
+    HELP_LINK_SECRET: z.string().min(32).optional(),
     /**
      * Email in the Communication inbox. Register an OAuth app with Google (Gmail API) and/or
      * Microsoft (Graph, Mail.ReadWrite + Mail.Send), with the redirect address
