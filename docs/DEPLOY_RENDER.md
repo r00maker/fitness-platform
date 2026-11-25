@@ -25,7 +25,7 @@
 
 ## Check it
 
-Our addresses are `https://studio-api-td8z.onrender.com` (the API) and `https://studio-site-tkib.onrender.com` (the site). The plain `studio-api.onrender.com` and `studio-site.onrender.com` belong to another Render account.
+Our addresses are `https://skedoo.io` (the site, also `www.skedoo.io`) and `https://api.skedoo.io` (the API). Render's own addresses still work: `https://studio-site-tkib.onrender.com` and `https://studio-api-td8z.onrender.com`. The plain `studio-api.onrender.com` and `studio-site.onrender.com` belong to another Render account.
 - `https://studio-api-td8z.onrender.com/health` shows `{"ok":true}`.
 - `https://studio-site-tkib.onrender.com/trial.html` shows the trial page with no "preview" note.
 
@@ -36,11 +36,25 @@ If you ever recreate the services and Render gives them different addresses, cha
 Supabase dashboard, project `lezcugmdxretpofadjio`:
 1. **Authentication → Emails → SMTP Settings:** add your own email sender, such as Postmark on your domain. Until you do, Supabase sends only a couple of emails an hour and doesn't let you edit the templates.
 2. **Authentication → Emails → Templates:** put `{{ .Token }}` in **Magic Link** and in **Confirm signup**, so the email carries the 6-digit code the trial page asks for.
-3. **Authentication → URL Configuration:** set the Site URL to the site's address (`https://studio-site-tkib.onrender.com`, or your domain later).
+3. **Authentication → URL Configuration:** set the Site URL to the site's address (`https://skedoo.io`).
+
+## The skedoo.io domain
+
+1. **In Render:**
+   - **studio-site → Settings → Custom Domains:** add `skedoo.io`. If Render doesn't add `www.skedoo.io` by itself, add that too; Render sends one to the other.
+   - **studio-api → Settings → Custom Domains:** add `api.skedoo.io`.
+2. **At the domain's DNS:** add the records Render shows next to each domain. They're normally:
+   - `skedoo.io`: an ALIAS, ANAME or flattened CNAME to `studio-site-tkib.onrender.com` if your DNS offers one, otherwise the A record Render shows;
+   - `www`: a CNAME to `studio-site-tkib.onrender.com`;
+   - `api`: a CNAME to `studio-api-td8z.onrender.com`.
+
+   Remove any other A or AAAA record on `skedoo.io` (a registrar's parking page, for example). **Never touch the MX records:** they deliver your email. If the domain has CAA records, they must allow `letsencrypt.org` and `pki.goog`.
+3. **Wait for Render** to show each domain as **Verified** with its certificate issued. This is usually minutes, sometimes an hour or two.
+4. **Then merge the change** that switches `PUBLIC_API_URL` and `SITE_API_URL` to `https://api.skedoo.io`. If it's merged before the certificate is issued, the trial page can't reach the API. `CORS_ORIGINS` already lists the domain and Render's address, so both work during the switch.
+5. **Supabase:** Authentication → URL Configuration → set the Site URL to `https://skedoo.io`.
 
 ## Later
 
-- **Your own domain:** add `api.yourdomain` to `studio-api` and `yourdomain` to `studio-site` (Settings → Custom Domains), then update the three addresses above and the Supabase Site URL.
 - **More settings, as each part goes live:** add these to the `studio-api-settings` group as secrets:
   - email (`EMAIL_PROVIDER=postmark`, `POSTMARK_TOKEN`, `EMAIL_FROM`);
   - payments (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`);

@@ -1,10 +1,12 @@
 # Render Blueprint: the API, its background worker and the Postgres database (Singapore), and the
 # marketing site with the free trial page. How to use it: docs/DEPLOY_RENDER.md.
 #
-# The addresses below are the ones Render gave our services (the plain names belong to someone
-# else on Render). They are applied on every sync, so change them here, not in the dashboard:
-# PUBLIC_API_URL and CORS_ORIGINS (the API) and SITE_API_URL (the site) must match the real
-# addresses, or the site would talk to another account's server.
+# Our addresses: skedoo.io (the site, with www) and api.skedoo.io (the API), as custom domains on
+# studio-site and studio-api. Render's own addresses (studio-site-tkib.onrender.com and
+# studio-api-td8z.onrender.com) keep working; the plain studio-api / studio-site names belong to
+# another Render account. These values are applied on every sync, so change them here, not in the
+# dashboard: PUBLIC_API_URL and CORS_ORIGINS (the API) and SITE_API_URL (the site) must be ours, or
+# the site would talk to someone else's server.
 
 databases:
   - name: studio-db
@@ -35,10 +37,10 @@ envVarGroups:
       - key: EMAIL_FROM
         value: Skedoo <hello@skedoo.io>
       - key: PUBLIC_API_URL
-        value: https://studio-api-td8z.onrender.com
+        value: https://api.skedoo.io
       # The websites allowed to call the API from a browser (comma-separated).
       - key: CORS_ORIGINS
-        value: https://studio-site-tkib.onrender.com
+        value: https://skedoo.io,https://www.skedoo.io,https://studio-site-tkib.onrender.com
 
 services:
   - type: web
@@ -84,7 +86,7 @@ services:
     autoDeploy: true
     envVars:
       - key: SITE_API_URL
-        value: https://studio-api-td8z.onrender.com
+        value: https://api.skedoo.io
       - key: SITE_SUPABASE_URL
         value: https://lezcugmdxretpofadjio.supabase.co
       # The project's publishable key (sb_publishable_...). Render asks for it when you create
