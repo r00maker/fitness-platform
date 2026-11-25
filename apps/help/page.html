@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skedoo Help Centre</title>
+<meta name="description" content="How Skedoo works, in plain English, with troubleshooting for common problems.">
+<!-- For signed-in studio staff only: never indexed. -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230c6156'/%3E%3Ccircle cx='12' cy='16.5' r='5' fill='none' stroke='%23fff' stroke-width='2.6'/%3E%3Ccircle cx='20' cy='16.5' r='5' fill='none' stroke='%23fff' stroke-width='2.6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f6f4; --surface: #ffffff; --sunk: #eef1ee; --line: #dfe5e1; --fg: #17201c; --muted: #5b6a63;
+  --accent: #0c6156; --accent-fg: #ffffff; --accent-soft: #e3f0ec; --mark: #fdeccc; --mark-fg: #3d2a00; --hl: #e2622f;
+  --display: "Manrope", ui-sans-serif, system-ui, sans-serif; --text: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: dark; --bg: #0f1513; --surface: #161e1b; --sunk: #1c2622; --line: #2a3631; --fg: #e4ebe8; --muted: #97a59f; --accent: #4cc1ad; --accent-fg: #0b1210; --accent-soft: #163a33; --mark: #4a3a12; --mark-fg: #fff3d6 }
+}
+:root[data-theme="dark"] { color-scheme: dark; --bg: #0f1513; --surface: #161e1b; --sunk: #1c2622; --line: #2a3631; --fg: #e4ebe8; --muted: #97a59f; --accent: #4cc1ad; --accent-fg: #0b1210; --accent-soft: #163a33; --mark: #4a3a12; --mark-fg: #fff3d6 }
+* { box-sizing: border-box }
+html { -webkit-text-size-adjust: 100% }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 16px/1.6 var(--text); -webkit-font-smoothing: antialiased }
+a { color: var(--accent); text-underline-offset: 3px }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px }
+h1, h2, h3 { font-family: var(--display); letter-spacing: -0.02em; line-height: 1.2; margin: 0 }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0) }
+
+/* Top bar and search */
+.top { background: var(--surface); border-bottom: 1px solid var(--line) }
+.top .wrap { display: flex; align-items: center; gap: 10px; min-height: 60px }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--fg); font: 800 17px/1 var(--display); letter-spacing: -0.02em }
+.brand svg { flex: none }
+.brand span { color: var(--muted); font-weight: 600 }
+.hero { background: var(--surface); border-bottom: 1px solid var(--line); padding: 28px 0 30px }
+.hero h1 { font-size: clamp(26px, 4vw, 36px) }
+.hero p { color: var(--muted); margin: 6px 0 18px }
+.search { position: relative; max-width: 720px }
+.search svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none }
+.search input { width: 100%; font: 500 17px/1 var(--text); color: var(--fg); background: var(--bg); border: 1.5px solid var(--line); border-radius: 999px; padding: 15px 96px 15px 48px; -webkit-appearance: none; appearance: none }
+.search input::-webkit-search-cancel-button, .search input::-webkit-search-decoration { -webkit-appearance: none; display: none }
+.search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft) }
+.search .clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font: 600 14px/1 var(--text); color: var(--muted); background: none; border: 0; padding: 10px 12px; border-radius: 999px; cursor: pointer }
+.search .clear:hover { color: var(--fg); background: var(--sunk) }
+.hint { color: var(--muted); font-size: 14px; margin-top: 10px }
+.hint button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0 2px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px }
+kbd { font: 600 12px/1 var(--text); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 2px 6px; background: var(--surface) }
+
+main { padding: 28px 0 64px }
+main:focus { outline: none }
+/* On an article, the search stays but the greeting steps aside. */
+body.reading .hero { padding: 14px 0 }
+body.reading .hero h1, body.reading .hero > .wrap > p:not(.hint), body.reading .hint { display: none }
+
+/* Home: the sections */
+.cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 14px }
+.cat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 18px 12px }
+.cat h2 { font-size: 18px }
+.cat > p { color: var(--muted); font-size: 14px; margin: 4px 0 10px }
+.cat ul { list-style: none; margin: 0; padding: 0 }
+.cat li a { display: block; padding: 7px 0; border-top: 1px solid var(--line); color: var(--fg); text-decoration: none; font-weight: 500 }
+.cat li a:hover { color: var(--accent) }
+.cat.trouble { border-color: color-mix(in srgb, var(--hl) 45%, var(--line)); background: color-mix(in srgb, var(--hl) 5%, var(--surface)) }
+.cat.trouble h2::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--hl); margin-right: 8px; vertical-align: 2px }
+
+/* Search results */
+.results-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 14px }
+.results-head h2 { font-size: 20px }
+.results-head p { margin: 0; color: var(--muted) }
+.closest { background: var(--accent-soft); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px }
+.closest b { font-family: var(--display) }
+.closest button { font: inherit; font-weight: 600; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px }
+.results { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
+.result a { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; text-decoration: none; color: var(--fg) }
+.result a:hover { border-color: var(--accent) }
+.result .t { font: 700 17px/1.3 var(--display) }
+.result .c { display: inline-block; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px }
+.result .s { color: var(--muted); font-size: 15px; margin-top: 4px }
+mark { background: var(--mark); color: var(--mark-fg); border-radius: 3px; padding: 0 2px }
+
+/* An article */
+.article { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 36px; align-items: start }
+@media (max-width: 900px) { .article { grid-template-columns: minmax(0, 1fr) } .side { order: 2 } }
+.crumbs { font-size: 14px; color: var(--muted); margin-bottom: 10px }
+.crumbs a { color: var(--muted) }
+.body { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: clamp(18px, 4vw, 36px); min-width: 0 }
+.body h1 { font-size: clamp(26px, 4vw, 34px) }
+.body .lead { color: var(--muted); font-size: 18px; margin: 8px 0 22px }
+.body h2 { font-size: 21px; margin: 28px 0 8px }
+.body h3 { font-size: 17px; margin: 22px 0 6px }
+.body p { margin: 0 0 14px }
+.body ul, .body ol { margin: 0 0 16px; padding-left: 24px }
+.body li { margin: 6px 0 }
+.body li > ul, .body li > ol { margin: 6px 0 0 }
+.body code { font-size: 0.92em; background: var(--sunk); border-radius: 5px; padding: 1px 5px }
+.table { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 10px }
+.body table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 15px }
+.body th, .body td { text-align: left; padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: top }
+.body thead th { border-top: 0; background: var(--sunk); font-weight: 600 }
+.body tbody th { font-weight: 600 }
+figure { margin: 18px 0 22px }
+figure .zoom { display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--sunk); cursor: zoom-in }
+figure img { display: block; width: 100%; height: auto; max-height: 560px; object-fit: contain; object-position: top center }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px }
+figcaption span { display: block }
+.stuck { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: var(--accent-soft); font-size: 15px }
+.side { position: sticky; top: 16px; display: grid; gap: 14px }
+.side section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px }
+.side h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px }
+.side ul { list-style: none; margin: 0; padding: 0 }
+.side li a { display: block; padding: 6px 0; color: var(--fg); text-decoration: none; font-size: 15px }
+.side li a[aria-current="page"] { color: var(--accent); font-weight: 600 }
+.side li a:hover { color: var(--accent) }
+.back { display: inline-block; margin-top: 18px; font-weight: 600 }
+
+/* Enlarged screenshot */
+dialog.lightbox { border: 0; padding: 0; background: transparent; max-width: min(96vw, 1400px); max-height: 94vh }
+dialog.lightbox::backdrop { background: rgba(10, 14, 12, .78) }
+dialog.lightbox img { display: block; max-width: 100%; max-height: 88vh; border-radius: 10px; background: #fff }
+dialog.lightbox p { color: #fff; margin: 8px 2px 0; font-size: 14px }
+dialog.lightbox button { position: absolute; top: 8px; right: 8px; font: 600 14px/1 var(--text); background: rgba(0,0,0,.6); color: #fff; border: 0; border-radius: 999px; padding: 9px 12px; cursor: pointer }
+footer { color: var(--muted); font-size: 14px; padding: 0 0 40px }
+@media (prefers-reduced-motion: no-preference) { .result, .cat { transition: border-color .15s } }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="#" data-home><svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--accent)"/><circle cx="12" cy="16.5" r="5" fill="none" stroke="var(--accent-fg)" stroke-width="2.6"/><circle cx="20" cy="16.5" r="5" fill="none" stroke="var(--accent-fg)" stroke-width="2.6"/></svg>Skedoo <span>Help Centre</span></a>
+</div></header>
+<section class="hero" aria-labelledby="heroT"><div class="wrap">
+  <h1 id="heroT">How can we help?</h1>
+  <p>How everything in Skedoo works, in plain English, and what to do when something isn't working. {{count}} articles.</p>
+  <form class="search" role="search" id="searchForm">
+    <label class="sr" for="q">Search the help centre</label>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+    <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder='Try "refund", "can&#39;t book" or "closures"' aria-describedby="searchHint">
+    <button type="button" class="clear" id="clear" hidden>Clear</button>
+  </form>
+  <p class="hint" id="searchHint">Press <kbd>/</kbd> to search. Popular: <button type="button" data-q="refund">refund</button>, <button type="button" data-q="can't book a client">can't book a client</button>, <button type="button" data-q="online payments">online payments</button>, <button type="button" data-q="closures">closures</button></p>
+</div></section>
+<main id="main" tabindex="-1"><div class="wrap" id="view"></div></main>
+<footer><div class="wrap">For a quick answer about your own studio, use <b>Ask</b> in the app. This help centre is for Skedoo studios only.</div></footer>
+<dialog class="lightbox" id="lightbox" aria-label="Enlarged screenshot"><img alt=""><p></p><button type="button" id="lbClose">Close</button></dialog>
+<script>
+(() => {
+  "use strict";
+  const CATEGORIES = /*CATEGORIES*/[];
+  const ARTICLES = /*ARTICLES*/[];
+  const byId = Object.fromEntries(ARTICLES.map((a) => [a.id, a]));
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const view = $("#view"), input = $("#q"), clear = $("#clear");
+
+  // ---------------------------------------------------------------------------------------------
+  // Search. Words are matched exactly, by their stem (refunds = refund), by meaning (money back =
+  // refund), by their start (canc = cancel) and with small typos (refnud = refund). When nothing
+  // matches well, the closest articles are shown instead, by how much their wording overlaps.
+  // ---------------------------------------------------------------------------------------------
+  const STOP = new Set("a an and are as at be by can do does for from get got have how i i'm im in is it its me my of on or our so that the their them then there this to up use using want was we what when where which who why will with you your".split(" "));
+  const norm = (s) => s.toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  const stem = (w) => {
+    if (w.length > 5 && w.endsWith("ing")) return w.slice(0, -3);
+    if (w.length > 4 && w.endsWith("ies")) return w.slice(0, -3) + "y";
+    if (w.length > 4 && w.endsWith("ed")) return w.slice(0, -2);
+    if (w.length > 4 && w.endsWith("es") && /(ch|sh|ss|x|z)es$/.test(w)) return w.slice(0, -2);
+    if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0, -1);
+    return w;
+  };
+  const words = (s) => norm(s).split(" ").filter((w) => w && !STOP.has(w)).map(stem);
+  // Words that mean the same thing to a studio. Each group is matched as one meaning.
+  const GROUPS = [
+    "refund|money back|reimburse|repay|give back",
+    "cancel|cancellation|cancelled|call off",
+    "class|session|lesson",
+    "package|pack|credit|bundle|pass|class pack",
+    "membership|subscription|unlimited|recurring payment",
+    "client|member|customer|student|attendee",
+    "instructor|teacher|coach|trainer",
+    "book|booking|reserve|reservation|enrol|enroll|sign up client",
+    "schedule|timetable|calendar|roster",
+    "fee|charge|penalty|fine",
+    "waiver|consent|disclaimer",
+    "sign in|login|log in|logon",
+    "email|mail|e mail",
+    "pay|payment|card|stripe|checkout|paynow|grabpay",
+    "closure|holiday|closed|shut",
+    "attendance|check in|register|no show|noshow",
+    "report|analytic|stat|numbers|export",
+    "cover|substitute|sub|replacement",
+    "price|cost|plan|pricing",
+    "delete|remove",
+    "cant|cannot|unable|wont|not working|doesnt work|broken|error|problem|issue|fail|failed|stuck",
+    "extension|extend|freeze|pause",
+    "waitlist|waiting list|wait list",
+    "shop|merch|merchandise|store",
+    "ask|assistant|chatbot|bot|ai",
+    "message|whatsapp|inbox|chat",
+    "announcement|notice|news|broadcast|tell client",
+    "role|permission|access|admin|front of house|foh",
+  ].map((g) => g.split("|").map((p) => words(p).join(" ")).filter(Boolean));
+  const meaningOf = new Map();
+  GROUPS.forEach((g, i) => g.forEach((p) => meaningOf.set(p, i)));
+  const TROUBLE = GROUPS.findIndex((g) => g.includes("cant"));
+
+  // Each article's words by field, with how much a match in that field counts.
+  const FIELDS = [["title", 8], ["keywords", 6], ["summary", 4], ["headings", 3], ["text", 1]];
+  const index = ARTICLES.map((a) => {
+    const f = { title: a.title, keywords: a.keywords.join(" , "), summary: a.summary, headings: a.headings.join(" , "), text: a.text };
+    const fields = {};
+    for (const [k] of FIELDS) {
+      const list = words(f[k]);
+      const counts = new Map(); list.forEach((w) => counts.set(w, (counts.get(w) || 0) + 1));
+      // Two-word phrases, so "money back" and "check in" can match as one meaning.
+      const phrases = new Set(list.slice(1).map((w, i) => list[i] + " " + w));
+      const meanings = new Set();
+      [...counts.keys(), ...phrases].forEach((p) => meaningOf.has(p) && meanings.add(meaningOf.get(p)));
+      fields[k] = { counts, phrases, meanings, raw: norm(f[k]) };
+    }
+    return { a, fields };
+  });
+  const vocab = new Set(index.flatMap((x) => [...x.fields.title.counts.keys(), ...x.fields.keywords.counts.keys(), ...x.fields.summary.counts.keys(), ...x.fields.headings.counts.keys(), ...x.fields.text.counts.keys()]));
+
+  // Small typos: at most one edit for short words, two for long ones.
+  function near(a, b) {
+    if (Math.abs(a.length - b.length) > 2) return false;
+    const max = a.length >= 7 ? 2 : a.length >= 4 ? 1 : 0;
+    if (!max) return false;
+    // Edit distance, counting two swapped letters as one edit.
+    let older = null, prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      let best = cur[0];
+      for (let j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        if (older && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cur[j] = Math.min(cur[j], older[j - 2] + 1);
+        best = Math.min(best, cur[j]);
+      }
+      if (best > max) return false;
+      older = prev; prev = cur;
+    }
+    return prev[b.length] <= max;
+  }
+  const typoCache = new Map();
+  const corrections = (w) => {
+    if (!typoCache.has(w)) typoCache.set(w, vocab.has(w) ? [] : [...vocab].filter((v) => near(w, v)));
+    return typoCache.get(w);
+  };
+
+  function termsOf(q) {
+    const list = words(q);
+    const terms = [];
+    for (let i = 0; i < list.length; i++) {
+      const two = i + 1 < list.length ? list[i] + " " + list[i + 1] : null;
+      if (two && meaningOf.has(two)) { terms.push({ w: two, phrase: true, meaning: meaningOf.get(two) }); i++; continue; }
+      terms.push({ w: list[i], meaning: meaningOf.get(list[i]) });
+    }
+    return terms;
+  }
+
+  function score(entry, terms, qraw) {
+    let total = 0, matched = 0;
+    const hits = new Set();
+    for (const t of terms) {
+      let best = 0;
+      for (const [k, weight] of FIELDS) {
+        const f = entry.fields[k];
+        let m = 0;
+        if (t.phrase ? f.phrases.has(t.w) : f.counts.has(t.w)) { m = 1; hits.add(t.w); }
+        else if (t.meaning !== undefined && f.meanings.has(t.meaning)) m = 0.75;
+        else if (!t.phrase && t.w.length >= 3) {
+          for (const w of f.counts.keys()) {
+            if (w.startsWith(t.w) || (t.w.length >= 5 && t.w.startsWith(w) && w.length >= 4)) { m = Math.max(m, 0.6); hits.add(w); }
+            else if (corrections(t.w).includes(w)) { m = Math.max(m, 0.55); hits.add(w); }
+          }
+        }
+        const repeat = k === "text" && m ? Math.min(3, 1 + Math.log2((f.counts.get(t.w) || 1))) : 1;
+        best = Math.max(best, m * weight * repeat);
+      }
+      if (best) matched++;
+      total += best;
+    }
+    if (!terms.length) return { s: 0, hits };
+    if (matched === terms.length && terms.length > 1) total *= 1.5;
+    if (qraw.length > 3 && (entry.fields.title.raw.includes(qraw) || entry.fields.keywords.raw.includes(qraw))) total += 10;
+    // "Can't", "not working", "error": troubleshooting first.
+    if (terms.some((t) => t.meaning === TROUBLE) && entry.a.category === "Troubleshooting") total *= 1.4;
+    return { s: total * (matched / terms.length), hits };
+  }
+
+  // Closest by overlapping letters (for when nothing matches well).
+  const grams = (s) => { const t = ` ${norm(s)} `; const g = new Set(); for (let i = 0; i < t.length - 2; i++) g.add(t.slice(i, i + 3)); return g; };
+  const gramIndex = ARTICLES.map((a) => ({ a, g: grams(`${a.title} ${a.title} ${a.keywords.join(" ")} ${a.summary}`) }));
+  function closest(q, n = 5) {
+    const qg = grams(q);
+    if (!qg.size) return [];
+    return gramIndex.map(({ a, g }) => { let both = 0; qg.forEach((x) => g.has(x) && both++); return { a, s: both / qg.size }; })
+      .filter((x) => x.s > 0.08).sort((x, y) => y.s - x.s).slice(0, n).map((x) => x.a);
+  }
+
+  function search(q) {
+    const terms = termsOf(q);
+    const qraw = norm(q);
+    const ranked = index.map((e) => ({ a: e.a, ...score(e, terms, qraw) })).filter((x) => x.s > 0).sort((x, y) => y.s - x.s);
+    const strong = ranked.filter((x) => x.s >= 4 && x.s >= ranked[0].s * 0.25);
+    // A typo we can fix: "refnd" -> "refund".
+    let fixed = null;
+    const fixes = terms.map((t) => (t.phrase || vocab.has(t.w) || t.meaning !== undefined ? null : corrections(t.w)[0]));
+    if (fixes.some(Boolean)) fixed = norm(q).split(" ").map((w) => { const f = corrections(stem(w))[0]; return f && !vocab.has(stem(w)) && !STOP.has(w) ? f : w; }).join(" ");
+    if (strong.length) return { kind: "match", list: strong.slice(0, 12), fixed };
+    const near = ranked.slice(0, 5).map((x) => x.a);
+    const more = closest(q).filter((a) => !near.includes(a));
+    const list = [...near, ...more].slice(0, 5);
+    return { kind: "closest", list: (list.length ? list : ARTICLES.filter((a) => a.category === "Getting started")).map((a) => ({ a, hits: new Set() })), fixed };
+  }
+
+  // The sentence that best shows why an article matched, with the matched words marked.
+  function snippet(a, q) {
+    const ts = termsOf(q).map((t) => t.w.split(" ")[0]).filter((w) => w.length > 2);
+    if (!ts.length) return esc(a.summary);
+    const sentences = a.text.split(/(?<=[.!?])\s+/);
+    const hit = sentences.find((s) => ts.some((t) => norm(s).split(" ").some((w) => stem(w).startsWith(t) || (t.length >= 4 && corrections(t).includes(stem(w))))));
+    const base = hit && hit.length < 260 ? hit : a.summary;
+    let out = esc(base);
+    for (const t of ts) out = out.replace(new RegExp(`\\b(${t.replace(/[^a-z0-9]/g, "")}[a-z]*)`, "gi"), "<mark>$1</mark>");
+    return out;
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Views: home (every section), search results, and an article.
+  // ---------------------------------------------------------------------------------------------
+  function home() {
+    document.title = "Skedoo Help Centre";
+    view.innerHTML = `<h2 class="sr">Topics</h2><div class="cats">${CATEGORIES.map(([c, d]) => {
+      const list = ARTICLES.filter((a) => a.category === c);
+      return `<section class="cat ${c === "Troubleshooting" ? "trouble" : ""}" aria-labelledby="c-${slug(c)}"><h2 id="c-${slug(c)}">${esc(c)}</h2><p>${esc(d)}</p><ul>${list.map((a) => `<li><a href="#${a.id}">${esc(a.title)}</a></li>`).join("")}</ul></section>`;
+    }).join("")}</div>`;
+  }
+  const slug = (s) => norm(s).replace(/ /g, "-");
+
+  function results(q) {
+    const r = search(q);
+    document.title = `“${q}”: Skedoo Help Centre`;
+    const fix = r.fixed && r.fixed !== norm(q) ? `<p class="closest">Did you mean <button type="button" data-q="${esc(r.fixed)}">${esc(r.fixed)}</button>?</p>` : "";
+    const head = r.kind === "match"
+      ? `<div class="results-head"><h2>${r.list.length} ${r.list.length === 1 ? "article" : "articles"} for “${esc(q)}”</h2><p>Best match first</p></div>${fix}`
+      : `<div class="results-head"><h2>No exact match for “${esc(q)}”</h2></div>${fix}<p class="closest" id="closestNote"><b>These are the closest.</b> Try fewer words, or describe what you're trying to do, like “move a class” or “client can't pay”.</p>`;
+    view.innerHTML = `${head}<ol class="results" aria-label="Results">${r.list.map(({ a }) => `<li class="result"><a href="#${a.id}"><span class="c">${esc(a.category)}</span><div class="t">${esc(a.title)}</div><div class="s">${snippet(a, q)}</div></a></li>`).join("")}</ol>`;
+    $("#live").textContent = r.kind === "match" ? `${r.list.length} results` : "No exact match. Showing the closest articles.";
+  }
+
+  function article(a) {
+    document.title = `${a.title}: Skedoo Help Centre`;
+    const same = ARTICLES.filter((x) => x.category === a.category);
+    const trouble = a.category === "Troubleshooting" ? [] : ARTICLES.filter((x) => x.category === "Troubleshooting" && x.keywords.some((k) => a.keywords.includes(k))).slice(0, 3);
+    view.innerHTML = `<div class="article">
+      <article class="body" aria-labelledby="aT">
+        <nav class="crumbs" aria-label="Breadcrumb"><a href="#" data-home>Help centre</a> › ${esc(a.category)}</nav>
+        <h1 id="aT">${esc(a.title)}</h1>
+        <p class="lead">${esc(a.summary)}</p>
+        ${a.html}
+        <p class="stuck"><b>Still stuck?</b> Use <b>Ask</b> in the app for a quick answer about your own studio, like why a particular client can't be booked.</p>
+        <a class="back" href="#" data-home>← All topics</a>
+      </article>
+      <aside class="side">
+        <section aria-labelledby="sideT"><h2 id="sideT">${esc(a.category)}</h2><ul>${same.map((x) => `<li><a href="#${x.id}" ${x.id === a.id ? 'aria-current="page"' : ""}>${esc(x.title)}</a></li>`).join("")}</ul></section>
+        ${trouble.length ? `<section aria-labelledby="troT"><h2 id="troT">If something's wrong</h2><ul>${trouble.map((x) => `<li><a href="#${x.id}">${esc(x.title)}</a></li>`).join("")}</ul></section>` : ""}
+      </aside></div>`;
+  }
+
+  // Routing: #article-id, #q=search, or nothing for home. Back and forward work as expected.
+  function route() {
+    const h = decodeURIComponent(location.hash.slice(1));
+    if (h.startsWith("q=")) { document.body.classList.remove("reading"); const q = h.slice(2); if (input.value !== q) input.value = q; clear.hidden = !q; return q.trim() ? results(q) : home(); }
+    document.body.classList.toggle("reading", !!byId[h]);
+    if (byId[h]) { input.value = ""; clear.hidden = true; article(byId[h]); window.scrollTo(0, 0); $("#main").focus({ preventScroll: true }); return; }
+    input.value = ""; clear.hidden = true; home();
+  }
+  let timer;
+  const go = (q, push) => { const target = q.trim() ? `#q=${encodeURIComponent(q)}` : "#"; if (push) location.hash = target; else history.replaceState(null, "", target === "#" ? location.pathname + location.search : target), route(); };
+  input.addEventListener("input", () => { clear.hidden = !input.value; clearTimeout(timer); timer = setTimeout(() => go(input.value, !location.hash.startsWith("#q=")), 160); });
+  $("#searchForm").addEventListener("submit", (e) => { e.preventDefault(); go(input.value, false); view.querySelector(".result a")?.focus(); });
+  clear.addEventListener("click", () => { input.value = ""; go("", false); input.focus(); });
+  document.addEventListener("click", (e) => {
+    const q = e.target.closest("[data-q]");
+    if (q) { input.value = q.dataset.q; go(q.dataset.q, true); return; }
+    if (e.target.closest("[data-home]")) { e.preventDefault(); location.hash = ""; route(); return; }
+    const z = e.target.closest(".zoom");
+    if (z) { const img = $("img", z), lb = $("#lightbox"); $("img", lb).src = img.src; $("img", lb).alt = img.alt; $("p", lb).textContent = img.alt; lb.showModal(); }
+  });
+  $("#lbClose").addEventListener("click", () => $("#lightbox").close());
+  $("#lightbox").addEventListener("click", (e) => { if (e.target.id === "lightbox") e.target.close(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement !== input && !/input|textarea/i.test(document.activeElement.tagName)) { e.preventDefault(); input.focus(); input.select(); }
+    if (e.key === "Escape" && document.activeElement === input && input.value) { input.value = ""; go("", false); }
+  });
+  window.addEventListener("hashchange", route);
+  document.body.insertAdjacentHTML("beforeend", '<div class="sr" aria-live="polite" id="live"></div>');
+  window.__help = { search };
+  route();
+})();
+</script>
+</body>
+</html>

@@ -8,6 +8,8 @@ COPY packages/shared/package.json packages/shared/
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm --filter @studio/api build && pnpm --filter @studio/api deploy --prod --legacy /out
+# The help centre (served to staff at /help): plain Node, no packages needed.
+RUN node apps/help/build.mjs
 
 FROM node:22-slim
 ENV NODE_ENV=production
@@ -18,6 +20,7 @@ COPY --from=build /app/apps/api/drizzle ./drizzle
 # The help guide the support assistant reads.
 COPY --from=build /app/docs/help ./docs/help
 COPY --from=build /app/docs/PRODUCT_NOTES.md ./docs/PRODUCT_NOTES.md
+COPY --from=build /app/apps/help/dist ./help
 ENV MIGRATIONS_DIR=/app/drizzle
 # Run as an unprivileged user, never root.
 USER node
