@@ -13,13 +13,13 @@
   },
   "dependencies": {
     "@studio/shared": "workspace:*",
-    "@supabase/supabase-js": "2.119.0",
+    "@supabase/supabase-js": "2.119.2",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "7.18.5"
+    "react-router-dom": "7.18.6"
   },
   "devDependencies": {
-    "@testing-library/react": "16.0.1",
+    "@testing-library/react": "16.3.3",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.4",
