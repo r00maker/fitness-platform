@@ -14,7 +14,13 @@ const fileEnv = existsSync(new URL("./.env", import.meta.url))
   ? Object.fromEntries(read("./.env").split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim().replace(/^["']|["']$/g, "")]))
   : {};
 const env = (k) => (process.env[k] ?? fileEnv[k] ?? "").trim();
-const trialConf = { api: env("SITE_API_URL"), supabaseUrl: env("SITE_SUPABASE_URL"), supabaseKey: env("SITE_SUPABASE_KEY"), studioApp: env("SITE_STUDIO_APP_URL") };
+// SITE_TRIAL=preview keeps the trial page a preview (nothing sent, nothing made) even with the
+// settings filled in; anything else (or unset) uses them.
+const trialMode = env("SITE_TRIAL").toLowerCase();
+if (trialMode && !["preview", "live"].includes(trialMode)) throw new Error('SITE_TRIAL should be "preview" or "live".');
+const trialConf = trialMode === "preview"
+  ? { api: "", supabaseUrl: "", supabaseKey: "", studioApp: "" }
+  : { api: env("SITE_API_URL"), supabaseUrl: env("SITE_SUPABASE_URL"), supabaseKey: env("SITE_SUPABASE_KEY"), studioApp: env("SITE_STUDIO_APP_URL") };
 // The page is public, so only the publishable key may go in it: never the secret or service-role key.
 {
   const k = trialConf.supabaseKey;
@@ -76,7 +82,7 @@ ${body}
 `;
 
 mkdirSync(new URL(process.env.RENDER ? "./dist/" : "./dist/artifact/", import.meta.url), { recursive: true });
-console.log(`free trial: ${trialConf.api && trialConf.supabaseKey ? `live (API ${trialConf.api}, Supabase ${trialConf.supabaseUrl})` : trialConf.api ? `local (API ${trialConf.api}, dev sign-in)` : "preview (set SITE_API_URL and the Supabase settings to switch it on)"}`);
+console.log(`free trial: ${trialConf.api && trialConf.supabaseKey ? `live (API ${trialConf.api}, Supabase ${trialConf.supabaseUrl})` : trialConf.api ? `local (API ${trialConf.api}, dev sign-in)` : (trialMode === "preview" ? "preview (SITE_TRIAL=preview)" : "preview (set SITE_API_URL and the Supabase settings to switch it on)")}`);
 for (const name of PAGES) {
   const p = parts(name);
   const html = full(p);

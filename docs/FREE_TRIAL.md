@@ -59,6 +59,7 @@ When the 14 days are up, the studio is **read-only**: it can be looked at, but n
     - **Still to do in Supabase's dashboard:** our own email sender, and `{{ .Token }}` in the **Magic Link** and **Confirm signup** templates, so the email carries the 6-digit code (see `docs/WEB_APP.md`). Without the token, Supabase's standard email has only a link, which the trial page doesn't use.
   - **Locally:** with `SITE_API_URL` alone (e.g. `http://localhost:3000`), it uses the API's dev sign-in, and the code is 000000.
   - **With neither:** it's a preview that says so, sends nothing and makes nothing.
+  - **`SITE_TRIAL=preview`** keeps it a preview even with the settings filled in. That's how skedoo.io runs for now, while we're testing (see `docs/DEPLOY_RENDER.md`).
   - **Checked by** `apps/site/check.mjs`: the steps, the messages and that the terms match the API's, on desktop and phone. `node check.mjs --live` also runs it against a seeded local API: with dev sign-in (a new studio, a second try refused, the test studio, a throwaway inbox), and with Supabase sign-in, using a stand-in for Supabase's email-code endpoints whose tokens the API checks against published keys, as it does the real project's (so no real email is sent).
 
 ## Is a free trial a good idea?
