@@ -40,6 +40,7 @@ const found = readdirSync(new URL("./src/pages/", import.meta.url)).map((f) => f
 for (const p of PAGES) if (!found.includes(p)) throw new Error(`src/pages/${p}.html is missing.`);
 
 const shared = `<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23a6c0dc'/%3E%3Ccircle cx='12' cy='16.5' r='5' fill='none' stroke='%230e1115' stroke-width='2.6'/%3E%3Ccircle cx='20' cy='16.5' r='5' fill='none' stroke='%230e1115' stroke-width='2.6'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=Manrope:wght@500..700&display=swap">

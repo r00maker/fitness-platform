@@ -287,7 +287,7 @@ export function demoAccount(key: string, ctx: { packages: Package[]; studioName:
       return wait({ message: r.id === "r2" ? "Redeemed. Show the code at the front desk." : "Redeemed. It's in your account." });
     },
     referral: () => wait(key === "aizome" ? { enabled: false } : {
-      enabled: true, code: `${ctx.member.toUpperCase()}${key === "tidal" ? "19" : "47"}`, link: `book.studioapp.sg/r/${ctx.member.toLowerCase()}`,
+      enabled: true, code: `${ctx.member.toUpperCase()}${key === "tidal" ? "19" : "47"}`, link: `book.skedoo.io/r/${ctx.member.toLowerCase()}`,
       howItWorks: ["Your friend gets their first class free.", "You get SGD 20 of credit once they've been to 2 classes."],
       friends: key === "linden" ? [{ name: "Hannah W.", statusLabel: "You got your reward" }, { name: "Sam K.", statusLabel: "Joined: not qualified yet" }] : [],
       rewardsEarned: key === "linden" ? 1 : 0,

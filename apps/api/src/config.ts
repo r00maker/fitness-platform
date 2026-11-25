@@ -21,7 +21,7 @@ const envSchema = z
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
     EMAIL_PROVIDER: z.enum(["console", "postmark"]).default("console"),
     POSTMARK_TOKEN: z.string().optional(),
-    EMAIL_FROM: z.string().default("Studio <no-reply@example.com>"),
+    EMAIL_FROM: z.string().default("Skedoo <hello@skedoo.io>"),
     PUSH_PROVIDER: z.enum(["console", "expo"]).default("console"),
     /** Where the API can be reached from outside (used for images and unsubscribe links in emails). */
     PUBLIC_API_URL: z.string().url().default("http://localhost:3000"),

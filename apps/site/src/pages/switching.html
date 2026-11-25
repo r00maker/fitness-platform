@@ -1,4 +1,4 @@
-<title>Switching studios over</title>
+<title>Switching to Skedoo</title>
 <meta name="description" content="How we move your studio from Mindbody, Momence, Glofox or a spreadsheet, and a fair, dated comparison with each.">
 <style>
 .steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); counter-reset: s }
@@ -248,7 +248,7 @@ table.vs { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 
 
     panel.append(el("p", { class: "vs-note", text: `${f.name}'s published prices are where quotes start. Higher tiers, apps and add-ons are priced after a sales call, so the figure you're quoted can only match these or go up. Ours is the whole price.` }));
     const t = el("table", { class: "vs" });
-    const hr = el("tr", {}, [el("th", { scope: "col", html: '<span style="position:absolute;left:-9999px">Compared</span>' }), el("th", { scope: "col", class: "us", text: "Us" }), el("th", { scope: "col", text: f.name })]);
+    const hr = el("tr", {}, [el("th", { scope: "col", html: '<span style="position:absolute;left:-9999px">Compared</span>' }), el("th", { scope: "col", class: "us", text: "Skedoo" }), el("th", { scope: "col", text: f.name })]);
     t.append(el("thead", {}, [hr]));
     const body = el("tbody");
     ROWS.forEach(([label, key]) => body.append(el("tr", {}, [el("th", { scope: "row", text: label }), cell(US[key], "us"), cell(f.them[key])])));

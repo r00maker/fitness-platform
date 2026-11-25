@@ -157,7 +157,7 @@ Clients can pay online by card, Apple Pay, Google Pay, PayNow and GrabPay once y
 
 Under **Setup**, **Booking page**:
 
-- **Your link**, like book.studioapp.sg/s/your-studio. Anyone can see your timetable and packages there without signing in; they sign in (or create an account) to book or buy, then everything works as in the app. Put it in your Instagram bio and Google Business profile. Choose the link carefully: changing it later breaks the old one.
+- **Your link**, like book.skedoo.io/s/your-studio. Anyone can see your timetable and packages there without signing in; they sign in (or create an account) to book or buy, then everything works as in the app. Put it in your Instagram bio and Google Business profile. Choose the link carefully: changing it later breaks the old one.
 - **On or off**, a line at the top (what you offer, who it's for), and the colour of the buttons.
 - **On your website:** copy the code into your website's "Embed" or "Custom code" block (Wix, Squarespace, WordPress, Webflow all have one). It shows your timetable with spots left and Book buttons. You can show one location only and choose light, dark or the visitor's own setting. It doesn't change the rest of your website.
 

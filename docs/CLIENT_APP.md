@@ -84,7 +84,7 @@ Asking for more time can include a photo or PDF, like a doctor's note. It's need
 To build one:
 
 ```bash
-STUDIO_SLUG=linden APP_ID=sg.studioapp.linden APP_NAME="Linden Reformer" VITE_STUDIO=linden VITE_API_URL=https://api.studioapp.sg pnpm --filter @studio/client native:sync
+STUDIO_SLUG=linden APP_ID=io.skedoo.linden APP_NAME="Linden Reformer" VITE_STUDIO=linden VITE_API_URL=https://api.skedoo.io pnpm --filter @studio/client native:sync
 ```
 
 Then open `ios/` in Xcode (on a Mac) or `android/` in Android Studio to sign and upload. Each studio needs its own App Store and Play listing, under our developer accounts or theirs. Push notifications come next.

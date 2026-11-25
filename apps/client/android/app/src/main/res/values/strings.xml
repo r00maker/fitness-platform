@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Studio</string>
     <string name="title_activity_main">Studio</string>
-    <string name="package_name">sg.studioapp.client</string>
-    <string name="custom_url_scheme">sg.studioapp.client</string>
+    <string name="package_name">io.skedoo.client</string>
+    <string name="custom_url_scheme">io.skedoo.client</string>
 </resources>
