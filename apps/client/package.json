@@ -16,7 +16,7 @@
     "native:android": "cap open android"
   },
   "dependencies": {
-    "@capacitor/app": "7.0.2",
+    "@capacitor/app": "8.1.2",
     "@capacitor/core": "7.4.2",
     "@capacitor/keyboard": "7.0.2",
     "@capacitor/status-bar": "7.0.2",
