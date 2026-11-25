@@ -25,19 +25,18 @@
 
 ## Check it
 
-- `https://studio-api.onrender.com/health` shows `{"ok":true}`.
-- `https://studio-site.onrender.com/trial.html` shows the trial page with no "preview" note.
+Our addresses are `https://studio-api-td8z.onrender.com` (the API) and `https://studio-site-tkib.onrender.com` (the site). The plain `studio-api.onrender.com` and `studio-site.onrender.com` belong to another Render account.
+- `https://studio-api-td8z.onrender.com/health` shows `{"ok":true}`.
+- `https://studio-site-tkib.onrender.com/trial.html` shows the trial page with no "preview" note.
 
-If Render gave a service a different address (it adds a suffix when a name is taken), update these to the real addresses, then use **Manual Deploy** on the API, the worker and the site:
-- `PUBLIC_API_URL` and `CORS_ORIGINS` in the `studio-api-settings` environment group;
-- `SITE_API_URL` on `studio-site`.
+If you ever recreate the services and Render gives them different addresses, change `PUBLIC_API_URL`, `CORS_ORIGINS` and `SITE_API_URL` in `render.yaml` (not in the dashboard: Render re-applies the file on every sync) and merge. Until they match, the site would send sign-ups to whatever server holds the old address.
 
 ## In Supabase (once)
 
 Supabase dashboard, project `lezcugmdxretpofadjio`:
 1. **Authentication → Emails → SMTP Settings:** add your own email sender, such as Postmark on your domain. Until you do, Supabase sends only a couple of emails an hour and doesn't let you edit the templates.
 2. **Authentication → Emails → Templates:** put `{{ .Token }}` in **Magic Link** and in **Confirm signup**, so the email carries the 6-digit code the trial page asks for.
-3. **Authentication → URL Configuration:** set the Site URL to the site's address (`https://studio-site.onrender.com`, or your domain later).
+3. **Authentication → URL Configuration:** set the Site URL to the site's address (`https://studio-site-tkib.onrender.com`, or your domain later).
 
 ## Later
 
