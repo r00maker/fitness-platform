@@ -1,4 +1,4 @@
-package sg.studioapp.client;
+package io.skedoo.client;
 
 import com.getcapacitor.BridgeActivity;
 

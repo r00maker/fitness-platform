@@ -118,7 +118,7 @@ for (const [label, opts] of [["desk", { viewport: { width: 1440, height: 900 } }
   const mo = await text("#fromPanel");
   ok(`${label} switching: Momence comparison in SGD, with where we're stronger`, /Moving from Momence/.test(mo) && /SGD 585\+/.test(mo) && /Where we're stronger than Momence/.test(mo) && /Where Momence is stronger/.test(mo));
   ok(`${label} switching: locations covered, compared`, /Locations covered/.test(await text("#fromPanel")) && /Up to 3 on Growth/.test(await text("#fromPanel")));
-  ok(`${label} switching: our column comes first`, (await p.locator("#fromPanel thead th").nth(1).innerText()) === "Us");
+  ok(`${label} switching: our column comes first`, (await p.locator("#fromPanel thead th").nth(1).innerText()) === "Skedoo");
   await p.locator('[data-from="sheet"]').click();
   ok(`${label} switching: spreadsheet has no comparison table`, (await p.locator("#fromPanel table").count()) === 0);
   ok(`${label} switching: questions for any sales call`, (await p.locator("#asks .ask-row").count()) === 7);

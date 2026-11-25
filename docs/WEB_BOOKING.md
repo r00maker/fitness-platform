@@ -4,7 +4,7 @@ Each studio gets a public booking page, and a timetable widget for its own websi
 
 ## The studio's link
 
-- Every studio has a link, `<PUBLIC_APP_URL>/s/<slug>` (for example `book.studioapp.sg/s/breathe-pilates`). Studios added in HQ get one from their name straight away; others are offered one on Setup, Booking page.
+- Every studio has a link, `<PUBLIC_APP_URL>/s/<slug>` (for example `book.skedoo.io/s/breathe-pilates`). Studios added in HQ get one from their name straight away; others are offered one on Setup, Booking page.
 - Links are 3 to 40 lowercase letters, numbers and dashes, unique across studios (a taken link suggests another, like `breathe-pilates-2`), and can't be words the app uses itself (`admin`, `api`, `login`, `s`, `widget`…).
 - Owners and admins (`manageSettings`) change it under Setup, Booking page (`GET/PUT /booking-page`), with an on/off switch, a line or two at the top (up to 300 characters) and the colour of buttons (the invoice colour unless set). Changing the link breaks the old one, so it's worth setting once.
 - The page is public only when it's saved, switched on and the studio is open (not while it's being set up, paused or cancelled). Otherwise it's "not found".

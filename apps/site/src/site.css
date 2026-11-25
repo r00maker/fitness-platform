@@ -52,9 +52,9 @@ p { margin: 0; text-wrap: pretty }
 .skip { position: absolute; left: -9999px } .skip:focus { left: 16px; top: 16px; z-index: 50; background: var(--fg); color: var(--ink); padding: 8px 14px }
 .num { font-variant-numeric: tabular-nums }
 
-/* Placeholders for the brand (until it's chosen). */
-.bn { border-bottom: 1.5px dashed currentColor; padding-bottom: 1px }
-.logo-ph { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 1.5px dashed var(--mute); border-radius: 9px; font: 600 10px/1 var(--text); color: var(--mute) }
+/* The brand: Skedoo. The mark is a stand-in until a designed logo replaces it. */
+.mark .logo { flex: none; color: var(--steel) }
+.wordmark { font-family: var(--display); font-weight: 700; font-size: 1.2rem; letter-spacing: -0.03em }
 
 /* Buttons: a pale primary, a hairline secondary. */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; font: 600 .98rem/1 var(--text); padding: 15px 22px; border-radius: 10px; border: 1px solid transparent; text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s, color .15s }
