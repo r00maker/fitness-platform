@@ -13,7 +13,7 @@
       if (state.role === "client") return;
       const prefs = document.querySelector('.side [data-nav="preferences"]');
       if (!prefs) return;
-      prefs.insertAdjacentHTML("afterend", `<a class="navitem helplink" id="helpLink" href="${HELP_URL}" target="_blank" rel="noopener" aria-label="Help centre (opens in a new tab)" data-help="How everything works, in plain English, with troubleshooting. Opens in a new tab.">${ICON}<span>Help centre</span>${OUT}</a>`);
+      prefs.insertAdjacentHTML("afterend", `<a class="navitem helplink" id="helpLink" href="${HELP_URL}" target="_blank" rel="noopener" aria-label="Help centre (opens in a new tab)" data-help="How everything works, with troubleshooting. Opens in a new tab.">${ICON}<span>Help centre</span>${OUT}</a>`);
     }
     const renderWithHelp = render;
     render = function () { // eslint-disable-line no-func-assign

@@ -18,7 +18,7 @@ Each studio gets a public booking page, and a timetable widget for its own websi
 | `GET /public/studios/:slug` | Name, the line at the top, logo, colour, locations, class types, the rules in brief (when booking opens and closes, cancelling, whether a package is needed, whether paying online is on, the waiver) and contact details. |
 | `GET /public/studios/:slug/schedule?date=&days=&locationId=&classTypeId=` | Up to 14 days from today, day by day: each class's time, length, location, room, instructor (first name and initial), spots left, and whether it's open, nearly full (3 or fewer), full with a waitlist, full, not open for booking yet (with the date it opens) or closed; days the studio is closed, with its message; and the link to book. |
 | `GET /public/studios/:slug/classes/:id` | One class: description, when and where, instructor, spots, what's needed to book (the cheapest packages that cover it, with their terms), the cancelling rule and the link to book. |
-| `GET /public/studios/:slug/packages` | What's on sale, cheapest first, with plain-English terms and a link to buy. |
+| `GET /public/studios/:slug/packages` | What's on sale, cheapest first, with its terms and a link to buy. |
 
 They show only what a member sees on the timetable: no one's name or booking, appointments stay private, past and cancelled classes are left out.
 

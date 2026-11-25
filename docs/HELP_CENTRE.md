@@ -1,6 +1,6 @@
 # The help centre
 
-A knowledge centre for studio staff: how everything in Skedoo works, in plain English, with troubleshooting for common problems. It sits alongside **Ask** (the assistant in the app):
+A knowledge centre for studio staff: how everything in Skedoo works, with troubleshooting for common problems. It sits alongside **Ask** (the assistant in the app):
 
 - **Ask:** a quick answer about your own studio right now.
 - **The help centre:** explains how everything works, for reading at your own pace.

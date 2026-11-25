@@ -1,6 +1,6 @@
 # Studio guide
 
-A plain-English guide to the app for studio staff. The in-app assistant reads this guide, so keep it accurate when screens change. The help centre (`docs/help/centre/`, see `docs/HELP_CENTRE.md`) covers the same ground for people to read; update both together.
+A guide to the app for studio staff. The in-app assistant reads this guide, so keep it accurate when screens change. The help centre (`docs/help/centre/`, see `docs/HELP_CENTRE.md`) covers the same ground for people to read; update both together.
 
 The **Help centre** link at the bottom of the menu (under Preferences) opens the help centre in a new tab, for staff.
 
